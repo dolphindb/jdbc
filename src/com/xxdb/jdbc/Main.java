@@ -5,9 +5,28 @@ import java.sql.*;
 public class Main {
     // JDBC 驱动名及数据库 URL
     private static final String JDBC_DRIVER = "com.xxdb.jdbc.Driver";
-    private static final String DB_URL = "jdbc:dolphindb://databaseName=/home/swang/dolphin/data/db01/t1";
+    //data目录有数据库文件
+    /*
+        timestamp = 2012.06.13 13:30:10.008
+
+        timestamp=09:30:00+rand(18000,n)
+
+        qty=100*(1+rand(100,n))
+
+        price=5.0+rand(100.0,n)
+
+        string=`IBM`C`MS`MSFT`JPM`ORCL`FB`GE
+
+        string=rand(string,n)
+
+        t1= table(timestamp,string,qty,price)
+     */
+    //使用时要修改路径
+
+    private static final String DB_URL = "jdbc:dolphindb://databasePath=/home/swang/dolphin/data/db01/t1";
 
     public static void main(String[] args) throws Exception{
+
         TestStatement();
         TestPreparedStatement();
     }
