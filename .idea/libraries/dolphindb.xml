@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="dolphindb">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/dolphindb.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
