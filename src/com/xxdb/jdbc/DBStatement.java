@@ -1,7 +1,5 @@
 package com.xxdb.jdbc;
 
-import com.xxdb.data.BasicTable;
-
 import java.sql.*;
 
 public class DBStatement implements Statement {
@@ -10,18 +8,16 @@ public class DBStatement implements Statement {
 
     private ResultSet resultSet;
 
-    private BasicTable table;
 
-    public DBStatement(_DBConnection cnn, BasicTable table){
+    public DBStatement(_DBConnection cnn){
         this.connection = cnn;
-        this.table = table;
     }
 
 
     @Override
     public ResultSet executeQuery(String s) throws SQLException {
         try {
-            resultSet = new DBResultSet(connection.getDb().run(s));
+            resultSet = new DBResultSet(connection.getDb().run(s),s);
             return resultSet;
         }catch (Exception e){
             e.printStackTrace();
@@ -104,7 +100,7 @@ public class DBStatement implements Statement {
     @Override
     public boolean execute(String s) throws SQLException {
         try {
-            connection.getDb().run(s);
+            resultSet = new DBResultSet(connection.getDb().run(s),s);
             return true;
         }catch (Exception e){
             return false;

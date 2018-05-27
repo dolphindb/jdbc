@@ -10,22 +10,58 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
 
-public class DBResultSet implements ResultSet {
+/**
+ * DBResultSet 的操作只适合 Vector 和 table, 否则操作会报空指针
+ * 如果是其他数据结构，本类提供 getEntity() 提供给开发者自行操作
+ */
 
+public class DBResultSet implements ResultSet{
+    private Entity entity;
     private BasicTable table;
-    private Vector vector;
     private int row = -1;
     private int rows;
 
     private boolean isClosed = false;
 
-    public DBResultSet(Entity Entity){
-        this.table = (BasicTable) Entity;
-        rows = table.rows();
+    public DBResultSet(Entity entity,String sql){
+        this.entity = entity;
+        if(entity.isVector()){
+            List<String> colNames = new ArrayList<>(1);
+            sql = sql.trim();
+            if(sql.contains("as")){
+                colNames.add(sql.split(" ")[3]);
+            }else{
+                colNames.add(sql.split(" ")[1]);
+            }
+            List<Vector> cols = new ArrayList<>(1);
+            cols.add((Vector)entity);
+            this.table = new BasicTable(colNames,cols);
+        }else if(entity.isTable()){
+            this.table = (BasicTable) entity;
+        }else{
+            return;
+        }
+        rows = this.table.rows();
         System.out.println(table.rows() + "  "+ table.columns());
+//        if(entity.isMatrix()){
+//            Matrix matrix = (BasicIntMatrix) entity;
+//            int col = matrix.getColumnLabels().rows();
+//            int row = matrix.getRowLabels().rows();
+//            List<Vector> cols = new ArrayList<>(col+1);
+//            for(int i=0; i<col; ++i){
+//                for(int j=0; j<row; ++j){
+//
+//                }
+//            }
+    }
+
+    public Entity getEntity() {
+        return entity;
     }
 
     @Override
@@ -274,18 +310,18 @@ public class DBResultSet implements ResultSet {
 
     @Override
     public String getCursorName() throws SQLException {
-        return null;
+        return table.getColumnName(row);
     }
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
-        return null;
+        return new DBResultSetMetaData(table);
     }
 
     @Override
-    public Object getObject(int i) throws SQLException {
+    public Object getObject(int columnIndex) throws SQLException {
         checkedClose();
-        return table.getColumn(i).get(row);
+        return table.getColumn(columnIndex).get(row);
     }
 
     @Override

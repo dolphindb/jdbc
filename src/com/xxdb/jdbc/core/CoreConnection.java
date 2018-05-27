@@ -51,7 +51,7 @@ public abstract class CoreConnection {
             System.out.println(hostname+port);
             success = db.connect(hostname, port);
             db.run(MessageFormat.format("{1} = loadTable(\"{0}\",`{1})",file,fileName));
-            table = (BasicTable) db.run(fileName);
+            //table = (BasicTable) db.run(fileName);
         }catch (Exception e){
             e.printStackTrace();
         }

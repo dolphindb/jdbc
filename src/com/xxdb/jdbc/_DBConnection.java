@@ -21,12 +21,12 @@ public class _DBConnection extends CoreConnection implements Connection {
 
     @Override
     public Statement createStatement() throws SQLException {
-        return new DBStatement(this,getTable());
+        return new DBStatement(this);
     }
 
     @Override
     public PreparedStatement prepareStatement(String s) throws SQLException {
-        return new DBPrepareStatement(this,getTable(),s);
+        return new DBPrepareStatement(this,s);
     }
 
     @Override

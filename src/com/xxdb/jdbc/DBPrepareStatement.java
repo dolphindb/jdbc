@@ -13,15 +13,13 @@ import java.util.Calendar;
 public class DBPrepareStatement extends DBStatement implements PreparedStatement {
 
     private _DBConnection cnn;
-    private BasicTable table;
     private String sql;
     private String[] sqls;
     private Object[] values;
 
-    public DBPrepareStatement(_DBConnection cnn, BasicTable table, String sql){
-        super(cnn,table);
+    public DBPrepareStatement(_DBConnection cnn, String sql){
+        super(cnn);
         this.cnn = cnn;
-        this.table = table;
         this.sql = sql.trim();
         sqls = this.sql.split("\\?");
         values = new Object[sqls.length+1];
@@ -111,7 +109,7 @@ public class DBPrepareStatement extends DBStatement implements PreparedStatement
     @Override
     public void setAsciiStream(int parameterIndex, InputStream x, int length) {
 
-    }
+}
 
     @Override
     public void setUnicodeStream(int parameterIndex, InputStream x, int length) {
@@ -125,7 +123,9 @@ public class DBPrepareStatement extends DBStatement implements PreparedStatement
 
     @Override
     public void clearParameters() throws SQLException {
-        values = null;
+        for(Object item : values){
+            item = null;
+        }
     }
 
     @Override
@@ -165,27 +165,27 @@ public class DBPrepareStatement extends DBStatement implements PreparedStatement
     }
 
     @Override
-    public void setCharacterStream(int i, Reader reader, int i1) throws SQLException {
+    public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
 
     }
 
     @Override
-    public void setRef(int i, Ref ref) throws SQLException {
+    public void setRef(int parameterIndex, Ref x) throws SQLException {
 
     }
 
     @Override
-    public void setBlob(int i, Blob blob) throws SQLException {
+    public void setBlob(int parameterIndex, Blob blob) throws SQLException {
 
     }
 
     @Override
-    public void setClob(int i, Clob clob) throws SQLException {
+    public void setClob(int parameterIndex, Clob clob) throws SQLException {
 
     }
 
     @Override
-    public void setArray(int i, Array array) throws SQLException {
+    public void setArray(int parameterIndex, Array array) throws SQLException {
 
     }
 
@@ -316,35 +316,35 @@ public class DBPrepareStatement extends DBStatement implements PreparedStatement
 
     }
 
-    public void setDate(int parameterIndex, LocalDate date){
+    public void setBasicDate(int parameterIndex, LocalDate date){
         setObject(parameterIndex, date);
     }
 
-    public void setMonth(int parameterIndex, YearMonth yearMonth) {
+    public void setBasicMonth(int parameterIndex, YearMonth yearMonth) {
         setObject(parameterIndex,new BasicMonth(yearMonth));
     }
 
-    public void setMinute(int parameterIndex, LocalTime time){
+    public void setBasicMinute(int parameterIndex, LocalTime time){
         setObject(parameterIndex,new BasicMinute(time));
     }
 
-    public void setSecond(int parameterIndex, LocalTime time){
+    public void setBasicSecond(int parameterIndex, LocalTime time){
         setObject(parameterIndex,new BasicSecond(time));
     }
 
-    public void setDateTime(int parameterIndex, LocalDateTime time){
+    public void setBasicDateTime(int parameterIndex, LocalDateTime time){
         setObject(parameterIndex,new BasicDateTime(time));
     }
 
-    public void setTimestamp(int parameterIndex, LocalDateTime time){
+    public void setBasicTimestamp(int parameterIndex, LocalDateTime time){
         setObject(parameterIndex, new BasicTimestamp(time));
     }
 
-    public void setNanotime(int parameterIndex, LocalTime time){
+    public void setBasicNanotime(int parameterIndex, LocalTime time){
         setObject(parameterIndex, new BasicNanoTime(time));
     }
 
-    public void setNanotimestamp(int parameterIndex, LocalDateTime time){
+    public void setBasicNanotimestamp(int parameterIndex, LocalDateTime time){
         setObject(parameterIndex, new BasicNanoTimestamp(time));
     }
 
