@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # dolphindb-jdbcnknkn
 
 ## 测试代码
@@ -571,3 +572,6 @@ read readShortOK
 TestPreparedStatement end
 
 Process finished with exit code 0
+=======
+# dolphindb-jdbc
+>>>>>>> old-origin/master
