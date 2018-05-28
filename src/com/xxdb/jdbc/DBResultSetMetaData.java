@@ -15,98 +15,100 @@ public class DBResultSetMetaData implements ResultSetMetaData{
 
 
     @Override
-    public String getCatalogName(int column) throws SQLException {
-        return table.getColumn(column).getDataCategory().name();
+    public String getCatalogName(int columnIndex) throws SQLException {
+        return table.getColumn(adjustcolumnIndex(columnIndex)).getDataCategory().name();
     }
 
     @Override
-    public String getColumnClassName(int column) throws SQLException {
-        return table.getColumn(column).getClass().getName();
+    public String getColumnClassName(int columnIndex) throws SQLException {
+        return table.getColumn(adjustcolumnIndex(columnIndex)).getClass().getName();
     }
 
     @Override
     public int getColumnCount() throws SQLException {
+        //throw new SQLException(""+table.columnIndexs());
         return table.columns();
     }
 
     @Override
-    public String getColumnLabel(int column) throws SQLException {
-        return table.getColumnName(column);
+    public String getColumnLabel(int columnIndex) throws SQLException {
+        //throw new SQLException(""+columnIndex);
+        return table.getColumnName(adjustcolumnIndex(columnIndex));
     }
 
     @Override
-    public int getColumnDisplaySize(int column) throws SQLException {
+    public int getColumnDisplaySize(int columnIndex) throws SQLException {
         return 0;
     }
 
     @Override
-    public String getColumnName(int column) throws SQLException {
-        return table.getColumnName(column);
+    public String getColumnName(int columnIndex) throws SQLException {
+        return table.getColumnName(adjustcolumnIndex(columnIndex));
     }
 
 
     @Override
-    public int getColumnType(int column) throws SQLException {
-        return table.getColumn(column).getDataType().ordinal();
+    public int getColumnType(int columnIndex) throws SQLException {
+        return table.getColumn(adjustcolumnIndex(columnIndex)).getDataType().ordinal();
     }
 
     @Override
-    public String getColumnTypeName(int column) throws SQLException {
-        return table.getColumn(column).getDataType().name();
+    public String getColumnTypeName(int columnIndex) throws SQLException {
+        return table.getColumn(adjustcolumnIndex(columnIndex)).getDataType().name();
     }
 
     @Override
-    public int getPrecision(int column) throws SQLException {
+    public int getPrecision(int columnIndex) throws SQLException {
         return 0;
     }
 
     @Override
-    public int getScale(int column) throws SQLException {
+    public int getScale(int columnIndex) throws SQLException {
         return 0;
     }
 
     @Override
-    public String getSchemaName(int column) throws SQLException {
+    public String getSchemaName(int columnIndex) throws SQLException {
         return null;
     }
 
     @Override
-    public String getTableName(int column) throws SQLException {
-        return table.getColumnName(column);
+    public String getTableName(int columnIndex) throws SQLException {
+        return table.getColumnName(adjustcolumnIndex(columnIndex));
     }
 
     @Override
-    public boolean isAutoIncrement(int column) throws SQLException {
+    public boolean isAutoIncrement(int columnIndex) throws SQLException {
         return false;
     }
 
     @Override
-    public boolean isCaseSensitive(int column) throws SQLException {
+    public boolean isCaseSensitive(int columnIndex) throws SQLException {
         return true;
     }
 
     @Override
-    public boolean isCurrency(int column) throws SQLException {
+    public boolean isCurrency(int columnIndex) throws SQLException {
         return false;
     }
 
     @Override
-    public boolean isDefinitelyWritable(int column) throws SQLException {
+    public boolean isDefinitelyWritable(int columnIndex) throws SQLException {
         return false;
     }
 
     @Override
-    public boolean isReadOnly(int column) throws SQLException {
+    public boolean isReadOnly(int columnIndex) throws SQLException {
         return false;
     }
 
     @Override
-    public boolean isSearchable(int column) throws SQLException {
+    public boolean isSearchable(int columnIndex) throws SQLException {
         return false;
     }
 
     @Override
-    public boolean isSigned(int column) throws SQLException {
+    public boolean isSigned(int columnIndex) throws SQLException {
         return false;
     }
 
@@ -116,17 +118,21 @@ public class DBResultSetMetaData implements ResultSetMetaData{
     }
 
     @Override
-    public boolean isWritable(int column) throws SQLException {
+    public boolean isWritable(int columnIndex) throws SQLException {
         return false;
     }
 
     @Override
-    public int isNullable(int column) throws SQLException {
+    public int isNullable(int columnIndex) throws SQLException {
         return columnNullableUnknown;
     }
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
         return null;
+    }
+
+    private int adjustcolumnIndex(int columnIndexIndex){
+        return columnIndexIndex-1;
     }
 }

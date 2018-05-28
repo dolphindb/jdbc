@@ -9,11 +9,13 @@ import java.util.logging.Logger;
  *      或者 jdbc:dolphindb://databasePath=
  * hostName default localhost
  * port default 8848
+ * linux url示例 ==> jdbc:dolphindb://127.0.0.1:8848;databasePath=home/username/dolphinDB/data/db01/t1
+ * windows url示例 ==> jdbc:dolphindb://127.0.0.1:8848;databasePath=D:/dolphinDB/data/db01/t1
  */
 
 public class Driver implements java.sql.Driver {
     private static final String URL_PREFIX = "jdbc:dolphindb://";
-    static int V=2,v=0;
+    static int V=1,v=0;
     static {
         try {
             DriverManager.registerDriver(new Driver());
@@ -64,9 +66,8 @@ public class Driver implements java.sql.Driver {
     }
 
 
-    public static Connection createConnection(String url, Properties prop) throws SQLException {
-        if (!isValidURL(url))
-            return null;
+    public Connection createConnection(String url, Properties prop) throws SQLException {
+        if (!isValidURL(url)) new SQLException("url is not valid");
 
         url = url.trim().substring(URL_PREFIX.length());
         System.out.println(url);
