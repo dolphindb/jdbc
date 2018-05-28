@@ -18,6 +18,7 @@ import java.util.Map;
 /**
  * DBResultSet 的操作只适合 Vector 和 table, 否则操作会报空指针
  * 如果是其他数据结构，本类提供 getEntity() 提供给开发者自行操作
+ * columnIndex 从1开始计数
  */
 
 public class DBResultSet implements ResultSet{
@@ -28,7 +29,8 @@ public class DBResultSet implements ResultSet{
 
     private boolean isClosed = false;
 
-    public DBResultSet(Entity entity,String sql){
+    public DBResultSet(Entity entity,String sql) throws SQLException{
+        if(entity == null) throw new SQLException("ResultSet get data is null");
         this.entity = entity;
         if(entity.isVector()){
             List<String> colNames = new ArrayList<>(1);
@@ -44,7 +46,7 @@ public class DBResultSet implements ResultSet{
         }else if(entity.isTable()){
             this.table = (BasicTable) entity;
         }else{
-            return;
+            throw new SQLException("ResultSet get data is null");
         }
         rows = this.table.rows();
         System.out.println(table.rows() + "  "+ table.columns());
@@ -68,7 +70,7 @@ public class DBResultSet implements ResultSet{
     public boolean next() throws SQLException {
         checkedClose();
         row++;
-        return row <= table.rows()-1;
+        return row <= rows-1;
     }
 
     @Override
@@ -84,50 +86,42 @@ public class DBResultSet implements ResultSet{
 
     @Override
     public String getString(int columnIndex) throws SQLException{
-        checkedClose();
-        return table.getColumn(columnIndex).get(row).getString();
+        return getString(getColumnName(adjustColumnIndex(columnIndex)));
     }
 
     @Override
     public boolean getBoolean(int columnIndex) throws SQLException{
-        checkedClose();
-        return ((BasicBooleanVector)table.getColumn(columnIndex)).getBoolean(row);
+        return getBoolean(getColumnName(adjustColumnIndex(columnIndex)));
     }
 
     @Override
     public byte getByte(int columnIndex) throws SQLException{
-        checkedClose();
-        return ((BasicByteVector)table.getColumn(columnIndex)).getByte(row);
+        return getByte(getColumnName(adjustColumnIndex(columnIndex)));
     }
 
     @Override
     public short getShort(int columnIndex) throws SQLException {
-        checkedClose();
-        return ((BasicShortVector)table.getColumn(columnIndex)).getShort(row);
+        return getShort(getColumnName(adjustColumnIndex(columnIndex)));
     }
 
     @Override
     public int getInt(int columnIndex) throws SQLException {
-        checkedClose();
-        return ((BasicIntVector)table.getColumn(columnIndex)).getInt(row);
+        return getInt(getColumnName(adjustColumnIndex(columnIndex)));
     }
 
     @Override
     public long getLong(int columnIndex) throws SQLException {
-        checkedClose();
-        return ((BasicLongVector)table.getColumn(columnIndex)).getLong(row);
+        return getLong(getColumnName(adjustColumnIndex(columnIndex)));
     }
 
     @Override
     public float getFloat(int columnIndex) throws SQLException {
-        checkedClose();
-        return ((BasicFloatVector)table.getColumn(columnIndex)).getFloat(row);
+        return getFloat(getColumnName(adjustColumnIndex(columnIndex)));
     }
 
     @Override
     public double getDouble(int columnIndex) throws SQLException {
-        checkedClose();
-        return ((BasicDoubleVector)table.getColumn(columnIndex)).getDouble(row);
+        return getDouble(getColumnName(adjustColumnIndex(columnIndex)));
     }
 
     @Override
@@ -144,17 +138,17 @@ public class DBResultSet implements ResultSet{
 
     @Override
     public Date getDate(int columnIndex) throws SQLException {
-        return getDate(table.getColumnName(columnIndex));
+        return getDate(getColumnName(adjustColumnIndex(columnIndex)));
     }
 
     @Override
     public Time getTime(int columnIndex) throws SQLException {
-        return getTime(table.getColumnName(columnIndex));
+        return getTime(getColumnName(adjustColumnIndex(columnIndex)));
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        return getTimestamp(table.getColumnName(columnIndex));
+        return getTimestamp(getColumnName(adjustColumnIndex(columnIndex)));
     }
 
     @Override
@@ -178,7 +172,7 @@ public class DBResultSet implements ResultSet{
     @Override
     public String getString(String columnLabel) throws SQLException{
         checkedClose();
-        return ((BasicStringVector)table.getColumn(columnLabel)).get(row).getString();
+        return ((BasicStringVector)table.getColumn(columnLabel)).getString(row);
     }
 
     @Override
@@ -321,7 +315,7 @@ public class DBResultSet implements ResultSet{
     @Override
     public Object getObject(int columnIndex) throws SQLException {
         checkedClose();
-        return table.getColumn(columnIndex).get(row);
+        return table.getColumn(adjustColumnIndex(columnIndex)).get(row);
     }
 
     @Override
@@ -717,8 +711,8 @@ public class DBResultSet implements ResultSet{
     }
 
     @Override
-    public Object getObject(int i, Map<String, Class<?>> map) throws SQLException {
-        return null;
+    public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
+        return getObject(adjustColumnIndex(columnIndex));
     }
 
     @Override
@@ -742,8 +736,8 @@ public class DBResultSet implements ResultSet{
     }
 
     @Override
-    public Object getObject(String s, Map<String, Class<?>> map) throws SQLException {
-        return null;
+    public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException{
+        return getObject(columnLabel);
     }
 
     @Override
@@ -767,37 +761,37 @@ public class DBResultSet implements ResultSet{
     }
 
     @Override
-    public Date getDate(int i, Calendar calendar) throws SQLException {
-        return null;
+    public Date getDate(int columnIndex, Calendar calendar) throws SQLException {
+        return getDate(adjustColumnIndex(columnIndex));
     }
 
     @Override
-    public Date getDate(String s, Calendar calendar) throws SQLException {
-        return null;
+    public Date getDate(String columnLabel, Calendar calendar) throws SQLException {
+        return getDate(columnLabel);
     }
 
     @Override
-    public Time getTime(int i, Calendar calendar) throws SQLException {
-        return null;
+    public Time getTime(int columnIndex, Calendar calendar) throws SQLException {
+        return getTime(adjustColumnIndex(columnIndex));
     }
 
     @Override
-    public Time getTime(String s, Calendar calendar) throws SQLException {
-        return null;
+    public Time getTime(String columnLabel, Calendar calendar) throws SQLException {
+        return getTime(columnLabel);
     }
 
     @Override
-    public Timestamp getTimestamp(int i, Calendar calendar) throws SQLException {
-        return null;
+    public Timestamp getTimestamp(int columnIndex, Calendar calendar) throws SQLException {
+        return getTimestamp(adjustColumnIndex(columnIndex));
     }
 
     @Override
-    public Timestamp getTimestamp(String s, Calendar calendar) throws SQLException {
-        return null;
+    public Timestamp getTimestamp(String columnLabel, Calendar calendar) throws SQLException {
+        return getTimestamp(columnLabel);
     }
 
     @Override
-    public URL getURL(int i) throws SQLException {
+    public URL getURL(int columnIndex) throws SQLException {
         return null;
     }
 
@@ -1148,67 +1142,43 @@ public class DBResultSet implements ResultSet{
 
     public BasicDate getBasicDate(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicDate)table.getColumn(columnIndex).get(row);
+        return (BasicDate)table.getColumn(adjustColumnIndex(columnIndex)).get(row);
     }
 
     public BasicMonth getBasicMonth(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicMonth)table.getColumn(columnIndex).get(row);
+        return (BasicMonth)table.getColumn(adjustColumnIndex(columnIndex)).get(row);
     }
 
     public BasicTime getBasicTime(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicTime)table.getColumn(columnIndex).get(row);
+        return (BasicTime)table.getColumn(adjustColumnIndex(columnIndex)).get(row);
     }
 
     public BasicMinute getBasicMinute(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicMinute)table.getColumn(columnIndex).get(row);
+        return (BasicMinute)table.getColumn(adjustColumnIndex(columnIndex)).get(row);
     }
 
     public BasicSecond getBasicSecond(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicSecond)table.getColumn(columnIndex).get(row);
+        return (BasicSecond)table.getColumn(adjustColumnIndex(columnIndex)).get(row);
     }
 
     public BasicDateTime getBasicDateTime(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicDateTime)table.getColumn(columnIndex).get(row);
+        return (BasicDateTime)table.getColumn(adjustColumnIndex(columnIndex)).get(row);
     }
 
     public BasicNanoTime getBasicNanoTime(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicNanoTime) table.getColumn(columnIndex).get(row);
+        return (BasicNanoTime) table.getColumn(adjustColumnIndex(columnIndex)).get(row);
     }
 
     public BasicNanoTimestamp getBasicNanoTimestamp(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicNanoTimestamp) table.getColumn(columnIndex).get(row);
+        return (BasicNanoTimestamp) table.getColumn(adjustColumnIndex(columnIndex)).get(row);
     }
-
-
-
-
-//    private <T> T get(int index, Class<T> tClass) throws SQLException{
-//        checkedClose();
-//        if(tClass.isInstance(Boolean.class)){
-//            return ((BasicBooleanVector)table.getColumn(index)).getBoolean(row);
-//        }else if(tClass.isInstance(Byte.class)){
-//            return ((BasicByteVector)table.getColumn(index)).getByte(row);
-//        }else if(tClass.isInstance(Integer.class)){
-//            return ((BasicIntVector)table.getColumn(index)).getInt(row);
-//        }else if(tClass.isInstance(Short.class)){
-//            return ((BasicShortVector)table.getColumn(index)).getShort(row);
-//        }else if(tClass.isInstance(Long.class)){
-//            return ((BasicLongVector)table.getColumn(index)).getLong(row);
-//        }else if(tClass.isInstance(Float.class)){
-//            return ((BasicFloatVector)table.getColumn(index)).getFloat(row);
-//        }else if(tClass.isInstance(Double.class)){
-//            return ((BasicDoubleVector)table.getColumn(index)).getDouble(row);
-//        }else if(tClass.isInstance(String.class)){
-//            return ((BasicStringVector)table.getColumn(index)).getString(row);
-//        }
-//    }
 
 
     private void update(int index, Object value) throws SQLException{
@@ -1236,10 +1206,20 @@ public class DBResultSet implements ResultSet{
         update(findColumn(name),value);
     }
 
+    private String getColumnName(int columnIndex){
+        return table.getColumnName(adjustColumnIndex(columnIndex));
+    }
+
+    private int adjustColumnIndex(int columnIndex){
+        return columnIndex-1;
+    }
+
 
     private void checkedClose() throws SQLException{
         if(table == null && isClosed){
             throw new SQLException("ResultSet is closed");
         }
     }
+
+
 }

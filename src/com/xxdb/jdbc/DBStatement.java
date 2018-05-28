@@ -1,5 +1,6 @@
 package com.xxdb.jdbc;
 
+import java.io.IOException;
 import java.sql.*;
 
 public class DBStatement implements Statement {
@@ -19,9 +20,9 @@ public class DBStatement implements Statement {
         try {
             resultSet = new DBResultSet(connection.getDb().run(s),s);
             return resultSet;
-        }catch (Exception e){
+        }catch (IOException e){
             e.printStackTrace();
-            return null;
+            throw new SQLException(e.getMessage());
         }
 
     }
@@ -102,13 +103,17 @@ public class DBStatement implements Statement {
         try {
             resultSet = new DBResultSet(connection.getDb().run(s),s);
             return true;
-        }catch (Exception e){
-            return false;
+        }catch (IOException e){
+            e.printStackTrace();
+            throw new SQLException("can not execute "+ s);
         }
     }
 
     @Override
     public ResultSet getResultSet() throws SQLException {
+        if(resultSet == null){
+            throw new SQLException("resultSet is null");
+        }
         return resultSet;
     }
 

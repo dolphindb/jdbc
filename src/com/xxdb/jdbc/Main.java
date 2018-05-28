@@ -10,6 +10,8 @@ import java.text.MessageFormat;
 public class Main {
     // JDBC 驱动名及数据库 URL
     private static final String JDBC_DRIVER = "com.xxdb.jdbc.Driver";
+    //windows databasePath = "D:/dolphinDB/data/data01"
+    //linux databasePath = "home/swang/dolphin/data/db02"
     //data目录有数据库文件
     /*
         sym = `C`MS`MS`MS`IBM`IBM`C`C`C$symbol;
@@ -29,7 +31,7 @@ public class Main {
      */
     //使用时要修改路径
 
-    private static final String DB_URL = "jdbc:dolphindb://databasePath=D:/dolphinDB/data/data01/t1";
+    private static final String DB_URL = MessageFormat.format("jdbc:dolphindb://localhost:8848;databasePath={0}/data/t1",System.getProperty("user.dir"));
 
     public static void main(String[] args) throws Exception{
         //CreateTable("D:\\dolphinDB\\data\\data1.java");
@@ -72,7 +74,7 @@ public class Main {
                 "exec price as p from t1;"
         });
 
-        TestPreparedStatement("select * from t1 where string = ? and price > ? ",new Object[]{"MS",30.0});
+        TestPreparedStatement("select * from t1 where sym = ? and price > ? ",new Object[]{"MS",28.0});
     }
 
     public static void CreateTable(String fileName){
@@ -118,7 +120,7 @@ public class Main {
                 while (rs.next()) {
                     // 通过字段检索
 
-                    for (int i = 0; i < len; ++i) {
+                    for (int i = 1; i <= len; ++i) {
                         // 输出数据
                         System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getObject(i)));
                     }
@@ -180,7 +182,7 @@ public class Main {
             while (rs.next()) {
                 // 通过字段检索
 
-                for (int i = 0; i < len; ++i) {
+                for (int i = 1; i <= len; ++i) {
                     // 输出数据
                     System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getObject(i)));
                 }
