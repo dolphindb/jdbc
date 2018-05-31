@@ -1,5 +1,8 @@
 package com.xxdb.jdbc;
 
+import com.xxdb.data.Entity;
+import com.xxdb.data.Table;
+
 import java.io.IOException;
 import java.sql.*;
 
@@ -9,16 +12,24 @@ public class DBStatement implements Statement {
 
     private ResultSet resultSet;
 
+    private String select = "select * from ";
+
 
     public DBStatement(_DBConnection cnn){
         this.connection = cnn;
+        select += cnn.getTableName();
     }
 
 
     @Override
     public ResultSet executeQuery(String s) throws SQLException {
         try {
-            resultSet = new DBResultSet(connection.getDb().run(s),s);
+            if(s.trim().startsWith("update")) {
+                connection.getDb().run(s);
+                resultSet = new DBResultSet(connection,connection.getDb().run(select),select);
+            }else {
+                resultSet = new DBResultSet(connection, connection.getDb().run(s), s);
+            }
             return resultSet;
         }catch (IOException e){
             e.printStackTrace();
@@ -29,12 +40,12 @@ public class DBStatement implements Statement {
 
     @Override
     public int executeUpdate(String s) throws SQLException {
-        //todo 需要修改
         try {
              connection.getDb().run(s);
+             resultSet = new DBResultSet(connection,connection.getDb().run(select),select);
              return 1;
         }catch (Exception e){
-            return 0;
+            throw new SQLException(e);
         }
     }
 
@@ -101,7 +112,12 @@ public class DBStatement implements Statement {
     @Override
     public boolean execute(String s) throws SQLException {
         try {
-            resultSet = new DBResultSet(connection.getDb().run(s),s);
+            Entity entity = connection.getDb().run(s);
+            if(entity instanceof Table){
+                resultSet = new DBResultSet(connection,entity,s);
+            }else {
+                resultSet = new DBResultSet(connection,connection.getDb().run(select), select);
+            }
             return true;
         }catch (IOException e){
             e.printStackTrace();
@@ -189,32 +205,32 @@ public class DBStatement implements Statement {
 
     @Override
     public int executeUpdate(String s, int i) throws SQLException {
-        return 0;
+        return executeUpdate(s);
     }
 
     @Override
     public int executeUpdate(String s, int[] ints) throws SQLException {
-        return 0;
+        return executeUpdate(s);
     }
 
     @Override
     public int executeUpdate(String s, String[] strings) throws SQLException {
-        return 0;
+        return executeUpdate(s);
     }
 
     @Override
     public boolean execute(String s, int i) throws SQLException {
-        return false;
+        return execute(s);
     }
 
     @Override
     public boolean execute(String s, int[] ints) throws SQLException {
-        return false;
+        return execute(s);
     }
 
     @Override
     public boolean execute(String s, String[] strings) throws SQLException {
-        return false;
+        return execute(s);
     }
 
     @Override

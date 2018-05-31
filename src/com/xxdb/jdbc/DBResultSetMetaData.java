@@ -16,12 +16,12 @@ public class DBResultSetMetaData implements ResultSetMetaData{
 
     @Override
     public String getCatalogName(int columnIndex) throws SQLException {
-        return table.getColumn(adjustcolumnIndex(columnIndex)).getDataCategory().name();
+        return table.getColumn(adjustColumnIndex(columnIndex)).getDataCategory().name();
     }
 
     @Override
     public String getColumnClassName(int columnIndex) throws SQLException {
-        return table.getColumn(adjustcolumnIndex(columnIndex)).getClass().getName();
+        return table.getColumn(adjustColumnIndex(columnIndex)).getClass().getName();
     }
 
     @Override
@@ -33,7 +33,7 @@ public class DBResultSetMetaData implements ResultSetMetaData{
     @Override
     public String getColumnLabel(int columnIndex) throws SQLException {
         //throw new SQLException(""+columnIndex);
-        return table.getColumnName(adjustcolumnIndex(columnIndex));
+        return table.getColumnName(adjustColumnIndex(columnIndex));
     }
 
     @Override
@@ -43,18 +43,18 @@ public class DBResultSetMetaData implements ResultSetMetaData{
 
     @Override
     public String getColumnName(int columnIndex) throws SQLException {
-        return table.getColumnName(adjustcolumnIndex(columnIndex));
+        return table.getColumnName(adjustColumnIndex(columnIndex));
     }
 
 
     @Override
     public int getColumnType(int columnIndex) throws SQLException {
-        return table.getColumn(adjustcolumnIndex(columnIndex)).getDataType().ordinal();
+        return table.getColumn(adjustColumnIndex(columnIndex)).getDataType().ordinal();
     }
 
     @Override
     public String getColumnTypeName(int columnIndex) throws SQLException {
-        return table.getColumn(adjustcolumnIndex(columnIndex)).getDataType().name();
+        return table.getColumn(adjustColumnIndex(columnIndex)).getDataType().name();
     }
 
     @Override
@@ -74,7 +74,7 @@ public class DBResultSetMetaData implements ResultSetMetaData{
 
     @Override
     public String getTableName(int columnIndex) throws SQLException {
-        return table.getColumnName(adjustcolumnIndex(columnIndex));
+        return table.getColumnName(adjustColumnIndex(columnIndex));
     }
 
     @Override
@@ -132,7 +132,7 @@ public class DBResultSetMetaData implements ResultSetMetaData{
         return null;
     }
 
-    private int adjustcolumnIndex(int columnIndexIndex){
-        return columnIndexIndex-1;
+    private int adjustColumnIndex(int columnIndex){
+        return columnIndex-1;
     }
 }
