@@ -7,22 +7,30 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
-import java.time.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.Calendar;
 
 public class DBPrepareStatement extends DBStatement implements PreparedStatement {
 
-    private _DBConnection cnn;
+    private _DBConnection conn;
     private String sql;
     private String[] sqls;
     private Object[] values;
+    private StringBuilder batch;
 
-    public DBPrepareStatement(_DBConnection cnn, String sql){
-        super(cnn);
-        this.cnn = cnn;
+    public DBPrepareStatement(_DBConnection conn, String sql){
+        super(conn);
+        this.conn = conn;
         this.sql = sql.trim();
+        if(!this.sql.endsWith(";")){
+            this.sql = this.sql + ";";
+        }
         sqls = this.sql.split("\\?");
         values = new Object[sqls.length+1];
+        batch = new StringBuilder();
     }
 
     @Override
@@ -128,11 +136,11 @@ public class DBPrepareStatement extends DBStatement implements PreparedStatement
         }
     }
 
+
+
     @Override
     public void setObject(int parameterIndex, Object x) {
-        if(x instanceof String){
-            values[parameterIndex] = "`"+x;
-        }else if(x instanceof Date){
+        if(x instanceof Date){
             values[parameterIndex] = new BasicDate(LocalDate.parse(x.toString()));
         }else if(x instanceof Time){
             values[parameterIndex] = new BasicTime(LocalTime.parse(x.toString()));
@@ -156,12 +164,32 @@ public class DBPrepareStatement extends DBStatement implements PreparedStatement
 
     @Override
     public boolean execute() throws SQLException {
-        return super.execute(createSql());
+        String s = createSql();
+        return super.execute(s);
     }
 
     @Override
     public void addBatch() throws SQLException {
+        // todo
+        batch.append(createSql());
 
+    }
+
+    @Override
+    public void clearBatch() throws SQLException {
+        batch.delete(0,batch.length());
+    }
+
+    @Override
+    public int[] executeBatch() throws SQLException {
+        //todo 需要修改
+        if(super.isClosed()) throw new SQLException("Connection is closed");
+        try {
+            conn.getDb().run(batch.toString());
+            return new int[0];
+        }catch (Exception e){
+            return new int[0];
+        }
     }
 
     @Override
@@ -354,9 +382,10 @@ public class DBPrepareStatement extends DBStatement implements PreparedStatement
 
     private String createSql(){
         StringBuilder sb = new StringBuilder();
-        for(int i=1; i<=sqls.length; ++i){
-            sb.append(sqls[i-1]).append(values[i]);
+        for(int i=1; i<sqls.length; ++i){
+            sb.append(sqls[i-1]).append(Utils.java2db(values[i]));
         }
+        sb.append(sqls[sqls.length-1]);
         return sb.toString();
     }
 }
