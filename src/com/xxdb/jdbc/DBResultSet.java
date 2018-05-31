@@ -1,19 +1,19 @@
 package com.xxdb.jdbc;
 
 import com.xxdb.data.*;
+import com.xxdb.data.Vector;
 
-import java.io.InputStream;
-import java.io.Reader;
+import java.io.*;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.sql.Date;
+import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Map;
+import java.time.YearMonth;
+import java.util.*;
 
 /**
  * DBResultSet 的操作只适合 Vector 和 table, 否则操作会报空指针
@@ -24,13 +24,33 @@ import java.util.Map;
 public class DBResultSet implements ResultSet{
     private Entity entity;
     private BasicTable table;
+    private _DBConnection conn;
     private int row = -1;
     private int rows;
+    private String tableName;
+    private String filePath;
+
+    private HashMap<String,Integer> findColumnHashMap;
+
+    private int updateRow;
+
+    private int insertRow;
+
+    private HashMap<Integer,Entity> insertRowMap; //插入数据的特殊行
+    
+    private HashMap<Integer,Entity> new_updateRowMap; // 新数据的缓存行
+    
+    private HashMap<Integer,Entity> old_updateRowMap; // 旧数据的缓存行
+
+    private boolean isInsert;
 
     private boolean isClosed = false;
 
-    public DBResultSet(Entity entity,String sql) throws SQLException{
+    public DBResultSet(_DBConnection conn,Entity entity,String sql) throws SQLException{
         if(entity == null) throw new SQLException("ResultSet get data is null");
+        this.conn = conn;
+        this.tableName = conn.getTableName();
+        this.filePath = conn.getFilePath();
         this.entity = entity;
         if(entity.isVector()){
             List<String> colNames = new ArrayList<>(1);
@@ -49,6 +69,17 @@ public class DBResultSet implements ResultSet{
             throw new SQLException("ResultSet get data is null");
         }
         rows = this.table.rows();
+
+        findColumnHashMap = new HashMap<>(this.table.columns());
+
+        insertRowMap = new HashMap<>(this.table.columns()+1);
+        new_updateRowMap = new HashMap<>(this.table.columns()+1);
+        old_updateRowMap = new HashMap<>(this.table.columns()+1);
+
+        for(int i=0; i<this.table.columns(); ++i){
+            findColumnHashMap.put(this.table.getColumnName(i),i+1);
+        }
+
         System.out.println(table.rows() + "  "+ table.columns());
 //        if(entity.isMatrix()){
 //            Matrix matrix = (BasicIntMatrix) entity;
@@ -64,6 +95,26 @@ public class DBResultSet implements ResultSet{
 
     public Entity getEntity() {
         return entity;
+    }
+
+    /**
+     * 数据持久化
+     * @throws SQLException
+     */
+    public void saveTable() throws SQLException{
+//        try {
+//            conn.getDb().run(MessageFormat.format("saveTable(\"{0}\",{1},`{1})",filePath,tableName));
+//        }catch (IOException e){
+//            new SQLException(e);
+//        }
+    }
+
+    /**
+     * 加载表
+     * @throws SQLException
+     */
+    public Entity loadTable() throws SQLException{
+        return run(MessageFormat.format("{1} = loadTable(\"{0}\",`{1});{1}",filePath,tableName));
     }
 
     @Override
@@ -84,44 +135,51 @@ public class DBResultSet implements ResultSet{
         return false;
     }
 
+    /**
+     * 这里获取的是数据结构的String表示形式
+     * @param columnIndex
+     * @return
+     * @throws SQLException
+     */
+
     @Override
     public String getString(int columnIndex) throws SQLException{
-        return getString(getColumnName(adjustColumnIndex(columnIndex)));
+        return ((Entity)getObject(columnIndex)).getString();
     }
 
     @Override
     public boolean getBoolean(int columnIndex) throws SQLException{
-        return getBoolean(getColumnName(adjustColumnIndex(columnIndex)));
+        return ((BasicBoolean)getObject(columnIndex)).getBoolean();
     }
 
     @Override
     public byte getByte(int columnIndex) throws SQLException{
-        return getByte(getColumnName(adjustColumnIndex(columnIndex)));
+        return ((BasicByte)getObject(columnIndex)).getByte();
     }
 
     @Override
     public short getShort(int columnIndex) throws SQLException {
-        return getShort(getColumnName(adjustColumnIndex(columnIndex)));
+        return ((BasicShort)getObject(columnIndex)).getShort();
     }
 
     @Override
     public int getInt(int columnIndex) throws SQLException {
-        return getInt(getColumnName(adjustColumnIndex(columnIndex)));
+        return ((BasicInt)getObject(columnIndex)).getInt();
     }
 
     @Override
     public long getLong(int columnIndex) throws SQLException {
-        return getLong(getColumnName(adjustColumnIndex(columnIndex)));
+        return ((BasicLong)getObject(columnIndex)).getLong();
     }
 
     @Override
     public float getFloat(int columnIndex) throws SQLException {
-        return getFloat(getColumnName(adjustColumnIndex(columnIndex)));
+        return ((BasicFloat)getObject(columnIndex)).getFloat();
     }
 
     @Override
     public double getDouble(int columnIndex) throws SQLException {
-        return getDouble(getColumnName(adjustColumnIndex(columnIndex)));
+        return ((BasicDouble)getObject(columnIndex)).getDouble();
     }
 
     @Override
@@ -132,23 +190,52 @@ public class DBResultSet implements ResultSet{
 
     @Override
     public byte[] getBytes(int columnIndex) throws SQLException {
-        checkedClose();
-        return new byte[0];
+        return  toByteArray(getObject(columnIndex));
     }
 
     @Override
     public Date getDate(int columnIndex) throws SQLException {
-        return getDate(getColumnName(adjustColumnIndex(columnIndex)));
+        checkedClose();
+        Scalar scalar = (Scalar) getObject(columnIndex);
+        LocalDate date = null;
+        if(scalar instanceof BasicDate){
+            date = ((BasicDate) scalar).getDate();
+        }
+        if (date==null) return null;
+        return new Date(date.getYear(),date.getMonthValue(),date.getDayOfMonth());
     }
 
     @Override
     public Time getTime(int columnIndex) throws SQLException {
-        return getTime(getColumnName(adjustColumnIndex(columnIndex)));
+        checkedClose();
+        Scalar scalar = (Scalar) getObject(columnIndex);
+        LocalTime time = null;
+        if(scalar instanceof BasicMinute){
+            time = ((BasicMinute) scalar).getMinute();
+        }else if(scalar instanceof BasicSecond){
+            time = ((BasicSecond) scalar).getSecond();
+        }else if(scalar instanceof BasicNanoTime){
+            time = ((BasicNanoTime) scalar).getNanoTime();
+        }
+        if (time==null) return null;
+        return new Time(time.getHour(),time.getMinute(),time.getSecond());
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        return getTimestamp(getColumnName(adjustColumnIndex(columnIndex)));
+        checkedClose();
+        Scalar scalar = (Scalar) getObject(columnIndex);
+        LocalDateTime dateTime = null;
+        if(scalar instanceof BasicDateTime){
+            dateTime = ((BasicDateTime) scalar).getDateTime();
+        }else if(scalar instanceof BasicTimestamp){
+            dateTime = ((BasicTimestamp) scalar).getTimestamp();
+        }else if(scalar instanceof BasicNanoTimestamp){
+            dateTime = ((BasicNanoTimestamp) scalar).getNanoTimestamp();
+        }
+        if (dateTime==null) return null;
+        return new Timestamp(dateTime.getYear(),dateTime.getMonthValue(),dateTime.getDayOfMonth(),
+                dateTime.getHour(), dateTime.getMinute(),dateTime.getSecond(),dateTime.getNano());
     }
 
     @Override
@@ -171,50 +258,42 @@ public class DBResultSet implements ResultSet{
 
     @Override
     public String getString(String columnLabel) throws SQLException{
-        checkedClose();
-        return ((BasicStringVector)table.getColumn(columnLabel)).getString(row);
+        return getString(findColumn(columnLabel));
     }
 
     @Override
     public boolean getBoolean(String columnLabel) throws SQLException {
-        checkedClose();
-        return ((BasicBooleanVector)table.getColumn(columnLabel)).getBoolean(row);
+        return getBoolean(findColumn(columnLabel));
     }
 
     @Override
     public byte getByte(String columnLabel) throws SQLException {
-        checkedClose();
-        return ((BasicByteVector)table.getColumn(columnLabel)).getByte(row);
+        return getByte(findColumn(columnLabel));
     }
 
     @Override
     public short getShort(String columnLabel) throws SQLException {
-        checkedClose();
-        return ((BasicShortVector)table.getColumn(columnLabel)).getShort(row);
+        return getShort(findColumn(columnLabel));
     }
 
     @Override
     public int getInt(String columnLabel) throws SQLException {
-        checkedClose();
-        return ((BasicIntVector)table.getColumn(columnLabel)).getInt(row);
+        return getInt(findColumn(columnLabel));
     }
 
     @Override
     public long getLong(String columnLabel) throws SQLException {
-        checkedClose();
-        return ((BasicLongVector)table.getColumn(columnLabel)).getLong(row);
+        return getLong(findColumn(columnLabel));
     }
 
     @Override
     public float getFloat(String columnLabel) throws SQLException {
-        checkedClose();
-        return ((BasicFloatVector)table.getColumn(columnLabel)).getFloat(row);
+        return getFloat(findColumn(columnLabel));
     }
 
     @Override
     public double getDouble(String columnLabel) throws SQLException {
-        checkedClose();
-        return ((BasicDoubleVector)table.getColumn(columnLabel)).getDouble(row);
+        return getDouble(findColumn(columnLabel));
     }
 
     @Override
@@ -226,55 +305,22 @@ public class DBResultSet implements ResultSet{
 
     @Override
     public byte[] getBytes(String columnLabel) throws SQLException {
-        //todo
-        checkedClose();
-        return new byte[0];
+        return getBytes(findColumn(columnLabel));
     }
 
     @Override
     public Date getDate(String columnLabel) throws SQLException {
-        checkedClose();
-        Scalar scalar = table.getColumn(columnLabel).get(row);
-        LocalDate date = null;
-        if(scalar instanceof BasicDate){
-            date = ((BasicDate) scalar).getDate();
-        }
-        if (date==null) return null;
-        return new Date(date.getYear(),date.getMonthValue(),date.getDayOfMonth());
+        return getDate(findColumn(columnLabel));
     }
 
     @Override
     public Time getTime(String columnLabel) throws SQLException {
-
-        checkedClose();
-        Scalar scalar = table.getColumn(columnLabel).get(row);
-        LocalTime time = null;
-        if(scalar instanceof BasicMinute){
-            time = ((BasicMinute) scalar).getMinute();
-        }else if(scalar instanceof BasicSecond){
-            time = ((BasicSecond) scalar).getSecond();
-        }else if(scalar instanceof BasicNanoTime){
-            time = ((BasicNanoTime) scalar).getNanoTime();
-        }
-        if (time==null) return null;
-        return new Time(time.getHour(),time.getMinute(),time.getSecond());
+        return getTime(findColumn(columnLabel));
     }
 
     @Override
     public Timestamp getTimestamp(String columnLabel) throws SQLException {
-        checkedClose();
-        Scalar scalar = table.getColumn(columnLabel).get(row);
-        LocalDateTime dateTime = null;
-        if(scalar instanceof BasicDateTime){
-            dateTime = ((BasicDateTime) scalar).getDateTime();
-        }else if(scalar instanceof BasicTimestamp){
-            dateTime = ((BasicTimestamp) scalar).getTimestamp();
-        }else if(scalar instanceof BasicNanoTimestamp){
-            dateTime = ((BasicNanoTimestamp) scalar).getNanoTimestamp();
-        }
-        if (dateTime==null) return null;
-        return new Timestamp(dateTime.getYear(),dateTime.getMonthValue(),dateTime.getDayOfMonth(),
-                dateTime.getHour(), dateTime.getMinute(),dateTime.getSecond(),dateTime.getNano());
+        return getTimestamp(findColumn(columnLabel));
     }
 
     @Override
@@ -304,7 +350,8 @@ public class DBResultSet implements ResultSet{
 
     @Override
     public String getCursorName() throws SQLException {
-        return table.getColumnName(row);
+        Driver.unused();
+        return null;
     }
 
     @Override
@@ -315,6 +362,7 @@ public class DBResultSet implements ResultSet{
     @Override
     public Object getObject(int columnIndex) throws SQLException {
         checkedClose();
+        //throw new SQLException(""+columnIndex);
         return table.getColumn(adjustColumnIndex(columnIndex)).get(row);
     }
 
@@ -327,30 +375,30 @@ public class DBResultSet implements ResultSet{
     @Override
     public int findColumn(String columnLabel) throws SQLException {
         checkedClose();
-        return 0;
+        return findColumnHashMap.get(columnLabel);
     }
 
     @Override
-    public Reader getCharacterStream(int i) throws SQLException {
-        checkedClose();
+    public Reader getCharacterStream(int columnIndex) throws SQLException {
+        Driver.unused();
         return null;
     }
 
     @Override
-    public Reader getCharacterStream(String s) throws SQLException {
-        checkedClose();
+    public Reader getCharacterStream(String columnLabel) throws SQLException {
+        Driver.unused();
         return null;
     }
 
     @Override
-    public BigDecimal getBigDecimal(int i) throws SQLException {
-        checkedClose();
+    public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
+        Driver.unused();
         return null;
     }
 
     @Override
-    public BigDecimal getBigDecimal(String s) throws SQLException {
-        checkedClose();
+    public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
+        Driver.unused();
         return null;
     }
 
@@ -465,153 +513,146 @@ public class DBResultSet implements ResultSet{
     }
 
     @Override
-    public void updateNull(int i) throws SQLException {
+    public void updateNull(int columnIndex) throws SQLException {
 
     }
 
     @Override
-    public void updateBoolean(int i, boolean b) throws SQLException {
+    public void updateBoolean(int columnIndex, boolean x) throws SQLException {
         checkedClose();
-        ((BasicBooleanVector)table.getColumn(i)).setBoolean(row,b);
+        update(columnIndex,x);
     }
 
     @Override
-    public void updateByte(int i, byte b) throws SQLException {
+    public void updateByte(int columnIndex, byte x) throws SQLException {
         checkedClose();
-        ((BasicByteVector)table.getColumn(i)).setByte(row,b);
+        update(columnIndex,x);
     }
 
     @Override
-    public void updateShort(int i, short i1) throws SQLException {
+    public void updateShort(int columnIndex, short x) throws SQLException {
         checkedClose();
-        ((BasicShortVector)table.getColumn(i)).setShort(row,i1);
+        update(columnIndex,x);
     }
 
     @Override
-    public void updateInt(int i, int i1) throws SQLException {
+    public void updateInt(int columnIndex, int x) throws SQLException {
         checkedClose();
-        ((BasicIntVector)table.getColumn(i)).setInt(row,i1);
+        update(columnIndex,x);
     }
 
     @Override
-    public void updateLong(int i, long l) throws SQLException {
+    public void updateLong(int columnIndex, long x) throws SQLException {
         checkedClose();
-        ((BasicLongVector)table.getColumn(i)).setLong(row,l);
+        update(columnIndex,x);
     }
 
     @Override
-    public void updateFloat(int i, float v) throws SQLException {
+    public void updateFloat(int columnIndex, float x) throws SQLException {
         checkedClose();
-        ((BasicFloatVector)table.getColumn(i)).setFloat(row,v);
+        update(columnIndex,x);
     }
 
     @Override
-    public void updateDouble(int i, double v) throws SQLException {
+    public void updateDouble(int columnIndex, double x) throws SQLException {
         checkedClose();
-        ((BasicDoubleVector)table.getColumn(i)).setDouble(row,v);
+        update(columnIndex,x);
     }
 
     @Override
-    public void updateBigDecimal(int i, BigDecimal bigDecimal) throws SQLException {
+    public void updateBigDecimal(int columnIndex, BigDecimal bigDecimal) throws SQLException {
         //((BasicShortVector)table.getColumn(i)).setShort(row,i1);
     }
 
     @Override
-    public void updateString(int i, String s) throws SQLException {
+    public void updateString(int columnIndex, String x) throws SQLException {
         checkedClose();
-        ((BasicStringVector)table.getColumn(i)).setString(row,s);
+        update(columnIndex,x);
     }
 
     @Override
-    public void updateBytes(int i, byte[] bytes) throws SQLException {
-
+    public void updateBytes(int columnIndex, byte[] bytes) throws SQLException {
+        update(columnIndex,toObject(bytes));
     }
 
     @Override
-    public void updateDate(int i, Date date) throws SQLException {
-
+    public void updateDate(int columnIndex, Date date) throws SQLException {
+        update(columnIndex,date);
     }
 
     @Override
-    public void updateTime(int i, Time time) throws SQLException {
-
+    public void updateTime(int columnIndex, Time time) throws SQLException {
+        update(columnIndex,time);
     }
 
     @Override
-    public void updateTimestamp(int i, Timestamp timestamp) throws SQLException {
-
+    public void updateTimestamp(int columnIndex, Timestamp timestamp) throws SQLException {
+        update(columnIndex,timestamp);
     }
 
     @Override
-    public void updateAsciiStream(int i, InputStream inputStream, int i1) throws SQLException {
-
-    }
-
-    @Override
-    public void updateBinaryStream(int i, InputStream inputStream, int i1) throws SQLException {
+    public void updateAsciiStream(int columnIndex, InputStream inputStream, int i1) throws SQLException {
 
     }
 
     @Override
-    public void updateCharacterStream(int i, Reader reader, int i1) throws SQLException {
+    public void updateBinaryStream(int columnIndex, InputStream inputStream, int i1) throws SQLException {
 
     }
 
     @Override
-    public void updateObject(int i, Object o, int i1) throws SQLException {
+    public void updateCharacterStream(int columnIndex, Reader reader, int i1) throws SQLException {
 
     }
 
     @Override
-    public void updateObject(int i, Object o) throws SQLException {
+    public void updateObject(int columnIndex, Object o, int i1) throws SQLException {
+        update(columnIndex,o);
+    }
+
+    @Override
+    public void updateObject(int columnIndex, Object o) throws SQLException {
+        update(columnIndex,o);
+    }
+
+    @Override
+    public void updateNull(String columnLabel) throws SQLException {
 
     }
 
     @Override
-    public void updateNull(String s) throws SQLException {
-
+    public void updateBoolean(String columnLabel, boolean x) throws SQLException {
+        update(columnLabel,x);
     }
 
     @Override
-    public void updateBoolean(String s, boolean b) throws SQLException {
-        checkedClose();
-        ((BasicBooleanVector)table.getColumn(s)).setBoolean(row,b);
+    public void updateByte(String columnLabel, byte x) throws SQLException {
+        update(columnLabel,x);
     }
 
     @Override
-    public void updateByte(String s, byte b) throws SQLException {
-        checkedClose();
-        ((BasicByteVector)table.getColumn(s)).setByte(row,b);
+    public void updateShort(String columnLabel, short x) throws SQLException {
+        update(columnLabel,x);
     }
 
     @Override
-    public void updateShort(String s, short i) throws SQLException {
-        checkedClose();
-        ((BasicShortVector)table.getColumn(s)).setShort(row,i);
+    public void updateInt(String columnLabel, int x) throws SQLException {
+        update(columnLabel,x);
     }
 
     @Override
-    public void updateInt(String s, int i) throws SQLException {
-        checkedClose();
-        ((BasicIntVector)table.getColumn(s)).setInt(row,i);
+    public void updateLong(String columnLabel, long x) throws SQLException {
+        update(columnLabel,x);
     }
 
     @Override
-    public void updateLong(String s, long l) throws SQLException {
-        checkedClose();
-        ((BasicLongVector)table.getColumn(s)).setLong(row,l);
+    public void updateFloat(String columnLabel, float x) throws SQLException {
+        update(columnLabel,x);
     }
 
     @Override
-    public void updateFloat(String s, float v) throws SQLException {
-        checkedClose();
-        ((BasicFloatVector)table.getColumn(s)).setFloat(row,v);
-    }
-
-    @Override
-    public void updateDouble(String s, double v) throws SQLException {
-        checkedClose();
-        ((BasicDoubleVector)table.getColumn(s)).setDouble(row,v);
+    public void updateDouble(String columnLabel, double x) throws SQLException {
+        update(columnLabel,x);
     }
 
     @Override
@@ -620,29 +661,28 @@ public class DBResultSet implements ResultSet{
     }
 
     @Override
-    public void updateString(String s, String s1) throws SQLException {
-        checkedClose();
-        ((BasicStringVector)table.getColumn(s)).setString(row,s1);
+    public void updateString(String columnLabel, String x) throws SQLException {
+        update(columnLabel,x);
     }
 
     @Override
-    public void updateBytes(String s, byte[] bytes) throws SQLException {
-
+    public void updateBytes(String columnLabel, byte[] bytes) throws SQLException {
+        update(columnLabel,bytes);
     }
 
     @Override
-    public void updateDate(String s, Date date) throws SQLException {
-
+    public void updateDate(String columnLabel, Date date) throws SQLException {
+        update(columnLabel,date);
     }
 
     @Override
-    public void updateTime(String s, Time time) throws SQLException {
-
+    public void updateTime(String columnLabel, Time time) throws SQLException {
+        update(columnLabel,time);
     }
 
     @Override
-    public void updateTimestamp(String s, Timestamp timestamp) throws SQLException {
-
+    public void updateTimestamp(String columnLabel, Timestamp timestamp) throws SQLException {
+        update(columnLabel,timestamp);
     }
 
     @Override
@@ -661,32 +701,66 @@ public class DBResultSet implements ResultSet{
     }
 
     @Override
-    public void updateObject(String s, Object o, int i) throws SQLException {
-
+    public void updateObject(String columnLabel, Object o, int i) throws SQLException {
+        update(columnLabel,o);
+        
     }
 
     @Override
-    public void updateObject(String s, Object o) throws SQLException {
-
+    public void updateObject(String columnLabel, Object o) throws SQLException {
+        update(columnLabel,o);
+        
     }
 
     @Override
     public void insertRow() throws SQLException {
 
+        if(insertRow == row){
+            System.out.println("here");
+            insertRun();
+            saveTable();
+            table = (BasicTable) run(tableName);
+            rows = table.rows();
+        }
+        insertRowMap.clear();
+        isInsert = false;
     }
 
     @Override
     public void updateRow() throws SQLException {
-
+        if(updateRow == row){
+            updateRun();
+            saveTable();
+        }
+        old_updateRowMap.clear();
+        new_updateRowMap.clear();
     }
 
     @Override
     public void deleteRow() throws SQLException {
-
+        StringBuilder sb = new StringBuilder("delete from ").append(tableName).append(" where ");
+        for(int i=1; i<=table.columns(); ++i){
+            sb.append(getColumnName(i)).append(" = ").append(Utils.java2db(getObject(i))).append(", ");
+        }
+        sb.delete(sb.length()-2,sb.length());
+        String sql = sb.toString();
+        System.out.println(sql);
+        run(sql);
+        table = (BasicTable) run(tableName);
+        rows = table.rows();
+        saveTable();
     }
 
     @Override
     public void refreshRow() throws SQLException {
+        BasicTable newTable = (BasicTable) loadTable();
+        try {
+            for(int i=0; i<newTable.columns(); ++i){
+                table.getColumn(i).set(row,newTable.getColumn(i).get(row));
+            }
+        }catch (Exception e){
+            throw new SQLException(e);
+        }
 
     }
 
@@ -697,7 +771,7 @@ public class DBResultSet implements ResultSet{
 
     @Override
     public void moveToInsertRow() throws SQLException {
-
+        isInsert = true;
     }
 
     @Override
@@ -1102,108 +1176,385 @@ public class DBResultSet implements ResultSet{
 
     public BasicDate getBasicDate(String columnLabel) throws SQLException{
         checkedClose();
-        return (BasicDate)table.getColumn(columnLabel).get(row);
+        return (BasicDate)getObject(columnLabel);
     }
 
     public BasicMonth getBasicMonth(String columnLabel) throws SQLException{
         checkedClose();
-        return (BasicMonth)table.getColumn(columnLabel).get(row);
+        return (BasicMonth)getObject(columnLabel);
     }
 
     public BasicTime getBasicTime(String columnLabel) throws SQLException{
         checkedClose();
-        return (BasicTime)table.getColumn(columnLabel).get(row);
+        return (BasicTime)getObject(columnLabel);
     }
 
     public BasicMinute getBasicMinute(String columnLabel) throws SQLException{
         checkedClose();
-        return (BasicMinute)table.getColumn(columnLabel).get(row);
+        return (BasicMinute)getObject(columnLabel);
     }
 
     public BasicSecond getBasicSecond(String columnLabel) throws SQLException{
         checkedClose();
-        return (BasicSecond)table.getColumn(columnLabel).get(row);
+        return (BasicSecond)getObject(columnLabel);
     }
 
     public BasicDateTime getBasicDateTime(String columnLabel) throws SQLException{
         checkedClose();
-        return (BasicDateTime)table.getColumn(columnLabel).get(row);
+        return (BasicDateTime)getObject(columnLabel);
     }
 
     public BasicNanoTime getBasicNanoTime(String columnLabel) throws SQLException{
         checkedClose();
-        return (BasicNanoTime) table.getColumn(columnLabel).get(row);
+        return (BasicNanoTime)getObject(columnLabel);
     }
 
     public BasicNanoTimestamp getBasicNanoTimestamp(String columnLabel) throws SQLException{
         checkedClose();
-        return (BasicNanoTimestamp) table.getColumn(columnLabel).get(row);
+        return (BasicNanoTimestamp)getObject(columnLabel);
     }
 
     public BasicDate getBasicDate(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicDate)table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+        return (BasicDate)getObject(columnIndex);
     }
 
     public BasicMonth getBasicMonth(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicMonth)table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+        return (BasicMonth)getObject(columnIndex);
     }
 
     public BasicTime getBasicTime(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicTime)table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+        return (BasicTime)getObject(columnIndex);
     }
 
     public BasicMinute getBasicMinute(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicMinute)table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+        return (BasicMinute)getObject(columnIndex);
     }
 
     public BasicSecond getBasicSecond(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicSecond)table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+        return (BasicSecond)getObject(columnIndex);
     }
 
     public BasicDateTime getBasicDateTime(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicDateTime)table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+        return (BasicDateTime)getObject(columnIndex);
     }
 
     public BasicNanoTime getBasicNanoTime(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicNanoTime) table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+        return (BasicNanoTime)getObject(columnIndex);
     }
 
     public BasicNanoTimestamp getBasicNanoTimestamp(int columnIndex) throws SQLException{
         checkedClose();
-        return (BasicNanoTimestamp) table.getColumn(adjustColumnIndex(columnIndex)).get(row);
-    }
-
-
-    private void update(int index, Object value) throws SQLException{
-        checkedClose();
-        if(value instanceof Boolean){
-            ((BasicBooleanVector)table.getColumn(index)).setBoolean(row,(boolean)value);
-        }else if(value instanceof Byte){
-            ((BasicByteVector)table.getColumn(index)).setByte(row,(byte)value);
-        }else if(value instanceof Integer){
-            ((BasicIntVector)table.getColumn(index)).setInt(row,(int)value);
-        }else if(value instanceof Short){
-            ((BasicShortVector)table.getColumn(index)).setShort(row,(short) value);
-        }else if(value instanceof Long){
-            ((BasicLongVector)table.getColumn(index)).setLong(row,(long) value);
-        }else if(value instanceof Float){
-            ((BasicFloatVector)table.getColumn(index)).setFloat(row,(float) value);
-        }else if(value instanceof Double){
-            ((BasicDoubleVector)table.getColumn(index)).setDouble(row,(double) value);
-        }else if(value instanceof String){
-            ((BasicStringVector)table.getColumn(index)).setString(row,(String) value);
-        }
+        return (BasicNanoTimestamp)getObject(columnIndex);
     }
 
     private void update(String name, Object value) throws SQLException{
         update(findColumn(name),value);
+    }
+
+    private void update(int index, Object value) throws SQLException{
+        if(isInsert){
+            insert(index, value);
+        }else{
+            checkedClose();
+            updateRow = row;
+            old_updateRowMap.put(index,table.getColumn(adjustColumnIndex(index)).get(row));
+            Vector vector = table.getColumn(adjustColumnIndex(index));
+            if(value instanceof Scalar){
+                try {
+                    table.getColumn(adjustColumnIndex(index)).set(row, (Scalar)value);
+                }catch (Exception e){
+                    throw new SQLException(e);
+                }
+            }if (value instanceof Boolean) {
+                ((BasicBooleanVector) table.getColumn(adjustColumnIndex(index))).setBoolean(row, (boolean) value);
+            } else if (value instanceof Byte) {
+                ((BasicByteVector) table.getColumn(adjustColumnIndex(index))).setByte(row, (byte) value);
+            } else if (value instanceof Character){
+                System.out.println(table.getColumn(adjustColumnIndex(index)).getClass().getName());
+                ((BasicByteVector) table.getColumn(adjustColumnIndex(index))).setByte(row, (byte) ((char)value & 0xFF));
+            }
+            else if (value instanceof Integer) {
+                if(vector instanceof BasicLongVector){
+                    ((BasicLongVector) vector).setLong(row, (int) value);
+                }else if(vector instanceof BasicIntVector){
+                    ((BasicIntVector) vector).setInt(row,(int) value);
+                }else if(vector instanceof BasicShortVector){
+                    ((BasicShortVector) vector).setShort(row,Short.valueOf(value.toString()));
+                }
+            } else if (value instanceof Short) {
+                if(vector instanceof BasicLongVector){
+                    ((BasicLongVector) vector).setLong(row, (short) value);
+                }else if(vector instanceof BasicIntVector){
+                    ((BasicIntVector) vector).setInt(row,(short) value);
+                }else if(vector instanceof BasicShortVector){
+                    ((BasicShortVector) vector).setShort(row,(short) value);
+                }
+            } else if (value instanceof Long) {
+                if(vector instanceof BasicLongVector){
+                    ((BasicLongVector) vector).setLong(row, (long) value);
+                }else if(vector instanceof BasicIntVector){
+                    ((BasicIntVector) vector).setInt(row,Integer.valueOf(value.toString()));
+                }else if(vector instanceof BasicShortVector){
+                    ((BasicShortVector) vector).setShort(row,Short.valueOf(value.toString()));
+                }
+            } else if (value instanceof Float) {
+                if(vector instanceof BasicFloatVector){
+                    ((BasicFloatVector) vector).setFloat(row,(float) value);
+                }else if (vector instanceof BasicDoubleVector){
+                    ((BasicDoubleVector) vector).setDouble(row,(float) value);
+                }
+            } else if (value instanceof Double) {
+                if(vector instanceof BasicFloatVector){
+                    ((BasicFloatVector) vector).setFloat(row,(float) value);
+                }else if (vector instanceof BasicDoubleVector){
+                    ((BasicDoubleVector) vector).setDouble(row,(double) value);
+                }
+            } else if (value instanceof String) {
+                ((BasicStringVector) table.getColumn(adjustColumnIndex(index))).setString(row, (String) value);
+            } else if (value instanceof Date) {
+                updateDateTime(index, ((Date) value).toLocalDate());
+            } else if (value instanceof Time) {
+                updateDateTime(index, ((Time) value).toLocalTime());
+            } else if (value instanceof Timestamp) {
+                updateDateTime(index, ((Timestamp) value).toLocalDateTime());
+            } else {
+                updateDateTime(index,value);
+            }
+            new_updateRowMap.put(index,table.getColumn(adjustColumnIndex(index)).get(row));
+        }
+    }
+
+    private void insert(String name, Object value) throws SQLException{
+        insert(findColumn(name),value);
+    }
+
+
+    private void insert(int index, Object value) throws SQLException{
+        checkedClose();
+        insertRow = row;
+        if(value instanceof Scalar){
+            insertRowMap.put(index,(Scalar) value);
+        }else if(value instanceof Vector) {
+            insertRowMap.put(index,(Vector) value);
+        }else if(value instanceof Boolean){
+            insertRowMap.put(index,new BasicBoolean((boolean)value));
+        }else if(value instanceof Byte){
+            insertRowMap.put(index,new BasicByte((byte) value));
+        }else if(value instanceof Integer){
+            insertRowMap.put(index,new BasicInt((int) value));
+        }else if(value instanceof Short){
+            insertRowMap.put(index,new BasicShort((short) value));
+        }else if(value instanceof Long){
+            insertRowMap.put(index,new BasicLong((long) value));
+        }else if(value instanceof Float){
+            insertRowMap.put(index,new BasicFloat((float) value));
+        }else if(value instanceof Double){
+            insertRowMap.put(index,new BasicDouble((double) value));
+        }else if(value instanceof String){
+            insertRowMap.put(index,new BasicString((String) value));
+        }else if(value instanceof Date){
+            insertDateTime(index,((Date) value).toLocalDate());
+        }else if(value instanceof Time){
+            insertDateTime(index,((Time) value).toLocalTime());
+        }else if(value instanceof Timestamp){
+            insertDateTime(index,((Timestamp) value).toLocalDateTime());
+        }else {
+            insertDateTime(index,value);
+        }
+    }
+
+
+    private void updateDateTime(String name, Object value) throws SQLException{
+        updateDateTime(findColumn(name),value);
+    }
+
+    private void updateDateTime(int index, Object value) throws SQLException{
+        Vector vector = table.getColumn(adjustColumnIndex(index));
+        if(value instanceof LocalDate){
+            if(vector instanceof BasicDateVector){
+                ((BasicDateVector) vector).setDate(row,(LocalDate) value);
+            }
+        }else if(value instanceof LocalTime){
+            if(vector instanceof BasicTimeVector){
+                ((BasicTimeVector) vector).setTime(row,(LocalTime) value);
+            }else if(vector instanceof BasicMinuteVector){
+                ((BasicMinuteVector) vector).setMinute(row,(LocalTime) value);
+            }else if(vector instanceof BasicSecondVector){
+                ((BasicSecondVector) vector).setSecond(row,(LocalTime) value);
+            }else if(vector instanceof BasicNanoTime){
+                ((BasicNanoTimeVector) vector).setNanoTime(row,(LocalTime) value);
+            }
+        }else if(value instanceof LocalDateTime){
+            if(vector instanceof BasicDateTimeVector){
+                ((BasicDateTimeVector) vector).setDateTime(row,(LocalDateTime) value);
+            }else if(vector instanceof BasicTimestampVector){
+                ((BasicTimestampVector) vector).setTimestamp(row,(LocalDateTime) value);
+            }else if(vector instanceof BasicNanoTimestampVector){
+                ((BasicNanoTimestampVector) vector).setNanoTimestamp(row,(LocalDateTime) value);
+            }
+        }else if(value instanceof YearMonth){
+            if(vector instanceof BasicMonthVector){
+                ((BasicMonthVector) vector).setMonth(row,(YearMonth) value);
+            }
+        }
+    }
+
+    private void insertDateTime(String name, Object value) throws SQLException{
+        insertDateTime(findColumn(name),value);
+    }
+
+    private void insertDateTime(int index, Object value) throws SQLException{
+        Vector vector = table.getColumn(adjustColumnIndex(index));
+        if(value instanceof LocalDate){
+            if(vector instanceof BasicDateVector){
+                insertRowMap.put(index,new BasicDate((LocalDate) value));
+            }
+        }else if(value instanceof LocalTime){
+            if(vector instanceof BasicTimeVector){
+                insertRowMap.put(index,new BasicTime((LocalTime) value));
+            } else if(vector instanceof BasicMinuteVector){
+                insertRowMap.put(index,new BasicMinute((LocalTime) value));
+            }else if(vector instanceof BasicSecondVector){
+                insertRowMap.put(index,new BasicSecond((LocalTime) value));
+            }else if(vector instanceof BasicNanoTime){
+                insertRowMap.put(index,new BasicNanoTime((LocalTime) value));
+            }
+        }else if(value instanceof LocalDateTime){
+            if(vector instanceof BasicTimestampVector){
+                insertRowMap.put(index,new BasicTimestamp((LocalDateTime) value));
+            }else if(vector instanceof BasicDateTimeVector){
+                insertRowMap.put(index,new BasicDateTime((LocalDateTime) value));
+            }else if(vector instanceof BasicNanoTimestampVector){
+                insertRowMap.put(index,new BasicNanoTimestamp((LocalDateTime) value));
+            }
+        }else if(value instanceof YearMonth){
+            if(vector instanceof BasicMonthVector){
+                insertRowMap.put(index,new BasicMonth((YearMonth) value));
+            }
+        }
+    }
+
+    
+    private void updateRun() throws SQLException{
+        Entity value;
+        StringBuilder sb = new StringBuilder();
+        StringBuilder where = new StringBuilder(" where ");
+        sb.append("update ").append(tableName).append(" set ");
+        for (int i = 1; i <= table.columns(); ++i) {
+            if((value = new_updateRowMap.get(i)) != null){
+                sb.append(getColumnName(i)).append(" = ").append(Utils.java2db(value)).append(", ");
+                where.append(getColumnName(i)).append(" = ").append(Utils.java2db(old_updateRowMap.get(i))).append(" ,");
+            }else{
+                where.append(getColumnName(i)).append(" = ").append(Utils.java2db(table.getColumn(adjustColumnIndex(i)).get(row))).append(" ,");
+            }
+            
+        }
+        sb.delete(sb.length()-2,sb.length());
+        where.delete(where.length()-2,where.length());
+        sb.append(where);
+                
+        String sql = sb.toString();
+        System.out.println(sql);
+        run(sql);
+    }
+
+
+    private void insertRun() throws SQLException{
+        StringBuilder sb = new StringBuilder();
+        sb.append("insert into ").append(tableName).append(" values ( ");
+        for (int i = 1; i <= table.columns(); ++i) {
+            sb.append(Utils.java2db(insertRowMap.get(i))).append(", ");
+
+        }
+        sb.delete(sb.length()-2,sb.length());
+        sb.append(")");
+        String sql = sb.toString();
+        System.out.println(sql);
+        run(sql);
+    }
+
+    private Entity run(String sql) throws SQLException {
+        try {
+            return conn.getDb().run(sql);
+        } catch (IOException e) {
+            throw new SQLException(e);
+        }
+    }
+    
+    private String JAVA2DBString(Entity entity, Object value){
+        if(value instanceof Boolean){
+            return new BasicBoolean((boolean) value).getString();
+        }else if(value instanceof Byte){
+            return new BasicByte((byte) value).getString();
+        }else if(value instanceof Integer){
+            return new BasicInt((int) value).getString();
+        }else if(value instanceof Short){
+            return new BasicShort((short) value).getString();
+        }else if(value instanceof Long){
+            return new BasicLong((long) value).getString();
+        }else if(value instanceof Float){
+            return new BasicFloat((float) value).getString();
+        }else if(value instanceof Double){
+            return new BasicDouble((double) value).getString();
+        }else if(value instanceof String){
+            return "`" + new BasicString((String) value).getString();
+        }else if(value instanceof Date){
+            return JAVA2DBString4DataTime(entity,((Date) value).toLocalDate());
+        }else if(value instanceof Time){
+            return JAVA2DBString4DataTime(entity,((Time) value).toLocalTime());
+        }else if(value instanceof Timestamp){
+            return JAVA2DBString4DataTime(entity,((Timestamp) value).toLocalDateTime());
+        }else{
+            return JAVA2DBString4DataTime(entity,value);
+        }
+    }
+
+    private String JAVA2DBString4DataTime(Entity entity, Object value){
+        if(value instanceof LocalDate){
+            if(entity instanceof BasicDate){
+                return new BasicDate((LocalDate) value).getString();
+            }
+        }else if(value instanceof LocalTime){
+            if(entity instanceof BasicTime){
+                return new BasicTime((LocalTime) value).getString();
+            } else if(entity instanceof BasicMinuteVector){
+                return new BasicMinute((LocalTime) value).getString();
+            }else if(entity instanceof BasicSecondVector){
+                return new BasicSecond((LocalTime) value).getString();
+            }else if(entity instanceof BasicNanoTime){
+                return new BasicNanoTime((LocalTime) value).getString();
+            }
+        }else if(value instanceof LocalDateTime){
+            if(entity instanceof BasicTimestamp){
+                return new BasicTimestamp((LocalDateTime) value).getString();
+            }else if(entity instanceof BasicDateTime){
+                return new BasicDateTime((LocalDateTime) value).getString();
+            }else if(entity instanceof BasicNanoTimestampVector){
+                return new BasicNanoTimestamp((LocalDateTime) value).getString();
+            }
+        }else if(value instanceof YearMonth){
+            if(entity instanceof BasicMonth){
+                new BasicMonth((YearMonth) value).getString();
+            }
+        }
+        
+        return null;
+    }
+    
+    private String DB2String(Entity e){
+        if(e == null) return "";
+        if(e instanceof BasicString){
+            return "`" + e.getString();
+        }else{
+            return e.getString();
+        }
     }
 
     private String getColumnName(int columnIndex){
@@ -1219,6 +1570,48 @@ public class DBResultSet implements ResultSet{
         if(table == null && isClosed){
             throw new SQLException("ResultSet is closed");
         }
+    }
+
+    /**
+     * 对象转数组
+     * @param obj
+     * @return
+     */
+    public byte[] toByteArray (Object obj) {
+        byte[] bytes = null;
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try {
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            oos.writeObject(obj);
+            oos.flush();
+            bytes = bos.toByteArray ();
+            oos.close();
+            bos.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        return bytes;
+    }
+
+    /**
+     * 数组转对象
+     * @param bytes
+     * @return
+     */
+    public Object toObject (byte[] bytes) {
+        Object obj = null;
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream (bytes);
+            ObjectInputStream ois = new ObjectInputStream (bis);
+            obj = ois.readObject();
+            ois.close();
+            bis.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } catch (ClassNotFoundException ex) {
+            ex.printStackTrace();
+        }
+        return obj;
     }
 
 

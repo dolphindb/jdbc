@@ -13,18 +13,18 @@ public  class _DBConnection implements Connection {
 
     private DBConnection db;
 
-    private String file;
-    private String fileName;
+    private String filePath;
+    private String tableName;
     private String hostName;
     private int port;
     private boolean success;
 
 
-    public _DBConnection(String file, String fileName, Properties prop) throws SQLException{
+    public _DBConnection(String filePath, String tableName, Properties prop) throws SQLException{
         //this.url = url;
         //this.fileName = extractPragmasFromFilename(fileName, prop);
-        this.file = file;
-        this.fileName = fileName;
+        this.filePath = filePath;
+        this.tableName = tableName;
         db = new DBConnection();
         hostName = prop.getProperty("hostName");
         port = Integer.parseInt(prop.getProperty("port"));
@@ -66,7 +66,7 @@ public  class _DBConnection implements Connection {
         System.out.println(hostname+port);
         success = db.connect(hostname, port);
         if(!success) throw new SQLException("Connection is fail");
-        db.run(MessageFormat.format("{1} = loadTable(\"{0}\",`{1})",file,fileName));
+        db.run(MessageFormat.format("{1} = loadTable(\"{0}\",`{1})",filePath,tableName));
     }
 
 
@@ -408,6 +408,14 @@ public  class _DBConnection implements Connection {
 
     public DBConnection getDb() {
         return db;
+    }
+
+    public String getTableName() {
+        return tableName;
+    }
+
+    public String getFilePath() {
+        return filePath;
     }
 
     protected void checkOpen() throws SQLException {
