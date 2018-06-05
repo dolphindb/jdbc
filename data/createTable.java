@@ -1,7 +1,3 @@
-n=2;
-
-//void = [NULL, NULL];
-
 bool = [1b, 0b];
 
 char = [97c, 'A'];
@@ -36,11 +32,4 @@ nanotime = [13:30:10.008007006, 13:30:10.008007007];
 
 nanotimestamp = [2012.06.13 13:30:10.008007006, 2012.06.13 13:30:10.008007007];
 
-
-//char.short,int,long,,float,double,;
-
 t1= table(bool,char,short,int,long,float,double,string,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp);
-
-t1;
-
-saveTable("/home/swang/src/dolphindb-jdbc/dolphindb-jdbc/data/dballdata", t1, `t1);
