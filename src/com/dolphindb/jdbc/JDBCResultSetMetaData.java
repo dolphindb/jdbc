@@ -26,13 +26,11 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
 
     @Override
     public int getColumnCount() throws SQLException {
-        //throw new SQLException(""+table.columnIndexs());
         return table.columns();
     }
 
     @Override
     public String getColumnLabel(int columnIndex) throws SQLException {
-        //throw new SQLException(""+columnIndex);
         return table.getColumnName(adjustColumnIndex(columnIndex));
     }
 

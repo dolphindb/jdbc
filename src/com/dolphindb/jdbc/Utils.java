@@ -3,14 +3,28 @@ package com.dolphindb.jdbc;
 import com.xxdb.data.*;
 
 import java.sql.Date;
+import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
+import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Utils {
+    public static final int DML_OTHER = -1;
+    public static final int DML_SELECT = 0;
+    public static final int DML_INSERT = 1;
+    public static final int DML_UPDATE = 2;
+    public static final int DML_DELETE = 3;
+
+
     public static Object java2db(Object o){
-        if(o instanceof BasicStringVector || o instanceof BasicAnyVector || o instanceof Vector){
+        System.out.println(o instanceof Entity);
+        if(o instanceof BasicStringVector || o instanceof BasicAnyVector || o instanceof AbstractVector || o instanceof Vector){
             String s = ((Vector)o).getString();
             if(((Vector) o).get(0) instanceof BasicString){
                 return dbVectorString(s);
@@ -18,7 +32,7 @@ public class Utils {
                 return s;
             }
         }else if(o instanceof String || o instanceof BasicString){
-            return "`"+o;
+            return "\""+o+"\"";
         }else if(o instanceof Character){
             return "'"+ o +"'";
         }else if(o instanceof Short || o instanceof BasicShort){
@@ -33,13 +47,12 @@ public class Utils {
             return new BasicTimestamp(((Timestamp) o).toLocalDateTime());
         }else if(o instanceof YearMonth){
             return new BasicMonth((YearMonth)o);
-        }else if(o instanceof Vector){
-            return ((Vector) o).getString();
-        }else{
+        }else {
             return  o;
         }
 
     }
+
 
     public static String dbVectorString(String s){
         String[] strings = s.substring(1,s.length()-1).split(",");
@@ -63,12 +76,20 @@ public class Utils {
         sb.delete(sb.length() - join.length(),sb.length());
     }
 
-    public static void parseProperties(String s, Properties prop, String split1, String split2){
+    public static void parseProperties(String s, Properties prop, String split1, String split2) throws SQLException {
+        System.out.println(s);
         String[] strings1 = s.split(split1);
         String[] strings2;
         for (String item : strings1){
-            strings2 = item.split(split2);
-            prop.setProperty(strings2[0],strings2[1]);
+            if(item.length()>0) {
+                strings2 = item.split(split2);
+                if(strings2.length == 2) {
+                    if(strings2[0].length()==0) throw new SQLException(item + "     is error");
+                    prop.setProperty(strings2[0], strings2[1]);
+                }else {
+                    throw new SQLException(item + "     is error");
+                }
+            }
         }
     }
 
@@ -82,15 +103,43 @@ public class Utils {
         return properties;
     }
 
-    public static String getTableName(String s){
-        String s1 = s.trim().split(";")[0];
-
-        int index = s1.indexOf("from");
-        if(index != -1){
-            return s1.substring(index+4).trim().split(" ")[0];
-        }else{
-            return s1;
+    public static int getDml(String sql){
+        if(sql.startsWith("select")){
+            return DML_SELECT;
+        }else if(sql.startsWith("insert") || sql.startsWith("tableInsert")){
+            return DML_INSERT;
+        }else if(sql.startsWith("update")){
+            return DML_UPDATE;
+        }else if(sql.startsWith("delete")){
+            return DML_DELETE;
+        }else {
+            return DML_OTHER;
         }
+    }
+
+    public static String getTableName(String sql){
+        String tableName = null;
+        if(sql.startsWith("insert")){
+            tableName = sql.substring(sql.indexOf("into") + "into".length(), sql.indexOf("values"));
+        }else if(sql.startsWith("tableInsert")){
+            tableName = sql.substring(sql.indexOf("(") + "(".length(), sql.indexOf(","));
+        }else if(sql.startsWith("append!")){
+            tableName = sql.substring(sql.indexOf("(") + "(".length(), sql.indexOf(","));
+        }else if(sql.contains(".append!")){
+            tableName = sql.split("\\.")[0];
+        }else if(sql.startsWith("update")){
+            tableName = sql.substring(sql.indexOf("update") + "update".length(), sql.indexOf("set"));
+        }else if(sql.contains(".update!")){
+            tableName = sql.split("\\.")[0];
+        }else if(sql.startsWith("delete")){
+            int index = sql.indexOf("where");
+            if(index != -1) {
+                tableName = sql.substring(sql.indexOf("from") + "from".length(), sql.indexOf("where"));
+            }else{
+                tableName = sql.substring(sql.indexOf("from") + "from".length()).replaceAll(";","");
+            }
+        }
+        return tableName;
     }
 
     public static boolean isUpdateable(String s){
@@ -98,6 +147,37 @@ public class Utils {
         String regex = "full.*join|inner.*join|right.*join|left.*join|" +
                 "join.*(.*)|ej.*(.*)|sej.*(.*)|lj.*(.*)|fj.*(.*)|aj.*(.*)|cj.*(.*)|" +
                 "group.*by|context.*by|pivot.*by";
-        return !s1.matches(regex);
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(s1);
+
+        return !matcher.find();
     }
+
+    public static String getRandomString(int length) {
+        String character = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String base = character + "0123456789";
+        Random random = new Random();
+        StringBuffer sb = new StringBuffer();
+        int number = random.nextInt(character.length());
+        sb.append(character.charAt(number));
+        for (int i = 1; i < length; i++) {
+            number = random.nextInt(base.length());
+            sb.append(base.charAt(number));
+        }
+        return sb.toString();
+    }
+
+    public static BasicTable Vevtor2Table(Vector vector,String sql) {
+        List<String> colNames = new ArrayList<>(1);
+        sql = sql.trim();
+        if (sql.contains("as")) {
+            colNames.add(sql.split(" ")[3]);
+        } else {
+            colNames.add(sql.split(" ")[1]);
+        }
+        List<Vector> cols = new ArrayList<>(1);
+        cols.add(vector);
+        return new BasicTable(colNames, cols);
+    }
+
 }
