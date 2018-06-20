@@ -3,7 +3,6 @@ package com.dolphindb.jdbc;
 import com.xxdb.data.BasicInt;
 import com.xxdb.data.BasicTable;
 import com.xxdb.data.Entity;
-import com.xxdb.data.Void;
 
 import java.io.IOException;
 import java.sql.*;
@@ -13,62 +12,161 @@ import java.util.*;
 public class JDBCStatement implements Statement {
 
     protected JDBCConnection connection;
-
     protected ResultSet resultSet;
-
-    protected String sql;
     protected String[] sqlSplit;
     protected Object[] values;
     protected StringBuilder batch;
     protected Queue<Object> objectQueue;
-    protected  Object result;
-
+    protected Object result;
+    protected Deque<ResultSet> resultSets;
+    protected HashMap<String,String> tableTypes;
+    protected static final String IN_MEMORY_TABLE = "IN-MEMORY TABLE";
     protected boolean isClosed;
 
 
     public JDBCStatement(JDBCConnection cnn){
         this.connection = cnn;
         objectQueue = new LinkedList<>();
+        resultSets = new LinkedList<>();
+    }
+
+    private String getTableType(String tableName) throws SQLException{
+        if (tableTypes == null) {
+            tableTypes = new LinkedHashMap<>();
+        }
+        String tableType = tableTypes.get(tableName);
+        if (tableType == null) {
+            try {
+                tableType = connection.run("typestr " + tableName).getString();
+            } catch (IOException e) {
+                throw new SQLException(e);
+            }
+            tableTypes.put(tableName, tableType);
+            return tableType;
+        }else{
+            return tableType;
+        }
     }
 
 
     @Override
-    public ResultSet executeQuery(String s) throws SQLException {
+    public ResultSet executeQuery(String sql) throws SQLException {
         checkClosed();
-        try {
-            Entity entity = connection.getDbConnection().run(s);
-            if(entity instanceof BasicTable){
-                resultSet = new JDBCResultSet(connection, this, entity, s);
-                return resultSet;
-            }else{
-                throw new SQLException("executeQuery can not create other than ResultSet");
-            }
-        }catch (IOException e){
-            e.printStackTrace();
-            throw new SQLException(e.getMessage());
+        sql = sql.trim();
+        String[] strings = sql.split(";");
+        if(strings.length == 0){
+            throw new SQLException("SQL was empty");
+        }else if(strings.length == 2){
+            throw new SQLException("check the SQL " + sql);
+        }
+        sql = strings[0];
+        int dml = Utils.getDml(sql);
+        Entity entity;
+        switch (dml){
+            case Utils.DML_INSERT:
+            case Utils.DML_UPDATE:
+            case Utils.DML_DELETE:
+                throw new SQLException("the given SQL statement produces anything other than a single ResultSet object");
+            case Utils.DML_SELECT:
+                try {
+                    entity = connection.run(sql);
+                    if(entity instanceof BasicTable){
+                        resultSet = new JDBCResultSet(connection, this, entity, sql);
+                        return resultSet;
+                    }else{
+                        throw new SQLException("the given SQL statement produces anything other than a single ResultSet object");
+                    }
+                }catch (IOException e){
+                    throw new SQLException(e);
+                }
+            default:
+                throw new SQLException("the given SQL statement produces anything other than a single ResultSet object");
         }
     }
 
     @Override
-    public int executeUpdate(String s) throws SQLException {
+    public int executeUpdate(String sql) throws SQLException {
         checkClosed();
-        try {
-             s = s.trim();
-             if(s.startsWith("tableInsert")){
-                 return tableInsert(s).getInt();
-             }else{
-                Entity entity = connection.getDbConnection().run(s);
-                if(entity instanceof Void){
-                    return 0;
-                }else if(entity instanceof BasicTable){
-                    throw new SQLException("executeUpdate can not create ResultSet");
-                }else{
-                    // todo 等待 update delete api 返回更新行数
-                    return 0;
+        sql = sql.trim();
+        String[] strings = sql.split(";");
+        if(strings.length == 0){
+            throw new SQLException("SQL was empty");
+        }else if(strings.length == 2){
+            throw new SQLException("check the SQL " + sql);
+        }
+        sql = strings[0];
+        String tableName = Utils.getTableName(sql);
+        int dml = Utils.getDml(sql);
+        String tableType;
+        switch (dml) {
+            case Utils.DML_INSERT:
+                if (tableName != null) {
+                    tableType = getTableType(tableName);
+                    if (tableType.equals(IN_MEMORY_TABLE)) {
+                        try {
+                            return tableInsert(tableName, sql).getInt();
+                        } catch (IOException e) {
+                            throw new SQLException(e);
+                        }
+                    } else {
+                        String[] values;
+                        int index = sql.indexOf(";");
+                        if (index == -1) {
+                            values = sql.substring(sql.indexOf("values") + "values".length()).replaceAll("\\(|\\)", "").split(",");
+                        } else {
+                            values = sql.substring(sql.indexOf("values") + "values".length(), index).replaceAll("\\(|\\)", "").split(",");
+                        }
+                        StringBuilder sqlSb = new StringBuilder("append!(").append(tableName).append(",").append("table(");
+
+                        char name = 'A';
+                        int colIndex = 0;
+                        for (String value : values) {
+                            sqlSb.append(value).append(" as ").append((char) (name + colIndex)).append("_,");
+                            colIndex++;
+                        }
+                        sqlSb.delete(sqlSb.length() - ",".length(), sqlSb.length());
+                        sqlSb.append("))");
+                        try {
+                            connection.run(sqlSb.toString());
+                            return SUCCESS_NO_INFO;
+                        } catch (IOException e) {
+                            new SQLException(e);
+                        }
+                    }
+                } else {
+                    throw new SQLException("check the SQL " + sql);
                 }
-            }
-        }catch (Exception e){
-            throw new SQLException(e);
+
+            case Utils.DML_UPDATE:
+            case Utils.DML_DELETE:
+                if (tableName != null) {
+                    tableType = getTableType(tableName);
+                    if (tableType.equals(IN_MEMORY_TABLE)) {
+                        try {
+                            connection.run(sql);
+                            return SUCCESS_NO_INFO;
+                        } catch (IOException e) {
+                            throw new SQLException(e);
+                        }
+                    } else {
+                        throw new SQLException("only local in-memory table can update");
+                    }
+                } else {
+                    throw new SQLException("check the Query " + sql);
+                }
+            case Utils.DML_SELECT:
+                throw new SQLException("Can not issue SELECT via executeUpdate()");
+            default:
+                Entity entity;
+                try {
+                    entity = connection.run(sql);
+                }catch (IOException e){
+                    throw new SQLException(e);
+                }
+                if(entity instanceof BasicTable){
+                    throw new SQLException("Can not produces ResultSet");
+                }
+                return 0;
         }
     }
 
@@ -76,111 +174,132 @@ public class JDBCStatement implements Statement {
     public void close() throws SQLException {
         checkClosed();
         isClosed = true;
-        sql = null;
         sqlSplit = null;
         values = null;
         batch = null;
         result = null;
         if(objectQueue != null){
             objectQueue.clear();
+            objectQueue = null;
         }
-        objectQueue = null;
+
         if(resultSet != null) {
             resultSet.close();
+            objectQueue = null;
+        }
+
+        if(tableTypes != null){
+            tableTypes.clear();
+            tableTypes = null;
         }
     }
 
     @Override
     public int getMaxFieldSize() throws SQLException {
+        Driver.unused();
         return 0;
     }
 
     @Override
     public void setMaxFieldSize(int maxFieldSize) throws SQLException {
-
+        Driver.unused();
     }
 
     @Override
     public int getMaxRows() throws SQLException {
+        Driver.unused();
         return 0;
     }
 
     @Override
     public void setMaxRows(int maxRows) throws SQLException {
-
+        Driver.unused();
     }
 
     @Override
     public void setEscapeProcessing(boolean b) throws SQLException {
-
+        Driver.unused();
     }
 
     @Override
     public int getQueryTimeout() throws SQLException {
+        Driver.unused();
         return 0;
     }
 
     @Override
     public void setQueryTimeout(int queryTimeout) throws SQLException {
-
+        Driver.unused();
     }
 
     @Override
     public void cancel() throws SQLException {
-
+        Driver.unused();
     }
 
     @Override
     public SQLWarning getWarnings() throws SQLException {
+        Driver.unused();
         return null;
     }
 
     @Override
     public void clearWarnings() throws SQLException {
-
+        Driver.unused();
     }
 
     @Override
     public void setCursorName(String cursorName) throws SQLException {
-
+        Driver.unused();
     }
 
     @Override
     public boolean execute(String sql) throws SQLException {
         checkClosed();
-        try {
-            String[] strings = sql.split(";");
-            System.out.println(strings.length);
-            for(String item : strings){
-                if(item.length()>0){
-                    System.out.println(item);
-                    if(item.startsWith("insert") || item.startsWith("tableInsert")){
-                        objectQueue.offer(tableInsert(item).getInt());
-                    }else if(item.startsWith("update")||item.startsWith("delete")){
-                        //todo 获取更新计数
-                        connection.getDbConnection().run(item);
-                    }else{
-                        Entity entity = connection.getDbConnection().run(item);
-                        if(entity instanceof  BasicTable){
-                            objectQueue.offer(new JDBCResultSet(connection,this,entity,item));
-                        }
-                    }
+        sql = sql.trim();
+        String[] strings = sql.split(";");
+        if(strings.length == 0){
+            throw new SQLException("SQL was empty");
+        }else if(strings.length == 2){
+            throw new SQLException("check the SQL " + sql);
+        }
+        sql = strings[0];
+        int dml = Utils.getDml(sql);
+        switch (dml){
+            case Utils.DML_SELECT: {
+                ResultSet resultSet_ = executeQuery(sql);
+                resultSets.offerLast(resultSet_);
+                objectQueue.offer(executeQuery(sql));
+            }
+            case Utils.DML_INSERT:
+            case Utils.DML_UPDATE:
+            case Utils.DML_DELETE:
+                objectQueue.offer(executeUpdate(sql));
+                break;
+            default: {
+                Entity entity;
+                try {
+                    entity = connection.run(sql);
+                } catch (IOException e) {
+                    throw new SQLException(e);
+                }
+                if (entity instanceof BasicTable) {
+                    ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, sql);
+                    resultSets.offerLast(resultSet_);
+                    objectQueue.offer(resultSet_);
                 }
             }
-            if(objectQueue.isEmpty()){
+        }
+
+        if(objectQueue.isEmpty()){
+            return false;
+        }else {
+            result = objectQueue.poll();
+            if(result instanceof ResultSet){
+                return true;
+            }else{
                 return false;
-            }else {
-                System.out.println(objectQueue.size());
-                result = objectQueue.poll();
-                if(result instanceof ResultSet){
-                    return true;
-                }else{
-                    return false;
-                }
             }
-        }catch (Exception e){
-            e.printStackTrace();
-            throw new SQLException(e);
         }
     }
 
@@ -215,9 +334,13 @@ public class JDBCStatement implements Statement {
 
     @Override
     public boolean getMoreResults() throws SQLException {
-        if(resultSet != null) {
-            resultSet.close();
+        while (!resultSets.isEmpty()){
+            ResultSet resultSet_ = resultSets.pollFirst();
+            if(resultSet_ != null){
+                resultSet_.close();
+            }
         }
+
         if(!objectQueue.isEmpty()){
             result = objectQueue.poll();
             if(result instanceof ResultSet){
@@ -232,38 +355,42 @@ public class JDBCStatement implements Statement {
 
     @Override
     public void setFetchDirection(int fetchDirection) throws SQLException {
-
+        Driver.unused();
     }
 
     @Override
     public int getFetchDirection() throws SQLException {
+        Driver.unused();
         return 0;
     }
 
     @Override
     public void setFetchSize(int fetchSize) throws SQLException {
-
+        Driver.unused();
     }
 
     @Override
     public int getFetchSize() throws SQLException {
+        Driver.unused();
         return 0;
     }
 
     @Override
     public int getResultSetConcurrency() throws SQLException {
+        Driver.unused();
         return 0;
     }
 
     @Override
     public int getResultSetType() throws SQLException {
+        Driver.unused();
         return 0;
     }
 
     @Override
     public void addBatch(String sql) throws SQLException {
         checkClosed();
-        batch.append(sql).append("\n");
+        batch.append(sql).append(";\n");
     }
 
     @Override
@@ -275,39 +402,19 @@ public class JDBCStatement implements Statement {
     @Override
     public int[] executeBatch() throws SQLException {
         checkClosed();
-        List<Integer> int_list = new ArrayList<>();
+        String[] strings = batch.toString().split(";");
+        int[] arr_int = new int[strings.length];
+        int index = 0;
         try {
-            String[] strings = batch.toString().split(";");
-            System.out.println(strings.length);
             for(String item : strings){
-                if(item.length()>0){
-                    System.out.println(item);
-                    if(item.startsWith("insert") || item.startsWith("tableInsert")){
-                        int_list.add(tableInsert(item).getInt());
-                    }else if(item.startsWith("update")||item.startsWith("delete")){
-                        //todo 获取更新计数
-                        connection.getDbConnection().run(item);
-                    }else{
-                        Entity entity = connection.getDbConnection().run(item);
-                        if(entity instanceof  BasicTable){
-                            int size = int_list.size();
-                            int[] arr_int = new int[size];
-                            for(int i=0; i<size; ++i){
-                                arr_int[i] = int_list.get(i);
-                            }
-                            throw new BatchUpdateException("can not return ResultSet",arr_int);
-                        }
-                    }
-                }
+                arr_int[index] = executeUpdate(item);
+                ++index;
             }
-            int size = int_list.size();
-            int[] arr_int = new int[size];
-            for(int i=0; i<size; ++i){
-                arr_int[i] = int_list.get(i);
-            }
+            batch.delete(0,batch.length());
             return arr_int;
         }catch (Exception e){
-            throw new SQLException(e);
+            batch.delete(0,batch.length());
+            throw new BatchUpdateException(e.getMessage(),Arrays.copyOf(arr_int,index));
         }
     }
 
@@ -317,48 +424,74 @@ public class JDBCStatement implements Statement {
         return connection;
     }
 
+
     @Override
-    public boolean getMoreResults(int i) throws SQLException {
+    public boolean getMoreResults(int current) throws SQLException{
+        checkClosed();
+        switch (current){
+            case Statement.CLOSE_ALL_RESULTS:
+                while (!resultSets.isEmpty()){
+                    ResultSet resultSet_ = resultSets.pollLast();
+                    if(resultSet_ != null){
+                        resultSet_.close();
+                    }
+                }
+                break;
+            case Statement.CLOSE_CURRENT_RESULT:
+                if(resultSet != null){
+                    resultSet.close();
+                }
+                break;
+            case Statement.KEEP_CURRENT_RESULT:
+                break;
+                default:
+                throw new SQLException("the argument supplied is not one of the following:\n" +
+                        "Statement.CLOSE_CURRENT_RESULT,\n" +
+                        "Statement.KEEP_CURRENT_RESULT or\n" +
+                        " Statement.CLOSE_ALL_RESULTS");
+        }
         return false;
     }
 
     @Override
     public ResultSet getGeneratedKeys() throws SQLException {
+        Driver.unused();
         return null;
     }
 
     @Override
-    public int executeUpdate(String sql, int i) throws SQLException {
+    public int executeUpdate(String sql, int autoGeneratedKeys) throws SQLException{
         return executeUpdate(sql);
     }
 
     @Override
-    public int executeUpdate(String sql, int[] ints) throws SQLException {
+    public int executeUpdate(String sql, int[] columnIndexes) throws SQLException{
         return executeUpdate(sql);
     }
 
     @Override
-    public int executeUpdate(String sql, String[] strings) throws SQLException {
+    public int executeUpdate(String sql, String[] columnNames) throws SQLException{
         return executeUpdate(sql);
     }
 
     @Override
-    public boolean execute(String sql, int i) throws SQLException {
+    public boolean execute(String sql, int autoGeneratedKeys) throws SQLException{
         return execute(sql);
     }
 
     @Override
-    public boolean execute(String sql, int[] ints) throws SQLException {
+    public boolean execute(String sql, int[] columnIndexes) throws SQLException{
         return execute(sql);
     }
 
     @Override
-    public boolean execute(String sql, String[] strings) throws SQLException {
+    public boolean execute(String sql, String[] columnNames) throws SQLException{
         return execute(sql);
     }
 
     @Override
     public int getResultSetHoldability() throws SQLException {
+        Driver.unused();
         return 0;
     }
 
@@ -369,49 +502,52 @@ public class JDBCStatement implements Statement {
 
     @Override
     public void setPoolable(boolean b) throws SQLException {
-
+        Driver.unused();
     }
 
     @Override
     public boolean isPoolable() throws SQLException {
+        Driver.unused();
         return false;
     }
 
     @Override
     public void closeOnCompletion() throws SQLException {
-
+        Driver.unused();
     }
 
     @Override
     public boolean isCloseOnCompletion() throws SQLException {
+        Driver.unused();
         return false;
     }
 
     @Override
     public <T> T unwrap(Class<T> aClass) throws SQLException {
-        return null;
+        checkClosed();
+        return aClass.cast(this);
     }
 
     @Override
     public boolean isWrapperFor(Class<?> aClass) throws SQLException {
-        return false;
+        checkClosed();
+        return aClass.isInstance(this);
     }
 
-    protected BasicInt tableInsert(String sql) throws Exception{
+    protected BasicInt tableInsert(String tableName, String sql) throws IOException{
         if(sql.startsWith("tableInsert")){
-            return (BasicInt)connection.getDbConnection().run(sql);
+            return (BasicInt)connection.run(sql);
         }else {
-            String tableName = sql.substring(sql.indexOf("into") + "into".length(), sql.indexOf("values"));
             String values;
             int index = sql.indexOf(";");
             if (index == -1) {
                 values = sql.substring(sql.indexOf("values") + "values".length());
             } else {
-                values = sql.substring(sql.indexOf("values") + "values".length(), sql.indexOf(";"));
+                values = sql.substring(sql.indexOf("values") + "values".length(), index);
             }
 
             String new_sql = MessageFormat.format("tableInsert({0},{1})", tableName, values);
-            BasicInt n = (BasicInt) connection.getDbConnection().run(new_sql);
+            BasicInt n = (BasicInt) connection.run(new_sql);
             return n;
         }
     }
