@@ -12,9 +12,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 
-/**
- * JDBCResultSet Operation is in memory only, not persisted
- */
 
 public class JDBCResultSet implements ResultSet{
     private JDBCConnection conn;
@@ -25,42 +22,29 @@ public class JDBCResultSet implements ResultSet{
     private String tableName;
     private Entity tableNameArg;
     private List<Entity> arguments;
-
     private HashMap<String,Integer> findColumnHashMap;
-
     private int updateRow;
-
     private int insertRow;
-
     private HashMap<Integer,Entity> insertRowMap;
-
     private boolean isInsert;
-
     private boolean isClosed = false;
-
     private boolean isUpdateAble = false;
 
 
     public JDBCResultSet(JDBCConnection conn, JDBCStatement statement, Entity entity, String sql) throws SQLException{
-        sql = sql.replaceAll("\n","").trim();
         this.conn = conn;
         this.statement = statement;
-
         if(entity.isTable()){
             this.table = (BasicTable) entity;
         }else{
             throw new SQLException("ResultSet data is null");
         }
         rows = this.table.rows();
-
         findColumnHashMap = new HashMap<>(this.table.columns());
-
         for(int i=0; i<this.table.columns(); ++i){
             findColumnHashMap.put(this.table.getColumnName(i),i+1);
         }
-
         this.isUpdateAble = false;
-
         if(this.isUpdateAble){
             insertRowMap = new HashMap<>(this.table.columns()+1);
         }
@@ -101,9 +85,18 @@ public class JDBCResultSet implements ResultSet{
     @Override
     public void close() throws SQLException {
         isClosed = true;
-        findColumnHashMap = null;
-        insertRowMap = null;
-        arguments = null;
+        if(findColumnHashMap != null){
+            findColumnHashMap.clear();
+            findColumnHashMap = null;
+        }
+        if(insertRowMap != null){
+            insertRowMap.clear();
+            insertRowMap = null;
+        }
+        if(arguments != null){
+            arguments.clear();
+            arguments = null;
+        }
         table = null;
     }
 
@@ -161,7 +154,8 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public byte[] getBytes(int columnIndex) throws SQLException {
-        return  toByteArray(getObject(columnIndex));
+        Driver.unused();
+        return null;
     }
 
     @Override
@@ -414,27 +408,27 @@ public class JDBCResultSet implements ResultSet{
     @Override
     public boolean first() throws SQLException {
         checkClosed();
-        row =0;
+        row = 0;
         return rows > 0;
     }
 
     @Override
     public boolean last() throws SQLException {
         checkClosed();
-        row = rows -1;
+        row = rows - 1;
         return  rows > 0;
     }
 
     @Override
     public int getRow() throws SQLException {
         checkClosed();
-        return row+1;
+        return row + 1;
     }
 
     @Override
     public boolean absolute(int columnIndex) throws SQLException {
         checkClosed();
-        row = columnIndex-1;
+        row = columnIndex - 1;
         return row < rows;
     }
 
@@ -449,7 +443,7 @@ public class JDBCResultSet implements ResultSet{
     public boolean previous() throws SQLException {
         checkClosed();
         --row;
-        return row>=0;
+        return row >= 0;
     }
 
     @Override
@@ -556,7 +550,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void updateBytes(int columnIndex, byte[] bytes) throws SQLException {
-        update(columnIndex,toObject(bytes));
+        Driver.unused();
     }
 
     @Override
@@ -687,13 +681,12 @@ public class JDBCResultSet implements ResultSet{
     @Override
     public void updateObject(String columnLabel, Object o, int columnIndex) throws SQLException {
         update(columnLabel,o);
-        
+
     }
 
     @Override
     public void updateObject(String columnLabel, Object o) throws SQLException {
         update(columnLabel,o);
-        
     }
 
     @Override
@@ -703,7 +696,6 @@ public class JDBCResultSet implements ResultSet{
             if(insertRow == row){
                 createArguments();
                 conn.run("tableInsert",arguments);
-                //insertRun();
                 table = loadTable();
                 rows = table.rows();
             }
@@ -1318,7 +1310,7 @@ public class JDBCResultSet implements ResultSet{
         }
 
     }
-    
+
     private void updateRun() throws SQLException{
         Entity value;
         StringBuilder sb = new StringBuilder();
@@ -1333,21 +1325,6 @@ public class JDBCResultSet implements ResultSet{
         sb.delete(sb.length()-2,sb.length());
         where.delete(where.length()-2,where.length());
         sb.append(where);
-
-        String sql = sb.toString();
-        run(sql);
-    }
-
-
-    private void insertRun() throws SQLException{
-        StringBuilder sb = new StringBuilder();
-        sb.append("insert into ").append(tableName).append(" values ( ");
-        for (int i = 1; i <= table.columns(); ++i) {
-            sb.append(Utils.java2db(insertRowMap.get(i))).append(", ");
-
-        }
-        sb.delete(sb.length()-2,sb.length());
-        sb.append(")");
         String sql = sb.toString();
         run(sql);
     }
@@ -1374,41 +1351,10 @@ public class JDBCResultSet implements ResultSet{
         }
     }
 
-    public byte[] toByteArray (Object obj) {
-        byte[] bytes = null;
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        try {
-            ObjectOutputStream oos = new ObjectOutputStream(bos);
-            oos.writeObject(obj);
-            oos.flush();
-            bytes = bos.toByteArray ();
-            oos.close();
-            bos.close();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        return bytes;
-    }
 
-    public Object toObject (byte[] bytes) {
-        Object obj = null;
-        try {
-            ByteArrayInputStream bis = new ByteArrayInputStream (bytes);
-            ObjectInputStream ois = new ObjectInputStream (bis);
-            obj = ois.readObject();
-            ois.close();
-            bis.close();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        } catch (ClassNotFoundException ex) {
-            ex.printStackTrace();
-        }
-        return obj;
+    public void isUpdateAble() throws SQLException{
+        if(!isUpdateAble) throw new SQLException("Unable to update table");
     }
-
-     public void isUpdateAble() throws SQLException{
-         if(!isUpdateAble) throw new SQLException("Unable to update table");
-     }
 
     private void createArguments(){
         int col = table.columns();
