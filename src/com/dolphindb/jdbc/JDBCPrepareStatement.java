@@ -43,7 +43,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
         super(connection);
         this.connection = connection;
         this.preSql = sql.trim();
-
         String[] strings = preSql.split(";");
         if(strings.length == 0){
             throw new SQLException("SQL was empty");
@@ -51,19 +50,26 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
             throw new SQLException("check the SQL " + preSql);
         }
         this.preSql = strings[0];
-
         this.tableName = Utils.getTableName(sql);
         this.dml = Utils.getDml(sql);
         this.isInsert = this.dml == Utils.DML_INSERT;
-
         if(tableName != null){
             tableName = tableName.trim();
-            tableNameArg = new BasicString(tableName);
-            if(tableTypes == null){
-                tableTypes = new LinkedHashMap<>();
+            switch (this.dml){
+                case Utils.DML_SELECT:
+                case Utils.DML_INSERT:
+                case Utils.DML_DELETE:{
+                    if(tableName.length() > 0){
+                        tableNameArg = new BasicString(tableName);
+                        if(tableTypes == null){
+                            tableTypes = new LinkedHashMap<>();
+                        }
+                    }else{
+                        throw new SQLException("check the SQl " +preSql);
+                    }
+                }
             }
         }
-
         sqlSplit = this.preSql.split("\\?");
         values = new Object[sqlSplit.length+1];
         batch = new StringBuilder();

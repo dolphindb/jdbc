@@ -70,7 +70,6 @@ public class Driver implements java.sql.Driver {
 
     public Connection createConnection(String url, Properties prop) throws SQLException {
         if (!isValidURL(url)) new SQLException("url is not valid");
-        System.out.println(url);
         String old_url = url;
         url = url.trim().substring(URL_PREFIX.length());
         if(url.length()==0||url.equals("?")){

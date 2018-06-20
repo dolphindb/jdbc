@@ -21,9 +21,12 @@ public class Utils {
     public static final int DML_UPDATE = 2;
     public static final int DML_DELETE = 3;
 
+    public static final Pattern INSERT_PATTERN = Pattern.compile("insert\\sinto\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\svalues\\s*\\(.+\\)");
+    public static final Pattern DELETE_PATTERN  = Pattern.compile("delete\\sfrom\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\s(where\\s(.+=.+)+)?");
+    public static final Pattern UPDATE_PATTERN = Pattern.compile("update\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\sset\\s(.+=.+)+(\\swhere\\s(.+=.+)+)?");
+
 
     public static Object java2db(Object o){
-        System.out.println(o instanceof Entity);
         if(o instanceof BasicStringVector || o instanceof BasicAnyVector || o instanceof AbstractVector || o instanceof Vector){
             String s = ((Vector)o).getString();
             if(((Vector) o).get(0) instanceof BasicString){
@@ -117,10 +120,15 @@ public class Utils {
         }
     }
 
-    public static String getTableName(String sql){
+    public static String getTableName(String sql) throws SQLException{
         String tableName = null;
         if(sql.startsWith("insert")){
-            tableName = sql.substring(sql.indexOf("into") + "into".length(), sql.indexOf("values"));
+            Matcher matcher = INSERT_PATTERN.matcher(sql);
+            if(matcher.find()){
+                tableName = sql.substring(sql.indexOf("into") + "into".length(), sql.indexOf("values"));
+            }else {
+                throw new SQLException("check the SQl " + sql);
+            }
         }else if(sql.startsWith("tableInsert")){
             tableName = sql.substring(sql.indexOf("(") + "(".length(), sql.indexOf(","));
         }else if(sql.startsWith("append!")){
@@ -128,15 +136,25 @@ public class Utils {
         }else if(sql.contains(".append!")){
             tableName = sql.split("\\.")[0];
         }else if(sql.startsWith("update")){
-            tableName = sql.substring(sql.indexOf("update") + "update".length(), sql.indexOf("set"));
+            Matcher matcher = UPDATE_PATTERN.matcher(sql);
+            if(matcher.find()){
+                tableName = sql.substring(sql.indexOf("update") + "update".length(), sql.indexOf("set"));
+            }else{
+                throw new SQLException("check the SQl " + sql);
+            }
         }else if(sql.contains(".update!")){
             tableName = sql.split("\\.")[0];
         }else if(sql.startsWith("delete")){
-            int index = sql.indexOf("where");
-            if(index != -1) {
-                tableName = sql.substring(sql.indexOf("from") + "from".length(), sql.indexOf("where"));
+            Matcher matcher = DELETE_PATTERN.matcher(sql);
+            if(matcher.find()){
+                int index = sql.indexOf("where");
+                if(index != -1) {
+                    tableName = sql.substring(sql.indexOf("from") + "from".length(), sql.indexOf("where"));
+                }else{
+                    tableName = sql.substring(sql.indexOf("from") + "from".length()).replaceAll(";","");
+                }
             }else{
-                tableName = sql.substring(sql.indexOf("from") + "from".length()).replaceAll(";","");
+                throw new SQLException("check the SQl " + sql);
             }
         }
         return tableName;
