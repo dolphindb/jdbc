@@ -10,32 +10,22 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.YearMonth;
+import java.text.MessageFormat;
 import java.util.*;
 
 public class JDBCPrepareStatement extends JDBCStatement implements PreparedStatement {
 
     private String tableName;
-
     private Entity tableNameArg;
-
     private String preSql;
-
+    private String[] sqlSplit;
+    private Object[] values;
     private int dml;
-
     private Object arguments;
-
     private List<Object> argumentsBatch; //String List<Entity>
-
     private BasicTable tableDFS;
-
-    private boolean isInsert = false;
-
+    private boolean isInsert;
     private String tableType;
-
     private HashMap<Integer,Integer> colType;
 
 
@@ -103,7 +93,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
                 return 0;
             }
         }
-
         switch (dml) {
             case Utils.DML_INSERT:
                 if (tableName != null) {
@@ -129,7 +118,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
                     getTableType();
                     if (tableType.equals(IN_MEMORY_TABLE)) {
                         try {
-                             return super.executeUpdate((String) arguments);
+                            return super.executeUpdate((String) arguments);
                         } catch (SQLException e) {
                             throw new SQLException(e);
                         }
@@ -141,6 +130,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
                 }
             case Utils.DML_SELECT:
                 throw new SQLException("can not produces ResultSet");
+
             default:
                 Entity entity;
                 if(arguments instanceof String){
@@ -149,13 +139,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
                     }catch (IOException e){
                         throw new SQLException(e);
                     }
-                }else{
-                    return 0;
+                    if(entity instanceof BasicTable){
+                        throw new SQLException("can not produces ResultSet");
+                    }
                 }
 
-                if(entity instanceof BasicTable){
-                    throw new SQLException("can not produces ResultSet");
-                }
                 return 0;
         }
     }
@@ -312,24 +300,26 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
     @Override
     public void setAsciiStream(int parameterIndex, InputStream inputStream, int length) throws SQLException{
-
-}
+        Driver.unused();
+    }
 
     @Override
     public void setUnicodeStream(int parameterIndex, InputStream inputStream, int length) throws SQLException{
-
+        Driver.unused();
     }
 
     @Override
     public void setBinaryStream(int parameterIndex, InputStream inputStream, int length) throws SQLException{
-
+        Driver.unused();
     }
 
     @Override
     public void clearParameters() throws SQLException {
         super.clearBatch();
-        for(Object item : values){
-            item = null;
+        if(values != null){
+            for(int i = 0, len = values.length; i < len; ++i){
+                values[i] = null;
+            }
         }
     }
 
@@ -338,6 +328,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
     @Override
     public void setObject(int parameterIndex, Object object) throws SQLException{
         super.checkClosed();
+        if(parameterIndex > sqlSplit.length - 1 ){
+            throw new SQLException(MessageFormat.format("Parameter index out of range ({0} > number of parameters, which is {1}).",parameterIndex,sqlSplit.length - 1 ));
+        }
         values[parameterIndex] = object;
     }
 
@@ -361,11 +354,13 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
                 resultSets.offerLast(resultSet_);
                 objectQueue.offer(executeQuery());
             }
+            break;
             case Utils.DML_INSERT:
             case Utils.DML_UPDATE:
-            case Utils.DML_DELETE:
+            case Utils.DML_DELETE: {
                 objectQueue.offer(executeUpdate());
-                break;
+            }
+            break;
             default: {
                 Entity entity;
                 String newSql;
@@ -425,6 +420,16 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
     @Override
     public void clearBatch() throws SQLException {
         super.clearBatch();
+        if(argumentsBatch != null){
+            argumentsBatch.clear();
+        }
+    }
+
+    @Override
+    public void close() throws SQLException {
+        super.close();
+        sqlSplit = null;
+        values = null;
     }
 
     @Override
@@ -608,39 +613,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
         Driver.unused();
     }
 
-    public void setBasicDate(int parameterIndex, LocalDate date) throws SQLException{
-        setObject(parameterIndex, date);
-    }
-
-    public void setBasicMonth(int parameterIndex, YearMonth yearMonth) throws SQLException{
-        setObject(parameterIndex,new BasicMonth(yearMonth));
-    }
-
-    public void setBasicMinute(int parameterIndex, LocalTime time) throws SQLException{
-        setObject(parameterIndex,new BasicMinute(time));
-    }
-
-    public void setBasicSecond(int parameterIndex, LocalTime time) throws SQLException{
-        setObject(parameterIndex,new BasicSecond(time));
-    }
-
-    public void setBasicDateTime(int parameterIndex, LocalDateTime time) throws SQLException{
-        setObject(parameterIndex,new BasicDateTime(time));
-    }
-
-    public void setBasicTimestamp(int parameterIndex, LocalDateTime time) throws SQLException{
-        setObject(parameterIndex, new BasicTimestamp(time));
-    }
-
-    public void setBasicNanotime(int parameterIndex, LocalTime time) throws SQLException{
-        setObject(parameterIndex, new BasicNanoTime(time));
-    }
-
-    public void setBasicNanotimestamp(int parameterIndex, LocalDateTime time) throws SQLException{
-        setObject(parameterIndex, new BasicNanoTimestamp(time));
-    }
-
-
     private Object createArguments() throws IOException {
         if(isInsert) {
             if (colType == null) {
@@ -653,25 +625,31 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
                     colType.put(i + 1, typeInt.getInt(i));
                 }
             }
-
             List<Entity> arguments = new ArrayList<>(sqlSplit.length);
             arguments.add(tableNameArg);
             for (int i = 1; i < sqlSplit.length; ++i) {
                 String s = TypeCast.TYPEINT2STRING.get(colType.get(i));
-                System.out.println(values[i].getClass().getName());
+                if(values[i] == null){
+                    throw new IOException("No value specified for parameter "+i);
+                }
                 arguments.add(TypeCast.java2db(values[i], s));
             }
             return arguments;
         }else{
-            return createSql();
+            try {
+                return createSql();
+            }catch (SQLException e){
+                throw new IOException(e.getMessage());
+            }
         }
     }
 
-
-
-    private String createSql(){
+    private String createSql() throws SQLException{
         StringBuilder sb = new StringBuilder();
         for(int i = 1; i< sqlSplit.length; ++i){
+            if(values[i] == null){
+                throw new SQLException("No value specified for parameter "+i);
+            }
             String s = TypeCast.castDbString(values[i]);
             if(s == null) return null;
             sb.append(sqlSplit[i-1]).append(s);
