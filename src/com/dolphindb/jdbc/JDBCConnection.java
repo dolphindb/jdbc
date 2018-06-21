@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
+import java.util.regex.Matcher;
 
 public  class JDBCConnection implements Connection {
     private DBConnection controlConnection;
@@ -456,10 +457,11 @@ public  class JDBCConnection implements Connection {
             return this.dbConnection.run(script);
         }
         script = script.trim();
-        String[] strings = script.split(" ");
-        if(strings.length > 3 && strings[1].equals("=")){
+        Matcher matcher = Utils.ASSIGN_PATTERN.matcher(script);
+        if(matcher.find()){
             sqlSb.append(script).append(";\n");
         }
+
         int size = hostName_ports.size();
         Entity entity = null;
         try {
