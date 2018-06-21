@@ -60,6 +60,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
                 }
             }
         }
+        this.preSql += ";";
         sqlSplit = this.preSql.split("\\?");
         values = new Object[sqlSplit.length+1];
         batch = new StringBuilder();
@@ -73,6 +74,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
                 e.printStackTrace();
             }
             if (tableType != null) {
+                if(tableTypes == null){
+                    tableTypes = new LinkedHashMap<>();
+                }
                 tableTypes.put(tableName, tableType);
             }
         }
