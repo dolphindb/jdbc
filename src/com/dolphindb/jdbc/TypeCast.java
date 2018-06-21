@@ -201,8 +201,10 @@ public class TypeCast {
 
         try {
             castEntity = dateTimeCast(srcValue,targetEntityClassName);
+        }catch (IOException e){
+            throw e;
         }catch (Exception e){
-            throw new IOException("only support bool byte char short int long float double Object[] List Date Time Timestamp YearMoth LocalDate LocalTime LocalDateTime Scalar Vector");
+            throw new IOException(e);
         }
 
         if(castEntity != null) return castEntity;
@@ -226,7 +228,7 @@ public class TypeCast {
             if (castEntity != null) return castEntity;
         }
         if(srcValue instanceof Object[]){
-            castEntity = dateTimeArr2Vector(srcValue,targetEntityClassName);
+            castEntity = dateTimeArr2Vector((Object[]) srcValue,targetEntityClassName);
             if (castEntity != null) return castEntity;
         }
         return null;
@@ -250,7 +252,7 @@ public class TypeCast {
 
 
         if(srcValue instanceof Object[]){
-            castEntity = basicTypeArr2Vector(srcValue,targetEntityClassName);
+            castEntity = basicTypeArr2Vector((Object[])srcValue,targetEntityClassName);
             if (castEntity != null) return castEntity;
         }
         return null;
@@ -341,14 +343,13 @@ public class TypeCast {
         }
     }
 
-    public static Entity Tempos2dateTime(Object srcTempos, String srcEntityClassName, String targetEntityClassName) throws IOException{
-        Object[] objects = (Object[]) srcTempos;
-        int size = objects.length;
+    public static Entity Tempos2dateTime(Object srcTempos[], String srcEntityClassName, String targetEntityClassName) throws IOException{
+        int size = srcTempos.length;
         switch (targetEntityClassName) {
             case BASIC_MONTH: {
                 BasicMonthVector targetVector = new BasicMonthVector(size);
                 int index = 0;
-                for (Object srcTemporal : objects) {
+                for (Object srcTemporal : srcTempos) {
                     targetVector.setMonth(index, (YearMonth) castTemporal(srcTemporal, YEAR_MONTH));
                     ++index;
                 }
@@ -357,7 +358,7 @@ public class TypeCast {
             case BASIC_DATE:{
                 BasicDateVector targetVector = new BasicDateVector(size);
                 int index = 0;
-                for (Object srcTemporal : objects) {
+                for (Object srcTemporal : srcTempos) {
                     targetVector.setDate(index, (LocalDate) castTemporal(srcTemporal, LOCAL_DATE));
                     ++index;
                 }
@@ -366,7 +367,7 @@ public class TypeCast {
             case BASIC_TIME:{
                 BasicTimeVector targetVector = new BasicTimeVector(size);
                 int index = 0;
-                for (Object srcTemporal : objects) {
+                for (Object srcTemporal : srcTempos) {
                     targetVector.setTime(index, (LocalTime) castTemporal(srcTemporal,LOCAL_TIME));
                     ++index;
                 }
@@ -375,7 +376,7 @@ public class TypeCast {
             case BASIC_MINUTE:{
                 BasicMinuteVector targetVector = new BasicMinuteVector(size);
                 int index = 0;
-                for (Object srcTemporal : objects) {
+                for (Object srcTemporal : srcTempos) {
                     targetVector.setMinute(index, (LocalTime) castTemporal(srcTemporal,LOCAL_TIME));
                     ++index;
                 }
@@ -384,7 +385,7 @@ public class TypeCast {
             case BASIC_SECOND:{
                 BasicSecondVector targetVector = new BasicSecondVector(size);
                 int index = 0;
-                for (Object srcTemporal : objects) {
+                for (Object srcTemporal : srcTempos) {
                     targetVector.setSecond(index, (LocalTime) castTemporal(srcTemporal,LOCAL_TIME));
                     ++index;
                 }
@@ -393,7 +394,7 @@ public class TypeCast {
             case BASIC_NANOTIME:{
                 BasicNanoTimeVector targetVector = new BasicNanoTimeVector(size);
                 int index = 0;
-                for (Object srcTemporal : objects) {
+                for (Object srcTemporal : srcTempos) {
                     targetVector.setNanoTime(index, (LocalTime) castTemporal(srcTemporal,LOCAL_TIME));
                     ++index;
                 }
@@ -402,7 +403,7 @@ public class TypeCast {
             case BASIC_TIMESTAMP: {
                 BasicTimestampVector targetVector = new BasicTimestampVector(size);
                 int index = 0;
-                for (Object srcTemporal : objects) {
+                for (Object srcTemporal : srcTempos) {
                     targetVector.setTimestamp(index, (LocalDateTime) castTemporal(srcTemporal,LOCAL_DATETIME));
                     ++index;
                 }
@@ -411,7 +412,7 @@ public class TypeCast {
             case BASIC_DATETIME:{
                 BasicDateTimeVector targetVector = new BasicDateTimeVector(size);
                 int index = 0;
-                for (Object srcTemporal : objects) {
+                for (Object srcTemporal : srcTempos) {
                     targetVector.setDateTime(index, (LocalDateTime) castTemporal(srcTemporal,LOCAL_DATETIME));
                     ++index;
                 }
@@ -420,7 +421,7 @@ public class TypeCast {
             case BASIC_NANOTIMESTAMP:{
                 BasicNanoTimestampVector targetVector = new BasicNanoTimestampVector(size);
                 int index = 0;
-                for (Object srcTemporal : objects) {
+                for (Object srcTemporal : srcTempos) {
                     targetVector.setNanoTimestamp(index, (LocalDateTime) castTemporal(srcTemporal,LOCAL_DATETIME));
                     ++index;
                 }
@@ -538,19 +539,18 @@ public class TypeCast {
 
     }
 
-    public static Entity dateTimeArr2Vector(Object srcValue,String targetEntityClassName) throws IOException{
-        Object[] srcArr = (Object[])srcValue;
-        int size = srcArr.length;
+    public static Entity dateTimeArr2Vector(Object srcValue[],String targetEntityClassName) throws IOException{
+        int size = srcValue.length;
         if(size == 0){
-            throw new IOException(srcArr + "size can not 0 ");
+            throw new IOException(srcValue + "size can not 0 ");
         }
-        Object srcValueFromArr = srcArr[0];
+        Object srcValueFromArr = srcValue[0];
         String srcValueFromListClassName = srcValueFromArr.getClass().getName();
         if(srcValueFromArr instanceof Scalar){
             throw new IOException("you need use com.xxdb.data.Vector load com.xxdb.data.Scalar");
         }
         if(!CheckedDateTime(srcValueFromListClassName,targetEntityClassName)) return null;
-        return Tempos2dateTime(srcArr,srcValueFromListClassName,targetEntityClassName);
+        return Tempos2dateTime(srcValue,srcValueFromListClassName,targetEntityClassName);
     }
 
     public static boolean CheckedBasicType(String srcEntityClassName, String targetEntityClassName) throws IOException{
@@ -608,13 +608,12 @@ public class TypeCast {
         }
     }
 
-    public static Entity basicTypeArr2Vector(Object srcValue,String targetEntityClassName) throws IOException{
-        Object[] srcArr = (Object[])srcValue;
-        int size = srcArr.length;
+    public static Entity basicTypeArr2Vector(Object srcValue[],String targetEntityClassName) throws IOException{
+        int size = srcValue.length;
         if(size == 0){
-            throw new IOException(srcArr + "size can not 0 ");
+            throw new IOException(srcValue + "size can not 0 ");
         }
-        Object srcValueFromArr = srcArr[0];
+        Object srcValueFromArr = srcValue[0];
         String srcValueFromListClassName = srcValueFromArr.getClass().getName();
         if(srcValueFromArr instanceof Scalar){
             throw new IOException("you need use com.xxdb.data.Vector load com.xxdb.data.Scalar");
@@ -635,9 +634,17 @@ public class TypeCast {
                     case BASIC_STRING:
                         BasicBooleanVector targetVector = new BasicBooleanVector(size);
                         int index = 0;
-                        for(boolean item : (Boolean[]) srcValue){
-                            targetVector.setBoolean(index,item);
-                            ++index;
+                        if(srcValue instanceof Boolean[]){
+                            Boolean[] booleans = (Boolean[]) srcValue;
+                            for(boolean item : booleans){
+                                targetVector.setBoolean(index,item);
+                                ++index;
+                            }
+                        }else{
+                            for(Object item : srcValue){
+                                targetVector.setBoolean(index,(boolean)item);
+                                ++index;
+                            }
                         }
                         return targetVector;
                     default:
@@ -656,9 +663,17 @@ public class TypeCast {
                     case BASIC_STRING:
                         BasicByteVector targetVector = new BasicByteVector(size);
                         int index = 0;
-                        for(byte item : (Byte[]) srcValue){
-                            targetVector.setByte(index,item);
-                            ++index;
+                        if(srcValue instanceof Byte[]){
+                            Byte[] bytes = (Byte[]) srcValue;
+                            for(byte item : bytes){
+                                targetVector.setByte(index,item);
+                                ++index;
+                            }
+                        }else{
+                            for (Object item : srcValue) {
+                                targetVector.setByte(index, (byte) item);
+                                ++index;
+                            }
                         }
                         return targetVector;
                     default:
@@ -676,9 +691,17 @@ public class TypeCast {
                     case BASIC_STRING:
                         BasicByteVector targetVector = new BasicByteVector(size);
                         int index = 0;
-                        for(char item : (Character[]) srcValue){
-                            targetVector.setByte(index,(byte) (item & 0XFF));
-                            ++index;
+                        if(srcValue instanceof Character[]){
+                            Character[] characters = (Character[]) srcValue;
+                            for(char item : characters){
+                                targetVector.setByte(index,(byte) (item & 0XFF));
+                                ++index;
+                            }
+                        }else{
+                            for (Object item : srcValue) {
+                                targetVector.setByte(index, (byte) ((char) item & 0XFF));
+                                ++index;
+                            }
                         }
                         return targetVector;
                     default:
@@ -696,9 +719,17 @@ public class TypeCast {
                     case BASIC_STRING:
                         BasicIntVector targetVector = new BasicIntVector(size);
                         int index = 0;
-                        for(int item : (Integer[]) srcValue){
-                            targetVector.setInt(index,item);
-                            ++index;
+                        if(srcValue instanceof Integer[]){
+                            Integer[] integers = (Integer[]) srcValue;
+                            for(int item : integers){
+                                targetVector.setInt(index,item);
+                                ++index;
+                            }
+                        }else{
+                            for (Object item : srcValue) {
+                                targetVector.setInt(index, (int) item);
+                                ++index;
+                            }
                         }
                         return targetVector;
                     default:
@@ -716,9 +747,17 @@ public class TypeCast {
                     case BASIC_STRING:
                         BasicShortVector targetVector = new BasicShortVector(size);
                         int index = 0;
-                        for(short item : (Short[]) srcValue){
-                            targetVector.setShort(index,item);
-                            ++index;
+                        if(srcValue instanceof Short[]){
+                            Short[] shorts = (Short[]) srcValue;
+                            for(short item : shorts){
+                                targetVector.setShort(index,item);
+                                ++index;
+                            }
+                        }else{
+                            for (Object item : srcValue) {
+                                targetVector.setShort(index, (short) item);
+                                ++index;
+                            }
                         }
                         return targetVector;
                     default:
@@ -736,9 +775,17 @@ public class TypeCast {
                     case BASIC_STRING:
                         BasicLongVector targetVector = new BasicLongVector(size);
                         int index = 0;
-                        for(long item : (Long[]) srcValue){
-                            targetVector.setLong(index,item);
-                            ++index;
+                        if(srcValue instanceof Long[]){
+                            Long[] longs = (Long[]) srcValue;
+                            for(long item : longs){
+                                targetVector.setLong(index,item);
+                                ++index;
+                            }
+                        }else{
+                            for (Object item : srcValue) {
+                                targetVector.setLong(index, (Long) item);
+                                ++index;
+                            }
                         }
                         return targetVector;
                     default:
@@ -756,9 +803,17 @@ public class TypeCast {
                     case BASIC_STRING:
                         BasicFloatVector targetVector = new BasicFloatVector(size);
                         int index = 0;
-                        for(float item : (Float[]) srcValue){
-                            targetVector.setFloat(index,item);
-                            ++index;
+                        if(srcValue instanceof Float[]){
+                            Float[] floats = (Float[]) srcValue;
+                            for(float item : floats){
+                                targetVector.setFloat(index,item);
+                                ++index;
+                            }
+                        }else{
+                            for (Object item : srcValue) {
+                                targetVector.setFloat(index, (float) item);
+                                ++index;
+                            }
                         }
                         return targetVector;
                     default:
@@ -776,9 +831,17 @@ public class TypeCast {
                     case BASIC_STRING:
                         BasicDoubleVector targetVector = new BasicDoubleVector(size);
                         int index = 0;
-                        for(double item : (Double[]) srcValue){
-                            targetVector.setDouble(index,item);
-                            ++index;
+                        if(srcValue instanceof Double[]){
+                            Double[] doubles = (Double[]) srcValue;
+                            for(double item : doubles){
+                                targetVector.setDouble(index,item);
+                                ++index;
+                            }
+                        }else{
+                            for (Object item : srcValue) {
+                                targetVector.setDouble(index, (double) item);
+                                ++index;
+                            }
                         }
                         return targetVector;
                     default:
@@ -787,7 +850,16 @@ public class TypeCast {
             case STRING:
                 switch (targetEntityClassName){
                     case BASIC_STRING:
-                        Vector targetVector = new BasicStringVector((String[]) srcValue);
+                        if(srcValue instanceof String[]){
+                            String[] strings = (String[]) srcValue;
+                            return new BasicStringVector(strings);
+                        }
+                        BasicStringVector targetVector = new BasicStringVector(size);
+                        int index = 0;
+                        for (Object item : srcValue) {
+                            targetVector.setString(index, (String) item);
+                            ++index;
+                        }
                         return targetVector;
                     default:
                         throw new IOException(srcValueFromListClassName + " can not cast to " + targetEntityClassName);
@@ -1183,23 +1255,15 @@ public class TypeCast {
     public static Temporal getTemporal(Object value) throws Exception{
         switch (value.getClass().getName()){
             case BASIC_MONTH:
-                return ((BasicMonth) value).getTemporal();
             case BASIC_DATE:
-                return ((BasicDate) value).getTemporal();
             case BASIC_TIME:
-                return ((BasicTime) value).getTemporal();
             case BASIC_MINUTE:
-                return ((BasicMinute) value).getTemporal();
             case BASIC_SECOND:
-                return ((BasicSecond) value).getTemporal();
             case BASIC_NANOTIME:
-                return ((BasicNanoTime) value).getTemporal();
             case BASIC_TIMESTAMP:
-                return ((BasicTimestamp) value).getTemporal();
             case BASIC_DATETIME:
-                return ((BasicDateTime) value).getTemporal();
             case BASIC_NANOTIMESTAMP:
-                return ((BasicNanoTimestamp) value).getTemporal();
+                return ((Scalar)value).getTemporal();
             case DATE:
                 return new BasicDate(((Date) value).toLocalDate()).getTemporal();
             case TIME:
