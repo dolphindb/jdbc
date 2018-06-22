@@ -13,8 +13,6 @@ public class JDBCStatement implements Statement {
 
     protected JDBCConnection connection;
     protected ResultSet resultSet;
-    protected String[] sqlSplit;
-    protected Object[] values;
     protected StringBuilder batch;
     protected Queue<Object> objectQueue;
     protected Object result;
@@ -118,10 +116,10 @@ public class JDBCStatement implements Statement {
                         }
                         StringBuilder sqlSb = new StringBuilder("append!(").append(tableName).append(",").append("table(");
 
-                        char name = 'A';
-                        int colIndex = 0;
+                        String colName = "col";
+                        int colIndex = 1;
                         for (String value : values) {
-                            sqlSb.append(value).append(" as ").append((char) (name + colIndex)).append("_,");
+                            sqlSb.append(value).append(" as ").append(colName+colIndex).append(",");
                             colIndex++;
                         }
                         sqlSb.delete(sqlSb.length() - ",".length(), sqlSb.length());
@@ -136,7 +134,6 @@ public class JDBCStatement implements Statement {
                 } else {
                     throw new SQLException("check the SQL " + sql);
                 }
-
             case Utils.DML_UPDATE:
             case Utils.DML_DELETE:
                 if (tableName != null) {
@@ -174,8 +171,6 @@ public class JDBCStatement implements Statement {
     public void close() throws SQLException {
         checkClosed();
         isClosed = true;
-        sqlSplit = null;
-        values = null;
         batch = null;
         result = null;
         if(objectQueue != null){
@@ -269,8 +264,9 @@ public class JDBCStatement implements Statement {
             case Utils.DML_SELECT: {
                 ResultSet resultSet_ = executeQuery(sql);
                 resultSets.offerLast(resultSet_);
-                objectQueue.offer(executeQuery(sql));
+                objectQueue.offer(resultSet_);
             }
+            break;
             case Utils.DML_INSERT:
             case Utils.DML_UPDATE:
             case Utils.DML_DELETE:
@@ -412,7 +408,7 @@ public class JDBCStatement implements Statement {
             }
             batch.delete(0,batch.length());
             return arr_int;
-        }catch (Exception e){
+        }catch (SQLException e){
             batch.delete(0,batch.length());
             throw new BatchUpdateException(e.getMessage(),Arrays.copyOf(arr_int,index));
         }
@@ -444,7 +440,7 @@ public class JDBCStatement implements Statement {
                 break;
             case Statement.KEEP_CURRENT_RESULT:
                 break;
-                default:
+            default:
                 throw new SQLException("the argument supplied is not one of the following:\n" +
                         "Statement.CLOSE_CURRENT_RESULT,\n" +
                         "Statement.KEEP_CURRENT_RESULT or\n" +
