@@ -8,6 +8,9 @@ import com.xxdb.data.Entity;
 import com.xxdb.data.Vector;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.util.LinkedList;
@@ -49,9 +52,114 @@ public  class JDBCConnection implements Connection {
 
         }
     }
+    
+    /**
+     * Link to other node
+     * 
+     * @param hostname
+     * @param port
+     * @param prop: get controllerNode from prop, if prop does not contain controllerNode key, then the default controllerNode is 8920
+     * @throws IOException
+     * @throws SQLException
+     */
+    private void tryOtherNode(String hostname, int port, Properties prop) throws IOException, SQLException  {
+    		
+    		//default controllerNode value 8920
+    		int controllerNode = 8920;
+    		
+    		//in case users input their controllerNode port
+    		if(prop.containsKey("controllerNode")) {
+    			controllerNode = Integer.parseInt(prop.getProperty("controllerNode"));
+    		}
+    		DBConnection tmpControlConnection = new DBConnection();
+    		tmpControlConnection.connect(hostname,controllerNode);
+    		
+    		//get all node site from dolphinDB
+        BasicTable table = (BasicTable) tmpControlConnection.run("getClusterChunkNodesStatus()");
+        Vector siteVector = table.getColumn("site");
+        LinkedList<String> other_ports = new LinkedList<>();
+        for (int i = 0, len = siteVector.rows(); i < len; i++) {
+        		other_ports.add(siteVector.get(i).getString());
+        }
+        
+        //try to connect node, which does not contain the broken one.
+        int size = other_ports.size();
+        for (int index = 0 ; index<size; ++index){
+            String[] hostName_port = other_ports.get(index).split(":");
+            if(!hostName_port[1].equals(String.valueOf(port))) {
+            	 	System.out.println("connecting "+ hostname + ":" + hostName_port[1]);
+            		try {
+            			if(!reachAble(hostname,Integer.parseInt(hostName_port[1]),prop)) {
+            				continue;
+            			}
+					success = dbConnection.connect(hostname, Integer.parseInt(hostName_port[1]));
+				}catch (IOException e) {
+					System.out.println("connect "+ hostname + ":" + hostName_port[1]+" failed");
+					System.out.println(e.getMessage());
+					continue;
+				}
+            		break;
+            }
+        }  
+    }
+       
+    /**
+     *  check is the port able to connect
+     * @param hostname
+     * @param port
+     * @param prop get waitingTime from prop, if prop does not contain waitingTime key, then the default controllerNode is 3
+     * @return
+     */
+    private boolean reachAble(String hostname, int port, Properties prop) {
+    	
+    		Socket s = new Socket();
+		SocketAddress add = new InetSocketAddress(hostname, port);
+		int waitingTime = 3;
+		if(prop.containsKey("waitingTime")) {
+			waitingTime = Integer.parseInt(prop.getProperty("waitingTime"));
+		}
+		try {
+			s.connect(add, waitingTime*1000 );
+		} catch (IOException e) {
+			System.out.println("cannot reach" + hostname+":"+port);
+			return false;
+		} finally {
+			try {
+				s.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return true;
+    }
+    
+    /**
+     *  build connect to port
+     * @param hostname
+     * @param port
+     * @param prop
+     * @throws IOException
+     * @throws SQLException
+     */
+    private void connect(String hostname, int port, Properties prop) throws IOException, SQLException {
+   
+    		if(reachAble(hostname,port,prop)) {
+    			try {
+    				success = dbConnection.connect(hostname, port);
+    			} catch (IOException e) {
+				e.printStackTrace();
+			}	
+    		}else {
+    			//if the input node does not work, then try other node
+			tryOtherNode(hostname,port,prop);
+				
+    		}
+    }
 
     private void open(String hostname, int port, Properties prop) throws SQLException, IOException{
-        success = dbConnection.connect(hostname, port);
+    	
+    		connect(hostname, port,prop);
+        
         // database(directory, [partitionType], [partitionScheme], [locations])
         if(!success) throw new SQLException("Connection is fail");
         String[] keys = new String[]{"databasePath","partitionType","partitionScheme","locations"};
