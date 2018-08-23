@@ -1,4 +1,3 @@
-package newJDBC;
 import static org.junit.Assert.*;
 
 import java.sql.SQLException;
@@ -42,17 +41,14 @@ public class JDBCTest {
 	
 	private static final String path = "C:/DolphinDB/Data/test";
 	
-//	private static final String host = "172.16.95.128";
-//	
-//	private static final String port = "8921";
-	
-	private static final String DB_URL = MessageFormat.format("jdbc:dolphindb://172.16.95.128:8920?databasePath={0}",path);
-	
-	private static final String DB_URL1 = "jdbc:dolphindb://";
-	
-	private static final String DB_URL_DFS = "jdbc:dolphindb://172.16.95.128:8921?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=2000.01M..2016.12M";
+	private static final String host = "localhost";
+	private static final String port = "8801";
+	private static final String SERVER = "localhost:8801";
+	private static final String DB_URL = MessageFormat.format("jdbc:dolphindb://"+SERVER+"?databasePath={0}",path);
 
-	private static final String DB_URL_DFS1 = "jdbc:dolphindb://172.16.95.128:8922?databasePath=dfs://rangedb&partitionType=RANGE&partitionScheme= 0 5 10&locations= [`rh8503, `rh8502`rh8504]";
+	private static final String DB_URL1 = "jdbc:dolphindb://";
+	private static final String DB_URL_DFS = "jdbc:dolphindb://"+SERVER+"?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=2000.01M..2016.12M";
+	private static final String DB_URL_DFS1 = "jdbc:dolphindb://"+SERVER+"?databasePath=dfs://rangedb&partitionType=RANGE&partitionScheme= 0 5 10&locations= [`rh8503, `rh8502`rh8504]";
 	
 	Object[] o1 = new Object[] { true, 'a', 122, 21, 22, 2.1f, 2.1, "Hello",
 			new BasicDate(LocalDate.parse("2013-06-13")), new BasicMonth(YearMonth.parse("2016-06")),
@@ -142,20 +138,21 @@ public class JDBCTest {
 			map.put(i + 1, vector);
 			o4[i] = vector;
 		}
-//		Main.CreateValueTable(host, port);
+		Main.CreateValueTable(host, port);
 	}
 	
 	
 	@Test
 	public void createTableTest(){  
-		Assert.assertTrue(Main.CreateTable(System.getProperty("user.dir")+"/data/createTable_all.java", path, "t1","172.16.95.128", "8922"));
+		Assert.assertTrue(Main.CreateTable(System.getProperty("user.dir")+"/data/createTable_all.java", path, "t1",host, port));
 	}
 	
 	@Test
 	public void loadTableTest(){  
 		
 			try {
-				Main.TestPreparedStatement(DB_URL,"t1 = loadTable(\"" +path+"\",`t1)", "select * from t1","insert into t1 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", o4);
+				System.out.println(DB_URL);
+				Main.TestPreparedStatement(DB_URL,"t1 = loadTable(\"" +path+"\",`t1,,true)", "select * from t1","insert into t1 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", o4);
 			} catch (Exception e) {
 				Assert.fail();
 				e.printStackTrace();
@@ -207,7 +204,7 @@ public class JDBCTest {
 	@Test
 	public void DFSLoadTableTest(){  
 		try {
-			Main.TestPreparedStatement(DB_URL_DFS,null,"select top 2 * from pt","delete from pt where x = ?",new Object[]{YearMonth.parse("2000-01")});
+			Main.TestPreparedStatement(DB_URL_DFS,"","select top 2 * from pt","delete from pt where x = ?",new Object[]{YearMonth.parse("2000-01")});
 		} catch (Exception e) {
 			e.printStackTrace();
 			Assert.fail();
@@ -217,7 +214,7 @@ public class JDBCTest {
 	@Test
 	public void batchTest1(){  
 		try {
-			Main.TestPreparedStatementBatch(DB_URL,"t1 = loadTable(\"C:/DolphinDB/Data/send/0717\",`t1)","select * from t1","insert into t1 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",o3);
+			Main.TestPreparedStatementBatch(DB_URL,"t1 = loadTable(\"" +path+"\",`t1)","select * from t1","insert into t1 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",o3);
 		} catch (Exception e) {
 			e.printStackTrace();
 			Assert.fail();
@@ -297,7 +294,7 @@ public class JDBCTest {
 	@Test
 	public void SeqdbResultSetInsertTest(){  
 		try {
-			Main.TestResultSetInsert(DB_URL_DFS,"pt = loadTable(\"C:/DolphinDB/Data/seqdb\",`pt)","select top 10 * from pt",new Object[]{new BasicMonth(YearMonth.parse("2016-07")),0.007},true);
+			Main.TestResultSetInsert(DB_URL_DFS,"t1 = loadTable(\"" +path+"\",`t1,,true)","select top 10 * from pt",new Object[]{new BasicMonth(YearMonth.parse("2016-07")),0.007},true);
 			fail("No exception thrown.");
 		} catch (Exception e) {
 			assertTrue(true);
@@ -307,7 +304,7 @@ public class JDBCTest {
 	@Test
 	public void SeqdbResultSetUpdateTest(){  
 		try {
-			Main.TestResultSetUpdate(DB_URL_DFS,"pt = loadTable(\"C:/DolphinDB/Data/seqdb\",`pt)","select top 10 * from pt",new Object[]{new BasicMonth(YearMonth.parse("2016-07")),0.007},true);
+			Main.TestResultSetUpdate(DB_URL_DFS,"t1 = loadTable(\"" +path+"\",`t1,,true)","select top 10 * from pt",new Object[]{new BasicMonth(YearMonth.parse("2016-07")),0.007},true);
 			fail("No exception thrown.");
 		} catch (Exception e) {
 			assertTrue(true);
@@ -317,14 +314,14 @@ public class JDBCTest {
 	@Test
 	public void SeqdbResultSetDeleteTest(){  
 		try {
-			Main.TestResultSetDelete(DB_URL_DFS,"pt = loadTable(\"C:/DolphinDB/Data/seqdb\",`pt)","select top 10 * from pt",1,true);
+			Main.TestResultSetDelete(DB_URL_DFS,"t1 = loadTable(\"" +path+"\",`t1,,true)","select top 10 * from pt",1,true);
 			fail("No exception thrown.");
 		} catch (Exception e) {
 			assertTrue(true);
 		}
 	}
 	
-
-	
 	
 }
+
+
