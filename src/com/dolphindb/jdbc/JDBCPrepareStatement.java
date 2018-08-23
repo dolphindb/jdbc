@@ -73,7 +73,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private void getTableType() {
 		if (tableType == null) {
 			try {
-				connection.run(tableName + "= select * from " + tableName);
+				///connection.run(tableName + "= select * from " + tableName);
 				tableType = connection.run("typestr " + tableName).getString();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -107,7 +107,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			if (tableName != null) {
 				getTableType();
 				BasicInt basicInt;
-				System.out.println(tableType);//print------------------------------------
+//				System.out.println(tableType);//print------------------------------------
 				if (tableType.equals(IN_MEMORY_TABLE)) {
 					try {
 						basicInt = (BasicInt) connection.run("tableInsert", (List<Entity>) arguments);
@@ -126,7 +126,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		case Utils.DML_DELETE:
 			if (tableName != null) {
 				getTableType();
-				System.out.println(tableType);//print------------------------------------
+//				System.out.println(tableType);//print------------------------------------
 				if (tableType.equals(IN_MEMORY_TABLE)) {
 					try {
 						return super.executeUpdate((String) arguments);
@@ -134,7 +134,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						throw new SQLException(e);
 					}
 				} else {
-					System.out.println(tableName);
+//					System.out.println(tableName);
 					throw new SQLException("only local in-memory table can update");
 				}
 			} else {

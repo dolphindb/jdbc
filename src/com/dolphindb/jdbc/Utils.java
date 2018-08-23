@@ -82,7 +82,6 @@ public class Utils {
     }
 
     public static void parseProperties(String s, Properties prop, String split1, String split2) throws SQLException {
-        System.out.println(s);
         String[] strings1 = s.split(split1);
         String[] strings2;
         for (String item : strings1){
