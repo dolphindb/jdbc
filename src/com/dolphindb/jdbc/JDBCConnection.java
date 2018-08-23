@@ -33,13 +33,19 @@ public class JDBCConnection implements Connection {
 	private List<String> hostName_ports;
 	private boolean isDFS;
 	private StringBuilder sqlSb;
-
+	private  String controlHost;
+	private  int controlPort;
+	private String user;
+	private String password;
 	public JDBCConnection(String url, Properties prop) throws SQLException {
 		this.url = url;
 		dbConnection = new DBConnection();
 		hostName = prop.getProperty("hostName");
 		port = Integer.parseInt(prop.getProperty("port"));
-
+		controlHost = null;
+		controlPort = -1;
+		setUser(null);
+		setPassword(null);
 		try {
 			open(hostName, port, prop);
 		} catch (IOException e) {
@@ -65,42 +71,37 @@ public class JDBCConnection implements Connection {
 	 * @throws IOException
 	 * @throws SQLException
 	 */
-	private void tryOtherNode(String hostname, int FuncationPort, Properties prop) throws IOException, SQLException {
+	private boolean tryOtherNode(String hostname, int FuncationPort, Properties prop) throws IOException, SQLException {
 
-		// default controllerNode value 8920
-		int controllerNode = 8920;
+		controlConnection = new DBConnection();
+	    if(controlHost != null && controlPort > 0){
+	            controlConnection.connect(controlHost,controlPort);
+	            BasicTable table = (BasicTable) controlConnection.run("getClusterChunkNodesStatus()");
+	            Vector siteVector = table.getColumn("site");
+	          
+	            
+	            LinkedList<String> other_ports = new LinkedList<>();
+	    		for (int i = 0, len = siteVector.rows(); i < len; i++) {
+	    			other_ports.add(siteVector.get(i).getString());
+	    		}
 
-		// in case users input their controllerNode port
-		if (prop.containsKey("controllerNode")) {
-			controllerNode = Integer.parseInt(prop.getProperty("controllerNode"));
-		}
-		DBConnection tmpControlConnection = new DBConnection();
-		tmpControlConnection.connect(hostname, controllerNode);
-
-		// get all node site from dolphinDB
-		BasicTable table = (BasicTable) tmpControlConnection.run("getClusterChunkNodesStatus()");
-		Vector siteVector = table.getColumn("site");
-		LinkedList<String> other_ports = new LinkedList<>();
-		for (int i = 0, len = siteVector.rows(); i < len; i++) {
-			other_ports.add(siteVector.get(i).getString());
-		}
-
-		// try to connect node, which does not contain the broken one.
-		int size = other_ports.size();
-		for (int index = 0; index < size; ++index) {
-			String[] hostName_port = other_ports.get(index).split(":");
-			if (!hostName_port[1].equals(String.valueOf(FuncationPort))) {
-				System.out.println("connecting " + hostname + ":" + hostName_port[1]);
-				if (!reachAble(hostname, Integer.parseInt(hostName_port[1]), prop)) {
-					System.out.println("Cannot connect " + hostname + ":" + hostName_port[1]);
-					continue;
-				}
-//					success = dbConnection.connect(hostname, Integer.parseInt(hostName_port[1]));
-				checklogin(hostname, Integer.parseInt(hostName_port[1]),prop);
-				port = Integer.parseInt(hostName_port[1]);
-				break;
-			}
-		}
+	    		// try to connect node, which does not contain the broken one.
+	    		int size = other_ports.size();
+	    		for (int index = 0; index < size; ++index) {
+	    			String[] hostName_port = other_ports.get(index).split(":");
+	    			if (!hostName_port[1].equals(String.valueOf(FuncationPort))) {
+	    				System.out.println("connecting " + hostname + ":" + hostName_port[1]);
+	    				if (!reachAble(hostname, Integer.parseInt(hostName_port[1]), prop)) {
+	    					System.out.println("Cannot connect " + hostname + ":" + hostName_port[1]);
+	    					continue;
+	    				}
+	    				checklogin(hostname, Integer.parseInt(hostName_port[1]),prop);
+	    				port = Integer.parseInt(hostName_port[1]);
+	    				break;
+	    			}
+	    		}
+	        }
+	    return false;
 	}
 
 	/**
@@ -142,8 +143,8 @@ public class JDBCConnection implements Connection {
 			
 			if(prop.containsKey("user") && prop.containsKey("password")) {
 				success = dbConnection.connect(hostname, port,prop.getProperty("user"),prop.getProperty("password"));	
-			}else if(prop.containsKey("User") && prop.containsKey("Password")) {
-				success = dbConnection.connect(hostname, port,prop.getProperty("User"),prop.getProperty("Password"));	
+				setUser(prop.getProperty("user"));
+				setPassword(prop.getProperty("password"));
 			}else {
 				success = dbConnection.connect(hostname, port);
 			}
@@ -180,8 +181,7 @@ public class JDBCConnection implements Connection {
 	
 	private void open(String hostname, int port, Properties prop) throws SQLException, IOException{
     	
-		connect(hostname, port,prop);
-    
+	connect(hostname, port,prop);
     // database(directory, [partitionType], [partitionScheme], [locations])
     if(!success) throw new SQLException("Connection is fail");
     String[] keys = new String[]{"databasePath","partitionType","partitionScheme","locations"};
@@ -194,7 +194,6 @@ public class JDBCConnection implements Connection {
         sqlSb = new StringBuilder();
         sqlSb.append(sb);
         System.out.println(sb.toString());
-//        dbConnection.run(sb.toString().replace("dfs://", "C:/DolphinDB/Data/"));
         dbConnection.run(sb.toString());
 
         if(values[0].trim().startsWith("\"dfs://")) {
@@ -215,8 +214,9 @@ public class JDBCConnection implements Connection {
         String controllerAlias = dbConnection.run("getControllerAlias()").getString();
         if(controllerAlias != null && controllerAlias.length() > 0){
             isDFS = true;
-            String controlHost = "172.16.95.128";//dbConnection.run("rpc(\""+controllerAlias+"\", getNodeHost)").getString();
-            int controlPort = ((BasicInt) dbConnection.run("rpc(\""+controllerAlias+"\", getNodePort)")).getInt();
+            
+            controlHost = dbConnection.run("rpc(\""+controllerAlias+"\", getNodeHost)").getString();
+            controlPort = ((BasicInt) dbConnection.run("rpc(\""+controllerAlias+"\", getNodePort)")).getInt();
             controlConnection = new DBConnection();
             controlConnection.connect(controlHost,controlPort);
             BasicTable table = (BasicTable) controlConnection.run("getClusterChunkNodesStatus()");
@@ -587,9 +587,9 @@ public class JDBCConnection implements Connection {
 				}
 			}
 			if (message != null) {
-				throw new IOException(message + " or All dataNode is death");
+				throw new IOException(message + " or All dataNodes were dead");
 			} else {
-				throw new IOException("All dataNode is death");
+				throw new IOException("All dataNodes were dead");
 			}
 		}
 	}
@@ -612,17 +612,21 @@ public class JDBCConnection implements Connection {
 			return entity;
 		} catch (IOException e) {
 			String message = null;
-			// System.out.println(e.getMessage());
 			for (int index = 0; index < size; ++index) {
 				String[] hostName_port = hostName_ports.get(index).split(":");
-//				System.out.println("Select " + hostName_port[0] + ":" + hostName_port[1]);
-				this.dbConnection.close();
+				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
+					continue;
+				}
 				this.dbConnection = new DBConnection();
 				try {
-
-					if (this.dbConnection.connect("172.16.95.128", Integer.parseInt(hostName_port[1]))) {
-//						System.out.println("Connect " + this.dbConnection.getHostName() + ":" + this.dbConnection.getPort());
-						 System.out.println("In JDBCConnection run()---"+sqlSb.toString());
+					boolean succeeded;
+					if(getUser()!=null && getPassword()!=null){
+						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]), getUser(), getPassword());
+					}
+					else{
+						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]));
+					}
+					if (succeeded) {
 						this.dbConnection.run(sqlSb.toString());
 						 System.out.println(script+"------------------------\n");
 						entity = this.dbConnection.run(script);
@@ -630,14 +634,14 @@ public class JDBCConnection implements Connection {
 					}
 				} catch (IOException e1) {
 					message = e1.getMessage();
+					return entity;
 				}
 
 			}
-
 			if (message != null) {
-				throw new IOException(message + " or All dataNode is death");
+				throw new IOException(message + " or All dataNodes were dead");
 			} else {
-				throw new IOException("All dataNode is death");
+				throw new IOException("All dataNodes were dead");
 			}
 
 		}
@@ -661,5 +665,21 @@ public class JDBCConnection implements Connection {
 		} else {
 			return -1;
 		}
+	}
+
+	public String getUser() {
+		return user;
+	}
+
+	public void setUser(String user) {
+		this.user = user;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
 	}
 }
