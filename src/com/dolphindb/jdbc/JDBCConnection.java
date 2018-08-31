@@ -1,3 +1,6 @@
+/**
+ * Hard code part controlHost in open method
+ */
 package com.dolphindb.jdbc;
 
 import com.dolphindb.jdbc.Driver;
@@ -58,6 +61,14 @@ public class JDBCConnection implements Connection {
 			}
 
 		}
+	}
+	
+	public DBConnection getDBConnection() {
+		return dbConnection;
+	}
+	
+	public void setDBConnection(DBConnection dbConnection) {
+		this.dbConnection = dbConnection;
 	}
 
 	/**
@@ -166,12 +177,7 @@ public class JDBCConnection implements Connection {
 	private void connect(String hostname, int port, Properties prop) throws IOException, SQLException {
 
 		if (reachAble(hostname, port, prop)) {
-//			try {
 				checklogin(hostname, port,prop);
-//				success = dbConnection.connect(hostname, port,prop.getProperty("user"),prop.getProperty("password"));
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
 		} else {
 			// if the input node does not work, then try other node
 			tryOtherNode(hostname, port, prop);
@@ -571,20 +577,49 @@ public class JDBCConnection implements Connection {
 		} catch (IOException e) {
 			String message = null;
 			for (int index = 0; index < size; ++index) {
+				
+				
+				
 				String[] hostName_port = hostName_ports.get(index).split(":");
 				System.out.println("Select " + hostName_port[0] + ":" + hostName_port[1]);
-				this.dbConnection.close();
+				
+				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
+					continue;
+				}
 				this.dbConnection = new DBConnection();
 				try {
-					if (this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]))) {
-						System.out.println("Connect " + this.dbConnection.getHostName() + ":" + this.dbConnection.getPort());
+					boolean succeeded;
+					if(getUser()!=null && getPassword()!=null){
+						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]), getUser(), getPassword());
+					}
+					else{
+						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]));
+					}
+					if (succeeded) {
 						this.dbConnection.run(sqlSb.toString());
 						entity = this.dbConnection.run(function, arguments);
 						return entity;
 					}
 				} catch (IOException e1) {
 					message = e1.getMessage();
+					return entity;
 				}
+				
+//				this.dbConnection.close();
+//				this.dbConnection = new DBConnection();
+//				try {
+//					if (this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]))) {
+//						System.out.println("Connect " + this.dbConnection.getHostName() + ":" + this.dbConnection.getPort());
+//						this.dbConnection.run(sqlSb.toString());
+//						entity = this.dbConnection.run(function, arguments);
+//						return entity;
+//					}
+//				} catch (IOException e1) {
+//					message = e1.getMessage();
+//				}
+				
+				
+				
 			}
 			if (message != null) {
 				throw new IOException(message + " or All dataNodes were dead");
@@ -596,6 +631,7 @@ public class JDBCConnection implements Connection {
 
 	// Automatic switching node
 	public Entity run(String script) throws IOException {
+//		System.out.println(script);
 		if (!isDFS) {
 			return this.dbConnection.run(script);
 		}
@@ -611,6 +647,9 @@ public class JDBCConnection implements Connection {
 			entity = this.dbConnection.run(script);
 			return entity;
 		} catch (IOException e) {
+			
+			
+			
 			String message = null;
 			for (int index = 0; index < size; ++index) {
 				String[] hostName_port = hostName_ports.get(index).split(":");
@@ -637,7 +676,10 @@ public class JDBCConnection implements Connection {
 					return entity;
 				}
 
-			}
+				
+				
+				
+			}		
 			if (message != null) {
 				throw new IOException(message + " or All dataNodes were dead");
 			} else {

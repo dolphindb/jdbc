@@ -33,20 +33,25 @@ public class Test extends Thread{
 		StringBuffer sb = null;
 		try {
 			Class.forName("com.dolphindb.jdbc.Driver");
-			conn = DriverManager.getConnection("jdbc:dolphindb://localhost:8801", info);
+			conn = DriverManager.getConnection("jdbc:dolphindb://172.16.95.128:8921", info);
 			ps = conn.prepareStatement(sql);
 			sb = new StringBuffer();
 			sb.append("if(existsDatabase(\"dfs://USPrices\"))dropDatabase(\"dfs://USPrices\")\n");
 			sb.append("db=database(\"dfs://USPrices\", RANGE, `A`F`K`O`S`ZZZ)\n");
 			sb.append("t1=table(100:0, `PERMNO`date`TICKER`PRC`VOL`BID`ASK`SHROUT, [INT, DATE, SYMBOL, DOUBLE, INT, DOUBLE, DOUBLE,INT])\n");
 			sb.append("db.createPartitionedTable(t1,`trade, `TICKER)\n");
+			
 			ps.execute("trade=loadTable(\"dfs://USPrices\", `trade)");
+			
+			ResultSet rs = ps.executeQuery("select count(*) from trade");
+			printData(rs);
+			
 			ps.execute(sb.toString());
-			File f = new File("C:/DolphinDB/db_testing/data/USPricesFewerCols.csv");
+			File f = new File("/Users/qiaojianhu/Desktop/DolphinDB/JDBC/DolphinDBJDBC/test/USPricesFewerCols.csv");
 			String line = "";
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 	        
-			//trade.append!(tmp);
+			//trade.append!(tmp);USPricesFewerCols
 	 
             System.out.println("Reading file using Buffered Reader");
             BufferedReader b = new BufferedReader(new FileReader(f));
@@ -58,6 +63,9 @@ public class Test extends Thread{
             		continue;
             	}
                 String [] cols = line.split(",");
+//                for(int i = 0; i < cols.length; i++) {
+//                		System.out.println(cols[i]  +":  " +i);
+//                }
                 if(cols.length == 8){
                 ps.setInt(1, Integer.parseInt(cols[0]));
                 LocalDate localDate = LocalDate.parse(cols[1], formatter);
@@ -69,12 +77,15 @@ public class Test extends Thread{
                 else{
                 	ps.setDouble(4, Double.parseDouble(cols[3]));
                 }
+//                ps.setInt(5, Integer.parseInt(cols[4]));
                 if(cols[4].equals("")){
-                	ps.setNull(5, Types.DOUBLE);
+                	ps.setNull(5, Types.INTEGER);
                 }
                 else{
-                	ps.setDouble(5, Double.parseDouble(cols[4]));
+//                	System.out.println();
+                	ps.setInt(5, Integer.parseInt(cols[4]));
                 }
+
                 if(cols[5].equals("")){
                 	ps.setNull(6, Types.DOUBLE);
                 }
@@ -100,8 +111,9 @@ public class Test extends Thread{
             if(batch>0){
             	ps.executeBatch();
             }
+//            ps.execute("login(\"admin\", \"123456\")" );
             ps.execute("trade=loadTable(\"dfs://USPrices\", `trade)");
-            ResultSet rs = ps.executeQuery("select count(*) from trade");
+            rs = ps.executeQuery("select count(*) from trade");
 			//ResultSet rs = pstmt.executeQuery("select * from t1");
 			printData(rs);
 			//TimeUnit.SECONDS.sleep(30);

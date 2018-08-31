@@ -127,7 +127,7 @@ public class Main {
 			o4[i] = vector;
 		}
 
-//		TestPreparedStatement("jdbc:dolphindb://172.16.95.128:8921","t1 = loadTable(\"C:/DolphinDB/Data/send/0717\",`t1)", "select * from t1","insert into t1 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", o4);
+		TestPreparedStatement("jdbc:dolphindb://172.16.95.128:8921","t1 = loadTable(\"C:/DolphinDB/Data/send/0717\",`t1)", "select * from t1","insert into t1 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", o4);
 
 //		 TestPreparedStatement(DB_URL_DFS,"t1 = loadTable(\"C:/DolphinDB/Data/send/0717\",`t1)","select * from t1","update t1 set bool = ? where char = ?",new Object[]{false, 'a'});
 
