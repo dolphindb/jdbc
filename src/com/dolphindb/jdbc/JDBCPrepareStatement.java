@@ -751,6 +751,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 //			tmp = createCol(typeString, type, value );
 //		}else {
 		tmp = addToCol(name, typeString, type, value );
+//		System.out.println(value);
 //		}
 		unNameTable.put(name, tmp);
 				
@@ -790,9 +791,14 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 //			System.out.println();
 //			System.out.println(count);
 //			System.out.println(typeString);
-//			System.out.println(name);
+//			System.out.println(value.getClass().getName());
 //			System.out.println(value);
-			tmp.add((Double)value);
+			if (value.getClass() == Integer.class) {
+//			    System.out.println("This is an Integer");
+			    tmp.add((double)((int)value));
+			}else {
+				tmp.add((double)value);
+			}
 		}
 		return tmp;
 	}
