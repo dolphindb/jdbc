@@ -21,7 +21,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private String[] sqlSplit;
 	private Object[] values;
 	private int dml;
-	private int count;
 	private Object arguments;
 	private List<Object> argumentsBatch; // String List<Entity> Vector
 	private BasicTable tableDFS;
@@ -30,7 +29,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private HashMap<Integer, Integer> colType;
 	private List<String> colNames;
 	private List<String> colTypeString;
-	private HashMap<String, Vector> unNameTable;
+	private HashMap<String, ArrayList> unNameTable;
+	int count = 0;
 	
 	public String getTableName() {
 		return tableName;
@@ -50,7 +50,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.preSql = strings[0];
 		this.tableName = Utils.getTableName(sql);
 		this.dml = Utils.getDml(sql);
-		this.count = 0;
 		this.isInsert = this.dml == Utils.DML_INSERT;
 		if (tableName != null) {
 			tableName = tableName.trim();
@@ -165,10 +164,13 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private int tableAppend() throws SQLException {
+		
 		List<Entity> newArguments = (List<Entity>) arguments;
 		int size = newArguments.size();
 		if (size > 1) {
+						
 			if (newArguments.get(1) instanceof Vector) {
+				System.out.println("here");
 				int insertRows = newArguments.get(1).rows();
 				List<String> colNames = new ArrayList<>();
 				List<Vector> cols = new ArrayList<>(size - 1);
@@ -195,34 +197,64 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				return insertRows;
 			} else {
 				int insertRows = 1;
-				List<String> colNames = new ArrayList<>();
 				List<Vector> cols = new ArrayList<>(size - 1);
-				for (int i = 1, len = size; i < len; i++) {
-					colNames.add("" + i);
-					BasicAnyVector basicAnyVector = new BasicAnyVector(1);
-					try {
-						basicAnyVector.set(0, (Scalar) newArguments.get(i));
-					} catch (Exception e) {
-						throw new SQLException(e);
+				
+				for(int i = 0; i< colNames.size(); i++) {					
+					if(colTypeString.get(i).equals("INT")) {
+						List<Integer> col = unNameTable.get(colNames.get(i));
+						cols.add(new BasicIntVector(col));
 					}
-					cols.add(basicAnyVector);
+					if(colTypeString.get(i).equals("DOUBLE")) {
+						List<Double> col = unNameTable.get(colNames.get(i));
+						cols.add(new BasicDoubleVector(col));
+					}
+					if(colTypeString.get(i).equals("SYMBOL")) {
+						List<String> col = unNameTable.get(colNames.get(i));
+						cols.add(new BasicStringVector(col));
+					}
+					if(colTypeString.get(i).equals("DATE")) {
+						List<BasicDate> col = unNameTable.get(colNames.get(i));
+						BasicDateVector vdate = new BasicDateVector(col.size());
+						for(int j = 0; j < col.size(); j++) {
+							vdate.setInt(j,col.get(j).getInt());
+						}
+						cols.add(vdate);
+					}
+					
+					unNameTable.put(colNames.get(i), new ArrayList<Object>());
+									
 				}
+				
+				//for check
+//				for(int k = 0; k < colNames.size(); k++) {
+//					System.out.println(colNames.get(k));
+//					System.out.println(unNameTable.get(colNames.get(k)).size());
+//				}
+//				System.out.println(cols.size());
+
 				BasicTable insertTable = new BasicTable(colNames, cols);
-				newArguments = new ArrayList<>(2);
-				if (tableDFS == null) {
-					try {
-						tableDFS = (BasicTable) connection.run(tableName);
-					} catch (IOException e) {
-						throw new SQLException(e);
-					}
-				}
-				newArguments.add(tableDFS);
-				newArguments.add(insertTable);
+				List<Entity> xx = new ArrayList<Entity>();
+				
+				xx.add(insertTable);
+				xx.add(new BasicString("trade"));
+				
+				Map<String, Entity> vars = new HashMap<String, Entity>();
+				vars.put("t1", insertTable);
+				
 				try {
-					connection.run("append!", newArguments);
-				} catch (IOException e) {
-					throw new SQLException(e);
+					connection.getDbConnection().upload(vars);
+				} catch (IOException e1) {
+					e1.printStackTrace();
 				}
+				
+				
+				try {
+					connection.run("trade.append!(t1)");
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+
+			
 				return insertRows;
 			}
 		}
@@ -450,18 +482,22 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	@Override
 	public int[] executeBatch() throws SQLException {
 		super.checkClosed();
+		
+		
+		
+		
 		int[] arr_int = new int[argumentsBatch.size()];
 		int index = 0;
 		try {
 			for (Object args : argumentsBatch) {
 				if (args == null) {
-					arr_int[index] = 0;
+					arr_int[index++] = 0;
 				} else if (args instanceof String) {
-					arr_int[index] = super.executeUpdate((String) args);
+					arr_int[index++] = super.executeUpdate((String) args);
 				} else {
-					arr_int[index] = executeUpdate();
+					arr_int[index++] = executeUpdate();
+					return arr_int;
 				}
-				index++;
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -706,74 +742,89 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private void setColValue(String name, String typeString, Object type, Object value) throws IOException {
 		
 		
-		Vector tmp = null;
+		ArrayList<Object> tmp = null;
 		if(unNameTable == null) {
 			unNameTable = new LinkedHashMap<>();
 		}
 		
-		if(!unNameTable.containsKey(name)) {
-			tmp = createCol(typeString, type, value );
-			unNameTable.put(name, tmp);
-		}else {
-			addToCol(name, typeString, type, value );
-		}
-		
+//		if(!unNameTable.containsKey(name)) {
+//			tmp = createCol(typeString, type, value );
+//		}else {
+		tmp = addToCol(name, typeString, type, value );
+//		}
+		unNameTable.put(name, tmp);
 				
 		
 	}
 
-	private void addToCol(String name, String typeString, Object type, Object value) {
+	private ArrayList<Object> addToCol(String name, String typeString, Object type, Object value) {
+//		String d = "";
+//		String s = "";
+//		for(int i = 0 ;i < colTypeString.size(); i++ ) {
+//			 d += colTypeString.get(i) + " ";
+//		}
+//		for(int i = 0 ;i < colNames.size(); i++ ) {
+//			 s += colNames.get(i) + " ";
+//		}
+//		System.out.println(d);
+//		System.out.println(s);
+		
+		ArrayList<Object> tmp = null;
+		if(!unNameTable.containsKey(name)) {
+			tmp = new ArrayList<>();
+		}else{
+			tmp = unNameTable.get(name);
+		}
 		
 		if(typeString.equals("INT")) {
-			List<Integer> tmp = (List<Integer>) unNameTable.get(name);
+			
 			tmp.add((int)value);
-			unNameTable.put(name, new BasicIntVector(tmp));
 		}
 		if(typeString.equals("DATE")) {
-			BasicDateVector vdate = (BasicDateVector) unNameTable.get(name);
-			vdate.setInt(count, (int)value);
-			unNameTable.put(name, vdate);
+			tmp.add((BasicDate)value);
 		}
 		if(typeString.equals("SYMBOL")) {
-			List<String> tmp = (List<String>) unNameTable.get(name);
 			tmp.add(value.toString());
-			unNameTable.put(name, new BasicStringVector(tmp));
 		}
 		if(typeString.equals("DOUBLE")) {
-			List<Double> tmp = (List<Double>) unNameTable.get(name);
+//			System.out.println();
+//			System.out.println(count);
+//			System.out.println(typeString);
+//			System.out.println(name);
+//			System.out.println(value);
 			tmp.add((Double)value);
-			unNameTable.put(name, new BasicDoubleVector(tmp));
-			
 		}
+		return tmp;
 	}
 
-	private Vector createCol(String typeString, Object type, Object value) throws IOException {
-//		String s = TypeCast.TYPEINT2STRING.get(type);
-//		tmp.add(TypeCast.java2db(value, s));
-//		System.out.println(value);
-//		System.out.println(typeString);
-		if(typeString.equals("INT")) {
-			List<Integer> tmp = new ArrayList<>();
-			tmp.add((int)value);
-			return new BasicIntVector(tmp);
-		}
-		if(typeString.equals("DATE")) {
-			BasicDateVector vdate = new BasicDateVector(10000);
-			vdate.setInt(count, (int)value);
-		}
-		if(typeString.equals("SYMBOL")) {
-			List<String> tmp = new ArrayList<>();
-			tmp.add(value.toString());
-			return new BasicStringVector(tmp);
-		}
-		if(typeString.equals("DOUBLE")) {
-			List<Double> tmp = new ArrayList<>();
-			tmp.add((Double)value);
-			return new BasicDoubleVector(tmp);
-			
-		}
-		return null;
-	}
+//	private List<Object> createCol(String typeString, Object type, Object value) throws IOException {
+////		String s = TypeCast.TYPEINT2STRING.get(type);
+////		tmp.add(TypeCast.java2db(value, s));
+////		System.out.println(value);
+////		System.out.println(typeString);
+//		if(typeString.equals("INT")) {
+//			List<Object> tmp = new ArrayList<>();
+//			tmp.add((int)value);
+//			return tmp;
+//		}
+//		if(typeString.equals("DATE")) {			
+//			List<Object> tmp = new ArrayList<>();
+//			tmp.add((BasicDate)value);
+//			return tmp;
+//		}
+//		if(typeString.equals("SYMBOL")) {
+//			List<Object> tmp = new ArrayList<>();
+//			tmp.add(value.toString());
+//			return tmp;
+//		}
+//		if(typeString.equals("DOUBLE")) {
+//			List<Object> tmp = new ArrayList<>();
+//			tmp.add((Double)value);
+//			return tmp;
+//			
+//		}
+//		return null;
+//	}
 
 	private String createSql() throws SQLException {
 		StringBuilder sb = new StringBuilder();
