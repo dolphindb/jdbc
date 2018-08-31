@@ -242,7 +242,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				vars.put("t1", insertTable);
 				
 				try {
-					connection.getDbConnection().upload(vars);
+					connection.getDBConnection().upload(vars);
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				}
