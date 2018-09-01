@@ -56,16 +56,15 @@ public class Test extends Thread{
             System.out.println("Reading file using Buffered Reader");
             BufferedReader b = new BufferedReader(new FileReader(f));
             int batch = 0;
+                      
             boolean notStarted = true;
             while ((line = b.readLine()) != null) {
             	if(notStarted){
             		notStarted = false;
             		continue;
             	}
-                String [] cols = line.split(",");
-//                for(int i = 0; i < cols.length; i++) {
-//                		System.out.println(cols[i]  +":  " +i);
-//                }
+                String [] cols = line.split(",",-1);
+
                 if(cols.length == 8){
                 ps.setInt(1, Integer.parseInt(cols[0]));
                 LocalDate localDate = LocalDate.parse(cols[1], formatter);
@@ -77,12 +76,10 @@ public class Test extends Thread{
                 else{
                 	ps.setDouble(4, Double.parseDouble(cols[3]));
                 }
-//                ps.setInt(5, Integer.parseInt(cols[4]));
                 if(cols[4].equals("")){
                 	ps.setNull(5, Types.INTEGER);
                 }
                 else{
-//                	System.out.println();
                 	ps.setInt(5, Integer.parseInt(cols[4]));
                 }
 
@@ -98,11 +95,18 @@ public class Test extends Thread{
                 else{
                 	ps.setDouble(7, Double.parseDouble(cols[6]));
                 }
-                ps.setInt(8, Integer.parseInt(cols[7]));
+                if(cols[7].equals("")){
+                	ps.setNull(8, Types.INTEGER);
+                }
+                else{
+                	ps.setInt(8, Integer.parseInt(cols[7]));
+                }
+                
                 ps.addBatch();
                 batch ++;
                 if(batch % 100000 == 0){
                 	ps.executeBatch();
+                	ps.clearBatch();
                 	batch = 0;
                 }
                 }
