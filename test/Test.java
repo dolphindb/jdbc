@@ -33,7 +33,7 @@ public class Test extends Thread{
 		StringBuffer sb = null;
 		try {
 			Class.forName("com.dolphindb.jdbc.Driver");
-			conn = DriverManager.getConnection("jdbc:dolphindb://172.16.95.128:8921", info);
+			conn = DriverManager.getConnection("jdbc:dolphindb://localhost:8801", info);
 			ps = conn.prepareStatement(sql);
 			sb = new StringBuffer();
 			sb.append("if(existsDatabase(\"dfs://USPrices\"))dropDatabase(\"dfs://USPrices\")\n");
@@ -47,7 +47,7 @@ public class Test extends Thread{
 			printData(rs);
 			
 			ps.execute(sb.toString());
-			File f = new File("/Users/qiaojianhu/Desktop/DolphinDB/JDBC/DolphinDBJDBC/test/USPricesFewerCols.csv");
+			File f = new File("C:/DolphinDB/db_testing/data/USPricesFewerCols.csv");
 			String line = "";
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 	        
