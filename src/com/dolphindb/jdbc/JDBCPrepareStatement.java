@@ -30,7 +30,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private List<String> colNames;
 	private List<String> colTypeString;
 	private HashMap<String, ArrayList> unNameTable;
-	int count = 0;
+	private int count;
 	
 	public String getTableName() {
 		return tableName;
@@ -72,6 +72,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		sqlSplit = this.preSql.split("\\?");
 		values = new Object[sqlSplit.length + 1];
 		batch = new StringBuilder();
+		this.count = 0;
 	}
 
 	private void getTableType() {
@@ -164,40 +165,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private int tableAppend() throws SQLException {
-		
-		List<Entity> newArguments = (List<Entity>) arguments;
-		int size = newArguments.size();
-		if (size > 1) {
-						
-			if (newArguments.get(1) instanceof Vector) {
-				System.out.println("here");
-				int insertRows = newArguments.get(1).rows();
-				List<String> colNames = new ArrayList<>();
-				List<Vector> cols = new ArrayList<>(size - 1);
-				if (tableDFS == null) {
-					try {
-						tableDFS = (BasicTable) connection.run(tableName);
-					} catch (IOException e) {
-						throw new SQLException(e);
-					}
-				}
-				for (int i = 1, len = size; i < len; i++) {
-					colNames.add(tableDFS.getColumnName(i - 1));
-					cols.add((Vector) newArguments.get(i));
-				}
-				BasicTable insertTable = new BasicTable(colNames, cols);
-				newArguments = new ArrayList<>(2);
-				newArguments.add(tableDFS);
-				newArguments.add(insertTable);
-				try {
-					connection.run("append!", newArguments);
-				} catch (IOException e) {
-					throw new SQLException(e);
-				}
-				return insertRows;
-			} else {
-				int insertRows = 1;
-				List<Vector> cols = new ArrayList<>(size - 1);
+
+		if (unNameTable.size() > 1) {
+				int insertRows = 0;
+				List<Vector> cols = new ArrayList<>(unNameTable.size());
 				
 				for(int i = 0; i< colNames.size(); i++) {					
 					if(colTypeString.get(i).equals("INT")) {
@@ -221,23 +192,16 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						cols.add(vdate);
 					}
 					
-					unNameTable.put(colNames.get(i), new ArrayList<Object>());
-									
+//					unNameTable.put(colNames.get(i), new ArrayList<Object>());
+					
+					insertRows++;				
 				}
 				
-				//for check
-//				for(int k = 0; k < colNames.size(); k++) {
-//					System.out.println(colNames.get(k));
-//					System.out.println(unNameTable.get(colNames.get(k)).size());
-//				}
-//				System.out.println(cols.size());
+				unNameTable = null;
+				
 
-				BasicTable insertTable = new BasicTable(colNames, cols);
-				List<Entity> xx = new ArrayList<Entity>();
-				
-				xx.add(insertTable);
-				xx.add(new BasicString("trade"));
-				
+
+				BasicTable insertTable = new BasicTable(colNames, cols);				
 				Map<String, Entity> vars = new HashMap<String, Entity>();
 				vars.put("t1", insertTable);
 				
@@ -253,10 +217,12 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-
+				
+//				cols = null;
+//				insertTable = null;
+//				vars = null;	
 			
 				return insertRows;
-			}
 		}
 		return 0;
 	}
@@ -481,11 +447,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public int[] executeBatch() throws SQLException {
-		super.checkClosed();
-		
-		
-		
-		
+		super.checkClosed();	
 		int[] arr_int = new int[argumentsBatch.size()];
 		int index = 0;
 		try {
@@ -674,10 +636,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				for (int i = 0; i < size; i++) {
 					colType.put(i + 1, typeInt.getInt(i));
 				}
-				
-//				for (int i = 0; i < colType.size(); i++) {
-//					System.out.println(colType.get(i));
-//				}
 			}
 			
 			if(colNames == null) {
@@ -690,9 +648,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					colNames.add(names.getString(i).toString());
 				}
 				
-//				for (int i = 0; i < colNames.size(); i++) {
-//					System.out.println(colNames.get(i));
-//				}
 			}
 			
 			if(colTypeString == null){
@@ -705,9 +660,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					colTypeString.add(typeString.getString(i).toString());
 				}
 				
-//				for (int i = 0; i < colTypeString.size(); i++) {
-//					System.out.println(colTypeString.get(i));
-//				}
 			}
 			
 			
@@ -717,18 +669,17 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			
 			int j = 0;
 			for (int i = 1; i < sqlSplit.length; ++i) {
-				String s = TypeCast.TYPEINT2STRING.get(colType.get(i));
+//				String s = TypeCast.TYPEINT2STRING.get(colType.get(i));
 				if (values[i] == null) {
 					throw new IOException("No value specified for parameter " + i);
 				}
 				
-				setColValue(colNames.get(j), colTypeString.get(j), colType.get(j),values[i]);
-				
-//				System.out.println(TypeCast.java2db(values[i], s));
-				arguments.add(TypeCast.java2db(values[i], s));
+				setColValue(colNames.get(j), colTypeString.get(j), colType.get(j),values[i]);				
+//				arguments.add(TypeCast.java2db(values[i], s));
 				j++;
 			}
 			count++;
+			
 			return arguments;
 		} else {
 			try {
@@ -745,30 +696,16 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		ArrayList<Object> tmp = null;
 		if(unNameTable == null) {
 			unNameTable = new LinkedHashMap<>();
-		}
-		
-//		if(!unNameTable.containsKey(name)) {
-//			tmp = createCol(typeString, type, value );
-//		}else {
+		}	
 		tmp = addToCol(name, typeString, type, value );
-//		System.out.println(value);
-//		}
+
 		unNameTable.put(name, tmp);
 				
 		
 	}
 
 	private ArrayList<Object> addToCol(String name, String typeString, Object type, Object value) {
-//		String d = "";
-//		String s = "";
-//		for(int i = 0 ;i < colTypeString.size(); i++ ) {
-//			 d += colTypeString.get(i) + " ";
-//		}
-//		for(int i = 0 ;i < colNames.size(); i++ ) {
-//			 s += colNames.get(i) + " ";
-//		}
-//		System.out.println(d);
-//		System.out.println(s);
+
 		
 		ArrayList<Object> tmp = null;
 		if(!unNameTable.containsKey(name)) {
@@ -778,7 +715,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 		
 		if(typeString.equals("INT")) {
-			
 			tmp.add((int)value);
 		}
 		if(typeString.equals("DATE")) {
@@ -788,13 +724,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			tmp.add(value.toString());
 		}
 		if(typeString.equals("DOUBLE")) {
-//			System.out.println();
-//			System.out.println(count);
-//			System.out.println(typeString);
-//			System.out.println(value.getClass().getName());
-//			System.out.println(value);
 			if (value.getClass() == Integer.class) {
-//			    System.out.println("This is an Integer");
 			    tmp.add((double)((int)value));
 			}else {
 				tmp.add((double)value);
@@ -803,34 +733,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		return tmp;
 	}
 
-//	private List<Object> createCol(String typeString, Object type, Object value) throws IOException {
-////		String s = TypeCast.TYPEINT2STRING.get(type);
-////		tmp.add(TypeCast.java2db(value, s));
-////		System.out.println(value);
-////		System.out.println(typeString);
-//		if(typeString.equals("INT")) {
-//			List<Object> tmp = new ArrayList<>();
-//			tmp.add((int)value);
-//			return tmp;
-//		}
-//		if(typeString.equals("DATE")) {			
-//			List<Object> tmp = new ArrayList<>();
-//			tmp.add((BasicDate)value);
-//			return tmp;
-//		}
-//		if(typeString.equals("SYMBOL")) {
-//			List<Object> tmp = new ArrayList<>();
-//			tmp.add(value.toString());
-//			return tmp;
-//		}
-//		if(typeString.equals("DOUBLE")) {
-//			List<Object> tmp = new ArrayList<>();
-//			tmp.add((Double)value);
-//			return tmp;
-//			
-//		}
-//		return null;
-//	}
+
 
 	private String createSql() throws SQLException {
 		StringBuilder sb = new StringBuilder();
