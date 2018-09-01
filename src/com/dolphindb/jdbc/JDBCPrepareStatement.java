@@ -31,6 +31,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private List<String> colTypeString;
 	private HashMap<String, ArrayList> unNameTable;
 	private int count;
+//	int countD = 0;
 	
 	public String getTableName() {
 		return tableName;
@@ -170,8 +171,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				int insertRows = 0;
 				List<Vector> cols = new ArrayList<>(unNameTable.size());
 				
+				
 				for(int i = 0; i< colNames.size(); i++) {					
-					if(colTypeString.get(i).equals("INT")) {
+					if(colTypeString.get(i).equals("INT")) { 
 						List<Integer> col = unNameTable.get(colNames.get(i));
 						cols.add(new BasicIntVector(col));
 					}
@@ -191,15 +193,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						}
 						cols.add(vdate);
 					}
-					
-//					unNameTable.put(colNames.get(i), new ArrayList<Object>());
-					
-					insertRows++;				
-				}
-				
+														
+				}		
 				unNameTable = null;
 				
-
 
 				BasicTable insertTable = new BasicTable(colNames, cols);				
 				Map<String, Entity> vars = new HashMap<String, Entity>();
@@ -218,9 +215,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					e.printStackTrace();
 				}
 				
-//				cols = null;
-//				insertTable = null;
-//				vars = null;	
+				cols = null;
+				insertTable = null;
+				vars = null;	
 			
 				return insertRows;
 		}
@@ -669,13 +666,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			
 			int j = 0;
 			for (int i = 1; i < sqlSplit.length; ++i) {
-//				String s = TypeCast.TYPEINT2STRING.get(colType.get(i));
 				if (values[i] == null) {
 					throw new IOException("No value specified for parameter " + i);
 				}
 				
 				setColValue(colNames.get(j), colTypeString.get(j), colType.get(j),values[i]);				
-//				arguments.add(TypeCast.java2db(values[i], s));
 				j++;
 			}
 			count++;
@@ -691,7 +686,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private void setColValue(String name, String typeString, Object type, Object value) throws IOException {
-		
 		
 		ArrayList<Object> tmp = null;
 		if(unNameTable == null) {
