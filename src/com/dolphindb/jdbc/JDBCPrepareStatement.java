@@ -181,7 +181,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						List<Double> col = unNameTable.get(colNames.get(i));
 						cols.add(new BasicDoubleVector(col));
 					}
-					if(colTypeString.get(i).equals("SYMBOL")) {
+					if(colTypeString.get(i).equals("SYMBOL") || colTypeString.get(i).equals("STRING")) {
 						List<String> col = unNameTable.get(colNames.get(i));
 						cols.add(new BasicStringVector(col));
 					}
@@ -192,7 +192,42 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 							vdate.setInt(j,col.get(j).getInt());
 						}
 						cols.add(vdate);
+					}if(colTypeString.get(i).equals("DATETIME")) {
+						List<BasicDate> col = unNameTable.get(colNames.get(i));
+						BasicDateTimeVector vdate = new BasicDateTimeVector(col.size());
+						for(int j = 0; j < col.size(); j++) {
+							vdate.setInt(j,col.get(j).getInt());
+						}
+						cols.add(vdate);
+					}if(colTypeString.get(i).equals("MINUTE")) {
+						List<BasicDate> col = unNameTable.get(colNames.get(i));
+						BasicMinuteVector vdate = new BasicMinuteVector(col.size());
+						for(int j = 0; j < col.size(); j++) {
+							vdate.setInt(j,col.get(j).getInt());
+						}
+						cols.add(vdate);
+					}if(colTypeString.get(i).equals("SECOND")) {
+						List<BasicDate> col = unNameTable.get(colNames.get(i));
+						BasicSecondVector vdate = new BasicSecondVector(col.size());
+						for(int j = 0; j < col.size(); j++) {
+							vdate.setInt(j,col.get(j).getInt());
+						}
+						cols.add(vdate);
+					}if(colTypeString.get(i).equals("TIMESTAMP")) {
+						List<Long> col = unNameTable.get(colNames.get(i));
+						cols.add(new BasicTimestampVector(col));
+					}if(colTypeString.get(i).equals("NANOTIME")) {
+						List<Long> col = unNameTable.get(colNames.get(i));
+						cols.add(new BasicNanoTimeVector(col));
+					}if(colTypeString.get(i).equals("NANOTIMESTAMP")) {
+						List<Long> col = unNameTable.get(colNames.get(i));
+						cols.add(new BasicNanoTimestampVector(col));
+					}if(colTypeString.get(i).equals("BOOL")) {
+						List<Byte> col = unNameTable.get(colNames.get(i));
+						cols.add(new BasicBooleanVector(col));
 					}
+					
+					
 														
 				}		
 				unNameTable = null;
@@ -723,7 +758,24 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			}else {
 				tmp.add((double)value);
 			}
+		}if(typeString.equals("DATETIME")) {
+			tmp.add((BasicDateTime)value);
+		}if(typeString.equals("MINUTE")) {
+			tmp.add((BasicMinute)value);
+		}if(typeString.equals("SECOND")) {
+			tmp.add((BasicMinute)value);
+		}if(typeString.equals("TIMESTAMP")) {
+			tmp.add((BasicTimestamp)value);
+		}if(typeString.equals("NANOTIME")) {
+			tmp.add((BasicNanoTime)value);
+		}if(typeString.equals("NANOTIMESTAMP")) {
+			tmp.add((BasicNanoTimestamp)value);
+		}if(typeString.equals("BOOL")) {
+			tmp.add((BasicBoolean)value);
 		}
+		
+		
+		
 		return tmp;
 	}
 
