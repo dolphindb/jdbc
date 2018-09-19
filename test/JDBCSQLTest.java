@@ -69,7 +69,7 @@ public class JDBCSQLTest {
 
 			Statement s = conn.createStatement();
 			s.execute("trade=loadTable(\"dfs://USPrices\", `trade)");
-			ResultSet rs =s.executeQuery("select max(PRC), VOL from trade group by date HAVING VOL > 0 ");
+			ResultSet rs =s.executeQuery("select sum(PRC) as SUM from trade group by date having sum(PRC) > 0 ");
 			
 			
 			printData(rs);
