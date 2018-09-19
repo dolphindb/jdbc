@@ -18,11 +18,12 @@ import java.util.Properties;
 
 import com.xxdb.data.BasicDate;
 
-public class JDBCSQLTest {
+public class JDBCSQLSelectTest {
 
 	public static void main(String[] args){
 		System.out.println("JDBCSQLTest");
-		testSelectGroupByHaving();
+//		SelectTest();
+//		testSelectGroupByHaving();
 //		testSelectGroupBy();
 //		loadTop5Datatest()
 //		testSelectWhere();
@@ -46,6 +47,21 @@ public class JDBCSQLTest {
 		}
 		return conn;
 		
+	}
+	
+	public static void SelectTest() {
+		Connection conn = getConnection();
+		try {
+
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\"dfs://USPrices\", `trade)");
+			ResultSet rs =s.executeQuery("select PRC from trade");
+			
+			
+			printData(rs);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public static void testSelectGroupBy() {
