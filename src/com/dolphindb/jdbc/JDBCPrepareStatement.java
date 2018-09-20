@@ -30,6 +30,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private List<String> colNames;
 	private List<String> colTypeString;
 	private HashMap<String, ArrayList> unNameTable;
+	private HashMap<String, Vector> unNameTable1;
+	private ArrayList<ArrayList<Object>> aTable;
 	private int count;
 //	int countD = 0;
 	
@@ -172,44 +174,47 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				List<Vector> cols = new ArrayList<>(unNameTable.size());
 				
 				
-				for(int i = 0; i< colNames.size(); i++) {					
-					if(colTypeString.get(i).equals("INT")) { 
-						List<Integer> col = unNameTable.get(colNames.get(i));
+				for(int i = 0, len = colNames.size(); i< len; i++) {					
+					if(colTypeString.get(i).equals("INT")) { 				
+						List<Integer> col =  unNameTable.get(colNames.get(i));
 						cols.add(new BasicIntVector(col));
 					}
-					if(colTypeString.get(i).equals("DOUBLE")) {
-						List<Double> col = unNameTable.get(colNames.get(i));
+					if(colTypeString.get(i).equals("DOUBLE")) {						
+						List<Double> col =  unNameTable.get(colNames.get(i));
 						cols.add(new BasicDoubleVector(col));
 					}
 					if(colTypeString.get(i).equals("SYMBOL") || colTypeString.get(i).equals("STRING")) {
-						List<String> col = unNameTable.get(colNames.get(i));
+						
+						List<String> col =unNameTable.get(colNames.get(i)); ;
 						cols.add(new BasicStringVector(col));
 					}
 					if(colTypeString.get(i).equals("DATE")) {
+
 						List<BasicDate> col = unNameTable.get(colNames.get(i));
 						BasicDateVector vdate = new BasicDateVector(col.size());
-						for(int j = 0; j < col.size(); j++) {
+						for(int j = 0, len1 = col.size(); j < col.size(); j++) {
 							vdate.setInt(j,col.get(j).getInt());
 						}
 						cols.add(vdate);
-					}if(colTypeString.get(i).equals("DATETIME")) {
+					}
+					if(colTypeString.get(i).equals("DATETIME")) {
 						List<BasicDate> col = unNameTable.get(colNames.get(i));
 						BasicDateTimeVector vdate = new BasicDateTimeVector(col.size());
-						for(int j = 0; j < col.size(); j++) {
+						for(int j = 0, len1 = col.size(); j < len1; j++) {
 							vdate.setInt(j,col.get(j).getInt());
 						}
 						cols.add(vdate);
 					}if(colTypeString.get(i).equals("MINUTE")) {
 						List<BasicDate> col = unNameTable.get(colNames.get(i));
 						BasicMinuteVector vdate = new BasicMinuteVector(col.size());
-						for(int j = 0; j < col.size(); j++) {
+						for(int j = 0, len1 = col.size(); j < len1; j++) {
 							vdate.setInt(j,col.get(j).getInt());
 						}
 						cols.add(vdate);
 					}if(colTypeString.get(i).equals("SECOND")) {
 						List<BasicDate> col = unNameTable.get(colNames.get(i));
 						BasicSecondVector vdate = new BasicSecondVector(col.size());
-						for(int j = 0; j < col.size(); j++) {
+						for(int j = 0, len1 = col.size(); j < len1; j++) {
 							vdate.setInt(j,col.get(j).getInt());
 						}
 						cols.add(vdate);
@@ -698,15 +703,25 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			
 			List<Entity> arguments = new ArrayList<>(sqlSplit.length);
 			arguments.add(tableNameArg);
-			
+			getTableType();
 			int j = 0;
 			for (int i = 1; i < sqlSplit.length; ++i) {
-				if (values[i] == null) {
-					throw new IOException("No value specified for parameter " + i);
-				}
 				
-				setColValue(colNames.get(j), colTypeString.get(j), colType.get(j),values[i]);				
-				j++;
+				if(!tableType.equals(IN_MEMORY_TABLE)) {
+					if (values[i] == null) {
+						throw new IOException("No value specified for parameter " + i);
+					}
+				
+					setColValue(colNames.get(j), colTypeString.get(j), colType.get(j),values[i]);				
+					j++;
+				}else {
+					System.out.println("here");
+					String s = TypeCast.TYPEINT2STRING.get(colType.get(i));
+                		if(values[i] == null){
+                			throw new IOException("No value specified for parameter "+i);
+                		}
+					arguments.add(TypeCast.java2db(values[i], s));
+				}
 			}
 			count++;
 			
@@ -726,15 +741,45 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		if(unNameTable == null) {
 			unNameTable = new LinkedHashMap<>();
 		}	
-		tmp = addToCol(name, typeString, type, value );
-
-		unNameTable.put(name, tmp);
-				
-		
+		addToCol(name, typeString, type, value );		
 	}
 
-	private ArrayList<Object> addToCol(String name, String typeString, Object type, Object value) {
+	private Object[] expandArray(Object[] array){
+		Object[] newArray = new Object[array.length*2];
+		for(int i = 0; i < array.length ; i++) {
+			newArray[i] = array[i];
+		}
+		return newArray;
+	}
+	
+	private void addToCol(String name, String typeString, Object type, Object value) {
 
+		
+		
+//		Vector tmp = null;
+//		if(!unNameTable.containsKey(name) && typeString.equals("INT")) {
+//			tmp = new BasicIntVector(1000000);
+//		}
+//		if(!unNameTable.containsKey(name) && typeString.equals("DATE")) {
+//			tmp = new BasicDateVector(1000000);
+//		}
+//		if(!unNameTable.containsKey(name) && typeString.equals("SYMBOL")) {
+//			tmp = new BasicStringVector(1000000);
+//		}
+//		if(!unNameTable.containsKey(name) && typeString.equals("DOUBLE")) {
+//			tmp = new BasicDoubleVector(1000000);
+//		}
+//		else{
+//			tmp = unNameTable.get(name);
+//		}
+//		
+//		
+//		try {
+//			tmp.set(count, (Scalar) value);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+		
 		
 		ArrayList<Object> tmp = null;
 		if(!unNameTable.containsKey(name)) {
@@ -758,7 +803,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			}else {
 				tmp.add((double)value);
 			}
-		}if(typeString.equals("DATETIME")) {
+		}
+		if(typeString.equals("DATETIME")) {
 			tmp.add((BasicDateTime)value);
 		}if(typeString.equals("MINUTE")) {
 			tmp.add((BasicMinute)value);
@@ -774,9 +820,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			tmp.add((BasicBoolean)value);
 		}
 		
+		unNameTable.put(name, tmp);
 		
-		
-		return tmp;
+//		return tmp;
 	}
 
 
