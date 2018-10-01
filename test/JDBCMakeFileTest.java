@@ -1,5 +1,6 @@
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -11,9 +12,20 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Properties;
 
+import com.xxdb.DBConnection;
+import com.xxdb.data.BasicDictionary;
+import com.xxdb.data.BasicString;
+import com.xxdb.data.BasicStringVector;
+import com.xxdb.data.BasicTable;
+
 public class JDBCMakeFileTest {
+	
+	static String HOST = "172.16.95.128" ;
+	static String POST = "8921" ;
+	static ArrayList<String> colTypeString = null;
 	public static void main(String[] args){
 		System.out.println("JDBCLoadTest");
 		makeFiletest();
@@ -28,7 +40,8 @@ public class JDBCMakeFileTest {
 			s.execute("trade=loadTable(\"dfs://USPrices\", `trade)");
 			ResultSet rs =s.executeQuery("select * from trade");
 			
-			makeFile(rs);
+			printData(rs);
+//			makeFile(rs);
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -38,6 +51,7 @@ public class JDBCMakeFileTest {
 	
 	public static void makeFile(ResultSet rs) throws SQLException {
 		
+		getColTypes();
 		ArrayList<ArrayList<String>> alldata=new ArrayList<ArrayList<String>>();		 
 		ResultSetMetaData resultSetMetaData = rs.getMetaData();
 		int len = resultSetMetaData.getColumnCount();
@@ -51,7 +65,16 @@ public class JDBCMakeFileTest {
 		while (rs.next()) {
 			ArrayList<String> tmp = new ArrayList<String>();
 			for (int i = 1; i <= len; ++i) {
-				tmp.add(rs.getObject(i).toString());
+				if(colTypeString.get(i-1).equals("DATE")) {
+					tmp.add(rs.getObject(i).toString());
+				}if(colTypeString.get(i-1).equals("SYMBOL")) {
+					tmp.add(rs.getString(i).toString());
+				}if(colTypeString.get(i-1).equals("DOUBLE")) {
+					tmp.add(String.valueOf(rs.getDouble(i)));
+				}if(colTypeString.get(i-1).equals("INT")) {
+					tmp.add(String.valueOf(rs.getInt(i)));
+				}
+//				tmp.add(rs.getObject(i).toString());
 			}
 			alldata.add(tmp);
 		}
@@ -112,12 +135,45 @@ public class JDBCMakeFileTest {
 		
 	}
 	
+	public static void getColTypes() {
+		BasicDictionary schema = null; 
+		DBConnection db = new DBConnection();
+		StringBuilder sb = new StringBuilder();
+		sb.append("trade=loadTable(\"dfs://USPrices\", `trade)\n");
+		sb.append("schema(trade)\n");
+		
+		try {
+			db.connect(HOST, Integer.parseInt("8921"),"admin","123456");
+			schema = (BasicDictionary) db.run(sb.toString());
+		
+			BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+			BasicStringVector typeString = (BasicStringVector) colDefs.getColumn("typeString");
+			int size = typeString.rows();
+			colTypeString = new ArrayList<String>();
+			for (int i = 0; i < size; i++) {
+				colTypeString.add(typeString.getString(i).toString());
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public static void printData(ResultSet rs) throws SQLException {
+		
+		getColTypes();		
 		ResultSetMetaData resultSetMetaData = rs.getMetaData();
 		int len = resultSetMetaData.getColumnCount();
 		while (rs.next()) {			
 			for (int i = 1; i <= len; ++i) {
-				System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getObject(i)));
+				if(colTypeString.get(i-1).equals("DATE")) {
+					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getDate(i)));
+				}if(colTypeString.get(i-1).equals("SYMBOL")) {
+					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getString(i)));
+				}if(colTypeString.get(i-1).equals("DOUBLE")) {
+					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getDouble(i)));
+				}if(colTypeString.get(i-1).equals("INT")) {
+					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getInt(i)));
+				}
 			}
 			System.out.print("\n");
 		}
