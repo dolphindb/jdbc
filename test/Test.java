@@ -12,18 +12,80 @@ import java.sql.Types;
 import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import com.xxdb.data.BasicDate;
 
 public class Test extends Thread{
-
-	public Test() throws Exception {
-			
+	
+	public static Connection getConnection(){
 		Properties info = new Properties();
 		info.put("user", "admin");
 		info.put("password", "123456");
+		Connection conn = null;
+		try {
+			Class.forName("com.dolphindb.jdbc.Driver");
+			conn = DriverManager.getConnection("jdbc:dolphindb://172.16.95.128:8921", info);
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+		return conn;
+		
+	}
+	
+	public static void loadDatatest() {
+		HashMap<String, ArrayList> dataTable = new HashMap<String, ArrayList>();
+		Connection conn = getConnection();
+		try {
+
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\"dfs://USPrices\", `trade)");
+			ResultSet rs =s.executeQuery("select top 5 * from trade");
+			
+			
+			printData(rs);
+			
+//			ResultSetMetaData resultSetMetaData = rs.getMetaData();
+//			int len = resultSetMetaData.getColumnCount();
+//			while (rs.next()) {
+//				for (int i = 1; i <= len; ++i) {
+//					if(!dataTable.containsKey(resultSetMetaData.getColumnName(i))) {
+//						ArrayList<Object> tmp = new ArrayList<Object>();
+//						tmp.add(rs.getObject(i));
+//						dataTable.put(resultSetMetaData.getColumnName(i), tmp);
+//					}else {
+//						ArrayList<Object> tmp = dataTable.get(resultSetMetaData.getColumnName(i));
+//						tmp.add(rs.getObject(i));
+//					}
+//					
+//				}
+//			}
+			
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+//		printTable(dataTable);
+		
+		System.out.println("loadDateTest end");
+		
+	}
+
+	private static void printTable(HashMap<String, ArrayList> table) {
+		 
+
+		for(String s : table.keySet()) {
+			System.out.println(table.get(s).size());
+			
+		}
+		
+	}
+
+	public static void uploadDatatest() throws Exception {
+			
 		Connection conn = null;
 		PreparedStatement ps = null;
 		Statement stmt = null;
@@ -32,8 +94,8 @@ public class Test extends Thread{
 		String sql = "insert into trade values(?,?,?,?,?,?,?,?)";
 		StringBuffer sb = null;
 		try {
-			Class.forName("com.dolphindb.jdbc.Driver");
-			conn = DriverManager.getConnection("jdbc:dolphindb://localhost:8801", info);
+			
+			conn = getConnection();
 			ps = conn.prepareStatement(sql);
 			sb = new StringBuffer();
 			sb.append("if(existsDatabase(\"dfs://USPrices\"))dropDatabase(\"dfs://USPrices\")\n");
@@ -47,29 +109,40 @@ public class Test extends Thread{
 			printData(rs);
 			
 			ps.execute(sb.toString());
-			File f = new File("C:/DolphinDB/db_testing/data/USPricesFewerCols.csv");
+			File f = new File("/Users/qiaojianhu/Desktop/DolphinDB/JDBC/DolphinDBJDBC/test/USPricesFewerCols.csv");
 			String line = "";
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 	        
 			//trade.append!(tmp);USPricesFewerCols
 	 
             System.out.println("Reading file using Buffered Reader");
+//            long startTime = System.currentTimeMillis(); 
+//            long endTime;
             BufferedReader b = new BufferedReader(new FileReader(f));
             int batch = 0;
-                      
+//            int count = 0;
+            
             boolean notStarted = true;
             while ((line = b.readLine()) != null) {
+            		
             	if(notStarted){
             		notStarted = false;
             		continue;
             	}
                 String [] cols = line.split(",",-1);
-
-                if(cols.length == 8){
-                ps.setInt(1, Integer.parseInt(cols[0]));
+                
+                if(cols.length == 8 ){                	
+                ps.setInt(1, Integer.parseInt(cols[0]));              
                 LocalDate localDate = LocalDate.parse(cols[1], formatter);
                 ps.setObject(2, new BasicDate(localDate));
-                ps.setString(3, cols[2]);
+                
+                if(cols[2].equals("")){
+                	ps.setString(3, "NULL");
+                }
+                else{
+                	ps.setString(3, cols[2]);
+                }
+                                   
                 if(cols[3].equals("")){
                 	ps.setNull(4, Types.DOUBLE);
                 }
@@ -105,16 +178,24 @@ public class Test extends Thread{
                 ps.addBatch();
                 batch ++;
                 if(batch % 100000 == 0){
-                	ps.executeBatch();
-                	ps.clearBatch();
-                	batch = 0;
+//                		endTime = System.currentTimeMillis(); 
+//                		System.out.println("Making table " + (endTime - startTime) + "ms");
+//                		startTime = System.currentTimeMillis(); 
+                		ps.executeBatch();
+//                		endTime = System.currentTimeMillis(); 
+//                		System.out.println("executeBatch " + (endTime - startTime) + "ms");
+                		ps.clearBatch();
+                		batch = 0;
+                }               
+                	
                 }
-                }
+//                count++;
             }
             
             if(batch>0){
-            	ps.executeBatch();
+            		ps.executeBatch();         		
             }
+
 //            ps.execute("login(\"admin\", \"123456\")" );
             ps.execute("trade=loadTable(\"dfs://USPrices\", `trade)");
             rs = ps.executeQuery("select count(*) from trade");
@@ -159,7 +240,8 @@ public class Test extends Thread{
 	public static void main(String[] args){
 		long startTime = System.currentTimeMillis(); 
 		try {
-			Test test = new Test();
+//			uploadDatatest();
+//			loadDatatest();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

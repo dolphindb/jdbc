@@ -7,9 +7,11 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.*;
 
 
@@ -160,14 +162,18 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Date getDate(int columnIndex) throws SQLException {
+    		
+
         checkClosed();
         Scalar scalar = (Scalar) getObject(columnIndex);
-        LocalDate date = null;
+        LocalDate LocalDate = null;
         if(scalar instanceof BasicDate){
-            date = ((BasicDate) scalar).getDate();
+        		LocalDate = ((BasicDate) scalar).getDate();
         }
-        if (date==null) return null;
-        return new Date(date.getYear(),date.getMonthValue(),date.getDayOfMonth());
+        if (LocalDate==null) return null;
+        
+
+        return java.sql.Date.valueOf(LocalDate);
     }
 
     @Override
@@ -183,7 +189,7 @@ public class JDBCResultSet implements ResultSet{
             time = ((BasicNanoTime) scalar).getNanoTime();
         }
         if (time==null) return null;
-        return new Time(time.getHour(),time.getMinute(),time.getSecond());
+        return java.sql.Time.valueOf(time);
     }
 
     @Override
@@ -199,8 +205,8 @@ public class JDBCResultSet implements ResultSet{
             dateTime = ((BasicNanoTimestamp) scalar).getNanoTimestamp();
         }
         if (dateTime==null) return null;
-        return new Timestamp(dateTime.getYear(),dateTime.getMonthValue(),dateTime.getDayOfMonth(),
-                dateTime.getHour(), dateTime.getMinute(),dateTime.getSecond(),dateTime.getNano());
+        return java.sql.Timestamp.valueOf(dateTime);
+
     }
 
     @Override

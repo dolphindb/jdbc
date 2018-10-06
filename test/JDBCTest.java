@@ -41,9 +41,9 @@ public class JDBCTest {
 	
 	private static final String path = "C:/DolphinDB/Data/test";
 	
-	private static final String host = "localhost";
-	private static final String port = "8801";
-	private static final String SERVER = "localhost:8801";
+	private static final String host = "172.16.95.128";
+	private static final String port = "8921";
+	private static final String SERVER = "172.16.95.128:8921";
 	private static final String DB_URL = MessageFormat.format("jdbc:dolphindb://"+SERVER+"?databasePath={0}",path);
 
 	private static final String DB_URL1 = "jdbc:dolphindb://";
@@ -138,14 +138,14 @@ public class JDBCTest {
 			map.put(i + 1, vector);
 			o4[i] = vector;
 		}
-		Main.CreateValueTable(host, port);
+//		Main.CreateValueTable(host, port);
 	}
 	
 	
-	@Test
-	public void createTableTest(){  
-		Assert.assertTrue(Main.CreateTable(System.getProperty("user.dir")+"/data/createTable_all.java", path, "t1",host, port));
-	}
+//	@Test
+//	public void createTableTest(){  
+//		Assert.assertTrue(Main.CreateTable(System.getProperty("user.dir")+"/data/createTable_all.java", path, "t1",host, port));
+//	}
 	
 	@Test
 	public void loadTableTest(){  
