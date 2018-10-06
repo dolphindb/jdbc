@@ -24,7 +24,9 @@ import com.xxdb.data.BasicTable;
 public class JDBCMakeFileTest {
 	
 	static String HOST = "172.16.95.128" ;
-	static String POST = "8921" ;
+	static int PORT = 8921 ;
+	static String tableName = "t1";
+	static String dataBase = "C:/DolphinDB/TimeTest";
 	static ArrayList<String> colTypeString = null;
 	public static void main(String[] args){
 		System.out.println("JDBCLoadTest");
@@ -35,9 +37,11 @@ public class JDBCMakeFileTest {
 		HashMap<String, ArrayList> dataTable = new HashMap<String, ArrayList>();
 		Connection conn = getConnection();
 		try {
-
+			
+//			makeTimeTestTable();
+			
 			Statement s = conn.createStatement();
-			s.execute("trade=loadTable(\"dfs://USPrices\", `trade)");
+			s.execute("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")");
 			ResultSet rs =s.executeQuery("select * from trade");
 			
 			printData(rs);
@@ -47,6 +51,23 @@ public class JDBCMakeFileTest {
 			e.printStackTrace();
 		}
 				
+	}
+	
+	public static void makeTimeTestTable() {
+		DBConnection db = null;
+			
+		StringBuilder sb = new StringBuilder();
+		sb = new StringBuilder();
+		sb.append("db=database(\""+ dataBase +"\");\n");
+		sb.append("t = table((2013.06.13 2013.06.14 2013.06.15) as T, (2012.06.13 13:30:10 2012.06.14 13:30:10 2012.06.15 13:30:10 )as DT, (2012.06.13 13:30:10.008 2012.06.14 13:30:10.008 2012.06.15 13:30:10.008 )as TS );\n");
+		sb.append("saveTable(db, t, `"+ tableName +");");
+		db = new DBConnection();
+		try {
+			db.connect(HOST, PORT);
+			db.run(sb.toString());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public static void makeFile(ResultSet rs) throws SQLException {
@@ -66,13 +87,17 @@ public class JDBCMakeFileTest {
 			ArrayList<String> tmp = new ArrayList<String>();
 			for (int i = 1; i <= len; ++i) {
 				if(colTypeString.get(i-1).equals("DATE")) {
-					tmp.add(rs.getObject(i).toString());
+					tmp.add(String.valueOf(rs.getDate(i)));
 				}if(colTypeString.get(i-1).equals("SYMBOL")) {
 					tmp.add(rs.getString(i).toString());
 				}if(colTypeString.get(i-1).equals("DOUBLE")) {
 					tmp.add(String.valueOf(rs.getDouble(i)));
 				}if(colTypeString.get(i-1).equals("INT")) {
 					tmp.add(String.valueOf(rs.getInt(i)));
+				}if(colTypeString.get(i-1).equals("DATETIME")) {
+					tmp.add(String.valueOf( rs.getTimestamp(i)));
+				}if(colTypeString.get(i-1).equals("TIMESTAMP")) {
+					tmp.add(String.valueOf( rs.getTimestamp(i)));
 				}
 //				tmp.add(rs.getObject(i).toString());
 			}
@@ -127,7 +152,7 @@ public class JDBCMakeFileTest {
 		Connection conn = null;
 		try {
 			Class.forName("com.dolphindb.jdbc.Driver");
-			conn = DriverManager.getConnection("jdbc:dolphindb://172.16.95.128:8921", info);
+			conn = DriverManager.getConnection("jdbc:dolphindb://" + HOST +":" + PORT, info);
 		} catch (ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
 		}
@@ -139,7 +164,7 @@ public class JDBCMakeFileTest {
 		BasicDictionary schema = null; 
 		DBConnection db = new DBConnection();
 		StringBuilder sb = new StringBuilder();
-		sb.append("trade=loadTable(\"dfs://USPrices\", `trade)\n");
+		sb.append("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")\n");
 		sb.append("schema(trade)\n");
 		
 		try {
@@ -173,6 +198,10 @@ public class JDBCMakeFileTest {
 					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getDouble(i)));
 				}if(colTypeString.get(i-1).equals("INT")) {
 					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getInt(i)));
+				}if(colTypeString.get(i-1).equals("DATETIME")) {
+					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getTimestamp(i)));
+				}if(colTypeString.get(i-1).equals("TIMESTAMP")) {
+					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getTimestamp(i)));
 				}
 			}
 			System.out.print("\n");

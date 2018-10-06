@@ -20,6 +20,8 @@ import com.xxdb.data.BasicDate;
 
 public class JDBCSQLSelectTest {
 
+	static String HOST = "172.16.95.128" ;
+	static int PORT = 8921 ;
 	public static void main(String[] args){
 		System.out.println("JDBCSQLTest");
 //		SelectTest();
@@ -41,7 +43,7 @@ public class JDBCSQLSelectTest {
 		Connection conn = null;
 		try {
 			Class.forName("com.dolphindb.jdbc.Driver");
-			conn = DriverManager.getConnection("jdbc:dolphindb://172.16.95.128:8921", info);
+			conn = DriverManager.getConnection("jdbc:dolphindb://" + HOST +":" + PORT, info);
 		} catch (ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
 		}

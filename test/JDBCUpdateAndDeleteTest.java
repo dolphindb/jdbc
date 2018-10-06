@@ -21,11 +21,13 @@ import com.xxdb.data.BasicDate;
 public class JDBCUpdateAndDeleteTest {
 	
 	static Connection conn = null;
+	static String HOST = "172.16.95.128" ;
+	static int PORT = 8921 ;
 	
 	public static void main(String[] args) {
 		conn = getConnection();
 		try {
-			CreateTable("C:/DolphinDB/Data/UpdateTest","t1","172.16.95.128", "8922");
+			CreateTable("C:/DolphinDB/Data/UpdateTest","t1", HOST, PORT);
 			System.out.println();
 //			DeleteTest();
 			UpdateTest();
@@ -104,7 +106,7 @@ public class JDBCUpdateAndDeleteTest {
 	
 	
 	
-	public static boolean CreateTable(String savePath, String tableName, String host, String port) {
+	public static boolean CreateTable(String savePath, String tableName, String host, int port) {
 		DBConnection db = null;
 		try {
 			
@@ -131,7 +133,7 @@ public class JDBCUpdateAndDeleteTest {
 			sb.append(Driver.DB + " =( \"" + savePath + "\")\n ");
 			sb.append("saveTable(").append(Driver.DB).append(", t1, `").append(tableName).append(");\n");
 			db = new DBConnection();
-			db.connect(host, Integer.parseInt(port));
+			db.connect(host, port);
 //			System.out.println(sb.toString());
 			db.run(sb.toString());
 			
@@ -144,7 +146,7 @@ public class JDBCUpdateAndDeleteTest {
 			sb = new StringBuilder();
 			db = new DBConnection();
 			sb.append("existsTable( \"" + savePath + "\", \""+ tableName +"\")" );
-			db.connect(host, Integer.parseInt(port));
+			db.connect(host, (port));
 			if( db.run(sb.toString()).getString().equals("true")) {
 				return true;
 			}
