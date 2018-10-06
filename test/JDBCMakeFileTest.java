@@ -44,8 +44,8 @@ public class JDBCMakeFileTest {
 			s.execute("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")");
 			ResultSet rs =s.executeQuery("select * from trade");
 			
-			printData(rs);
-//			makeFile(rs);
+//			printData(rs);
+			makeFile(rs);
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -117,9 +117,9 @@ public class JDBCMakeFileTest {
                   for (int j = 0; j < onerow.size(); j++)
                   {
                 	  	  if(j == onerow.size() - 1 ) {
-                	  		  out.write(DelQuota(onerow.get(j)));
+                	  		  out.write(onerow.get(j));
                 	  	  }else {
-                	  		  out.write(DelQuota(onerow.get(j)));
+                	  		  out.write(onerow.get(j));
                 	  		  out.write(",");
                 	  	  }
                   }
