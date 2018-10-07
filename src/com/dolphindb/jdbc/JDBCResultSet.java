@@ -187,9 +187,11 @@ public class JDBCResultSet implements ResultSet{
             time = ((BasicSecond) scalar).getSecond();
         }else if(scalar instanceof BasicNanoTime){
             time = ((BasicNanoTime) scalar).getNanoTime();
+        }else if(scalar instanceof BasicTime) {
+        		time = ((BasicTime) scalar).getTime();
         }
         if (time==null) return null;
-        return java.sql.Time.valueOf(time);
+        return java.sql.Time.valueOf( time );
     }
 
     @Override
