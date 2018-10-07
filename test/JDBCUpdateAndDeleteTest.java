@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -12,22 +13,30 @@ import java.sql.Types;
 import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Properties;
 
 import com.dolphindb.jdbc.Driver;
 import com.xxdb.DBConnection;
 import com.xxdb.data.BasicDate;
+import com.xxdb.data.BasicDictionary;
+import com.xxdb.data.BasicString;
+import com.xxdb.data.BasicStringVector;
+import com.xxdb.data.BasicTable;
 
 public class JDBCUpdateAndDeleteTest {
 	
 	static Connection conn = null;
 	static String HOST = "172.16.95.128" ;
 	static int PORT = 8921 ;
+	static String tableName = "t1";
+	static String dataBase = "C:/DolphinDB/Data/UpdateTest";
+	static ArrayList<String> colTypeString = null;
 	
 	public static void main(String[] args) {
 		conn = getConnection();
 		try {
-			CreateTable("C:/DolphinDB/Data/UpdateTest","t1", HOST, PORT);
+			CreateTable(dataBase,tableName, HOST, PORT);
 			System.out.println();
 //			DeleteTest();
 			UpdateTest();
@@ -39,8 +48,8 @@ public class JDBCUpdateAndDeleteTest {
 	public static void UpdateTest() {
 		try {
 		
-			PreparedStatement s = conn.prepareStatement("update t1 set bool = ? where char = ?"); 
-			s.execute("t1=loadTable(\"C:/DolphinDB/Data/UpdateTest\", `t1)");
+			PreparedStatement s = conn.prepareStatement("update "+ tableName +" set bool = ? where char = ?"); 
+			s.execute("t1=loadTable(\""+ dataBase +"\", `"+ tableName +")");
 			Object[] objects = new Object[]{false, 'a'};
 			int index = 1;
 			ResultSet rs = null;
@@ -66,8 +75,8 @@ public class JDBCUpdateAndDeleteTest {
 	public static void DeleteTest() {
 		try {
 		
-			PreparedStatement s = conn.prepareStatement("delete from t1 where char = ?"); 
-			s.execute("t1=loadTable(\"C:/DolphinDB/Data/UpdateTest\", `t1)");
+			PreparedStatement s = conn.prepareStatement("delete from "+ tableName +" where char = ?"); 
+			s.execute("t1=loadTable(\""+ dataBase +"\", `"+ tableName +")");
 			Object[] objects = new Object[]{'a'};
 			int index = 1;
 			ResultSet rs = null;
@@ -106,7 +115,7 @@ public class JDBCUpdateAndDeleteTest {
 	
 	
 	
-	public static boolean CreateTable(String savePath, String tableName, String host, int port) {
+	public static boolean CreateTable(String savePath, String tableNameC, String host, int port) {
 		DBConnection db = null;
 		try {
 			
@@ -138,14 +147,14 @@ public class JDBCUpdateAndDeleteTest {
 			db.run(sb.toString());
 			
 			Statement s = conn.createStatement();
-			s.execute("db =( \"C:/DolphinDB/Data/UpdateTest\")");
-			s.execute("t1 = loadTable(db,'t1')");
+			s.execute("db =( \""+dataBase+"\")");
+			s.execute("t1 = loadTable(db,'"+ tableNameC +"')");
 			ResultSet rs =s.executeQuery("select * from t1");			
 			printData(rs);
 			
 			sb = new StringBuilder();
 			db = new DBConnection();
-			sb.append("existsTable( \"" + savePath + "\", \""+ tableName +"\")" );
+			sb.append("existsTable( \"" + savePath + "\", \""+ tableNameC +"\")" );
 			db.connect(host, (port));
 			if( db.run(sb.toString()).getString().equals("true")) {
 				return true;
@@ -162,13 +171,73 @@ public class JDBCUpdateAndDeleteTest {
 //		return true;
 	}
 	
+	public static void getColTypes() {
+		BasicDictionary schema = null; 
+		DBConnection db = new DBConnection();
+		StringBuilder sb = new StringBuilder();
+		sb.append("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")\n");
+		sb.append("schema(trade)\n");
+		
+		try {
+			db.connect(HOST, Integer.parseInt("8921"),"admin","123456");
+			schema = (BasicDictionary) db.run(sb.toString());
+		
+			BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+			BasicStringVector typeString = (BasicStringVector) colDefs.getColumn("typeString");
+			int size = typeString.rows();
+			colTypeString = new ArrayList<String>();
+			for (int i = 0; i < size; i++) {
+				colTypeString.add(typeString.getString(i).toString());
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public static void printData(ResultSet rs) throws SQLException {
+		
+		getColTypes();		
 		ResultSetMetaData resultSetMetaData = rs.getMetaData();
 		int len = resultSetMetaData.getColumnCount();
-		while (rs.next()) {
+		while (rs.next()) {			
 			for (int i = 1; i <= len; ++i) {
-				System.out.print(
-						MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getObject(i)));
+				if(colTypeString.get(i-1).equals("DATE")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getDate(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("SYMBOL") || colTypeString.get(i-1).equals("STRING")) {
+					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getString(i)));
+				}if(colTypeString.get(i-1).equals("DOUBLE")) {
+					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getDouble(i)));
+				}if(colTypeString.get(i-1).equals("INT")) {
+					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getInt(i)));
+				}if(colTypeString.get(i-1).equals("DATETIME")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTimestamp(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("TIMESTAMP")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTimestamp(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("TIME")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("LONG")) {
+					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getLong(i)));
+				}if(colTypeString.get(i-1).equals("MONTH")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getDate(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("BOOL")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getBoolean(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("CHAR")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getString(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("SHORT")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getShort(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("MINUTE")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("SECOND")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("NANOTIME")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("NANOTIMESTAMP")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTimestamp(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("ANY")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getObject(i) + ",    ");
+				}
+				
+				
 			}
 			System.out.print("\n");
 		}

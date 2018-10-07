@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -12,14 +13,23 @@ import java.sql.Types;
 import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Properties;
 
+import com.xxdb.DBConnection;
 import com.xxdb.data.BasicDate;
+import com.xxdb.data.BasicDictionary;
+import com.xxdb.data.BasicString;
+import com.xxdb.data.BasicStringVector;
+import com.xxdb.data.BasicTable;
 
 public class JDBCAppendTest {
 	
 	static String HOST = "172.16.95.128" ;
 	static int PORT = 8921 ;
+	static String tableName = "trade";
+	static String dataBase = "dfs://USPrices";
+	static ArrayList<String> colTypeString = null;
 	
 	public static void main(String[] args){
 		System.out.println("JDBCUpdateTest");
@@ -58,12 +68,12 @@ public class JDBCAppendTest {
 			conn = getConnection();
 			ps = conn.prepareStatement(sql);
 			sb = new StringBuffer();
-			sb.append("if(existsDatabase(\"dfs://USPrices\"))dropDatabase(\"dfs://USPrices\")\n");
-			sb.append("db=database(\"dfs://USPrices\", RANGE, `A`F`K`O`S`ZZZ)\n");
+			sb.append("if(existsDatabase(\""+ dataBase +"\"))dropDatabase(\""+ dataBase +"\")\n");
+			sb.append("db=database(\""+ dataBase +"\", RANGE, `A`F`K`O`S`ZZZ)\n");
 			sb.append("t1=table(100:0, `PERMNO`date`TICKER`PRC`VOL`BID`ASK`SHROUT, [INT, DATE, SYMBOL, DOUBLE, INT, DOUBLE, DOUBLE,INT])\n");
 			sb.append("db.createPartitionedTable(t1,`trade, `TICKER)\n");
 			
-			ps.execute("trade=loadTable(\"dfs://USPrices\", `trade)");
+			ps.execute("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")");
 			
 			ResultSet rs = ps.executeQuery("select count(*) from trade");
 			printData(rs);
@@ -150,7 +160,7 @@ public class JDBCAppendTest {
             		ps.executeBatch();         		
             }
 
-            ps.execute("trade=loadTable(\"dfs://USPrices\", `trade)");
+            ps.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
             rs = ps.executeQuery("select count(*) from trade");
 			printData(rs);
 			ps.close();
@@ -185,7 +195,7 @@ public static void Append10MillionDatatest() throws Exception {
 			
 			conn = getConnection();
 			ps = conn.prepareStatement(sql);						
-			ps.execute("trade=loadTable(\"dfs://USPrices\", `trade)");			
+			ps.execute("trade=loadTable(\"" + dataBase + "\", `" + tableName+")");			
 			ResultSet rs = ps.executeQuery("select count(*) from trade");
 			printData(rs);
 			
@@ -271,7 +281,7 @@ public static void Append10MillionDatatest() throws Exception {
             		ps.executeBatch();         		
             }
 
-            ps.execute("trade=loadTable(\"dfs://USPrices\", `trade)");
+            ps.execute("trade=loadTable(\"" + dataBase + "\", `"+tableName+")");
             rs = ps.executeQuery("select count(*) from trade");
 			printData(rs);
 			ps.close();
@@ -294,17 +304,81 @@ public static void Append10MillionDatatest() throws Exception {
 		}
 		System.out.println("TestPreparedStatement end");
 	}
+
+public static void getColTypes() {
+	BasicDictionary schema = null; 
+	DBConnection db = new DBConnection();
+	StringBuilder sb = new StringBuilder();
+	sb.append("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")\n");
+	sb.append("schema(trade)\n");
 	
-	public static void printData(ResultSet rs) throws SQLException {
-		ResultSetMetaData resultSetMetaData = rs.getMetaData();
-		int len = resultSetMetaData.getColumnCount();
-		while (rs.next()) {
-			for (int i = 1; i <= len; ++i) {
-				System.out.print(
-						MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getObject(i)));
-			}
-			System.out.print("\n");
+	try {
+		db.connect(HOST, Integer.parseInt("8921"),"admin","123456");
+		schema = (BasicDictionary) db.run(sb.toString());
+	
+		BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+		BasicStringVector typeString = (BasicStringVector) colDefs.getColumn("typeString");
+		int size = typeString.rows();
+		colTypeString = new ArrayList<String>();
+		for (int i = 0; i < size; i++) {
+			colTypeString.add(typeString.getString(i).toString());
 		}
+	} catch (IOException e) {
+		e.printStackTrace();
 	}
+}
+	
+public static void printData(ResultSet rs) throws SQLException {
+	
+	getColTypes();		
+	ResultSetMetaData resultSetMetaData = rs.getMetaData();
+	int len = resultSetMetaData.getColumnCount();
+	while (rs.next()) {			
+		for (int i = 1; i <= len; ++i) {
+			if(colTypeString.get(i-1).equals("DATE")) {
+				System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getDate(i) + ",    ");
+			}if(colTypeString.get(i-1).equals("SYMBOL") || colTypeString.get(i-1).equals("STRING")) {
+				System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getString(i)));
+			}if(colTypeString.get(i-1).equals("DOUBLE")) {
+				System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getDouble(i)));
+			}if(colTypeString.get(i-1).equals("INT")) {
+				try {
+					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getInt(i)));
+				}catch(ClassCastException e){
+					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getLong(i)));
+				}
+			}if(colTypeString.get(i-1).equals("DATETIME")) {
+				System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTimestamp(i) + ",    ");
+			}if(colTypeString.get(i-1).equals("TIMESTAMP")) {
+				System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTimestamp(i) + ",    ");
+			}if(colTypeString.get(i-1).equals("TIME")) {
+				System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
+			}if(colTypeString.get(i-1).equals("LONG")) {
+				System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getLong(i)));
+			}if(colTypeString.get(i-1).equals("MONTH")) {
+				System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getDate(i) + ",    ");
+			}if(colTypeString.get(i-1).equals("BOOL")) {
+				System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getBoolean(i) + ",    ");
+			}if(colTypeString.get(i-1).equals("CHAR")) {
+				System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getString(i) + ",    ");
+			}if(colTypeString.get(i-1).equals("SHORT")) {
+				System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getShort(i) + ",    ");
+			}if(colTypeString.get(i-1).equals("MINUTE")) {
+				System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
+			}if(colTypeString.get(i-1).equals("SECOND")) {
+				System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
+			}if(colTypeString.get(i-1).equals("NANOTIME")) {
+				System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
+			}if(colTypeString.get(i-1).equals("NANOTIMESTAMP")) {
+				System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTimestamp(i) + ",    ");
+			}if(colTypeString.get(i-1).equals("ANY")) {
+				System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getObject(i) + ",    ");
+			}
+			
+			
+		}
+		System.out.print("\n");
+	}
+}
 	
 }

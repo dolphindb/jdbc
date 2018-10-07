@@ -44,8 +44,8 @@ public class JDBCMakeFileTest {
 			s.execute("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")");
 			ResultSet rs =s.executeQuery("select * from trade");
 			
-			printData(rs);
-//			makeFile(rs);
+//			printData(rs);
+			makeFile(rs);
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -100,6 +100,26 @@ public class JDBCMakeFileTest {
 					tmp.add(String.valueOf( rs.getTimestamp(i)));
 				}if(colTypeString.get(i-1).equals("TIME")) {
 					tmp.add(String.valueOf( rs.getTime(i)));
+				}if(colTypeString.get(i-1).equals("LONG")) {
+					tmp.add(String.valueOf( rs.getLong(i)));
+				}if(colTypeString.get(i-1).equals("MONTH")) {
+					tmp.add(String.valueOf( rs.getDate(i)));
+				}if(colTypeString.get(i-1).equals("BOOL")) {
+					tmp.add(String.valueOf( rs.getBoolean(i)));
+				}if(colTypeString.get(i-1).equals("CHAR")) {
+					tmp.add(String.valueOf( rs.getString(i)));
+				}if(colTypeString.get(i-1).equals("SHORT")) {
+					tmp.add(String.valueOf( rs.getShort(i)));
+				}if(colTypeString.get(i-1).equals("MINUTE")) {
+					tmp.add(String.valueOf( rs.getTime(i)));
+				}if(colTypeString.get(i-1).equals("SECOND")) {
+					tmp.add(String.valueOf( rs.getTime(i)));
+				}if(colTypeString.get(i-1).equals("NANOTIME")) {
+					tmp.add(String.valueOf( rs.getTime(i)));
+				}if(colTypeString.get(i-1).equals("NANOTIMESTAMP")) {
+					tmp.add(String.valueOf( rs.getTimestamp(i)));
+				}if(colTypeString.get(i-1).equals("ANY")) {
+					tmp.add(String.valueOf( rs.getObject(i)));
 				}
 //				tmp.add(rs.getObject(i).toString());
 			}
@@ -193,21 +213,42 @@ public class JDBCMakeFileTest {
 		while (rs.next()) {			
 			for (int i = 1; i <= len; ++i) {
 				if(colTypeString.get(i-1).equals("DATE")) {
-					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getDate(i)));
-				}if(colTypeString.get(i-1).equals("SYMBOL")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getDate(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("SYMBOL") || colTypeString.get(i-1).equals("STRING")) {
 					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getString(i)));
 				}if(colTypeString.get(i-1).equals("DOUBLE")) {
 					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getDouble(i)));
 				}if(colTypeString.get(i-1).equals("INT")) {
 					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getInt(i)));
 				}if(colTypeString.get(i-1).equals("DATETIME")) {
-					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getTimestamp(i)));
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTimestamp(i) + ",    ");
 				}if(colTypeString.get(i-1).equals("TIMESTAMP")) {
-					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getTimestamp(i)));
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTimestamp(i) + ",    ");
 				}if(colTypeString.get(i-1).equals("TIME")) {
-//					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getTime(i)));
 					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("LONG")) {
+					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getLong(i)));
+				}if(colTypeString.get(i-1).equals("MONTH")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getDate(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("BOOL")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getBoolean(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("CHAR")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getString(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("SHORT")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getShort(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("MINUTE")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("SECOND")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("NANOTIME")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("NANOTIMESTAMP")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTimestamp(i) + ",    ");
+				}if(colTypeString.get(i-1).equals("ANY")) {
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getObject(i) + ",    ");
 				}
+				
+				
 			}
 			System.out.print("\n");
 		}
