@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.*;
 
@@ -169,6 +170,9 @@ public class JDBCResultSet implements ResultSet{
         LocalDate LocalDate = null;
         if(scalar instanceof BasicDate){
         		LocalDate = ((BasicDate) scalar).getDate();
+        }if(scalar instanceof BasicMonth){
+        		YearMonth tmp = ((BasicMonth) scalar).getMonth();
+    			LocalDate =  LocalDate.of(tmp.getYear(),tmp.getMonth(),1);
         }
         if (LocalDate==null) return null;
         
