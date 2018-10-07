@@ -44,8 +44,8 @@ public class JDBCMakeFileTest {
 			s.execute("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")");
 			ResultSet rs =s.executeQuery("select * from trade");
 			
-//			printData(rs);
-			makeFile(rs);
+			printData(rs);
+//			makeFile(rs);
 			
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -98,6 +98,8 @@ public class JDBCMakeFileTest {
 					tmp.add(String.valueOf( rs.getTimestamp(i)));
 				}if(colTypeString.get(i-1).equals("TIMESTAMP")) {
 					tmp.add(String.valueOf( rs.getTimestamp(i)));
+				}if(colTypeString.get(i-1).equals("TIME")) {
+					tmp.add(String.valueOf( rs.getTime(i)));
 				}
 //				tmp.add(rs.getObject(i).toString());
 			}
@@ -202,6 +204,9 @@ public class JDBCMakeFileTest {
 					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getTimestamp(i)));
 				}if(colTypeString.get(i-1).equals("TIMESTAMP")) {
 					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getTimestamp(i)));
+				}if(colTypeString.get(i-1).equals("TIME")) {
+//					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getTime(i)));
+					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
 				}
 			}
 			System.out.print("\n");
