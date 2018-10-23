@@ -39,11 +39,11 @@ import com.xxdb.data.Vector;
 public class JDBCTest {
 	
 	
-	private static final String path = "C:/DolphinDB/Data/test";
+	private static final String path = "H:/test/jdbc";
 	
-	private static final String host = "172.16.95.128";
-	private static final String port = "8921";
-	private static final String SERVER = "172.16.95.128:8921";
+	private static final String host = "localhost";
+	private static final String port = "8080";
+	private static final String SERVER = "localhost:8080";
 	private static final String DB_URL = MessageFormat.format("jdbc:dolphindb://"+SERVER+"?databasePath={0}",path);
 
 	private static final String DB_URL1 = "jdbc:dolphindb://";

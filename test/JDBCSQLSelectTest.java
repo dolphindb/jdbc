@@ -23,17 +23,70 @@ import com.xxdb.data.BasicDictionary;
 import com.xxdb.data.BasicString;
 import com.xxdb.data.BasicStringVector;
 import com.xxdb.data.BasicTable;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public class JDBCSQLSelectTest {
 
-	static String HOST = "172.16.95.128" ;
-	static int PORT = 8921 ;
+	static String HOST = "localhost" ;
+	static int PORT = 8080 ;
 	static String tableName = "trade";
-	static String dataBase = "dfs://USPrices";
+	static String dataBase = "dfs://test_jdbc_sql";
 	static ArrayList<String> colTypeString = null;
+	Connection conn;
+	Statement stm ;
+	@Before
+	public void SetUp(){
+		conn = getConnection();
+		try{
+			stm = conn.createStatement();
+			String sql = "login('admin','123456')\n" +
+					"if(!existsDatabase('%s')){\n" +
+					"t = table(1..100 as id, norm(1.0,0.1,100) as prc,take(`C`E,100) as ticker, take(2018.01.01..2018.10.18,100) as date, norm(15.0,0.1,100) as bid)\n" +
+					"db = database('%s',RANGE,0..10*10)\n" +
+					"t1 = db.createPartitionedTable(t,`%s,`id)\n" +
+					"t1.append!(t)\n" +
+					"}";
+			sql = String.format(sql,dataBase,dataBase,tableName);
+			stm.execute(sql);
+		}catch (SQLException ex){
+			ex.printStackTrace();
+		}
+	}
+	@Test
+	public void TestSimpleSelect(){
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("select PRC from trade");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@After
+	public void Destroy(){
+		try{
+			String sql = "login('admin','123456');dropTable(database('%s'),'%s');dropDatabase('%s');";
+			sql = String.format(sql,dataBase,tableName,dataBase);
+			stm.execute(sql);
+			stm.close();
+			conn.close();
+		}catch(SQLException ex){
+
+		}finally {
+
+		}
+
+	}
+
 	public static void main(String[] args){
 		System.out.println("JDBCSQLTest");
-		SelectTest();
+		//SelectTest();
 //		testSelectGroupByHaving();
 //		testSelectGroupBy();
 //		loadTop5Datatest()
@@ -63,13 +116,9 @@ public class JDBCSQLSelectTest {
 	public static void SelectTest() {
 		Connection conn = getConnection();
 		try {
-
 			Statement s = conn.createStatement();
 			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
 			ResultSet rs =s.executeQuery("select PRC from trade");
-			
-			
-			printData(rs);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -78,12 +127,9 @@ public class JDBCSQLSelectTest {
 	public static void testSelectGroupBy() {
 		Connection conn = getConnection();
 		try {
-
 			Statement s = conn.createStatement();
 			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
 			ResultSet rs =s.executeQuery("select max(PRC), TICKER from trade group by date");
-			
-			
 			printData(rs);
 		} catch (SQLException e) {
 			e.printStackTrace();

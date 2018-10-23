@@ -1,9 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="dolphindb-jdbc:jar">
-    <output-path>$PROJECT_DIR$/out/artifacts/dolphindb_jdbc_jar</output-path>
-    <root id="archive" name="dolphindb-jdbc.jar">
-      <element id="module-output" name="dolphindb-jdbc" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/lib/dolphindb.jar" path-in-jar="/" />
-    </root>
-  </artifact>
-</component>
