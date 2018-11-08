@@ -27,10 +27,10 @@ import com.xxdb.data.BasicTable;
 public class JDBCUpdateAndDeleteTest {
 	
 	static Connection conn = null;
-	static String HOST = "172.16.95.128" ;
-	static int PORT = 8921 ;
-	static String tableName = "t1";
-	static String dataBase = "C:/DolphinDB/Data/UpdateTest";
+	static String HOST = JDBCTestUtil.HOST;
+	static int PORT = JDBCTestUtil.PORT;
+	static String tableName = "updateTable";
+	static String dataBase = "dfs://UpdateTest";
 	static ArrayList<String> colTypeString = null;
 	
 	public static void main(String[] args) {
@@ -48,11 +48,13 @@ public class JDBCUpdateAndDeleteTest {
 	public static void UpdateTest() {
 		try {
 		
-			PreparedStatement s = conn.prepareStatement("update "+ tableName +" set bool = ? where char = ?"); 
-			s.execute("t1=loadTable(\""+ dataBase +"\", `"+ tableName +")");
-			Object[] objects = new Object[]{false, 'a'};
+			PreparedStatement s = conn.prepareStatement("update "+ tableName +" set bool = ? where char = ?;update "+ tableName + "  set long = ? where int=? context by ?");
+			//s.execute("t1=loadTable(\""+ dataBase +"\", `"+ tableName +")");
+			Object[] objects = new Object[]{false, 'a', 0 , 22, "string"};
+
 			int index = 1;
 			ResultSet rs = null;
+
 			for (Object o : objects) {
 				s.setObject(index, o);
 				++index;
@@ -62,8 +64,8 @@ public class JDBCUpdateAndDeleteTest {
 				rs = s.getResultSet();
 				printData(rs);
 			} else {
-				ResultSet r = s.executeQuery("select * from t1");
-				printData(r);
+				//ResultSet r = s.executeQuery("select * from t1");
+				//printData(r);
 			}
 			
 			
@@ -76,7 +78,7 @@ public class JDBCUpdateAndDeleteTest {
 		try {
 		
 			PreparedStatement s = conn.prepareStatement("delete from "+ tableName +" where char = ?"); 
-			s.execute("t1=loadTable(\""+ dataBase +"\", `"+ tableName +")");
+			//s.execute("t1=loadTable(\""+ dataBase +"\", `"+ tableName +")");
 			Object[] objects = new Object[]{'a'};
 			int index = 1;
 			ResultSet rs = null;
@@ -139,26 +141,27 @@ public class JDBCUpdateAndDeleteTest {
 			sb.append("nanotime = [13:30:10.008007006, 13:30:10.008007007];\n");
 			sb.append("nanotimestamp = [2012.06.13 13:30:10.008007006, 2012.06.13 13:30:10.008007007];\n");
 			sb.append("t1= table(bool,char,short,int,long,float,double,string,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp);\n");
-			sb.append(Driver.DB + " =( \"" + savePath + "\")\n ");
-			sb.append("saveTable(").append(Driver.DB).append(", t1, `").append(tableName).append(");\n");
+			sb.append("share t1 as updateTable;");
+//			sb.append(Driver.DB + " =( \"" + savePath + "\")\n ");
+//			sb.append("saveTable(").append(Driver.DB).append(", t1, `").append(tableName).append(");\n");
 			db = new DBConnection();
 			db.connect(host, port);
 //			System.out.println(sb.toString());
 			db.run(sb.toString());
 			
-			Statement s = conn.createStatement();
-			s.execute("db =( \""+dataBase+"\")");
-			s.execute("t1 = loadTable(db,'"+ tableNameC +"')");
-			ResultSet rs =s.executeQuery("select * from t1");			
-			printData(rs);
+//			Statement s = conn.createStatement();
+//			s.execute("db =( \""+dataBase+"\")");
+//			s.execute("t1 = loadTable(db,'"+ tableNameC +"')");
+//			ResultSet rs =s.executeQuery("select * from t1");
+//			printData(rs);
 			
-			sb = new StringBuilder();
-			db = new DBConnection();
-			sb.append("existsTable( \"" + savePath + "\", \""+ tableNameC +"\")" );
-			db.connect(host, (port));
-			if( db.run(sb.toString()).getString().equals("true")) {
-				return true;
-			}
+//			sb = new StringBuilder();
+//			db = new DBConnection();
+//			sb.append("existsTable( \"" + savePath + "\", \""+ tableNameC +"\")" );
+//			db.connect(host, (port));
+//			if( db.run(sb.toString()).getString().equals("true")) {
+//				return true;
+//			}
 			return false;
 			
 		} catch (Exception e) {
@@ -179,7 +182,7 @@ public class JDBCUpdateAndDeleteTest {
 		sb.append("schema(trade)\n");
 		
 		try {
-			db.connect(HOST, Integer.parseInt("8921"),"admin","123456");
+			db.connect(HOST, PORT,"admin","123456");
 			schema = (BasicDictionary) db.run(sb.toString());
 		
 			BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
