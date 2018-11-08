@@ -23,10 +23,10 @@ import com.xxdb.data.BasicTable;
 
 public class JDBCMakeFileTest {
 	
-	static String HOST = "172.16.95.128" ;
-	static int PORT = 8921 ;
+	static String HOST = JDBCTestUtil.HOST ;
+	static int PORT = JDBCTestUtil.PORT ;
 	static String tableName = "t1";
-	static String dataBase = "C:/DolphinDB/TimeTest";
+	static String dataBase = "/home/hduser1/llin/TimeTest";
 	static ArrayList<String> colTypeString = null;
 	public static void main(String[] args){
 		System.out.println("JDBCLoadTest");
@@ -38,7 +38,7 @@ public class JDBCMakeFileTest {
 		Connection conn = getConnection();
 		try {
 			
-//			makeTimeTestTable();
+			makeTimeTestTable();
 			
 			Statement s = conn.createStatement();
 			s.execute("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")");
@@ -190,7 +190,7 @@ public class JDBCMakeFileTest {
 		sb.append("schema(trade)\n");
 		
 		try {
-			db.connect(HOST, Integer.parseInt("8921"),"admin","123456");
+			db.connect(HOST, PORT,"admin","123456");
 			schema = (BasicDictionary) db.run(sb.toString());
 		
 			BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));

@@ -30,8 +30,8 @@ import org.junit.Test;
 
 public class JDBCSQLSelectTest {
 
-	static String HOST = "localhost" ;
-	static int PORT = 8080 ;
+	static String HOST = JDBCTestUtil.HOST;
+	static int PORT = JDBCTestUtil.PORT ;
 	static String tableName = "trade";
 	static String dataBase = "dfs://test_jdbc_sql";
 	static ArrayList<String> colTypeString = null;
@@ -67,7 +67,30 @@ public class JDBCSQLSelectTest {
 			e.printStackTrace();
 		}
 	}
+	@Test
+	public void TestVectorSelect(){
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("exec PRC from trade");
+			Assert.assertTrue(rs.next());
 
+		} catch (SQLException e) {
+			Assert.assertTrue("test return vector with exception ",true);
+		}
+	}
+
+	@Test
+	public void TestScalarSelect(){
+		try {
+			Statement s = conn.createStatement();
+			ResultSet rs =s.executeQuery("1:2");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			Assert.assertTrue("test return pair with exception ",true);
+		}
+	}
 	@After
 	public void Destroy(){
 		try{
