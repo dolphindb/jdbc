@@ -2,31 +2,21 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
+import java.sql.*;
 import java.text.MessageFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Properties;
 
 import com.xxdb.DBConnection;
-import com.xxdb.data.BasicDate;
-import com.xxdb.data.BasicDictionary;
-import com.xxdb.data.BasicString;
-import com.xxdb.data.BasicStringVector;
-import com.xxdb.data.BasicTable;
+import com.xxdb.data.*;
 
 public class JDBCAppendTest {
-	
-	static String HOST = "172.16.95.128" ;
-	static int PORT = 8921 ;
+
+	static String HOST = JDBCTestUtil.HOST;
+	static int PORT = JDBCTestUtil.PORT ;
 	static String tableName = "trade";
 	static String dataBase = "dfs://USPrices";
 	static ArrayList<String> colTypeString = null;
@@ -34,6 +24,7 @@ public class JDBCAppendTest {
 	public static void main(String[] args){
 		System.out.println("JDBCUpdateTest");
 		try {
+			upload10MillionDatatest();
 			Append10MillionDatatest();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -41,12 +32,12 @@ public class JDBCAppendTest {
 	}
 
 	public static Connection getConnection(){
-		Properties info = new Properties();
+		Properties info = JDBCTestUtil.LOGININFO;
 		info.put("user", "admin");
 		info.put("password", "123456");
 		Connection conn = null;
 		try {
-			Class.forName("com.dolphindb.jdbc.Driver");
+			Class.forName(JDBCTestUtil.JDBC_DRIVER);
 			conn = DriverManager.getConnection("jdbc:dolphindb://" + HOST +":" + PORT, info);
 		} catch (ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
@@ -64,107 +55,19 @@ public class JDBCAppendTest {
 		String sql = "insert into trade values(?,?,?,?,?,?,?,?)";
 		StringBuffer sb = null;
 		try {
-			
+
 			conn = getConnection();
 			ps = conn.prepareStatement(sql);
 			sb = new StringBuffer();
 			sb.append("if(existsDatabase(\""+ dataBase +"\"))dropDatabase(\""+ dataBase +"\")\n");
 			sb.append("db=database(\""+ dataBase +"\", RANGE, `A`F`K`O`S`ZZZ)\n");
-			sb.append("t1=table(100:0, `PERMNO`date`TICKER`PRC`VOL`BID`ASK`SHROUT, [INT, DATE, SYMBOL, DOUBLE, INT, DOUBLE, DOUBLE,INT])\n");
+			sb.append("t1=table(100:0, `PERMNO`date`TICKER`PRC`VOL`BID`ASK`SHROUT`TS`NTS, [INT, DATE, SYMBOL, DOUBLE, INT, DOUBLE, DOUBLE,INT,TIMESTAMP,NANOTIMESTAMP])\n");
 			sb.append("db.createPartitionedTable(t1,`trade, `TICKER)\n");
-			
-			ps.execute("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")");
-			
-			ResultSet rs = ps.executeQuery("select count(*) from trade");
-			printData(rs);
-			
 			ps.execute(sb.toString());
-			File f = new File("/Users/qiaojianhu/Desktop/DolphinDB/JDBC/DolphinDBJDBC/test/USPricesFewerCols.csv");
-			String line = "";
-			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd");
-	         
-            System.out.println("Reading file using Buffered Reader");
-            BufferedReader b = new BufferedReader(new FileReader(f));
-            int batch = 0;
-            int count = 0;
-            
-            boolean notStarted = true;
-            while ((line = b.readLine()) != null) {
-            		
-            	if(notStarted){
-            		notStarted = false;
-            		continue;
-            	}
-                String [] cols = line.split(",",-1);
-                
-                if(cols.length == 8 ){                	
-                ps.setInt(1, Integer.parseInt(cols[0]));              
-                LocalDate localDate = LocalDate.parse(cols[1], formatter);
-                ps.setObject(2, new BasicDate(localDate));
-                
-                if(cols[2].equals("")){
-                	ps.setString(3, "NULL");
-                }
-                else{
-                	ps.setString(3, cols[2]);
-                }
-                                   
-                if(cols[3].equals("")){
-                	ps.setNull(4, Types.DOUBLE);
-                }
-                else{
-                	ps.setDouble(4, Double.parseDouble(cols[3]));
-                }
-                if(cols[4].equals("")){
-                	ps.setNull(5, Types.INTEGER);
-                }
-                else{
-                	ps.setInt(5, Integer.parseInt(cols[4]));
-                }
+			ps.execute("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")");
 
-                if(cols[5].equals("")){
-                	ps.setNull(6, Types.DOUBLE);
-                }
-                else{
-                	ps.setDouble(6, Double.parseDouble(cols[5]));
-                }
-                if(cols[6].equals("")){
-                	ps.setNull(7, Types.DOUBLE);
-                }
-                else{
-                	ps.setDouble(7, Double.parseDouble(cols[6]));
-                }
-                if(cols[7].equals("")){
-                	ps.setNull(8, Types.INTEGER);
-                }
-                else{
-                	ps.setInt(8, Integer.parseInt(cols[7]));
-                }
-                
-                ps.addBatch();
-                batch ++;
-                count ++;
-                if(batch % 100000 == 0){
-                		ps.executeBatch();
-                		ps.clearBatch();
-                		batch = 0;
-                		if(count == 10000000) {
-                			break;
-                		}
-                }               
-                	
-                }
-            }
-            
-            if(batch>0){
-            		ps.executeBatch();         		
-            }
+			ResultSet rs = ps.executeQuery("select count(*) from trade");
 
-            ps.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
-            rs = ps.executeQuery("select count(*) from trade");
-			printData(rs);
-			ps.close();
-			conn.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new Exception("fail");
@@ -190,7 +93,7 @@ public static void Append10MillionDatatest() throws Exception {
 		PreparedStatement ps = null;
 		Statement stmt = null;
 		
-		String sql = "insert into trade values(?,?,?,?,?,?,?,?)";
+		String sql = "insert into trade values(?,?,?,?,?,?,?,?,?,?)";
 		try {
 			
 			conn = getConnection();
@@ -200,83 +103,92 @@ public static void Append10MillionDatatest() throws Exception {
 			printData(rs);
 			
 
-			File f = new File("/Users/qiaojianhu/Desktop/DolphinDB/JDBC/DolphinDBJDBC/test/USPricesFewerCols.csv");
-			String line = "";
+//			File f = new File("/Users/qiaojianhu/Desktop/DolphinDB/JDBC/DolphinDBJDBC/test/USPricesFewerCols.csv");
+//			String line = "";
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 	         
-            System.out.println("Reading file using Buffered Reader");
-            BufferedReader b = new BufferedReader(new FileReader(f));
+//            System.out.println("Reading file using Buffered Reader");
+//            BufferedReader b = new BufferedReader(new FileReader(f));
             int batch = 0;
             int count = 0;
             
             boolean notStarted = true;
-            while ((line = b.readLine()) != null) {
+            while (true) {
             		
             	if(notStarted){
             		notStarted = false;
             		continue;
             	}
-                String [] cols = line.split(",",-1);
+//                String [] cols = line.split(",",-1);
                 
-                if(cols.length == 8 ){                	
-                ps.setInt(1, Integer.parseInt(cols[0]));              
-                LocalDate localDate = LocalDate.parse(cols[1], formatter);
-                ps.setObject(2, new BasicDate(localDate));
-                
-                if(cols[2].equals("")){
-                	ps.setString(3, "NULL");
-                }
-                else{
-                	ps.setString(3, cols[2]);
-                }
-                                   
-                if(cols[3].equals("")){
-                	ps.setNull(4, Types.DOUBLE);
-                }
-                else{
-                	ps.setDouble(4, Double.parseDouble(cols[3]));
-                }
-                if(cols[4].equals("")){
-                	ps.setNull(5, Types.INTEGER);
-                }
-                else{
-                	ps.setInt(5, Integer.parseInt(cols[4]));
-                }
+//                if(cols.length == 8 ){
+					ps.setInt(1, count%10000);
+					LocalDate localDate = LocalDate.parse("2007.03.04", formatter);
+					ps.setObject(2, new BasicDate(localDate));
 
-                if(cols[5].equals("")){
-                	ps.setNull(6, Types.DOUBLE);
-                }
-                else{
-                	ps.setDouble(6, Double.parseDouble(cols[5]));
-                }
-                if(cols[6].equals("")){
-                	ps.setNull(7, Types.DOUBLE);
-                }
-                else{
-                	ps.setDouble(7, Double.parseDouble(cols[6]));
-                }
-                if(cols[7].equals("")){
-                	ps.setNull(8, Types.INTEGER);
-                }
-                else{
-                	ps.setInt(8, Integer.parseInt(cols[7]));
-                }
-                
-                ps.addBatch();
-                batch ++;
-                count ++;
-                if(batch % 100000 == 0){
-                		ps.executeBatch();
-                		ps.clearBatch();
-                		batch = 0;
-                		if(count == 10000000) {
-                			break;
-                		}
-                }               
+					if(count%2==1){
+						ps.setString(3, "NULL");
+					}
+					else{
+						ps.setString(3, "ABC");
+					}
+
+					if(count%2==1){
+						ps.setNull(4, Types.DOUBLE);
+					}
+					else{
+						ps.setDouble(4, Double.parseDouble("2.1325"));
+					}
+					if(count%2==1){
+						ps.setNull(5, Types.INTEGER);
+					}
+					else{
+						ps.setInt(5, Integer.parseInt("21"));
+					}
+
+					if(count%2==1){
+						ps.setNull(6, Types.DOUBLE);
+					}
+					else{
+						ps.setDouble(6, Double.parseDouble("2.56"));
+					}
+					if(count%2==1){
+						ps.setNull(7, Types.DOUBLE);
+					}
+					else{
+						ps.setDouble(7, Double.parseDouble("3.131415926"));
+					}
+					if(count%2==1){
+						ps.setNull(8, Types.INTEGER);
+					}
+					else{
+						ps.setInt(8, Integer.parseInt("55"));
+					}
+				if(count%2==1){
+					ps.setNull(9, Types.TIMESTAMP);
+				}
+				else{
+					ps.setObject(9, LocalDateTime.of(2018,10,12,14,12,01,001));
+				}
+				if(count%2==1){
+					ps.setNull(10, Types.TIMESTAMP);
+				}
+				else{
+					ps.setObject(10,   LocalDateTime.of(2018,10,12,14,12,01,123456));
+				}
+					ps.addBatch();
+					batch ++;
+					count ++;
+					if(batch % 1000 == 0){
+							ps.executeBatch();
+							ps.clearBatch();
+							batch = 0;
+							if(count == 100000) {
+								break;
+							}
+					}
                 	
                 }
-            }
-            
             if(batch>0){
             		ps.executeBatch();         		
             }
@@ -313,7 +225,7 @@ public static void getColTypes() {
 	sb.append("schema(trade)\n");
 	
 	try {
-		db.connect(HOST, Integer.parseInt("8921"),"admin","123456");
+		db.connect(HOST, PORT,"admin","123456");
 		schema = (BasicDictionary) db.run(sb.toString());
 	
 		BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));

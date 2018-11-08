@@ -1,4 +1,6 @@
 import com.xxdb.data.BasicMonth;
+import com.xxdb.data.BasicNanoTime;
+import com.xxdb.data.BasicNanoTimestamp;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,7 +37,11 @@ public class JDBCTypeCastTest {
                     "col_float = 10.252f  96.1f 100.2f 211.3f\n" +
                     "col_doub = 77.6 123.5 158.444 200.3 \n" +
                     "col_int = 1 2 3 4\n" +
-                    "tb = table(col_sym,col_date,col_time,col_month,col_dt,col_str,col_char,col_float,col_doub,col_int)";
+                    "col_nanotime =  09:08:01.001234567 09:08:01.001765432 09:08:01.001987654 09:08:01.981987654\n" +
+                    "col_nanotimestamp =  2017.12.01T09:08:01.001234567 2017.12.01T09:08:01.001765432 2017.12.01T09:08:01.001987654 2018.12.01T09:08:01.671987654\n" +
+                    "tb = table(col_sym,col_date,col_time,col_month,col_dt,col_str,col_char,col_float,col_doub,col_int,col_nanotime,col_nanotimestamp)";
+
+            System.out.println(sqlDDL);
             stm.executeUpdate(sqlDDL);
             //读取内存表到RecordSet
             ResultSet rs = stm.executeQuery("select * from tb");
@@ -52,7 +58,8 @@ public class JDBCTypeCastTest {
                     float flt = rs.getFloat(8);
                     double dbl = rs.getDouble(9);
                     int i = rs.getInt(10);
-
+                    BasicNanoTime  nt = (BasicNanoTime)rs.getObject(11);
+                    BasicNanoTimestamp ntp = (BasicNanoTimestamp) rs.getObject(12);
                 }catch(Exception ex){
                     Assert.fail(ex.getMessage());
                 }
