@@ -1,4 +1,5 @@
-#  DolphinDB JDBC的使用
+#  DolphinDB JDBC
+
 用于执行SQL语句以及DolphinDB语句的Java API，可以为多种关系数据库提供统一访问：
 
 * 支持SQL语句
