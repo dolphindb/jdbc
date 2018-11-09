@@ -76,6 +76,7 @@ public class JDBCSQLSelectTest {
 			Assert.assertTrue(rs.next());
 
 		} catch (SQLException e) {
+			e.printStackTrace();
 			Assert.assertTrue("test return vector with exception ",true);
 		}
 	}
