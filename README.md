@@ -7,7 +7,7 @@
 
 
  
-###创建内存表
+### 1. 创建内存表
 使用DolphinDB语句savetable()将创建好的表格保存在数据库中
 saveTable中需要有db,data,table name;
 
@@ -65,9 +65,9 @@ t1= table(bool,char,short,int,long,float,double,string,date,month,time,minute,se
 	}
 ```
 
-###内存表的增删改查
+### 2. 内存表的增删改查
 
-####内存表的增加
+#### 2.1. 内存表的增加
 对上面的表格增加新的内容，在“？”处填相应的新内容
 
 ```
@@ -105,7 +105,7 @@ t1= table(bool,char,short,int,long,float,double,string,date,month,time,minute,se
 		}
 ```
 
-####内存表的删除
+#### 2.2. 内存表的删除
 
 对上面的表格进行内容删除，在“？”处填相应的的删除条件
 
@@ -144,7 +144,7 @@ t1= table(bool,char,short,int,long,float,double,string,date,month,time,minute,se
 		}
 ```
 
-####内存表的更改
+#### 2.3. 内存表的更改
 对上面的表格进行内容更改，在“？”处填相应的的更改内容及条件
 
 ```
@@ -183,12 +183,12 @@ t1= table(bool,char,short,int,long,float,double,string,date,month,time,minute,se
 		}
 ```
  
-###分区表的增删改查 
+### 3. 分区表的增删改查 
 与分区表连接的时候可以在URL中加入path以及相应内容，这样getConnection()时会预先加载分区表的table
 
-#####Example：
+##### Example：
 "jdbc:dolphindb://172.16.95.128:8921?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=2000.01M..2016.12M";
-####创建分区表
+#### 3.1. 创建分区表
 将创建分区表的语句拼成一个String，最后由DBconnection连接端口并且运行。
 这里创建的是一个VALUE分区表。[其他的分区表](https://github.com/dolphindb/Tutorials_CN/blob/master/database.md) 
 
@@ -217,7 +217,7 @@ public static void CreateValueTable(String host, String port) {
 						
 	}
 ```
-####分区表的增加
+#### 3.2. 分区表的增加
 对建立的分区表的内容进行增加，在“？”处放入相应的object
 
 ```
@@ -253,7 +253,7 @@ public static void CreateValueTable(String host, String port) {
 			}
 		}
 ```
-####分区表的删除
+#### 3.3. 分区表的删除
 对建立的分区表的内容进行删除操作，在“？”放入删除条件
 
 ```
@@ -289,7 +289,7 @@ public static void CreateValueTable(String host, String port) {
 			}
 		}
 ```
-####分区表的更改
+#### 3.4. 分区表的更改
 对建立的分区表的内容进行更改操作，在“？”放入相应条件
 
 ```
@@ -325,13 +325,13 @@ public static void CreateValueTable(String host, String port) {
 			}
 		}
 ```
-###SQL query
+### 4. SQL query
 DolphinDB的JDBC支持SQL语句，
-####Regular sql query 
+#### 4.1. Regular sql query 
 如上面所示的一样可以用executeQuery method来运行SQL语句
-####Preserved sql query 
+#### 4.2. Preserved sql query 
 
-####Join
+#### 4.3. Join
 在DolphinDB的JDBC中除了SQL的Join外还可以使用DolphinDB的join脚本
 
 
@@ -359,7 +359,7 @@ id qty
 
 ```
 
-#####Full join 
+#### 4.4. Full join 
 返回等连接函数中的所有行以及左表或右表中未匹配的行
 
 ```
@@ -381,7 +381,7 @@ id value t2_id qty
 3  0.1   3     500
 ```
 
-#####Left join 
+#### 4.5. Left join 
 返回左表中的所有行，右表中的匹配行。 没有匹配时结果为NULL。 如果右表中有多个匹配记录，则默认采用第一个记录。 left join始终返回与左表相同的行数
 
 ```
@@ -396,7 +396,7 @@ id value qty
 3  0.1   500
 ```
 
-#####Equal join 
+#### 4.6. Equal join 
 只要匹配列上存在匹配项，就从两个表中选择所有行
 
 ```
@@ -456,7 +456,7 @@ id value x qty t2_x
 3  5.1   2 500 66
 3  0.1   1 500 66
 ```
-#####Asof Join
+#### 4.7. Asof Join
 通过时间来连接列表，asof join函数类似于左连接函数。 他们的区别是：
 
 * 对于左表中具有时间t的行，如果右表中没有匹配，则右表中的行对应于时间t之前的最近时间。
