@@ -1,2 +1,1 @@
-# jdbc
-DolphinDB JDBC
+# DolphinDB JDBC
