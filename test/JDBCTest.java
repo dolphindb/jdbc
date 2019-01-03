@@ -1,5 +1,8 @@
 import static org.junit.Assert.*;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.time.LocalDate;
@@ -7,7 +10,9 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.HashMap;
+import java.util.Properties;
 
+import com.dolphindb.jdbc.Driver;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
@@ -45,7 +50,7 @@ public class JDBCTest {
 	private static final String port = "8080";
 	private static final String SERVER = "localhost:8080";
 	private static final String DB_URL = MessageFormat.format("jdbc:dolphindb://"+SERVER+"?databasePath={0}",path);
-
+	private static final String DB_URL_WITHLOGIN = "jdbc:dolphindb://192.168.1.111:8082?user=admin&password=123456";
 	private static final String DB_URL1 = "jdbc:dolphindb://";
 	private static final String DB_URL_DFS = "jdbc:dolphindb://"+SERVER+"?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=2000.01M..2016.12M";
 	private static final String DB_URL_DFS1 = "jdbc:dolphindb://"+SERVER+"?databasePath=dfs://rangedb&partitionType=RANGE&partitionScheme= 0 5 10&locations= [`rh8503, `rh8502`rh8504]";
@@ -319,6 +324,14 @@ public class JDBCTest {
 		} catch (Exception e) {
 			assertTrue(true);
 		}
+	}
+	@Test
+	public  void testConnectionWithLogin() throws  SQLException,ClassNotFoundException{
+		Properties info = JDBCTestUtil.LOGININFO;
+		Class.forName("com.dolphindb.jdbc.Driver");
+		Connection conn = DriverManager.getConnection(DB_URL_WITHLOGIN,info);
+		Boolean b = conn.prepareStatement("").execute("loadTable('dfs://testDatabase','tb1')");
+		System.out.println(b);
 	}
 	
 	
