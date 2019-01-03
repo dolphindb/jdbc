@@ -52,6 +52,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 		this.preSql = strings[0];
 		this.tableName = Utils.getTableName(sql);
+		System.out.println("JDBCPrepareStatement.tableName" + this.tableName);
 		this.dml = Utils.getDml(sql);
 		this.isInsert = this.dml == Utils.DML_INSERT;
 		if (tableName != null) {
@@ -66,6 +67,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						tableTypes = new LinkedHashMap<>();
 					}
 				} else {
+					System.out.println("JDBCPrepareStatement.check the SQl " + preSql);
 					throw new SQLException("check the SQl " + preSql);
 				}
 			}
@@ -73,6 +75,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 		this.preSql += ";";
 		sqlSplit = this.preSql.split("\\?");
+		System.out.println("JDBCPrepareStatement.sqlSplit :" + sqlSplit.length);
 		values = new Object[sqlSplit.length + 1];
 		batch = new StringBuilder();
 		this.count = 0;
@@ -553,6 +556,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setArray(int parameterIndex, Array array) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setArray");
 		Driver.unused();
 	}
 
@@ -569,123 +573,164 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setDate(int parameterIndex, Date date, Calendar cal) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setDate");
 		setObject(parameterIndex, date);
 	}
 
 	@Override
 	public void setTime(int parameterIndex, Time time, Calendar cal) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setTime");
 		setObject(parameterIndex, time);
 	}
 
 	@Override
 	public void setTimestamp(int parameterIndex, Timestamp timestamp, Calendar cal) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setTimestamp");
 		setObject(parameterIndex, timestamp);
 	}
 
 	@Override
 	public void setNull(int parameterIndex, int sqlType, String typeName) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setNull");
 		Driver.unused();
 	}
 
 	@Override
 	public void setURL(int parameterIndex, URL url) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setURL");
 		Driver.unused();
 	}
 
 	@Override
 	public ParameterMetaData getParameterMetaData() throws SQLException {
+		System.out.println("JDBCPrepareStatement.getParameterMetaData");
 		Driver.unused();
 		return null;
 	}
 
 	@Override
 	public void setRowId(int parameterIndex, RowId rowId) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setRowId");
 		Driver.unused();
 	}
 
 	@Override
 	public void setNString(int parameterIndex, String s) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setNString");
 		Driver.unused();
 	}
 
 	@Override
 	public void setNCharacterStream(int parameterIndex, Reader reader, long l) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setNCharacterStream");
 		Driver.unused();
 	}
 
 	@Override
 	public void setNClob(int parameterIndex, NClob nClob) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setNClob");
+
 		Driver.unused();
 	}
 
 	@Override
 	public void setClob(int parameterIndex, Reader reader, long l) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setClob");
 		Driver.unused();
 	}
 
 	@Override
 	public void setBlob(int parameterIndex, InputStream inputStream, long l) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setBlob");
 		Driver.unused();
 	}
 
 	@Override
 	public void setNClob(int parameterIndex, Reader reader, long l) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setNClob");
 		Driver.unused();
 	}
 
 	@Override
 	public void setSQLXML(int parameterIndex, SQLXML sqlxml) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setSQLXML");
 		Driver.unused();
 	}
 
 	@Override
 	public void setAsciiStream(int parameterIndex, InputStream inputStream, long l) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setAsciiStream");
 		Driver.unused();
 	}
 
 	@Override
 	public void setBinaryStream(int parameterIndex, InputStream inputStream, long l) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setBinaryStream");
 		Driver.unused();
 	}
 
 	@Override
 	public void setCharacterStream(int parameterIndex, Reader reader, long l) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setCharacterStream");
 		Driver.unused();
 	}
 
 	@Override
 	public void setAsciiStream(int parameterIndex, InputStream inputStream) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setAsciiStream");
 		Driver.unused();
 	}
 
 	@Override
 	public void setBinaryStream(int parameterIndex, InputStream inputStream) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setBinaryStream");
 		Driver.unused();
 	}
 
 	@Override
 	public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setCharacterStream");
 		Driver.unused();
 	}
 
 	@Override
 	public void setNCharacterStream(int parameterIndex, Reader reader) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setNCharacterStream");
 		Driver.unused();
 	}
 
 	@Override
 	public void setClob(int parameterIndex, Reader reader) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setClob");
 		Driver.unused();
 	}
 
 	@Override
 	public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setBlob");
 		Driver.unused();
 	}
 
 	@Override
 	public void setNClob(int parameterIndex, Reader reader) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setNClob");
 		Driver.unused();
+	}
+
+	@Override
+	public void setObject(int parameterIndex, Object x, SQLType targetSqlType) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setObject");
+	}
+
+	@Override
+	public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+		System.out.println("JDBCPrepareStatement.setObject");
+	}
+
+	@Override
+	public long executeLargeUpdate() throws SQLException {
+		System.out.println("JDBCPrepareStatement.executeLargeUpdate");
+		return 0;
 	}
 
 	private Object createArguments() throws IOException {
