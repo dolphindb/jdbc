@@ -40,7 +40,8 @@ public class Driver implements java.sql.Driver {
 
     @Override
     public DriverPropertyInfo[] getPropertyInfo(String s, Properties properties) throws SQLException {
-        return new DriverPropertyInfo[0];
+        return new DriverPropertyInfo[]{new DriverPropertyInfo("databaseName","TAQ")};
+        //return new DriverPropertyInfo[0];
     }
 
     @Override

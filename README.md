@@ -9,7 +9,7 @@
  
 ### 1. 创建内存表
 使用DolphinDB语句savetable()将创建好的表格保存在数据库中
-saveTable中需要有db,data,table name;
+saveTable中需要有Db,Data,Table name;
 
 * Db: 保存在数据库中的位置
 * Data：需要保存的表格
@@ -326,14 +326,12 @@ public static void CreateValueTable(String host, String port) {
 		}
 ```
 ### 4. SQL query
-DolphinDB的JDBC支持SQL语句，
+DolphinDB的JDBC接口支持SQL语句，
 #### 4.1. Regular sql query 
 如上面所示的一样可以用executeQuery method来运行SQL语句
-#### 4.2. Preserved sql query 
 
-#### 4.3. Join
+#### 4.2. Join
 在DolphinDB的JDBC中除了SQL的Join外还可以使用DolphinDB的join脚本
-
 
 Example
 例如T1，T2两个表格
@@ -359,7 +357,7 @@ id qty
 
 ```
 
-#### 4.4. Full join 
+#### 4.3. Full join 
 返回等连接函数中的所有行以及左表或右表中未匹配的行
 
 ```
@@ -381,7 +379,7 @@ id value t2_id qty
 3  0.1   3     500
 ```
 
-#### 4.5. Left join 
+#### 4.4. Left join 
 返回左表中的所有行，右表中的匹配行。 没有匹配时结果为NULL。 如果右表中有多个匹配记录，则默认采用第一个记录。 left join始终返回与左表相同的行数
 
 ```
@@ -396,7 +394,7 @@ id value qty
 3  0.1   500
 ```
 
-#### 4.6. Equal join 
+#### 4.5. Equal join 
 只要匹配列上存在匹配项，就从两个表中选择所有行
 
 ```
@@ -456,7 +454,7 @@ id value x qty t2_x
 3  5.1   2 500 66
 3  0.1   1 500 66
 ```
-#### 4.7. Asof Join
+#### 4.6. Asof Join
 通过时间来连接列表，asof join函数类似于左连接函数。 他们的区别是：
 
 * 对于左表中具有时间t的行，如果右表中没有匹配，则右表中的行对应于时间t之前的最近时间。
