@@ -826,32 +826,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	
 	private void addToCol(String name, String typeString, Object type, Object value) {
 		System.out.println("JDBCPrepareStatement.addToCol");
-		
-		
-//		Vector tmp = null;
-//		if(!unNameTable.containsKey(name) && typeString.equals("INT")) {
-//			tmp = new BasicIntVector(1000000);
-//		}
-//		if(!unNameTable.containsKey(name) && typeString.equals("DATE")) {
-//			tmp = new BasicDateVector(1000000);
-//		}
-//		if(!unNameTable.containsKey(name) && typeString.equals("SYMBOL")) {
-//			tmp = new BasicStringVector(1000000);
-//		}
-//		if(!unNameTable.containsKey(name) && typeString.equals("DOUBLE")) {
-//			tmp = new BasicDoubleVector(1000000);
-//		}
-//		else{
-//			tmp = unNameTable.get(name);
-//		}
-//		
-//		
-//		try {
-//			tmp.set(count, (Scalar) value);
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-		
+
 		
 		ArrayList<Object> tmp = null;
 		if(!unNameTable.containsKey(name)) {
