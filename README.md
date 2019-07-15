@@ -70,7 +70,7 @@ t1= table(bool,char,short,int,long,float,double,string,date,month,time,minute,se
 #### 2.1. 内存表的增加
 对上面的表格增加新的内容，在“？”处填相应的新内容
 
-```
+```java
 		Connection conn = null;
 		PreparedStatement stmt = null;
 		try {
@@ -109,7 +109,7 @@ t1= table(bool,char,short,int,long,float,double,string,date,month,time,minute,se
 
 对上面的表格进行内容删除，在“？”处填相应的的删除条件
 
-```
+```java
 		Connection conn = null;
 		PreparedStatement stmt = null;
 		try {
@@ -147,7 +147,7 @@ t1= table(bool,char,short,int,long,float,double,string,date,month,time,minute,se
 #### 2.3. 内存表的更改
 对上面的表格进行内容更改，在“？”处填相应的的更改内容及条件
 
-```
+```java
 	
 		Connection conn = null;
 		PreparedStatement stmt = null;
@@ -187,12 +187,15 @@ t1= table(bool,char,short,int,long,float,double,string,date,month,time,minute,se
 与分区表连接的时候可以在URL中加入path以及相应内容，这样getConnection()时会预先加载分区表的table
 
 ##### Example：
+```
 "jdbc:dolphindb://172.16.95.128:8921?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=2000.01M..2016.12M";
+```
+
 #### 3.1. 创建分区表
 将创建分区表的语句拼成一个String，最后由DBconnection连接端口并且运行。
 这里创建的是一个VALUE分区表。[其他的分区表](https://github.com/dolphindb/Tutorials_CN/blob/master/database.md) 
 
-```
+```java
 public static void CreateValueTable(String host, String port) {
 			DBConnection db = null;
 			StringBuilder sb = new StringBuilder();
@@ -220,7 +223,7 @@ public static void CreateValueTable(String host, String port) {
 #### 3.2. 分区表的增加
 对建立的分区表的内容进行增加，在“？”处放入相应的object
 
-```
+```java
 		Connection conn = null;
 		PreparedStatement stmt = null;
 		try {
@@ -256,7 +259,7 @@ public static void CreateValueTable(String host, String port) {
 #### 3.3. 分区表的删除
 对建立的分区表的内容进行删除操作，在“？”放入删除条件
 
-```
+```java
 		Connection conn = null;
 		PreparedStatement stmt = null;
 		try {
@@ -292,7 +295,7 @@ public static void CreateValueTable(String host, String port) {
 #### 3.4. 分区表的更改
 对建立的分区表的内容进行更改操作，在“？”放入相应条件
 
-```
+```java
 		Connection conn = null;
 		PreparedStatement stmt = null;
 		try {
