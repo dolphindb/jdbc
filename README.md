@@ -1,12 +1,13 @@
 #  DolphinDB JDBC
 
-用于执行SQL语句以及DolphinDB语句的Java API，可以为多种关系数据库提供统一访问：
+DolphinDB提供JDBC的接口的实现，可以让支持JDBC接口的客户端程序直接接入DolphinDB，也可以为基于DolphinDB的程序开发提供一种标准的数据访问接口。
 
-* 支持SQL语句
-* 支持DolphinDB语句
+DolphinDB的JDBC接口是基于`DolphinDB Java Api` 实现，所以JDBC包内置了DolphinDB Java Api的包。
 
+JDBC 接口主要通过`JDBCStatement`,`JDBCPrepareStatement`两个对象，来提供直接执行和预编译执行两种方式的接口。
 
- 
+下面通过几个示例程序来展示这两个对象的使用方法。
+
 ### 1. 内存表的增删改查
 
 使用java Api将demo需要的模板表保存到磁盘，在demo中通过loadTable可以快速创建内存表。脚本代码如下：
