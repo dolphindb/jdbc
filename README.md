@@ -1,14 +1,17 @@
 #  DolphinDB JDBC
 
-DolphinDB提供JDBC的接口的实现，可以让支持JDBC接口的客户端程序直接接入DolphinDB，也可以为基于DolphinDB的程序开发提供一种标准的数据访问接口。
 
-DolphinDB的JDBC接口是基于`DolphinDB Java Api` 实现，所以JDBC包内置了DolphinDB Java Api的包。
+DolphinDB provides an implementation of the JDBC interface, allowing client programs that support the JDBC interface to directly access DolphinDB, or provide a standard data access interface for DolphinDB-based program development.
 
-JDBC 接口主要通过`JDBCStatement`,`JDBCPrepareStatement`两个对象，来提供直接执行和预编译执行两种方式的接口。
+DolphinDB's JDBC interface is based on the `DolphinDB Java Api` implementation, so the JDBC package has a built-in DolphinDB Java Api package.
 
-下面通过几个示例程序来展示这两个对象的使用方法。
+The JDBC interface mainly provides two interfaces, direct execution and pre-compilation, through the two objects `JDBCStatement` and `JDBCPrepareStatement`, respectively.
 
-### 1. 内存表的增删改查
+
+Here are a few sample programs to show how to use these two objects.
+
+
+### 1. Add, delete, and update an in-memory table
 
 使用java Api将demo需要的模板表保存到磁盘，在demo中通过loadTable可以快速创建内存表。脚本代码如下：
 
@@ -52,7 +55,7 @@ public static boolean CreateTable(String database,String tableName,String host, 
         }
     }
 ```
-#### 1.1. 内存表新增记录
+#### 1.1. Add new records to an in-memory table
 
 通过jdbc接口对内存表的操作方式主要是通过prepareStatement的方式预置sql模板，并通过set方式写入参数，最后通过`executeUpdate`函数填充参数并执行语句。
 
@@ -65,7 +68,7 @@ public static boolean CreateTable(String database,String tableName,String host, 
 
             JDBCStatement stm = (JDBCStatement)conn.createStatement();
             stm.execute("memTable = loadTable('" + database + "','" + tableName + "')");
-            //SQL insert语句
+            //SQL insert statement
             stmt = conn.prepareStatement("insert into memTable values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
             stmt.setBoolean(1,true);
             stmt.setByte(2,(byte)98);
@@ -86,20 +89,18 @@ public static boolean CreateTable(String database,String tableName,String host, 
             stmt.setObject(17,LocalDateTime.of(2012,06,13,13,30,10,8007006));
             stmt.executeUpdate();
 
-            //load数据库中的表格
+            //load table
             ResultSet rs = stmt.executeQuery("select * from memTable");
             printData(rs);
         } catch (Exception e) {
             e.printStackTrace();
         }
         finally {
-            //释放
             try {
                 if (stmt != null)
                     stmt.close();
             } catch (SQLException se2) {
             }
-            //释放
             try {
                 if (conn != null)
                     conn.close();
@@ -110,9 +111,10 @@ public static boolean CreateTable(String database,String tableName,String host, 
     }
 ```
 
-#### 1.2. 内存表删除
+#### 1.2. Delete records from an in-memory table
 
-对数据表内容进行删除，在“？”处填相应的的删除条件
+
+To delete the contents of the data table,  you should fill in the corresponding deletion conditions at "?"
 
 ```java
 	public static void InMemoryDeleteTest(Properties info, String database, String tableName)
@@ -122,24 +124,22 @@ public static boolean CreateTable(String database,String tableName,String host, 
             conn = DriverManager.getConnection(url1);
             JDBCStatement stm = (JDBCStatement)conn.createStatement();
             stm.execute("memTable = loadTable('" + database + "','" + tableName + "')");
-            //SQL delete语句
+            // SQL delete statement
             stmt = conn.prepareStatement("delete from memTable where char = ?");
             stmt.setByte(1, (byte)'A');
             stmt.executeUpdate();
-            //读取表格检查是否删除
+            // Check if the records have been deleted
             ResultSet rs = stmt.executeQuery("select * from memTable");
             System.out.println("==========InMemoryDeleteTest======================");
             printData(rs);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            //释放
             try {
                 if (stmt != null)
                     stmt.close();
             } catch (SQLException se2) {
             }
-            //释放
             try {
                 if (conn != null)
                     conn.close();
@@ -150,7 +150,7 @@ public static boolean CreateTable(String database,String tableName,String host, 
     }
 ```
 
-#### 1.3. 内存表的更改
+#### 1.3. Update in-memory table
 对数据表内容更新
 
 ```java
@@ -165,20 +165,18 @@ public static boolean CreateTable(String database,String tableName,String host, 
             //SQL update语句
             stmt = conn.prepareStatement("update memTable set bool = 0b where char = 97c");
             stmt.executeUpdate();
-            //读取表格检查是否更新
+            // check if records have been deleted
             ResultSet rs = stmt.executeQuery("select * from memTable where char=97c");
         
             printData(rs);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            //释放
             try {
                 if (stmt != null)
                     stmt.close();
             } catch (SQLException se2) {
             }
-            //释放
             try {
                 if (conn != null)
                     conn.close();
@@ -189,7 +187,7 @@ public static boolean CreateTable(String database,String tableName,String host, 
     }
 ```
  
-### 2. 分布式表的新增和查询
+### 2. Query or add records to a partitioned table
 DolphinDB支持分布式数据表，本例子中演示通过JDBC来进行分布式表的新增和查询。要操作分布式表，连接的时候可以在URL中加入path以及相应内容，这样getConnection()时会预先加载分区表的元数据。
 
 注意： DolphinDB的分布式表支持通过Sql语句进行追加(insert)，可以进行分区级别的更新和删除，但是不支持逐条更新(update)和删除(delete)
