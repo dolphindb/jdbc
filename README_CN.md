@@ -1,10 +1,8 @@
 #  DolphinDB JDBC
 
-DolphinDB提供JDBC的接口的实现，可以让支持JDBC接口的客户端程序直接接入DolphinDB，也可以为基于DolphinDB的程序开发提供一种标准的数据访问接口。
+DolphinDB提供JDBC的接口的实现，可以让支持JDBC接口的客户端程序直接接入DolphinDB。 DolphinDB的JDBC接口是基于`DolphinDB Java Api` 实现，所以JDBC包内置了DolphinDB Java Api的包。
 
-DolphinDB的JDBC接口是基于`DolphinDB Java Api` 实现，所以JDBC包内置了DolphinDB Java Api的包。
-
-JDBC 接口主要通过`JDBCStatement`,`JDBCPrepareStatement`两个对象，来提供直接执行和预编译执行两种方式的接口。
+JDBC 接口主要通过`JDBCStatement`,`JDBCPrepareStatement`两个方法，来提供直接执行和预编译执行两种方式的接口。
 
 下面通过几个示例程序来展示这两个对象的使用方法。
 
@@ -192,11 +190,10 @@ public static boolean CreateTable(String database,String tableName,String host, 
 ### 2. 分布式表的新增和查询
 DolphinDB支持分布式数据表，本例子中演示通过JDBC来进行分布式表的新增和查询。要操作分布式表，连接的时候可以在URL中加入path以及相应内容，这样getConnection()时会预先加载分区表的元数据。
 
-注意： DolphinDB的分布式表支持通过Sql语句进行追加(insert)，可以进行分区级别的更新和删除，但是不支持逐条更新(update)和删除(delete)
 
 ##### Example：
 ```URL
-jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=1989.01M..2019.05M
+jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=2000.01M..2019.05M
 ```
 
 #### 2.1. 创建分区表
@@ -216,7 +213,7 @@ jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&p
         sb.append("t=table(month, x)\n");
         sb.append("if(existsDatabase(\""+database+"\"))\n" +
                 "			dropDatabase(\""+database+"\")\n");
-        sb.append("db=database(\""+database+"\", VALUE, 1989.01M..2019.05M)\n");
+        sb.append("db=database(\""+database+"\", VALUE, 2000.01M..2019.05M)\n");
         sb.append("pt = db.createPartitionedTable(t, `"+tableName+", `month)\n");
         sb.append("pt.append!(t)\n");
         db = new DBConnection();
@@ -235,7 +232,7 @@ jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&p
     }
 ```
 #### 2.2. 分区表的增加和查询
-对建立的分区表的内容进行增加，在“？”处放入相应的object
+
 
 ```java
 	public static void DFSAddTest(Properties info, String database, String tableName)
@@ -277,7 +274,7 @@ jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&p
 
 ### 3 参考及附录
  
- * 在JDBC接口中，可以使用`excute`方法执行所有的DolphinDB Sql语句，具体语法可以参考[DolphinDB Sql语法](http://www.dolphindb.com/help/index.html?FunctionReferences.html) 
+ * 在JDBC接口中，可以使用`excute`方法执行所有的DolphinDB Sql语句，具体语法可以参考[DolphinDB Sql语法](http://www.dolphindb.com/help/Chapter8SQLStatements.html) 
 
 * [下载](sample.txt)示例所有代码
 
