@@ -12,15 +12,15 @@ import com.xxdb.data.BasicMonth;
 public class doctest
 {
     private static final String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
-    //Á¬½Óµ½ÒÑ¾­ÅäÖÃ²¢³É¹¦Æô¶¯µÄDolphinDB server
+    // Connect to DolphinDB server
     private static final String url1 = "jdbc:dolphindb://localhost:8081";
-    //Á¬½Óµ½ÒÑ¾­ÅäÖÃ²¢³É¹¦Æô¶¯µÄDolphinDB server£¬dfsÊı¾İ¿âÂ·¾¶
-    private static final String url2 = "jdbc:dolphindb://localhost:8081?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=1989.01M..2019.05M";
+    // Connect to DolphinDB Database
+    private static final String url2 = "jdbc:dolphindb://localhost:8081?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=2000.01M..2019.05M";
 
     public static Connection conn = null;
     public static PreparedStatement stmt = null;
 
-    //Êä³ö±íÄÚÊı¾İ
+    //Output in-memory table
     public static void printData(ResultSet rs) throws SQLException {
         ResultSetMetaData resultSetMetaData = rs.getMetaData();
         int len = resultSetMetaData.getColumnCount();
@@ -33,9 +33,9 @@ public class doctest
         }
     }
 
-    /*-------------------------------------------ÄÚ´æ±íÔöÉ¾¸Ä²é-------------------------------------------*/
+    /*-------------------------------------------Query, add, delete and update the in-memory table-------------------------------------------*/
 
-    //1£®´´½¨ÄÚ´æ±í²¢±£´æµ½±¾µØ£º½«ËùÓĞµÄÓï¾äÆ´³ÉÒ»¸öString£¬×îºóÓÉDBconnectionÁ¬½Ó¶Ë¿Ú²¢ÇÒÔËĞĞ
+    //1ï¼reate a memory table and save it locally: Put all the statements into a String, and finally connect to the port by DBconnection and run
     @SuppressWarnings("finally")
     public static boolean CreateTable(String database,String tableName,String host, String port)
     {
@@ -76,7 +76,7 @@ public class doctest
         }
     }
 
-    //2£®ÄÚ´æ±íµÄÔö¼Ó
+    //2ï¼Insert records into an in-memory table
     public static void InMemmoryAddTest(Properties info, String database, String tableName)
     {
         try {
@@ -85,7 +85,7 @@ public class doctest
 
             JDBCStatement stm = (JDBCStatement)conn.createStatement();
             stm.execute("memTable = loadTable('" + database + "','" + tableName + "')");
-            //SQL insertÓï¾ä
+            //SQL insert statement
             stmt = conn.prepareStatement("insert into memTable values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
             stmt.setBoolean(1,true);
             stmt.setByte(2,(byte)98);
@@ -106,21 +106,21 @@ public class doctest
             stmt.setObject(17,LocalDateTime.of(2012,06,13,13,30,10,8007006));
             stmt.executeUpdate();
 
-            //loadÊı¾İ¿âÖĞµÄ±í¸ñ
+            //Query the in-memory table
             ResultSet rs = stmt.executeQuery("select * from memTable");
             printData(rs);
         } catch (Exception e) {
             e.printStackTrace();
         }
         finally {
-            //ÊÍ·Å
             try {
+                // Release
                 if (stmt != null)
                     stmt.close();
             } catch (SQLException se2) {
             }
-            //ÊÍ·Å
             try {
+                // Release
                 if (conn != null)
                     conn.close();
             } catch (SQLException se) {
@@ -129,7 +129,7 @@ public class doctest
         }
     }
 
-    //3£®ÄÚ´æ±íµÄÉ¾³ı
+    //3ï¼Delete records from the in-memory table
     public static void InMemoryDeleteTest(Properties info, String database, String tableName)
     {
         try {
@@ -137,24 +137,24 @@ public class doctest
             conn = DriverManager.getConnection(url1);
             JDBCStatement stm = (JDBCStatement)conn.createStatement();
             stm.execute("memTable = loadTable('" + database + "','" + tableName + "')");
-            //SQL deleteÓï¾ä
+            //SQL deleteè¯­å¥
             stmt = conn.prepareStatement("delete from memTable where char = ?");
             stmt.setByte(1, (byte)'A');
             stmt.executeUpdate();
-            //¶ÁÈ¡±í¸ñ¼ì²éÊÇ·ñÉ¾³ı
+            // Check if the records have been deleted
             ResultSet rs = stmt.executeQuery("select * from memTable");
             System.out.println("==========InMemoryDeleteTest======================");
             printData(rs);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            //ÊÍ·Å
+            //é‡Šæ”¾
             try {
                 if (stmt != null)
                     stmt.close();
             } catch (SQLException se2) {
             }
-            //ÊÍ·Å
+            //é‡Šæ”¾
             try {
                 if (conn != null)
                     conn.close();
@@ -164,7 +164,7 @@ public class doctest
         }
     }
 
-    //4£®ÄÚ´æ±íµÄ¸ü¸Ä
+    //4ï¼Update an in-memory table
     public static void InMemoryUpdateTest(Properties info, String database, String tableName)
     {
         try {
@@ -172,23 +172,23 @@ public class doctest
             conn = DriverManager.getConnection(url1);
             JDBCStatement stm = (JDBCStatement)conn.createStatement();
             stm.execute("memTable = loadTable('" + database + "','" + tableName + "')");
-            //SQL updateÓï¾ä
+            //SQL update statement
             stmt = conn.prepareStatement("update memTable set bool = 0b where char = 97c");
             stmt.executeUpdate();
-            //¶ÁÈ¡±í¸ñ¼ì²éÊÇ·ñ¸üĞÂ
+            // Check if the updates have been made
             ResultSet rs = stmt.executeQuery("select * from memTable where char=97c");
             System.out.println("==========InMemoryUpdateTest======================");
             printData(rs);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            //ÊÍ·Å
+            // Release
             try {
                 if (stmt != null)
                     stmt.close();
             } catch (SQLException se2) {
             }
-            //ÊÍ·Å
+            // Rlease
             try {
                 if (conn != null)
                     conn.close();
@@ -198,9 +198,9 @@ public class doctest
         }
     }
 
-    /*-------------------------------------------·ÖÇø±íÔöÉ¾¸Ä²é-------------------------------------------*/
+    /*-------------------------------------------Query and insert on a partitioned table-------------------------------------------*/
 
-    //1. ´´½¨·ÖÇø±í
+    //1. Create a partitioned table
     @SuppressWarnings("finally")
     public static boolean CreateValueTable(String database, String tableName, String host, String port)
     {
@@ -209,12 +209,12 @@ public class doctest
         StringBuilder sb = new StringBuilder();
         sb.append("login(\"admin\",\"123456\")\n");
         sb.append("n=3000\n");
-        sb.append("month=take(1989.01M..2019.05M, n)\n");
+        sb.append("month=take(2000.01M..2019.05M, n)\n");
         sb.append("x=take(1..1000, n)\n");
         sb.append("t=table(month, x)\n");
         sb.append("if(existsDatabase(\""+database+"\"))\n" +
                 "			dropDatabase(\""+database+"\")\n");
-        sb.append("db=database(\""+database+"\", VALUE, 1989.01M..2019.05M)\n");
+        sb.append("db=database(\""+database+"\", VALUE, 2000.01M..2019.05M)\n");
         sb.append("pt = db.createPartitionedTable(t, `"+tableName+", `month)\n");
         sb.append("pt.append!(t)\n");
         db = new DBConnection();
@@ -232,34 +232,34 @@ public class doctest
         }
     }
 
-    //£²£®·ÖÇø±íµÄÔö¼Ó
+    //ï¼’ï¼Add records
     public static void DFSAddTest(Properties info, String database, String tableName)
     {
         try {
             Class.forName(JDBC_DRIVER);
 
-            //dfsÏÂ»áÔ¤ÏÈload table
+            // load table
             conn = DriverManager.getConnection(url2,info);
             JDBCStatement stm = (JDBCStatement)conn.createStatement();
             stm.execute("dfsTable = loadTable('" + database + "','" + tableName + "')");
-            //SQL insertÓï¾ä
+            //SQL insert statement
             stmt = conn.prepareStatement("insert into dfsTable values(?,?)");
             stmt.setObject(1, new BasicMonth(YearMonth.of(2016,06)));
             stmt.setInt(2,3);
             stmt.executeUpdate();
-            //¶ÁÈ¡±í¸ñ¼ì²éÊÇ·ñĞÂÔöÊı¾İ
+            // Query the table to check if the record have been added.
             ResultSet rs = stmt.executeQuery("select count(*) from loadTable(\""+database+"\", `"+tableName+")");
             printData(rs);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            //ÊÍ·Å
+            // Release
             try {
                 if (stmt != null)
                     stmt.close();
             } catch (SQLException se2) {
             }
-            //ÊÍ·Å
+            // Release
             try {
                 if (conn != null)
                     conn.close();
@@ -270,43 +270,43 @@ public class doctest
     }
     public static void main(String[] args)
     {
-        String HOST="localhost";//ÒÑ¾­ÅäÖÃ²¢³É¹¦Æô¶¯µÄserverµØÖ·
-        String PORT="8081";//¶Ë¿ÚºÅ
+        String HOST="localhost";// Server address that has been configured and successfully started
+        String PORT="8081";// Port number
 
-        Properties info = new Properties(); //µÇÂ¼ĞÅÏ¢
-        info.put("user", "admin");//ÓÃ»§Ãû
-        info.put("password", "123456");//ÃÜÂë
+        Properties info = new Properties(); // Login info
+        info.put("user", "admin");// Username
+        info.put("password", "123456");// Password(default admin password)
 
-        /*-------------------------------------------ÄÚ´æ±íÔöÉ¾¸Ä²é-------------------------------------------*/
+        /*-------------------------------------------Operations on in-memory table-------------------------------------------*/
 
-        String in_memory_database="H://DolphinDBStreamWin/jdbc";//±¾µØÊı¾İ¿âÂ·¾¶
-        String in_memory_tableName="t1";//Êı¾İ±íÃû
+        String in_memory_database="H://DolphinDBStreamWin/jdbc";// Local database path
+        String in_memory_tableName="t1";// Table name
 
-        //£±£®´´½¨ÄÚ´æ±í²¢±£´æµ½±¾µØ
+        //ï¼‘ï¼Create 
         boolean success=CreateTable(in_memory_database, "`"+in_memory_tableName, HOST, PORT);
         if(success==true)
             System.out.println("\n---------------Successfully create table "+in_memory_tableName+"!---------------\n");
-        //£²£®ÄÚ´æ±íµÄÔö¼Ó
+        //ï¼’ï¼Insert
         InMemmoryAddTest(info, in_memory_database, in_memory_tableName);
 
-        //£³£®ÄÚ´æ±íµÄÉ¾³ı
+        //ï¼“. Delete
         InMemoryDeleteTest(info, in_memory_database, in_memory_tableName);
 
-//        //4£®ÄÚ´æ±íµÄ¸ü¸Ä
+//        //4ï¼Update
         InMemoryUpdateTest(info, in_memory_database, in_memory_tableName);
 
-//        /*-------------------------------------------·ÖÇø±íÔöÉ¾¸Ä²é-------------------------------------------*/
+//        /*-------------------------------------------Operations on partitioned table-------------------------------------------*/
 
-        String dfs_database="dfs://valuedb";//dfsÊı¾İ¿âÂ·¾¶
-        String dfs_tableName="pt";//Êı¾İ±íÃû
+        String dfs_database="dfs://valuedb";//dfs database path
+        String dfs_tableName="pt";// Table name
 
-        //£±£®´´½¨DFS±í²¢½øĞĞ·ÖÇø
+        //ï¼‘ï¼Create
         success=CreateValueTable(dfs_database, dfs_tableName, HOST, PORT);
         if(success==true)
             System.out.println("\n---------------Successfully create table "+dfs_tableName+"!---------------\n");
 
-        //£²£®·Ö²¼Ê½·ÖÇø±íµÄÔö¼Ó
+        //ï¼’ï¼Insert
         DFSAddTest(info, dfs_database,dfs_tableName);
-
     }
 }
+
