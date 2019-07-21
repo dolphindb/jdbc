@@ -208,7 +208,7 @@ jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&p
         StringBuilder sb = new StringBuilder();
         sb.append("login(\"admin\",\"123456\")\n");
         sb.append("n=3000\n");
-        sb.append("month=take(1989.01M..2019.05M, n)\n");
+        sb.append("month=take(2000.01M..2019.05M, n)\n");
         sb.append("x=take(1..1000, n)\n");
         sb.append("t=table(month, x)\n");
         sb.append("if(existsDatabase(\""+database+"\"))\n" +
