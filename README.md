@@ -1,14 +1,14 @@
 #  DolphinDB JDBC
 
 
-DolphinDB provides an implementation of the JDBC interface, allowing client programs that support the JDBC interface to directly access DolphinDB, or provide a standard data access interface for DolphinDB-based program development.
+DolphinDB provides an implementation of the JDBC interface, allowing client programs that support the JDBC interface to directly access DolphinDB.
 
 DolphinDB's JDBC interface is based on the `DolphinDB Java Api` implementation, so the JDBC package has a built-in DolphinDB Java Api package.
 
 The JDBC interface mainly provides two interfaces, direct execution and pre-compilation, through the two objects `JDBCStatement` and `JDBCPrepareStatement`, respectively.
 
 
-Here are a few sample programs to show how to use these two objects.
+Here are a few sample programs to show how to use these two methods.
 
 
 ### 1. Add, delete, and update an in-memory table
@@ -56,8 +56,6 @@ public static boolean CreateTable(String database,String tableName,String host, 
     }
 ```
 #### 1.1. Add new records to an in-memory table
-
-通过jdbc接口对内存表的操作方式主要是通过prepareStatement的方式预置sql模板，并通过set方式写入参数，最后通过`executeUpdate`函数填充参数并执行语句。
 
 The operation of in-memory table through the jdbc interface is mainly to preset the sql template through the `prepareStatement` method, and write the parameters through the set methods, and finally fill the parameters and execute the statement through the `executeUpdate` function.
 
@@ -191,18 +189,18 @@ Update the table contents
 ```
  
 ### 2. Query or add records to a partitioned table
-DolphinDB支持分布式数据表，本例子中演示通过JDBC来进行分布式表的新增和查询。要操作分布式表，连接的时候可以在URL中加入path以及相应内容，这样getConnection()时会预先加载分区表的元数据。
 
-注意： DolphinDB的分布式表支持通过Sql语句进行追加(insert)，可以进行分区级别的更新和删除，但是不支持逐条更新(update)和删除(delete)
+The example below demonstrates adding new records and querying of a partitioned table through JDBC. In order to connect to a partitioned table, you can add path and corresponding content to the URL when connecting, so that getConnection() will preload the metadata of the partition table.
+
 
 ##### Example：
 ```URL
 jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=1989.01M..2019.05M
 ```
 
-#### 2.1. 创建分区表
-使用Java Api 来执行创建分区表的语句，创建示例所需的分区数据库。
-示例中使用了VALUE方式进行数据分区。需要了解其他分区方式，请点击 [DolphinDB数据库分区教程](https://github.com/dolphindb/Tutorials_CN/blob/master/database.md) 
+#### 2.1. Create a partitioned table
+
+Use Java Api to create the partitioned table.
 
 ```java
     public static boolean CreateValueTable(String database, String tableName, String host, String port)
@@ -217,7 +215,7 @@ jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&p
         sb.append("t=table(month, x)\n");
         sb.append("if(existsDatabase(\""+database+"\"))\n" +
                 "			dropDatabase(\""+database+"\")\n");
-        sb.append("db=database(\""+database+"\", VALUE, 1989.01M..2019.05M)\n");
+        sb.append("db=database(\""+database+"\", VALUE, 2000.01M..2019.05M)\n");
         sb.append("pt = db.createPartitionedTable(t, `"+tableName+", `month)\n");
         sb.append("pt.append!(t)\n");
         db = new DBConnection();
@@ -236,7 +234,7 @@ jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&p
     }
 ```
 #### 2.2. 分区表的增加和查询
-对建立的分区表的内容进行增加，在“？”处放入相应的object
+
 
 ```java
 	public static void DFSAddTest(Properties info, String database, String tableName)
@@ -244,28 +242,26 @@ jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&p
         try {
             Class.forName(JDBC_DRIVER);
 
-            //dfs下会预先load table
+            //load the partitioned table
             conn = DriverManager.getConnection(url2,info);
             JDBCStatement stm = (JDBCStatement)conn.createStatement();
             stm.execute("dfsTable = loadTable('" + database + "','" + tableName + "')");
-            //SQL insert语句
+            //SQL insert statement
             stmt = conn.prepareStatement("insert into dfsTable values(?,?)");
             stmt.setObject(1, new BasicMonth(YearMonth.of(2016,06)));
             stmt.setInt(2,3);
             stmt.executeUpdate();
-            //读取表格检查是否新增数据
+            // query the table ot see if the records have been inserted.
             ResultSet rs = stmt.executeQuery("select count(*) from loadTable(\""+database+"\", `"+tableName+")");
             printData(rs);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            //释放
             try {
                 if (stmt != null)
                     stmt.close();
             } catch (SQLException se2) {
             }
-            //释放
             try {
                 if (conn != null)
                     conn.close();
@@ -276,9 +272,9 @@ jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&p
     }
 ```
 
-### 3 参考及附录
+### 3 References
  
- * 在JDBC接口中，可以使用`excute`方法执行所有的DolphinDB Sql语句，具体语法可以参考[DolphinDB Sql语法](http://www.dolphindb.com/help/index.html?FunctionReferences.html) 
+ * In the JDBC interface, you can use the `excute` method to execute all DolphinDB Sql statements. For details, see [DolphinDB Sql Syntax] [DolphinDB SQL](http://www.dolphindb.com/help/Chapter8SQLStatements.html) 
 
-* [下载](sample.txt)示例所有代码
+* [Download](sample.txt)sample code
 
