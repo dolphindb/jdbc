@@ -57,7 +57,8 @@ public static boolean CreateTable(String database,String tableName,String host, 
 ```
 #### 1.1. Add new records to an in-memory table
 
-The operation of in-memory table through the jdbc interface is mainly to preset the sql template through the `prepareStatement` method, and write the parameters through the set methods, and finally fill the parameters and execute the statement through the `executeUpdate` function.
+The operation of in-memory table through the jdbc interface is mainly to preset the sql template through the `prepareStatement` method, 
+and write the parameters through the set methods, and finally fill the parameters and execute the statement through the `executeUpdate` function.
 
 ```java
 		public static void InMemmoryAddTest(Properties info, String database, String tableName)
@@ -190,12 +191,13 @@ Update the table contents
  
 ### 2. Query or add records to a partitioned table
 
-The example below demonstrates adding new records and querying of a partitioned table through JDBC. In order to connect to a partitioned table, you can add path and corresponding content to the URL when connecting, so that getConnection() will preload the metadata of the partition table.
+The example below demonstrates adding new records and querying of a partitioned table through JDBC. In order to connect to a partitioned table, 
+you can add path and corresponding content to the URL when connecting, so that getConnection() will preload the metadata of the partition table.
 
 
 ##### Example：
 ```URL
-jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=1989.01M..2019.05M
+jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=2000.01M..2019.05M
 ```
 
 #### 2.1. Create a partitioned table
@@ -210,7 +212,7 @@ Use Java Api to create the partitioned table.
         StringBuilder sb = new StringBuilder();
         sb.append("login(\"admin\",\"123456\")\n");
         sb.append("n=3000\n");
-        sb.append("month=take(1989.01M..2019.05M, n)\n");
+        sb.append("month=take(2000.01M..2019.05M, n)\n");
         sb.append("x=take(1..1000, n)\n");
         sb.append("t=table(month, x)\n");
         sb.append("if(existsDatabase(\""+database+"\"))\n" +
@@ -233,7 +235,7 @@ Use Java Api to create the partitioned table.
         }
     }
 ```
-#### 2.2. 分区表的增加和查询
+#### 2.2. Query and append to a partitioned table
 
 
 ```java
@@ -274,7 +276,8 @@ Use Java Api to create the partitioned table.
 
 ### 3 References
  
- * In the JDBC interface, you can use the `excute` method to execute all DolphinDB Sql statements. For details, see [DolphinDB Sql Syntax] [DolphinDB SQL](http://www.dolphindb.com/help/Chapter8SQLStatements.html) 
+ In the JDBC interface, you can use the `excute` method to execute all DolphinDB Sql statements. 
+ For details, see [DolphinDB Sql] [DolphinDB SQL](http://www.dolphindb.com/help/Chapter8SQLStatements.html) 
 
 * [Download](sample.txt)sample code
 
