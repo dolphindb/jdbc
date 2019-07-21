@@ -13,7 +13,7 @@ Here are a few sample programs to show how to use these two objects.
 
 ### 1. Add, delete, and update an in-memory table
 
-使用java Api将demo需要的模板表保存到磁盘，在demo中通过loadTable可以快速创建内存表。脚本代码如下：
+First of all, we create a template table and save to disk through DolphinDB Java API. The code is as the following:
 
 ```java
 public static boolean CreateTable(String database,String tableName,String host, String port)
@@ -58,6 +58,8 @@ public static boolean CreateTable(String database,String tableName,String host, 
 #### 1.1. Add new records to an in-memory table
 
 通过jdbc接口对内存表的操作方式主要是通过prepareStatement的方式预置sql模板，并通过set方式写入参数，最后通过`executeUpdate`函数填充参数并执行语句。
+
+The operation of in-memory table through the jdbc interface is mainly to preset the sql template through the `prepareStatement` method, and write the parameters through the set methods, and finally fill the parameters and execute the statement through the `executeUpdate` function.
 
 ```java
 		public static void InMemmoryAddTest(Properties info, String database, String tableName)
@@ -151,7 +153,8 @@ To delete the contents of the data table,  you should fill in the corresponding 
 ```
 
 #### 1.3. Update in-memory table
-对数据表内容更新
+
+Update the table contents
 
 ```java
 	
