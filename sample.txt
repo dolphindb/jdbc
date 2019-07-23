@@ -1,0 +1,312 @@
+import java.io.IOException;
+import java.sql.*;
+import java.text.MessageFormat;
+import java.time.*;
+import java.util.Properties;
+
+import com.dolphindb.jdbc.JDBCStatement;
+import com.xxdb.DBConnection;
+import com.xxdb.data.BasicMonth;
+
+
+public class doctest
+{
+    private static final String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+    // Connect to DolphinDB server
+    private static final String url1 = "jdbc:dolphindb://localhost:8081";
+    // Connect to DolphinDB Database
+    private static final String url2 = "jdbc:dolphindb://localhost:8081?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=2000.01M..2019.05M";
+
+    public static Connection conn = null;
+    public static PreparedStatement stmt = null;
+
+    //Output in-memory table
+    public static void printData(ResultSet rs) throws SQLException {
+        ResultSetMetaData resultSetMetaData = rs.getMetaData();
+        int len = resultSetMetaData.getColumnCount();
+        while (rs.next()) {
+            for (int i = 1; i <= len; ++i) {
+                System.out.print(
+                        MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getObject(i)));
+            }
+            System.out.print("\n");
+        }
+    }
+
+    /*-------------------------------------------Query, add, delete and update the in-memory table-------------------------------------------*/
+
+    //1．reate a memory table and save it locally: Put all the statements into a String, and finally connect to the port by DBconnection and run
+    @SuppressWarnings("finally")
+    public static boolean CreateTable(String database,String tableName,String host, String port)
+    {
+        boolean success=false;
+        DBConnection db = null;
+        try {
+            String sb="bool = [1b, 0b];\n" +
+                    "char = [97c, 'A'];\n" +
+                    "short = [122h, 123h];\n" +
+                    "int = [21, 22];\n" +
+                    "long = [22l, 23l];\n" +
+                    "float  = [2.1f, 2.2f];\n" +
+                    "double = [2.1, 2.2];\n" +
+                    "string= [`Hello, `world];\n" +
+                    "date = [2013.06.13, 2013.06.14];\n" +
+                    "month = [2016.06M, 2016.07M];\n" +
+                    "time = [13:30:10.008, 13:30:10.009];\n" +
+                    "minute = [13:30m, 13:31m];\n" +
+                    "second = [13:30:10, 13:30:11];\n" +
+                    "datetime = [2012.06.13 13:30:10, 2012.06.13 13:30:10];\n" +
+                    "timestamp = [2012.06.13 13:30:10.008, 2012.06.13 13:30:10.009];\n" +
+                    "nanotime = [13:30:10.008007006, 13:30:10.008007007];\n" +
+                    "nanotimestamp = [2012.06.13 13:30:10.008007006, 2012.06.13 13:30:10.008007007];\n" +
+                    "tb1= table(bool,char,short,int,long,float,double,string,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp);\n" +
+                    "db=database(\""+database+"\")\n" +
+                    "saveTable(db, tb1, "+tableName+");\n";
+            db = new DBConnection();
+            db.connect(host, Integer.parseInt(port));
+            db.run(sb);
+            success=true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            success=false;
+        } finally {
+            if (db != null)
+                db.close();
+            return success;
+        }
+    }
+
+    //2．Insert records into an in-memory table
+    public static void InMemmoryAddTest(Properties info, String database, String tableName)
+    {
+        try {
+            Class.forName(JDBC_DRIVER);
+            conn = DriverManager.getConnection(url1,info);
+
+            JDBCStatement stm = (JDBCStatement)conn.createStatement();
+            stm.execute("memTable = loadTable('" + database + "','" + tableName + "')");
+            //SQL insert statement
+            stmt = conn.prepareStatement("insert into memTable values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+            stmt.setBoolean(1,true);
+            stmt.setByte(2,(byte)98);
+            stmt.setShort(3,(short)112);
+            stmt.setInt(4,21);
+            stmt.setLong(5,22l);
+            stmt.setFloat(6,2.1f);
+            stmt.setDouble(7,2.1);
+            stmt.setString(8,"hello");
+            stmt.setDate(9, Date.valueOf(LocalDate.of(2013,06,13)));
+            stmt.setObject(10,  YearMonth.of(2016,06));
+            stmt.setObject(11, Time.valueOf("13:30:10"));
+            stmt.setObject(12, LocalTime.of(13,30));
+            stmt.setObject(13,LocalTime.of(13,30,10));
+            stmt.setObject(14,LocalDateTime.of(2012,06,13,13,30,10));
+            stmt.setObject(15,LocalDateTime.of(2012,06,13,13,30,10,8000000));
+            stmt.setObject(16,LocalTime.of(13,30,10,8007006));
+            stmt.setObject(17,LocalDateTime.of(2012,06,13,13,30,10,8007006));
+            stmt.executeUpdate();
+
+            //Query the in-memory table
+            ResultSet rs = stmt.executeQuery("select * from memTable");
+            printData(rs);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        finally {
+            try {
+                // Release
+                if (stmt != null)
+                    stmt.close();
+            } catch (SQLException se2) {
+            }
+            try {
+                // Release
+                if (conn != null)
+                    conn.close();
+            } catch (SQLException se) {
+                se.printStackTrace();
+            }
+        }
+    }
+
+    //3．Delete records from the in-memory table
+    public static void InMemoryDeleteTest(Properties info, String database, String tableName)
+    {
+        try {
+            Class.forName(JDBC_DRIVER);
+            conn = DriverManager.getConnection(url1);
+            JDBCStatement stm = (JDBCStatement)conn.createStatement();
+            stm.execute("memTable = loadTable('" + database + "','" + tableName + "')");
+            //SQL delete语句
+            stmt = conn.prepareStatement("delete from memTable where char = ?");
+            stmt.setByte(1, (byte)'A');
+            stmt.executeUpdate();
+            // Check if the records have been deleted
+            ResultSet rs = stmt.executeQuery("select * from memTable");
+            System.out.println("==========InMemoryDeleteTest======================");
+            printData(rs);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            //释放
+            try {
+                if (stmt != null)
+                    stmt.close();
+            } catch (SQLException se2) {
+            }
+            //释放
+            try {
+                if (conn != null)
+                    conn.close();
+            } catch (SQLException se) {
+                se.printStackTrace();
+            }
+        }
+    }
+
+    //4．Update an in-memory table
+    public static void InMemoryUpdateTest(Properties info, String database, String tableName)
+    {
+        try {
+            Class.forName(JDBC_DRIVER);
+            conn = DriverManager.getConnection(url1);
+            JDBCStatement stm = (JDBCStatement)conn.createStatement();
+            stm.execute("memTable = loadTable('" + database + "','" + tableName + "')");
+            //SQL update statement
+            stmt = conn.prepareStatement("update memTable set bool = 0b where char = 97c");
+            stmt.executeUpdate();
+            // Check if the updates have been made
+            ResultSet rs = stmt.executeQuery("select * from memTable where char=97c");
+            System.out.println("==========InMemoryUpdateTest======================");
+            printData(rs);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            // Release
+            try {
+                if (stmt != null)
+                    stmt.close();
+            } catch (SQLException se2) {
+            }
+            // Rlease
+            try {
+                if (conn != null)
+                    conn.close();
+            } catch (SQLException se) {
+                se.printStackTrace();
+            }
+        }
+    }
+
+    /*-------------------------------------------Query and insert on a partitioned table-------------------------------------------*/
+
+    //1. Create a partitioned table
+    @SuppressWarnings("finally")
+    public static boolean CreateValueTable(String database, String tableName, String host, String port)
+    {
+        boolean success=false;
+        DBConnection db = null;
+        StringBuilder sb = new StringBuilder();
+        sb.append("login(\"admin\",\"123456\")\n");
+        sb.append("n=3000\n");
+        sb.append("month=take(2000.01M..2019.05M, n)\n");
+        sb.append("x=take(1..1000, n)\n");
+        sb.append("t=table(month, x)\n");
+        sb.append("if(existsDatabase(\""+database+"\"))\n" +
+                "			dropDatabase(\""+database+"\")\n");
+        sb.append("db=database(\""+database+"\", VALUE, 2000.01M..2019.05M)\n");
+        sb.append("pt = db.createPartitionedTable(t, `"+tableName+", `month)\n");
+        sb.append("pt.append!(t)\n");
+        db = new DBConnection();
+        try {
+            db.connect(host, Integer.parseInt(port));
+            db.run(sb.toString());
+            success=true;
+        } catch (NumberFormatException | IOException e) {
+            e.printStackTrace();
+            success=false;
+        }finally {
+            if (db != null)
+                db.close();
+            return success;
+        }
+    }
+
+    //２．Add records
+    public static void DFSAddTest(Properties info, String database, String tableName)
+    {
+        try {
+            Class.forName(JDBC_DRIVER);
+
+            // load table
+            conn = DriverManager.getConnection(url2,info);
+            JDBCStatement stm = (JDBCStatement)conn.createStatement();
+            stm.execute("dfsTable = loadTable('" + database + "','" + tableName + "')");
+            //SQL insert statement
+            stmt = conn.prepareStatement("insert into dfsTable values(?,?)");
+            stmt.setObject(1, new BasicMonth(YearMonth.of(2016,06)));
+            stmt.setInt(2,3);
+            stmt.executeUpdate();
+            // Query the table to check if the record have been added.
+            ResultSet rs = stmt.executeQuery("select count(*) from loadTable(\""+database+"\", `"+tableName+")");
+            printData(rs);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            // Release
+            try {
+                if (stmt != null)
+                    stmt.close();
+            } catch (SQLException se2) {
+            }
+            // Release
+            try {
+                if (conn != null)
+                    conn.close();
+            } catch (SQLException se) {
+                se.printStackTrace();
+            }
+        }
+    }
+    public static void main(String[] args)
+    {
+        String HOST="localhost";// Server address that has been configured and successfully started
+        String PORT="8081";// Port number
+
+        Properties info = new Properties(); // Login info
+        info.put("user", "admin");// Username
+        info.put("password", "123456");// Password(default admin password)
+
+        /*-------------------------------------------Operations on in-memory table-------------------------------------------*/
+
+        String in_memory_database="H://DolphinDBStreamWin/jdbc";// Local database path
+        String in_memory_tableName="t1";// Table name
+
+        //１．Create 
+        boolean success=CreateTable(in_memory_database, "`"+in_memory_tableName, HOST, PORT);
+        if(success==true)
+            System.out.println("\n---------------Successfully create table "+in_memory_tableName+"!---------------\n");
+        //２．Insert
+        InMemmoryAddTest(info, in_memory_database, in_memory_tableName);
+
+        //３. Delete
+        InMemoryDeleteTest(info, in_memory_database, in_memory_tableName);
+
+//        //4．Update
+        InMemoryUpdateTest(info, in_memory_database, in_memory_tableName);
+
+//        /*-------------------------------------------Operations on partitioned table-------------------------------------------*/
+
+        String dfs_database="dfs://valuedb";//dfs database path
+        String dfs_tableName="pt";// Table name
+
+        //１．Create
+        success=CreateValueTable(dfs_database, dfs_tableName, HOST, PORT);
+        if(success==true)
+            System.out.println("\n---------------Successfully create table "+dfs_tableName+"!---------------\n");
+
+        //２．Insert
+        DFSAddTest(info, dfs_database,dfs_tableName);
+    }
+}
+
