@@ -199,7 +199,7 @@ public class JDBCConnection implements Connection {
         sb.append(");\n");
         sqlSb = new StringBuilder();
         sqlSb.append(sb);
-        System.out.println(sb.toString());
+//        System.out.println(sb.toString());
         dbConnection.run(sb.toString());
 
         if(values[0].trim().startsWith("\"dfs://")) {
@@ -213,7 +213,7 @@ public class JDBCConnection implements Connection {
 
             sqlSb.append(loadTableSb);
             String sql = loadTableSb.toString();
-            System.out.println("here!!!" + sql);
+//            System.out.println("here!!!" + sql);
             dbConnection.run(sql);
         }
 
@@ -581,7 +581,7 @@ public class JDBCConnection implements Connection {
 				
 				
 				String[] hostName_port = hostName_ports.get(index).split(":");
-				System.out.println("Select " + hostName_port[0] + ":" + hostName_port[1]);
+//				System.out.println("Select " + hostName_port[0] + ":" + hostName_port[1]);
 				
 				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
 					continue;
@@ -667,7 +667,7 @@ public class JDBCConnection implements Connection {
 					}
 					if (succeeded) {
 						this.dbConnection.run(sqlSb.toString());
-						 System.out.println(script+"------------------------\n");
+//						 System.out.println(script+"------------------------\n");
 						entity = this.dbConnection.run(script);
 						return entity;
 					}
