@@ -476,8 +476,7 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public boolean isValid(int timeout) throws SQLException {
-		Driver.unused("isValid(int timeout)");
-		return true;
+		return dbConnection.isConnected();
 	}
 
 	@Override
