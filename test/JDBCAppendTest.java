@@ -47,7 +47,6 @@ public class JDBCAppendTest {
 	}
 	
 	public static void upload10MillionDatatest() throws Exception {
-		
 		Connection conn = null;
 		PreparedStatement ps = null;
 		Statement stmt = null;
@@ -67,7 +66,6 @@ public class JDBCAppendTest {
 			ps.execute("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")");
 
 			ResultSet rs = ps.executeQuery("select count(*) from trade");
-
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new Exception("fail");

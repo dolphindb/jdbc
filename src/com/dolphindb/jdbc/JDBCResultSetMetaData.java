@@ -13,7 +13,6 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
         this.table = table;
     }
 
-
     @Override
     public String getCatalogName(int columnIndex) throws SQLException {
         return table.getColumn(adjustColumnIndex(columnIndex)).getDataCategory().name();

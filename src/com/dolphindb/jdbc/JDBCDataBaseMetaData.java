@@ -13,11 +13,10 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     private static final String DATABASE_NAME = "DolphinDB";
     private static final String DRIVER_NAME = "DolphinDB JDBC Driver";
-    private static final String DRIVER_VERSION = "dolphindb-connector-java-1.0";
+    private static final String DRIVER_VERSION = "dolphindb-connector-java-2.0";
     private static final String DATABASE = "database";
     private JDBCConnection connection;
     private JDBCStatement statement;
-    private static  String STRINGFUNCTIONS;
     private static ResultSet TypeInfo;
     private static ResultSet Catalogs;
     public JDBCDataBaseMetaData(JDBCConnection connection, JDBCStatement statement){
@@ -75,7 +74,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         if(Catalogs == null){
             List<String> colName = Arrays.asList("TABLE_CAT");
             String[] tableCatArr = new String[]{com.dolphindb.jdbc.Driver.DB,DATABASE_NAME};
-            List<Vector> cols = Arrays.asList(new BasicStringVector(tableCatArr));
+            List<Vector> cols = Arrays.asList((Vector) new BasicStringVector(tableCatArr));
             BasicTable basicTable = new BasicTable(colName,cols);
             Catalogs =  new JDBCResultSet(connection,statement,basicTable,"");
         }
@@ -119,12 +118,12 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public int getDatabaseMajorVersion() {
-        return Driver.V;
+    	return 0;
     }
 
     @Override
     public int getDatabaseMinorVersion() {
-        return Driver.v;
+        return 0;
     }
 
 
@@ -140,12 +139,12 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public int getDriverMajorVersion() {
-        return 0;
+        return Driver.V;
     }
 
     @Override
     public int getDriverMinorVersion() {
-        return 0;
+        return Driver.v;
     }
 
     @Override
@@ -190,12 +189,12 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public int getJDBCMajorVersion() {
-        return Driver.V;
+        return 0;
     }
 
     @Override
     public int getJDBCMinorVersion() {
-        return Driver.v;
+        return 0;
     }
 
     @Override
@@ -300,6 +299,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public int getResultSetHoldability() {
+//    	return 0;
         return ResultSet.HOLD_CURSORS_OVER_COMMIT;
     }
 
@@ -374,7 +374,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             String[] tableTypes = new String[]{"IN-MEMORY TABLE","SEGMENTED TABLE"};
             BasicStringVector basicStringVector = new BasicStringVector(tableTypes);
             List<String> colNames = Arrays.asList("TABLE_TYPE");
-            List<Vector> cols = Arrays.asList(basicStringVector);
+            List<Vector> cols = Arrays.asList((Vector) basicStringVector);
             BasicTable basicTable = new BasicTable(colNames,cols);
             return new JDBCResultSet(connection,statement,basicTable,"");
         }catch (Exception e){
@@ -392,7 +392,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             BasicStringVector typeName = new BasicStringVector(typeNameArr);
             BasicIntVector sqlDateType = new BasicIntVector(sqlDateTypeArr);
             BasicIntVector bytes = new BasicIntVector(bytesArr);
-            List<Vector> cols = Arrays.asList(typeName,sqlDateType,bytes);
+            List<Vector> cols = Arrays.asList((Vector) typeName, (Vector) sqlDateType, (Vector) bytes);
             BasicTable table = new BasicTable(colName, cols);
             TypeInfo = new JDBCResultSet(connection, statement, table, "");
         }
@@ -421,17 +421,17 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getNumericFunctions() {
-        return "abs,acos,add,asin,atan,ceil,cos,det,div,dot,exp,floor,log,lshift,mod,mul,neg,polynomial,pow,prod,ratio,rshift,round,sin,sqrt,sub,tan";
+        return "abs,acos,acosh,add,asin,asinh,atan,atanh,cbrt,ceil,cos,cosh,deg2rad,div,exp,exp2,expm1,floor,log,log2,log10,lshift,mod,mul,neg,pow,prod,ratio,reciprocal,rshift,round,sin,sinh,sqrt,square,sub,tan,tanh";
     }
 
     @Override
     public String getProcedureTerm() {
-        return "PROCEDURE";
+        return "def";
     }
 
     @Override
     public String getSchemaTerm() {
-        return "";
+        return "schema";
     }
 
     @Override
@@ -441,31 +441,17 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getSQLKeywords() {
-        return "";
+        return "context,pivot";
     }
 
     @Override
     public String getStringFunctions() {
-        if(STRINGFUNCTIONS == null){
-            try {
-                BasicTable table = (BasicTable) connection.run("defs()");
-                StringBuilder sb = new StringBuilder();
-                int rows = table.rows();
-                for(int i=0; i<rows; ++i){
-                    sb.append(table.getColumn(0).get(i)).append(",");
-                }
-                sb.delete(sb.length()-",".length(),sb.length());
-                STRINGFUNCTIONS = sb.toString();
-            }catch (Exception e){
-                e.printStackTrace();
-            }
-        }
-        return STRINGFUNCTIONS;
+    	return "charAt,concat,convertEncode,crc32,decimalFormat,endsWith,format,fromUTF8,hex,ilike,isAlNum,isAlpha,isDecimal,isDigit,isLower,isNumeric,isSpace,isTitle,isUpper,left,like,lower,lpad,ltrim,md5,regexCount,regexFind,regexReplace,repeat,right,rpad,rtrim,split,startsWith,strlen,strlenu,strip,strpos,strReplace,substr,substru,toUTF8,trim,upper,wc";
     }
 
     @Override
     public String getSystemFunctions() {
-        return getStringFunctions();
+        return "backup,defs,free,getActiveMaster,getBackupMeta,getOS,getOSBit,license,getBackupList,loadBackup,login,objs,mem,now,restore,shell,syntax";
     }
 
     @Override
@@ -951,11 +937,5 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
         return false;
-    }
-
-    private void CheckClosed() throws SQLException{
-        if(this.connection == null || this.connection.isClosed()){
-            throw new SQLException("Connection is Closed");
-        }
     }
 }
