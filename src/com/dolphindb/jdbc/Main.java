@@ -36,10 +36,6 @@ public class Main {
 	private static final String DB_URL_DFS1 = "jdbc:dolphindb://172.16.95.128:8922?databasePath=dfs://rangedb&partitionType=RANGE&partitionScheme= 0 5 10&locations= [`rh8503, `rh8502`rh8504]";
 
 	public static void main(String[] args) throws Exception {
-
-//		 CreateTable(System.getProperty("user.dir")+"/data/createTable_all.java",path,"t1","172.16.95.128", "8922");
-//		CreateValueTable("172.16.95.128", "8922");
-		
 		Object[] o1 = new Object[] { true, 'a', 122, 21, 22, 2.1f, 2.1, "Hello",
 				new BasicDate(LocalDate.parse("2013-06-13")), new BasicMonth(YearMonth.parse("2016-06")),
 				new BasicTime(LocalTime.parse("13:30:10.008")), new BasicMinute(LocalTime.parse("13:30:10")),
@@ -127,7 +123,7 @@ public class Main {
 			o4[i] = vector;
 		}
 
-		TestPreparedStatement("jdbc:dolphindb://172.16.95.128:8921","t1 = loadTable(\"C:/DolphinDB/Data/send/0717\",`t1)", "select * from t1","insert into t1 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", o4);
+//		TestPreparedStatement("jdbc:dolphindb://127.0.0.1:8848","t1 = loadTable(\"C:/DolphinDB/Data/send/0717\",`t1)", "select * from t1","insert into t1 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", o4);
 
 //		 TestPreparedStatement(DB_URL_DFS,"t1 = loadTable(\"C:/DolphinDB/Data/send/0717\",`t1)","select * from t1","update t1 set bool = ? where char = ?",new Object[]{false, 'a'});
 
@@ -223,45 +219,43 @@ public class Main {
 	
 	public static boolean CreateValueTable(String host, String port) {
 		DBConnection db = null;
-		
-			
-			StringBuilder sb = new StringBuilder();
-			sb.append("n=1000000\n");
-			sb.append("month=take(2000.01M..2016.12M, n)\n");
-			sb.append("x=rand(1.0, n)\n");
-			sb.append("t=table(month, x)\n");
-			sb.append("if(existsDatabase(\"dfs://valuedb\")){dropDatabase(\"dfs://valuedb\")}");
-			sb.append("db=database(\"dfs://valuedb\", VALUE, 2000.01M..2016.12M)\n");
-			sb.append("pt = db.createPartitionedTable(t, `pt, `month)\n");
-			sb.append("pt.append!(t)\n");
-			db = new DBConnection();
-			StringBuilder sbe = new StringBuilder();
-			try {
+
+		StringBuilder sb = new StringBuilder();
+		sb.append("n=1000000\n");
+		sb.append("month=take(2000.01M..2016.12M, n)\n");
+		sb.append("x=rand(1.0, n)\n");
+		sb.append("t=table(month, x)\n");
+		sb.append("if(existsDatabase(\"dfs://valuedb\")){dropDatabase(\"dfs://valuedb\")}");
+		sb.append("db=database(\"dfs://valuedb\", VALUE, 2000.01M..2016.12M)\n");
+		sb.append("pt = db.createPartitionedTable(t, `pt, `month)\n");
+		sb.append("pt.append!(t)\n");
+		db = new DBConnection();
+		StringBuilder sbe = new StringBuilder();
+		try {
 //				db = new DBConnection();
 //				sbe.append("existsTable(\"dfs://valuedb\", \"pt\")" );
 //				db.connect(host, Integer.parseInt(port));
 //				if(db.run(sbe.toString()).getString().equals("true")) {
 //					return true;
 //				}
-				
-				db.connect(host, Integer.parseInt(port),"admin","123456");
-				db.run(sb.toString());
-				
-				db = new DBConnection();
-				db.connect(host, Integer.parseInt(port));
-				if( db.run(sbe.toString()).getString().equals("true")) {
-					return true;
-				}
-				return false;
-				
-			} catch (NumberFormatException | IOException e) {
-				e.printStackTrace();
-			}finally {
-				if (db != null)
-					db.close();
+			
+			db.connect(host, Integer.parseInt(port),"admin","123456");
+			db.run(sb.toString());
+			
+			db = new DBConnection();
+			db.connect(host, Integer.parseInt(port));
+			if( db.run(sbe.toString()).getString().equals("true")) {
+				return true;
 			}
 			return false;
-						
+			
+		} catch (NumberFormatException | IOException e) {
+			e.printStackTrace();
+		}finally {
+			if (db != null)
+				db.close();
+		}
+		return false;
 	}
 
 	public static void TestStatementExecute(String url, String sql) throws Exception {
@@ -393,9 +387,9 @@ public class Main {
 //		System.out.println("TestPreparedStatement end");
 //	}
 
-	public static void TestPreparedStatement(String url, String loadTable, String select, String preSql,Object[] objects) throws Exception {
+	public static void TestPreparedStatement(String url, String loadTable, String select, String preSql, Object[] objects) throws Exception {
 		System.out.println("TestPreparedStatement begin");
-		
+
 		Properties info = new Properties();
 		info.put("user", "admin");
 		info.put("password", "123456");
@@ -1086,9 +1080,8 @@ public class Main {
 			stmt = conn.prepareStatement("insert into pt values(?,?)");
 			Thread.sleep(10000);
 			List<Object> entities = Arrays.asList(
-					new YearMonth[] { YearMonth.parse("2000-01"), YearMonth.parse("2000-01") },
-					new double[] { 0.4, 0.5 });
-			// Arrays.asList(YearMonth.parse("2018-06"),0.4);
+					(Object) new YearMonth[] { YearMonth.parse("2000-01"), YearMonth.parse("2000-01") },
+					(Object) new double[] { 0.4, 0.5 });
 			int index = 1;
 			for (Object entity : entities) {
 				stmt.setObject(index, entity);

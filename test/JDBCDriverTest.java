@@ -24,7 +24,7 @@ public class JDBCDriverTest {
     }
 
     @Test
-    public  void TestConnect1() throws SQLException {
+    public void TestConnect1() throws SQLException {
         TestConnect("jdbc:dolphindb://"+HOST+":"+PORT+"?databasePath="+DATABASE);
     }
     @Test
