@@ -23,17 +23,13 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private int dml;
 	private Object arguments;
 	private List<Object> argumentsBatch; // String List<Entity> Vector
-	private BasicTable tableDFS;
 	private boolean isInsert;
 	private String tableType;
 	private HashMap<Integer, Integer> colType;
 	private List<String> colNames;
 	private List<String> colTypeString;
+	@SuppressWarnings("rawtypes")
 	private HashMap<String, ArrayList> unNameTable;
-	private HashMap<String, Vector> unNameTable1;
-	private ArrayList<ArrayList<Object>> aTable;
-	private int count;
-//	int countD = 0;
 	
 	public String getTableName() {
 		return tableName;
@@ -41,7 +37,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	public JDBCPrepareStatement(JDBCConnection connection, String sql) throws SQLException {
 		super(connection);
-//		System.out.println("JDBCPrepareStatement.sql" + sql);
 		this.connection = connection;
 		this.preSql = sql.trim();
 		String[] strings = preSql.split(";");
@@ -52,7 +47,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 		this.preSql = strings[0];
 		this.tableName = Utils.getTableName(sql);
-//		System.out.println("JDBCPrepareStatement.tableName" + this.tableName);
 		this.dml = Utils.getDml(sql);
 		this.isInsert = this.dml == Utils.DML_INSERT;
 		if (tableName != null) {
@@ -67,7 +61,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						tableTypes = new LinkedHashMap<>();
 					}
 				} else {
-//					System.out.println("JDBCPrepareStatement.check the SQl " + preSql);
 					throw new SQLException("check the SQl " + preSql);
 				}
 			}
@@ -75,10 +68,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 		this.preSql += ";";
 		sqlSplit = this.preSql.split("\\?");
-//		System.out.println("JDBCPrepareStatement.sqlSplit :" + sqlSplit.length);
 		values = new Object[sqlSplit.length + 1];
 		batch = new StringBuilder();
-		this.count = 0;
 	}
 
 	private void getTableType() {
@@ -99,14 +90,12 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public ResultSet executeQuery() throws SQLException {
-//		System.out.println("JDBCPrepareStatement.executeQuery");
 		return super.executeQuery(createSql());
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public int executeUpdate() throws SQLException {
-//		System.out.println("JDBCPrepareStatement.executeUpdate");
-		checkClosed();
 		if (arguments == null) {
 			try {
 				arguments = createArguments();
@@ -119,7 +108,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			if (tableName != null) {
 				getTableType();
 				BasicInt basicInt;
-//				System.out.println(tableType);//print------------------------------------
 				if (tableType.equals(IN_MEMORY_TABLE)) {
 					try {
 						basicInt = (BasicInt) connection.run("tableInsert", (List<Entity>) arguments);
@@ -138,7 +126,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		case Utils.DML_DELETE:
 			if (tableName != null) {
 				getTableType();
-//				System.out.println(tableType);//print------------------------------------
 				if (tableType.equals(IN_MEMORY_TABLE)) {
 					try {
 						return super.executeUpdate((String) arguments);
@@ -146,7 +133,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						throw new SQLException(e);
 					}
 				} else {
-//					System.out.println(tableName);
 					throw new SQLException("only local in-memory table can update");
 				}
 			} else {
@@ -172,206 +158,176 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private int tableAppend() throws SQLException {
-//		System.out.println("JDBCPrepareStatement.tableAppend");
 		if (unNameTable.size() > 1) {
-				int insertRows = 0;
-				List<Vector> cols = new ArrayList<>(unNameTable.size());
-				
-				
-				for(int i = 0, len = colNames.size(); i< len; i++) {					
-					if(colTypeString.get(i).equals("INT")) { 				
-						List<Integer> col =  unNameTable.get(colNames.get(i));
-						cols.add(new BasicIntVector(col));
-					}
-					if(colTypeString.get(i).equals("DOUBLE")) {						
-						List<Double> col =  unNameTable.get(colNames.get(i));
-						cols.add(new BasicDoubleVector(col));
-					}
-					if(colTypeString.get(i).equals("SYMBOL") || colTypeString.get(i).equals("STRING")) {
-						
-						List<String> col =unNameTable.get(colNames.get(i)); ;
-						cols.add(new BasicStringVector(col));
-					}
-					if(colTypeString.get(i).equals("DATE")) {
-
-						List<BasicDate> col = unNameTable.get(colNames.get(i));
-						BasicDateVector vdate = new BasicDateVector(col.size());
-						for(int j = 0, len1 = col.size(); j < col.size(); j++) {
-							vdate.setInt(j,col.get(j).getInt());
-						}
-						cols.add(vdate);
-					}
-					if(colTypeString.get(i).equals("MONTH")) {
-						List<BasicMonth> col = unNameTable.get(colNames.get(i));
-						BasicMonthVector vMonth = new BasicMonthVector(col.size());
-						for(int j = 0, len1 = col.size(); j < col.size(); j++) {
-							vMonth.setInt(j,col.get(j).getInt());
-						}
-						cols.add(vMonth);
-					}
-					if(colTypeString.get(i).equals("DATETIME")) {
-						List<BasicDate> col = unNameTable.get(colNames.get(i));
-						BasicDateTimeVector vdate = new BasicDateTimeVector(col.size());
-						for(int j = 0, len1 = col.size(); j < len1; j++) {
-							vdate.setInt(j,col.get(j).getInt());
-						}
-						cols.add(vdate);
-					}if(colTypeString.get(i).equals("MINUTE")) {
-						List<BasicDate> col = unNameTable.get(colNames.get(i));
-						BasicMinuteVector vdate = new BasicMinuteVector(col.size());
-						for(int j = 0, len1 = col.size(); j < len1; j++) {
-							vdate.setInt(j,col.get(j).getInt());
-						}
-						cols.add(vdate);
-					}if(colTypeString.get(i).equals("SECOND")) {
-						List<BasicDate> col = unNameTable.get(colNames.get(i));
-						BasicSecondVector vdate = new BasicSecondVector(col.size());
-						for(int j = 0, len1 = col.size(); j < len1; j++) {
-							vdate.setInt(j,col.get(j).getInt());
-						}
-						cols.add(vdate);
-					}if(colTypeString.get(i).equals("TIMESTAMP")) {
-						List<Long> col = unNameTable.get(colNames.get(i));
-						cols.add(new BasicTimestampVector(col));
-					}if(colTypeString.get(i).equals("NANOTIME")) {
-						List<Long> col = unNameTable.get(colNames.get(i));
-						cols.add(new BasicNanoTimeVector(col));
-					}if(colTypeString.get(i).equals("NANOTIMESTAMP")) {
-						List<Long> col = unNameTable.get(colNames.get(i));
-						cols.add(new BasicNanoTimestampVector(col));
-					}if(colTypeString.get(i).equals("BOOL")) {
-						List<Byte> col = unNameTable.get(colNames.get(i));
-						cols.add(new BasicBooleanVector(col));
-					}
-					
-					
-														
-				}		
-				unNameTable = null;
-				
-
-				BasicTable insertTable = new BasicTable(colNames, cols);				
-				Map<String, Entity> vars = new HashMap<String, Entity>();
-				vars.put("t1", insertTable);
-				
-				try {
-					connection.getDBConnection().upload(vars);
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-				
-				
-				try {
-					connection.run(tableName + ".append!(t1)");
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				
-				cols = null;
-				insertTable = null;
-				vars = null;	
+			int insertRows = 0;
+			List<Vector> cols = new ArrayList<>(unNameTable.size());
 			
-				return insertRows;
+			for(int i = 0, len = colNames.size(); i< len; i++) {					
+				if (colTypeString.get(i).equals("INT")) {
+					List<Integer> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicIntVector(col));
+				}
+				if (colTypeString.get(i).equals("DOUBLE")) {
+					List<Double> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicDoubleVector(col));
+				}
+				if (colTypeString.get(i).equals("SYMBOL") || colTypeString.get(i).equals("STRING")) {
+					List<String> col = unNameTable.get(colNames.get(i)); ;
+					cols.add(new BasicStringVector(col));
+				}
+				if (colTypeString.get(i).equals("DATE")) {
+					List<BasicDate> col = unNameTable.get(colNames.get(i));
+					BasicDateVector vdate = new BasicDateVector(col.size());
+					for(int j = 0; j < col.size(); j++) {
+						vdate.setInt(j,col.get(j).getInt());
+					}
+					cols.add(vdate);
+				}
+				if (colTypeString.get(i).equals("MONTH")) {
+					List<BasicMonth> col = unNameTable.get(colNames.get(i));
+					BasicMonthVector vMonth = new BasicMonthVector(col.size());
+					for(int j = 0; j < col.size(); j++) {
+						vMonth.setInt(j,col.get(j).getInt());
+					}
+					cols.add(vMonth);
+				}
+				if (colTypeString.get(i).equals("DATETIME")) {
+					List<BasicDate> col = unNameTable.get(colNames.get(i));
+					BasicDateTimeVector vdate = new BasicDateTimeVector(col.size());
+					for(int j = 0, len1 = col.size(); j < len1; j++) {
+						vdate.setInt(j,col.get(j).getInt());
+					}
+					cols.add(vdate);
+				}
+				if (colTypeString.get(i).equals("MINUTE")) {
+					List<BasicDate> col = unNameTable.get(colNames.get(i));
+					BasicMinuteVector vdate = new BasicMinuteVector(col.size());
+					for(int j = 0, len1 = col.size(); j < len1; j++) {
+						vdate.setInt(j,col.get(j).getInt());
+					}
+					cols.add(vdate);
+				}
+				if (colTypeString.get(i).equals("SECOND")) {
+					List<BasicDate> col = unNameTable.get(colNames.get(i));
+					BasicSecondVector vdate = new BasicSecondVector(col.size());
+					for(int j = 0, len1 = col.size(); j < len1; j++) {
+						vdate.setInt(j,col.get(j).getInt());
+					}
+					cols.add(vdate);
+				}
+				if (colTypeString.get(i).equals("TIMESTAMP")) {
+					List<Long> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicTimestampVector(col));
+				}
+				if (colTypeString.get(i).equals("NANOTIME")) {
+					List<Long> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicNanoTimeVector(col));
+				}
+				if (colTypeString.get(i).equals("NANOTIMESTAMP")) {
+					List<Long> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicNanoTimestampVector(col));
+				}
+				if (colTypeString.get(i).equals("BOOL")) {
+					List<Byte> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicBooleanVector(col));
+				}								
+			}
+			unNameTable = null;
+
+			BasicTable insertTable = new BasicTable(colNames, cols);				
+			Map<String, Entity> vars = new HashMap<String, Entity>();
+			vars.put("t1", insertTable);
+			
+			try {
+				connection.getDBConnection().upload(vars);
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+
+			try {
+				connection.run(tableName + ".append!(t1)");
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			cols = null;
+			insertTable = null;
+			vars = null;	
+
+			return insertRows;
 		}
 		return 0;
 	}
 
 	@Override
-	public void setNull(int parameterIndex, int x) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setNull");
-		super.checkClosed();
-		setObject(parameterIndex, x);
+	public void setNull(int parameterIndex, int type) throws SQLException {
+		setObject(parameterIndex, TypeCast.nullScalar(type));
 	}
 
 	@Override
 	public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setBoolean");
-		super.checkClosed();
 		setObject(parameterIndex, x);
 	}
 
 	@Override
 	public void setByte(int parameterIndex, byte x) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setByte");
-		super.checkClosed();
 		setObject(parameterIndex, x);
 	}
 
 	@Override
 	public void setShort(int parameterIndex, short x) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setShort");
-		super.checkClosed();
 		setObject(parameterIndex, x);
 	}
 
 	@Override
 	public void setInt(int parameterIndex, int x) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setInt");
-		super.checkClosed();
 		setObject(parameterIndex, x);
 	}
 
 	@Override
 	public void setLong(int parameterIndex, long x) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setLong");
-		super.checkClosed();
 		setObject(parameterIndex, x);
 	}
 
 	@Override
 	public void setFloat(int parameterIndex, float x) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setFloat");
-		super.checkClosed();
 		setObject(parameterIndex, x);
 	}
 
 	@Override
 	public void setDouble(int parameterIndex, double x) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setDouble");
-		super.checkClosed();
 		setObject(parameterIndex, x);
 	}
 
 	@Override
 	public void setBigDecimal(int parameterIndex, BigDecimal bigDecimal) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setBigDecimal");
-		super.checkClosed();
 		setObject(parameterIndex, bigDecimal);
 	}
 
 	@Override
 	public void setString(int parameterIndex, String s) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setString");
-		super.checkClosed();
 		setObject(parameterIndex, s);
 	}
 
 	@Override
 	public void setBytes(int parameterIndex, byte[] bytes) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setBytes");
-		super.checkClosed();
 		setObject(parameterIndex, bytes);
 	}
 
 	@Override
 	public void setDate(int parameterIndex, Date date) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setDate");
-		super.checkClosed();
 		setObject(parameterIndex, date);
 	}
 
 	@Override
 	public void setTime(int parameterIndex, Time time) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setTime");
-		super.checkClosed();
 		setObject(parameterIndex, time);
 	}
 
 	@Override
 	public void setTimestamp(int parameterIndex, Timestamp timestamp) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setTimestamp");
-		super.checkClosed();
 		setObject(parameterIndex, timestamp);
 	}
 
@@ -402,8 +358,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setObject(int parameterIndex, Object object) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setObject");
-		super.checkClosed();
 		if (parameterIndex > sqlSplit.length - 1) {
 			throw new SQLException(
 					MessageFormat.format("Parameter index out of range ({0} > number of parameters, which is {1}).",
@@ -424,9 +378,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public boolean execute() throws SQLException {
-//		System.out.println("JDBCPrepareStatement.execute");
-		super.checkClosed();
-		checkClosed();
 		switch (dml) {
 		case Utils.DML_SELECT: {
 			ResultSet resultSet_ = executeQuery(preSql);
@@ -473,8 +424,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void addBatch() throws SQLException {
-//		System.out.println("JDBCPrepareStatement.addBatch");
-		super.checkClosed();
 		if (argumentsBatch == null) {
 			argumentsBatch = new ArrayList<>();
 		}
@@ -490,8 +439,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void addBatch(String sql) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.addBatch");
-		super.checkClosed();
 		if (argumentsBatch == null) {
 			argumentsBatch = new ArrayList<>();
 		}
@@ -500,7 +447,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void clearBatch() throws SQLException {
-//		System.out.println("JDBCPrepareStatement.clearBatch");
 		super.clearBatch();
 		if (argumentsBatch != null) {
 			argumentsBatch.clear();
@@ -516,17 +462,17 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public int[] executeBatch() throws SQLException {
-//		System.out.println("JDBCPrepareStatement.executeBatch");
-		super.checkClosed();	
 		int[] arr_int = new int[argumentsBatch.size()];
 		int index = 0;
 		try {
 			for (Object args : argumentsBatch) {
 				if (args == null) {
 					arr_int[index++] = 0;
-				} else if (args instanceof String) {
+				}
+				else if (args instanceof String) {
 					arr_int[index++] = super.executeUpdate((String) args);
-				} else {
+				}
+				else {
 					arr_int[index++] = executeUpdate();
 					return arr_int;
 				}
@@ -540,38 +486,31 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setCharacterStream");
-		Driver.unused();
+		Driver.unused("setCharacterStream not implemented");
 	}
 
 	@Override
 	public void setRef(int parameterIndex, Ref ref) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setRef");
-		Driver.unused();
+		Driver.unused("setRef not implemented");
 	}
 
 	@Override
 	public void setBlob(int parameterIndex, Blob blob) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setBlob");
-		Driver.unused();
+		Driver.unused("setBlob not implemented");
 	}
 
 	@Override
 	public void setClob(int parameterIndex, Clob clob) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setClob");
-		Driver.unused();
+		Driver.unused("setClob not implemented");
 	}
 
 	@Override
 	public void setArray(int parameterIndex, Array array) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setArray");
-		Driver.unused();
+		Driver.unused("setArray not implemented");
 	}
 
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
-//		System.out.println("JDBCPrepareStatement.getMetaData");
-		checkClosed();
 		if (resultSet != null) {
 			return resultSet.getMetaData();
 		} else {
@@ -581,163 +520,137 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setDate(int parameterIndex, Date date, Calendar cal) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setDate");
 		setObject(parameterIndex, date);
 	}
 
 	@Override
 	public void setTime(int parameterIndex, Time time, Calendar cal) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setTime");
 		setObject(parameterIndex, time);
 	}
 
 	@Override
 	public void setTimestamp(int parameterIndex, Timestamp timestamp, Calendar cal) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setTimestamp");
 		setObject(parameterIndex, timestamp);
 	}
 
 	@Override
 	public void setNull(int parameterIndex, int sqlType, String typeName) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setNull");
-		Driver.unused();
+		Driver.unused("setNull not implemented");
 	}
 
 	@Override
 	public void setURL(int parameterIndex, URL url) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setURL");
-		Driver.unused();
+		Driver.unused("setURL not implemented");
 	}
 
 	@Override
 	public ParameterMetaData getParameterMetaData() throws SQLException {
-//		System.out.println("JDBCPrepareStatement.getParameterMetaData");
-		Driver.unused();
+		Driver.unused("getParameterMetaData not implemented");
 		return null;
 	}
 
 	@Override
 	public void setRowId(int parameterIndex, RowId rowId) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setRowId");
-		Driver.unused();
+		Driver.unused("setRowId not implemented");
 	}
 
 	@Override
 	public void setNString(int parameterIndex, String s) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setNString");
-		Driver.unused();
+		Driver.unused("setNString not implemented");
 	}
 
 	@Override
 	public void setNCharacterStream(int parameterIndex, Reader reader, long l) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setNCharacterStream");
-		Driver.unused();
+		Driver.unused("setNCharacterStream not implemented");
 	}
 
 	@Override
 	public void setNClob(int parameterIndex, NClob nClob) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setNClob");
-
-		Driver.unused();
+		Driver.unused("setNClob not implemented");
 	}
 
 	@Override
 	public void setClob(int parameterIndex, Reader reader, long l) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setClob");
-		Driver.unused();
+		Driver.unused("setClob not implemented");
 	}
 
 	@Override
 	public void setBlob(int parameterIndex, InputStream inputStream, long l) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setBlob");
-		Driver.unused();
+		Driver.unused("setBlob not implemented");
 	}
 
 	@Override
 	public void setNClob(int parameterIndex, Reader reader, long l) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setNClob");
-		Driver.unused();
+		Driver.unused("setNClob not implemented");
 	}
 
 	@Override
 	public void setSQLXML(int parameterIndex, SQLXML sqlxml) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setSQLXML");
-		Driver.unused();
+		Driver.unused("setSQLXML not implemented");
 	}
 
 	@Override
 	public void setAsciiStream(int parameterIndex, InputStream inputStream, long l) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setAsciiStream");
-		Driver.unused();
+		Driver.unused("setAsciiStream not implemented");
 	}
 
 	@Override
 	public void setBinaryStream(int parameterIndex, InputStream inputStream, long l) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setBinaryStream");
-		Driver.unused();
+		Driver.unused("setBinaryStream not implemented");
 	}
 
 	@Override
 	public void setCharacterStream(int parameterIndex, Reader reader, long l) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setCharacterStream");
-		Driver.unused();
+		Driver.unused("setCharacterStream not implemented");
 	}
 
 	@Override
 	public void setAsciiStream(int parameterIndex, InputStream inputStream) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setAsciiStream");
-		Driver.unused();
+		Driver.unused("setAsciiStream not implemented");
 	}
 
 	@Override
 	public void setBinaryStream(int parameterIndex, InputStream inputStream) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setBinaryStream");
-		Driver.unused();
+		Driver.unused("setBinaryStream not implemented");
 	}
 
 	@Override
 	public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setCharacterStream");
-		Driver.unused();
+		Driver.unused("setCharacterStream not implemented");
 	}
 
 	@Override
 	public void setNCharacterStream(int parameterIndex, Reader reader) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setNCharacterStream");
-		Driver.unused();
+		Driver.unused("setNCharacterStream not implemented");
 	}
 
 	@Override
 	public void setClob(int parameterIndex, Reader reader) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setClob");
-		Driver.unused();
+		Driver.unused("setClob not implemented");
 	}
 
 	@Override
 	public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setBlob");
-		Driver.unused();
+		Driver.unused("setBlob not implemented");
 	}
 
 	@Override
 	public void setNClob(int parameterIndex, Reader reader) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setNClob");
-		Driver.unused();
+		Driver.unused("setNClob not implemented");
 	}
 
 	@Override
 	public void setObject(int parameterIndex, Object x, SQLType targetSqlType) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setObject");
+		Driver.unused("setObject not implemented");
 	}
 
 	@Override
 	public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
-//		System.out.println("JDBCPrepareStatement.setObject");
+		Driver.unused("setObject not implemented");
 	}
 
 	@Override
 	public long executeLargeUpdate() throws SQLException {
-//		System.out.println("JDBCPrepareStatement.executeLargeUpdate");
 		return 0;
 	}
 
@@ -764,7 +677,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				for (int i = 0; i < size; i++) {
 					colNames.add(names.getString(i).toString());
 				}
-				
 			}
 			
 			if(colTypeString == null){
@@ -776,35 +688,29 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				for (int i = 0; i < size; i++) {
 					colTypeString.add(typeString.getString(i).toString());
 				}
-				
 			}
-			
-			
-			
+
 			List<Entity> arguments = new ArrayList<>(sqlSplit.length);
 			arguments.add(tableNameArg);
 			getTableType();
 			int j = 0;
 			for (int i = 1; i < sqlSplit.length; ++i) {
-				
-				if(!tableType.equals(IN_MEMORY_TABLE)) {
+				if (!tableType.equals(IN_MEMORY_TABLE)) {
 					if (values[i] == null) {
 						throw new IOException("No value specified for parameter " + i);
 					}
 				
 					setColValue(colNames.get(j), colTypeString.get(j), colType.get(j),values[i]);				
 					j++;
-				}else {
-//					System.out.println("here");
+				}
+				else {
 					String s = TypeCast.TYPEINT2STRING.get(colType.get(i));
-                		if(values[i] == null){
+                		if(values[i] == null) {
                 			throw new IOException("No value specified for parameter "+i);
                 		}
 					arguments.add(TypeCast.java2db(values[i], s));
 				}
 			}
-			count++;
-			
 			return arguments;
 		} else {
 			try {
@@ -816,76 +722,67 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private void setColValue(String name, String typeString, Object type, Object value) throws IOException {
-		
-		ArrayList<Object> tmp = null;
 		if(unNameTable == null) {
 			unNameTable = new LinkedHashMap<>();
 		}	
-		addToCol(name, typeString, type, value );		
-	}
-
-	private Object[] expandArray(Object[] array){
-		Object[] newArray = new Object[array.length*2];
-		for(int i = 0; i < array.length ; i++) {
-			newArray[i] = array[i];
-		}
-		return newArray;
+		addToCol(name, typeString, type, value);		
 	}
 	
+	@SuppressWarnings("unchecked")
 	private void addToCol(String name, String typeString, Object type, Object value) {
-//		System.out.println("JDBCPrepareStatement.addToCol");
-
-		
 		ArrayList<Object> tmp = null;
-		if(!unNameTable.containsKey(name)) {
+		if (!unNameTable.containsKey(name)) {
 			tmp = new ArrayList<>();
-		}else{
+		}
+		else {
 			tmp = unNameTable.get(name);
 		}
 		
-		if(typeString.equals("INT")) {
+		if (typeString.equals("INT")) {
 			tmp.add((int)value);
 		}
-		if(typeString.equals("DATE")) {
+		if (typeString.equals("DATE")) {
 			tmp.add((BasicDate)value);
 		}
-		if(typeString.equals("SYMBOL")) {
+		if (typeString.equals("SYMBOL")) {
 			tmp.add(value.toString());
 		}
-		if(typeString.equals("DOUBLE")) {
+		if (typeString.equals("DOUBLE")) {
 			if (value.getClass() == Integer.class) {
 			    tmp.add((double)((int)value));
 			}else {
 				tmp.add((double)value);
 			}
 		}
-		if(typeString.equals("MONTH")) {
+		if (typeString.equals("MONTH")) {
 			tmp.add((BasicMonth) value);
-		}if(typeString.equals("DATETIME")) {
+		}
+		if (typeString.equals("DATETIME")) {
 			tmp.add((BasicDateTime)value);
-		}if(typeString.equals("MINUTE")) {
+		}
+		if (typeString.equals("MINUTE")) {
 			tmp.add((BasicMinute)value);
-		}if(typeString.equals("SECOND")) {
+		}
+		if (typeString.equals("SECOND")) {
 			tmp.add((BasicMinute)value);
-		}if(typeString.equals("TIMESTAMP")) {
+		}
+		if (typeString.equals("TIMESTAMP")) {
 			tmp.add((BasicTimestamp)value);
-		}if(typeString.equals("NANOTIME")) {
+		}
+		if (typeString.equals("NANOTIME")) {
 			tmp.add((BasicNanoTime)value);
-		}if(typeString.equals("NANOTIMESTAMP")) {
+		}
+		if (typeString.equals("NANOTIMESTAMP")) {
 			tmp.add((BasicNanoTimestamp)value);
-		}if(typeString.equals("BOOL")) {
+		}
+		if (typeString.equals("BOOL")) {
 			tmp.add((BasicBoolean)value);
 		}
 		
 		unNameTable.put(name, tmp);
-		
-//		return tmp;
 	}
 
-
-
 	private String createSql() throws SQLException {
-//		System.out.println("JDBCPrepareStatement.createSql");
 		StringBuilder sb = new StringBuilder();
 		for (int i = 1; i < sqlSplit.length; ++i) {
 			if (values[i] == null) {

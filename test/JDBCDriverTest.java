@@ -24,7 +24,7 @@ public class JDBCDriverTest {
     }
 
     @Test
-    public  void TestConnect1() throws SQLException {
+    public void TestConnect1() throws SQLException {
         TestConnect("jdbc:dolphindb://"+HOST+":"+PORT+"?databasePath="+DATABASE);
     }
     @Test
@@ -46,6 +46,9 @@ public class JDBCDriverTest {
         try {
             Class.forName("com.dolphindb.jdbc.Driver");
             conn = DriverManager.getConnection(connstr, LOGININFO);
+            DatabaseMetaData meta = conn.getMetaData();
+            System.out.println(connstr);
+            System.out.println("meta.getDatabaseProductName()");
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
             Assert.fail();

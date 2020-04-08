@@ -7,12 +7,10 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
-import java.time.ZoneId;
 import java.util.*;
 
 
@@ -31,8 +29,8 @@ public class JDBCResultSet implements ResultSet{
     private HashMap<Integer,Entity> insertRowMap;
     private boolean isInsert;
     private boolean isClosed = false;
-    private boolean isUpdateAble = false;
-
+    private boolean isUpdatable = false;
+    private Object o;
 
     public JDBCResultSet(JDBCConnection conn, JDBCStatement statement, Entity entity, String sql) throws SQLException{
         this.conn = conn;
@@ -47,22 +45,22 @@ public class JDBCResultSet implements ResultSet{
         for(int i=0; i<this.table.columns(); ++i){
             findColumnHashMap.put(this.table.getColumnName(i),i+1);
         }
-        this.isUpdateAble = false;
-        if(this.isUpdateAble){
+        this.isUpdatable = false;
+        if (this.isUpdatable){
             insertRowMap = new HashMap<>(this.table.columns()+1);
         }
 
 //        if(sql == null || sql.length() == 0){
-//            this.isUpdateAble = false;
+//            this.isUpdatable = false;
 //        }else{
-//            this.isUpdateAble = Utils.isUpdateAble(sql);
+//            this.isUpdatable = Utils.isUpdatable(sql);
 //
-//            if(this.isUpdateAble){
+//            if(this.isUpdatable){
 //                this.tableName = Utils.getTableName(sql);
-//                if(Utils.isUpdateAble(this.tableName)){
+//                if(Utils.isUpdatable(this.tableName)){
 //                    String s = run("typestr " + tableName).getString();
 //                    if(!s.equals("IN-MEMORY TABLE")){
-//                        this.isUpdateAble = false;
+//                        this.isUpdatable = false;
 //                    }else{
 //                        tableNameArg = new BasicString(tableName);
 //                    }
@@ -105,137 +103,210 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public boolean wasNull() throws SQLException {
-        checkClosed();
-        return false;
+    	return ((Scalar) o).isNull();
+    }
+
+    @Override
+    public Object getObject(int columnIndex) throws SQLException {
+        o = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+        return o;
     }
 
     @Override
     public String getString(int columnIndex) throws SQLException{
-        return ((Entity)getObject(columnIndex)).getString();
+        return ((Entity) getObject(columnIndex)).getString();
     }
 
     @Override
     public boolean getBoolean(int columnIndex) throws SQLException{
-        return ((BasicBoolean)getObject(columnIndex)).getBoolean();
+    	Scalar x = (Scalar) getObject(columnIndex);
+    	if (x.isNull()) return false;
+    	try {
+			return x.getNumber().byteValue() == 0 ? false : true;
+		} catch (Exception e) {
+			throw new SQLException(e);
+		}
     }
 
     @Override
     public byte getByte(int columnIndex) throws SQLException{
-        return ((BasicByte)getObject(columnIndex)).getByte();
+    	Scalar x = (Scalar) getObject(columnIndex);
+    	if (x.isNull()) return 0;
+    	try {
+			return x.getNumber().byteValue();
+		} catch (Exception e) {
+			throw new SQLException(e);
+		}
     }
 
     @Override
     public short getShort(int columnIndex) throws SQLException {
-        return ((BasicShort)getObject(columnIndex)).getShort();
+    	Scalar x = (Scalar) getObject(columnIndex);
+    	if (x.isNull()) return 0;
+    	try {
+			return x.getNumber().shortValue();
+		} catch (Exception e) {
+			throw new SQLException(e);
+		}
     }
 
     @Override
     public int getInt(int columnIndex) throws SQLException {
-        return ((BasicInt)getObject(columnIndex)).getInt();
+    	Scalar x = (Scalar) getObject(columnIndex);
+    	if (x.isNull()) return 0;
+    	try {
+			return x.getNumber().intValue();
+		} catch (Exception e) {
+			throw new SQLException(e);
+		}
     }
 
     @Override
     public long getLong(int columnIndex) throws SQLException {
-        return ((BasicLong)getObject(columnIndex)).getLong();
+    	Scalar x = (Scalar) getObject(columnIndex);
+    	if (x.isNull()) return 0;
+    	try {
+			return x.getNumber().longValue();
+		} catch (Exception e) {
+			throw new SQLException(e);
+		}
     }
 
     @Override
     public float getFloat(int columnIndex) throws SQLException {
-        return ((BasicFloat)getObject(columnIndex)).getFloat();
+    	Scalar x = (Scalar) getObject(columnIndex);
+    	if (x.isNull()) return 0;
+    	try {
+			return x.getNumber().floatValue();
+		} catch (Exception e) {
+			throw new SQLException(e);
+		}
     }
 
     @Override
     public double getDouble(int columnIndex) throws SQLException {
-        return ((BasicDouble)getObject(columnIndex)).getDouble();
+    	Scalar x = (Scalar) getObject(columnIndex);
+    	if (x.isNull()) return 0;
+    	try {
+			return x.getNumber().doubleValue();
+		} catch (Exception e) {
+			throw new SQLException(e);
+		}
     }
 
     @Override
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException{
-        Driver.unused();
+        Driver.unused("getBigDecimal not implemented");
         return null;
     }
 
     @Override
     public byte[] getBytes(int columnIndex) throws SQLException {
-        Driver.unused();
+        Driver.unused("getBytes not implemented");
         return null;
     }
 
     @Override
     public Date getDate(int columnIndex) throws SQLException {
-    		
-
-        checkClosed();
-        Scalar scalar = (Scalar) getObject(columnIndex);
-        LocalDate LocalDate = null;
-        if(scalar instanceof BasicDate){
-        		LocalDate = ((BasicDate) scalar).getDate();
-        }if(scalar instanceof BasicMonth){
-        		YearMonth tmp = ((BasicMonth) scalar).getMonth();
-    			LocalDate =  LocalDate.of(tmp.getYear(),tmp.getMonth(),1);
+        Scalar x = (Scalar) getObject(columnIndex);
+        LocalDate localdate = null;
+        if (x instanceof BasicDate) {
+            localdate = ((BasicDate) x).getDate();
         }
-        if (LocalDate==null) return null;
-        
-
-        return java.sql.Date.valueOf(LocalDate);
+        else if (x instanceof BasicMonth) {
+            YearMonth dt = ((BasicMonth) x).getMonth();
+            if (dt != null)
+                localdate = LocalDate.of(dt.getYear(), dt.getMonth(),1);
+        }
+        else if (x instanceof BasicDateTime) {
+        	LocalDateTime dt = ((BasicDateTime) x).getDateTime();
+            if (dt != null)
+                localdate = LocalDate.of(dt.getYear(), dt.getMonth(), dt.getDayOfMonth());
+        }
+        else if (x instanceof BasicTimestamp) {
+        	LocalDateTime dt = ((BasicTimestamp) x).getTimestamp();
+            if (dt != null)
+                localdate = LocalDate.of(dt.getYear(), dt.getMonth(), dt.getDayOfMonth());
+        }
+        else if (x instanceof BasicNanoTimestamp) {
+        	LocalDateTime dt = ((BasicNanoTimestamp) x).getNanoTimestamp();
+            if (dt != null)
+                localdate = LocalDate.of(dt.getYear(), dt.getMonth(), dt.getDayOfMonth());
+        }
+        if (localdate == null) return null;
+        return java.sql.Date.valueOf(localdate);
     }
 
     @Override
     public Time getTime(int columnIndex) throws SQLException {
-        checkClosed();
-        Scalar scalar = (Scalar) getObject(columnIndex);
+        Scalar x = (Scalar) getObject(columnIndex);
         LocalTime time = null;
-        if(scalar instanceof BasicMinute){
-            time = ((BasicMinute) scalar).getMinute();
-        }else if(scalar instanceof BasicSecond){
-            time = ((BasicSecond) scalar).getSecond();
-        }else if(scalar instanceof BasicNanoTime){
-            time = ((BasicNanoTime) scalar).getNanoTime();
-        }else if(scalar instanceof BasicTime) {
-        		time = ((BasicTime) scalar).getTime();
+        if (x instanceof BasicMinute){
+            time = ((BasicMinute) x).getMinute();
         }
-        if (time==null) return null;
-        return java.sql.Time.valueOf( time );
+        else if (x instanceof BasicSecond){
+            time = ((BasicSecond) x).getSecond();
+        }
+        else if (x instanceof BasicTime) {
+            time = ((BasicTime) x).getTime();
+        }
+        else if (x instanceof BasicDateTime) {
+        	LocalDateTime dt = ((BasicDateTime) x).getDateTime();
+            if (dt != null)
+                time = LocalTime.of(dt.getHour(), dt.getMinute(), dt.getSecond());
+        }
+        else if (x instanceof BasicNanoTime){
+            time = ((BasicNanoTime) x).getNanoTime();
+        }
+        else if (x instanceof BasicTimestamp) {
+        	LocalDateTime dt = ((BasicTimestamp) x).getTimestamp();
+            if (dt != null)
+                time = LocalTime.of(dt.getHour(), dt.getMinute(), dt.getSecond());
+        }
+        else if (x instanceof BasicNanoTimestamp) {
+        	LocalDateTime dt = ((BasicNanoTimestamp) x).getNanoTimestamp();
+        	if (dt != null)
+        		time = LocalTime.of(dt.getHour(), dt.getMinute(), dt.getSecond(), dt.getNano());
+        }
+        if (time == null) return null;
+        return java.sql.Time.valueOf(time);
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        checkClosed();
         Scalar scalar = (Scalar) getObject(columnIndex);
         LocalDateTime dateTime = null;
-        if(scalar instanceof BasicDateTime){
+        if (scalar instanceof BasicDateTime){
             dateTime = ((BasicDateTime) scalar).getDateTime();
-        }else if(scalar instanceof BasicTimestamp){
+        }
+        else if (scalar instanceof BasicTimestamp){
             dateTime = ((BasicTimestamp) scalar).getTimestamp();
-        }else if(scalar instanceof BasicNanoTimestamp){
+        }
+        else if (scalar instanceof BasicNanoTimestamp){
             dateTime = ((BasicNanoTimestamp) scalar).getNanoTimestamp();
         }
-        if (dateTime==null) return null;
+        if (dateTime == null) return null;
         return java.sql.Timestamp.valueOf(dateTime);
-
     }
 
     @Override
     public InputStream getAsciiStream(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public InputStream getUnicodeStream(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public InputStream getBinaryStream(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
-    public String getString(String columnLabel) throws SQLException{
-        return getString(findColumn(columnLabel));
+    public Object getObject(String columnLabel) throws SQLException {
+        return table.getColumn(columnLabel).get(row);
     }
 
     @Override
@@ -274,9 +345,13 @@ public class JDBCResultSet implements ResultSet{
     }
 
     @Override
+    public String getString(String columnLabel) throws SQLException{
+        return getString(findColumn(columnLabel));
+    }
+
+    @Override
     public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException{
-        Driver.unused();
-        return null;
+        return getBigDecimal(findColumn(columnLabel), scale);
     }
 
     @Override
@@ -301,37 +376,34 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public InputStream getAsciiStream(String columnLabel) throws SQLException {
-        Driver.unused();
-        return null;
+        return getAsciiStream(findColumn(columnLabel));
     }
 
     @Override
     public InputStream getUnicodeStream(String columnLabel) throws SQLException {
-        Driver.unused();
-        return null;
+        return getUnicodeStream(findColumn(columnLabel));
     }
 
     @Override
     public InputStream getBinaryStream(String columnLabel) throws SQLException {
-        Driver.unused();
-        return null;
+        return getBinaryStream(findColumn(columnLabel));
     }
 
     @Override
     public SQLWarning getWarnings() throws SQLException {
-        Driver.unused();
+    	// TODO: implement warnings
         return null;
     }
 
     @Override
     public void clearWarnings() throws SQLException {
-        Driver.unused();
+    	// TODO: implement warnings
+        return;
     }
 
     @Override
     public String getCursorName() throws SQLException {
-        Driver.unused();
-        return null;
+    	throw new SQLFeatureNotSupportedException();
     }
 
     @Override
@@ -340,219 +412,205 @@ public class JDBCResultSet implements ResultSet{
     }
 
     @Override
-    public Object getObject(int columnIndex) throws SQLException {
-        checkClosed();
-        return table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+    public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
+    	throw new SQLFeatureNotSupportedException();
     }
 
     @Override
-    public Object getObject(String columnLabel) throws SQLException {
-        checkClosed();
-        return table.getColumn(columnLabel).get(row);
+    public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException{
+    	throw new SQLFeatureNotSupportedException();
+    }
+
+    @SuppressWarnings("unchecked")
+	@Override
+    public <T> T getObject(int columnIndex, Class<T> aClass) throws SQLException {
+        return (T) getObject(columnIndex);
+    }
+
+    @SuppressWarnings("unchecked")
+	@Override
+    public <T> T getObject(String columnLabel, Class<T> aClass) throws SQLException {
+        return (T) getObject(columnLabel);
     }
 
     @Override
     public int findColumn(String columnLabel) throws SQLException {
-        checkClosed();
         return findColumnHashMap.get(columnLabel);
     }
 
     @Override
     public Reader getCharacterStream(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public Reader getCharacterStream(String columnLabel) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public boolean isBeforeFirst() throws SQLException {
-        checkClosed();
         return row < 0;
     }
 
     @Override
     public boolean isAfterLast() throws SQLException {
-        checkClosed();
         return row >= rows;
     }
 
     @Override
     public boolean isFirst() throws SQLException {
-        checkClosed();
         return row == 0;
     }
 
     @Override
     public boolean isLast() throws SQLException {
-        checkClosed();
         return row == rows-1;
     }
 
     @Override
     public void beforeFirst() throws SQLException {
-        checkClosed();
         row = -1;
     }
 
     @Override
     public void afterLast() throws SQLException {
-        checkClosed();
         row = rows;
     }
 
     @Override
     public boolean first() throws SQLException {
-        checkClosed();
         row = 0;
         return rows > 0;
     }
 
     @Override
     public boolean last() throws SQLException {
-        checkClosed();
         row = rows - 1;
-        return  rows > 0;
+        return rows > 0;
     }
 
     @Override
     public int getRow() throws SQLException {
-        checkClosed();
         return row + 1;
     }
 
     @Override
     public boolean absolute(int columnIndex) throws SQLException {
-        checkClosed();
         row = columnIndex - 1;
         return row < rows;
     }
 
     @Override
     public boolean relative(int columnIndex) throws SQLException {
-        checkClosed();
         row += columnIndex;
         return  row >= 0 && row < rows;
     }
 
     @Override
     public boolean previous() throws SQLException {
-        checkClosed();
         --row;
         return row >= 0;
     }
 
     @Override
-    public void setFetchDirection(int columnIndex) throws SQLException {
-        Driver.unused();
+    public void setFetchDirection(int direction) throws SQLException {
+        return;
     }
 
     @Override
     public int getFetchDirection() throws SQLException {
-        checkClosed();
         return FETCH_FORWARD;
     }
 
     @Override
-    public void setFetchSize(int columnIndex) throws SQLException {
-        Driver.unused();
+    public void setFetchSize(int rows) throws SQLException {
+        return;
     }
 
     @Override
     public int getFetchSize() throws SQLException {
-        Driver.unused();
-        return 0;
+        return statement != null ? statement.getFetchSize() : 0;
     }
 
     @Override
     public int getType() throws SQLException {
-        Driver.unused();
-        return 0;
+        return ResultSet.TYPE_SCROLL_SENSITIVE;
     }
 
     @Override
     public int getConcurrency() throws SQLException {
-        Driver.unused();
-        return 0;
+        return ResultSet.CONCUR_READ_ONLY;
     }
 
     @Override
     public boolean rowUpdated() throws SQLException {
-        Driver.unused();
         return false;
     }
 
     @Override
     public boolean rowInserted() throws SQLException {
-        Driver.unused();
         return  false;
     }
 
     @Override
     public boolean rowDeleted() throws SQLException {
-        Driver.unused();
-        return  false;
+        return false;
     }
 
     @Override
     public void updateNull(int columnIndex) throws SQLException {
-        Driver.unused();
+        return;
     }
 
     @Override
     public void updateBoolean(int columnIndex, boolean x) throws SQLException {
-        update(columnIndex,x);
+        update(columnIndex, x);
     }
 
     @Override
     public void updateByte(int columnIndex, byte x) throws SQLException {
-        update(columnIndex,x);
+        update(columnIndex, x);
     }
 
     @Override
     public void updateShort(int columnIndex, short x) throws SQLException {
-        update(columnIndex,x);
+        update(columnIndex, x);
     }
 
     @Override
     public void updateInt(int columnIndex, int x) throws SQLException {
-        update(columnIndex,x);
+        update(columnIndex, x);
     }
 
     @Override
     public void updateLong(int columnIndex, long x) throws SQLException {
-        update(columnIndex,x);
+        update(columnIndex, x);
     }
 
     @Override
     public void updateFloat(int columnIndex, float x) throws SQLException {
-        update(columnIndex,x);
+        update(columnIndex, x);
     }
 
     @Override
     public void updateDouble(int columnIndex, double x) throws SQLException {
-        update(columnIndex,x);
+        update(columnIndex, x);
     }
 
     @Override
     public void updateBigDecimal(int columnIndex, BigDecimal bigDecimal) throws SQLException {
-        Driver.unused();
+        return;
     }
 
     @Override
@@ -703,7 +761,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void insertRow() throws SQLException {
-        isUpdateAble();
+        isUpdatable();
         try {
             if(insertRow == row){
                 createArguments();
@@ -722,7 +780,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void updateRow() throws SQLException {
-        isUpdateAble();
+        isUpdatable();
         if(updateRow == row){
             updateRun();
             table = loadTable();
@@ -733,7 +791,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void deleteRow() throws SQLException {
-        isUpdateAble();
+        isUpdatable();
         StringBuilder sb = new StringBuilder("delete from ").append(tableName).append(" where ");
         for(int i=1; i<=table.columns(); ++i){
             sb.append(getColumnName(i)).append(" = ").append(Utils.java2db(getObject(i))).append(", ");
@@ -747,8 +805,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void refreshRow() throws SQLException {
-        checkClosed();
-        isUpdateAble();
+        isUpdatable();
         BasicTable newTable = loadTable();
         try {
             for(int i=0; i<newTable.columns(); ++i){
@@ -762,8 +819,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void cancelRowUpdates() throws SQLException {
-        checkClosed();
-        isUpdateAble();
+        isUpdatable();
         if(isInsert){
             throw new SQLException("cursor is on the insert row");
         }
@@ -773,194 +829,162 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void moveToInsertRow() throws SQLException {
-        checkClosed();
-        isUpdateAble();
+        isUpdatable();
         isInsert = true;
     }
 
     @Override
     public void moveToCurrentRow() throws SQLException {
-        checkClosed();
         isInsert = false;
     }
 
     @Override
     public Statement getStatement() throws SQLException {
-        checkClosed();
         return statement;
     }
 
     @Override
-    public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
-        return getObject(adjustColumnIndex(columnIndex));
-    }
-
-    @Override
     public Ref getRef(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public Blob getBlob(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public Clob getClob(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public Array getArray(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
-    public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException{
-        return getObject(columnLabel);
-    }
-
-    @Override
     public Ref getRef(String columnLabel) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public Blob getBlob(String columnLabel) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public Clob getClob(String columnLabel) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public Array getArray(String columnLabel) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public Date getDate(int columnIndex, Calendar calendar) throws SQLException {
-        Driver.unused();
-        return getDate(adjustColumnIndex(columnIndex));
+    	return null;
     }
 
     @Override
     public Date getDate(String columnLabel, Calendar calendar) throws SQLException {
-        Driver.unused();
-        return getDate(columnLabel);
+    	return null;
     }
 
     @Override
     public Time getTime(int columnIndex, Calendar calendar) throws SQLException {
-        Driver.unused();
-        return getTime(adjustColumnIndex(columnIndex));
+    	return null;
     }
 
     @Override
     public Time getTime(String columnLabel, Calendar calendar) throws SQLException {
-        Driver.unused();
-        return getTime(columnLabel);
+    	return null;
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex, Calendar calendar) throws SQLException {
-        Driver.unused();
-        return getTimestamp(adjustColumnIndex(columnIndex));
+    	return null;
     }
 
     @Override
     public Timestamp getTimestamp(String columnLabel, Calendar calendar) throws SQLException {
-        Driver.unused();
-        return getTimestamp(columnLabel);
+    	return null;
     }
 
     @Override
     public URL getURL(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public URL getURL(String columnLabel) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public void updateRef(int columnIndex, Ref ref) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateRef(String columnLabel, Ref ref) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateBlob(int columnIndex, Blob blob) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateBlob(String columnLabel, Blob blob) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateClob(int columnIndex, Clob clob) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateClob(String columnLabel, Clob clob) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateArray(int columnIndex, Array array) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateArray(String columnLabel, Array array) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public RowId getRowId(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public RowId getRowId(String columnLabel) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public void updateRowId(int columnIndex, RowId rowId) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateRowId(String columnLabel, RowId rowId) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public int getHoldability() throws SQLException {
-        Driver.unused();
         return 0;
     }
 
@@ -971,323 +995,285 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void updateNString(int columnIndex, String columnLabel) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateNString(String columnLabel, String columnLabel1) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateNClob(int columnIndex, NClob nClob) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateNClob(String columnLabel, NClob nClob) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public NClob getNClob(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public NClob getNClob(String columnLabel) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public SQLXML getSQLXML(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public SQLXML getSQLXML(String columnLabel) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public void updateSQLXML(int columnIndex, SQLXML sqlxml) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateSQLXML(String columnLabel, SQLXML sqlxml) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public String getNString(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public String getNString(String columnLabel) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public Reader getNCharacterStream(int columnIndex) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public Reader getNCharacterStream(String columnLabel) throws SQLException {
-        Driver.unused();
         return null;
     }
 
     @Override
     public void updateNCharacterStream(int columnIndex, Reader reader, long l) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateNCharacterStream(String columnLabel, Reader reader, long l) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateAsciiStream(int columnIndex, InputStream inputStream, long l) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateBinaryStream(int columnIndex, InputStream inputStream, long l) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateCharacterStream(int columnIndex, Reader reader, long l) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateAsciiStream(String columnLabel, InputStream inputStream, long l) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateBinaryStream(String columnLabel, InputStream inputStream, long l) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateCharacterStream(String columnLabel, Reader reader, long l) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateBlob(int columnIndex, InputStream inputStream, long l) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateBlob(String columnLabel, InputStream inputStream, long l) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateClob(int columnIndex, Reader reader, long l) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateClob(String columnLabel, Reader reader, long l) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateNClob(int columnIndex, Reader reader, long l) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateNClob(String columnLabel, Reader reader, long l) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateNCharacterStream(int columnIndex, Reader reader) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateNCharacterStream(String columnLabel, Reader reader) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateAsciiStream(int columnIndex, InputStream inputStream) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateBinaryStream(int columnIndex, InputStream inputStream) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateCharacterStream(int columnIndex, Reader reader) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateAsciiStream(String columnLabel, InputStream inputStream) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateBinaryStream(String columnLabel, InputStream inputStream) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateClob(int columnIndex, Reader reader) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateClob(String columnLabel, Reader reader) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateNClob(int columnIndex, Reader reader) throws SQLException {
-        Driver.unused();
+    	return;
     }
 
     @Override
     public void updateNClob(String columnLabel, Reader reader) throws SQLException {
-        Driver.unused();
-    }
-
-    @Override
-    public <T> T getObject(int columnIndex, Class<T> aClass) throws SQLException {
-        checkClosed();
-        return (T)getObject(columnIndex);
-    }
-
-    @Override
-    public <T> T getObject(String columnLabel, Class<T> aClass) throws SQLException {
-        checkClosed();
-        return (T)getObject(columnLabel);
+    	return;
     }
 
     @Override
     public <T> T unwrap(Class<T> aClass) throws SQLException {
-        checkClosed();
         return aClass.cast(this);
     }
 
     @Override
     public boolean isWrapperFor(Class<?> aClass) throws SQLException {
-        checkClosed();
         return aClass.isInstance(this);
     }
 
     public BasicDate getBasicDate(String columnLabel) throws SQLException{
-        checkClosed();
         return (BasicDate)getObject(columnLabel);
     }
 
     public BasicMonth getBasicMonth(String columnLabel) throws SQLException{
-        checkClosed();
         return (BasicMonth)getObject(columnLabel);
     }
 
     public BasicTime getBasicTime(String columnLabel) throws SQLException{
-        checkClosed();
         return (BasicTime)getObject(columnLabel);
     }
 
     public BasicMinute getBasicMinute(String columnLabel) throws SQLException{
-        checkClosed();
         return (BasicMinute)getObject(columnLabel);
     }
 
     public BasicSecond getBasicSecond(String columnLabel) throws SQLException{
-        checkClosed();
         return (BasicSecond)getObject(columnLabel);
     }
 
     public BasicDateTime getBasicDateTime(String columnLabel) throws SQLException{
-        checkClosed();
         return (BasicDateTime)getObject(columnLabel);
     }
 
     public BasicNanoTime getBasicNanoTime(String columnLabel) throws SQLException{
-        checkClosed();
         return (BasicNanoTime)getObject(columnLabel);
     }
 
     public BasicNanoTimestamp getBasicNanoTimestamp(String columnLabel) throws SQLException{
-        checkClosed();
         return (BasicNanoTimestamp)getObject(columnLabel);
     }
 
     public BasicDate getBasicDate(int columnIndex) throws SQLException{
-        checkClosed();
         return (BasicDate)getObject(columnIndex);
     }
 
     public BasicMonth getBasicMonth(int columnIndex) throws SQLException{
-        checkClosed();
         return (BasicMonth)getObject(columnIndex);
     }
 
     public BasicTime getBasicTime(int columnIndex) throws SQLException{
-        checkClosed();
         return (BasicTime)getObject(columnIndex);
     }
 
     public BasicMinute getBasicMinute(int columnIndex) throws SQLException{
-        checkClosed();
         return (BasicMinute)getObject(columnIndex);
     }
 
     public BasicSecond getBasicSecond(int columnIndex) throws SQLException{
-        checkClosed();
         return (BasicSecond)getObject(columnIndex);
     }
 
     public BasicDateTime getBasicDateTime(int columnIndex) throws SQLException{
-        checkClosed();
         return (BasicDateTime)getObject(columnIndex);
     }
 
     public BasicNanoTime getBasicNanoTime(int columnIndex) throws SQLException{
-        checkClosed();
         return (BasicNanoTime)getObject(columnIndex);
     }
 
     public BasicNanoTimestamp getBasicNanoTimestamp(int columnIndex) throws SQLException{
-        checkClosed();
         return (BasicNanoTimestamp)getObject(columnIndex);
     }
 
@@ -1295,25 +1281,18 @@ public class JDBCResultSet implements ResultSet{
         update(findColumn(name),value);
     }
 
-
-
     private void update(int columnIndex, Object value) throws SQLException{
-        checkClosed();
-        isUpdateAble();
-        if(isInsert){
+        isUpdatable();
+        if (isInsert){
             insertRow = row;
-        }else{
+        }
+        else {
             updateRow = row;
         }
         insert(columnIndex, value);
     }
 
-    private void insert(String name, Object value) throws SQLException{
-        insert(findColumn(name),value);
-    }
-
     private void insert(int columnIndex, Object value) throws SQLException {
-        checkClosed();
         try {
             Entity targetEntity = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
             insertRowMap.put(columnIndex, TypeCast.java2db(value,targetEntity.getClass().getName()));
@@ -1358,14 +1337,13 @@ public class JDBCResultSet implements ResultSet{
     }
 
     private void checkClosed() throws SQLException{
-        if(table == null && isClosed){
+        if (table == null && isClosed){
             throw new SQLException("ResultSet is closed");
         }
     }
 
-
-    public void isUpdateAble() throws SQLException{
-        if(!isUpdateAble) throw new SQLException("Unable to update table");
+    public void isUpdatable() throws SQLException{
+        if (!isUpdatable) throw new SQLException("Unable to update table");
     }
 
     private void createArguments(){

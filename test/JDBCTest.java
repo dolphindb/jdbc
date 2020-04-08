@@ -1,6 +1,9 @@
-import static org.junit.Assert.*;
-
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -10,11 +13,11 @@ import java.util.HashMap;
 
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.FixMethodOrder;
 import org.junit.Test;
-import org.junit.runners.MethodSorters;
 
+import com.dolphindb.jdbc.JDBCStatement;
 import com.dolphindb.jdbc.Main;
+import com.xxdb.DBConnection;
 import com.xxdb.data.BasicAnyVector;
 import com.xxdb.data.BasicBoolean;
 import com.xxdb.data.BasicByte;
@@ -35,17 +38,16 @@ import com.xxdb.data.BasicTimestamp;
 import com.xxdb.data.Scalar;
 import com.xxdb.data.Vector;
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class JDBCTest {
-	
-	
-	private static final String path = "H:/test/jdbc";
-	
-	private static final String host = "localhost";
-	private static final String port = "8080";
-	private static final String SERVER = "localhost:8080";
-	private static final String DB_URL = MessageFormat.format("jdbc:dolphindb://"+SERVER+"?databasePath={0}",path);
+	private static final String path = "F:/test/jdbc";
 
+	private static final String HOST = "192.168.1.12";
+	private static final String PORT = "8848";
+	private static final String USERNAME = "admin";
+	private static final String PASSWD = "123456";
+	private static final String SERVER = HOST + ":" + PORT;
+	private static final String DB_URL = MessageFormat.format("jdbc:dolphindb://"+SERVER+"?databasePath={0}",path);
+	private static final String DB_URL_WITHLOGIN = "jdbc:dolphindb://"+SERVER+"?user=admin&password=123456";
 	private static final String DB_URL1 = "jdbc:dolphindb://";
 	private static final String DB_URL_DFS = "jdbc:dolphindb://"+SERVER+"?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=2000.01M..2016.12M";
 	private static final String DB_URL_DFS1 = "jdbc:dolphindb://"+SERVER+"?databasePath=dfs://rangedb&partitionType=RANGE&partitionScheme= 0 5 10&locations= [`rh8503, `rh8502`rh8504]";
@@ -77,7 +79,7 @@ public class JDBCTest {
 	Vector vector;
 
 	@Before
-	public void setUp() throws Exception{  
+	public void setUp() throws Exception{
 		for (int i = 0; i < len; ++i) {
 			vector = new BasicAnyVector(n);
 			switch (i) {
@@ -138,7 +140,16 @@ public class JDBCTest {
 			map.put(i + 1, vector);
 			o4[i] = vector;
 		}
-//		Main.CreateValueTable(host, port);
+		Main.CreateValueTable(HOST, PORT);
+		DBConnection connection = new DBConnection();
+		try {
+			connection.connect(HOST, Integer.parseInt(PORT), USERNAME, PASSWD);
+			connection.run("if (existsDatabase('dfs://testdb')) dropDatabase('dfs://testdb'); db = database('dfs://testdb', VALUE, 1..10); t0 = table(1..10 as id, NULL.join(2019.01.01T00:00:01 + 2..10) as time); t = db.createPartitionedTable(t0, `tb, `id); t.append!(t0)");
+			connection.close();
+		}
+		catch (Exception e) {
+			// TODO: handle exception
+		}
 	}
 	
 	
@@ -148,25 +159,61 @@ public class JDBCTest {
 //	}
 	
 	@Test
+	public void getDataTest() {
+		JDBCStatement stmt = null;
+		Connection conn = null;
+	    try {
+	    	Class.forName("com.dolphindb.jdbc.Driver");
+	        conn = DriverManager.getConnection(DB_URL_WITHLOGIN);
+
+	        stmt = (JDBCStatement) conn.createStatement();
+	        stmt.execute("t = loadTable('dfs://testdb', `tb)");
+	        //load table
+	        ResultSet rs = stmt.executeQuery("select * from t");
+	        rs.next();
+	        Timestamp ts = rs.getTimestamp(2);
+	        Assert.assertTrue(rs.wasNull());
+	        rs.getInt(1);
+	        Assert.assertFalse(rs.wasNull());
+	        rs.next();
+	        ts = rs.getTimestamp(2);
+	        Assert.assertEquals(ts, Timestamp.valueOf("2019-01-01 00:00:03"));
+	        Time t = rs.getTime(2);
+	        Assert.assertEquals(t, Time.valueOf("00:00:03"));
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	    }
+	    finally {
+	        try {
+	            if (stmt != null)
+	                stmt.close();
+	            } catch (SQLException se2) {
+	            }
+	        try {
+	            if (conn != null)
+	                conn.close();
+	        } catch (SQLException se) {
+	            se.printStackTrace();
+	        }
+	    }
+	}
+	
+	@Test
 	public void loadTableTest(){  
-		
-			try {
-				System.out.println(DB_URL);
-				Main.TestPreparedStatement(DB_URL,"t1 = loadTable(\"" +path+"\",`t1,,true)", "select * from t1","insert into t1 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", o4);
-			} catch (Exception e) {
-				Assert.fail();
-				e.printStackTrace();
-			}
-		
+		try {
+			System.out.println(DB_URL);
+			Main.TestPreparedStatement(DB_URL, "t1 = loadTable(\"" +path+"\",`t1,,true)", "select * from t1","insert into t1 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", o4);
+			Assert.fail();
+		} catch (Exception e) {
+		}
 	}
 	
 	@Test
 	public void updateTableTest() {  
 		try {
-			Main.TestPreparedStatement(DB_URL,"t1 = loadTable(\"" +path+"\",`t1)","select * from t1","update t1 set bool = ? where char = ?",new Object[]{false, 'a'});
-		} catch (Exception e) {
+			Main.TestPreparedStatement(DB_URL, "t1 = loadTable(\"" +path+"\",`t1)","select * from t1","update t1 set bool = ? where char = ?", new Object[]{false, 'a'});
 			Assert.fail();
-			e.printStackTrace();
+		} catch (Exception e) {
 		}
 		
 	}
@@ -174,20 +221,18 @@ public class JDBCTest {
 	@Test
 	public void deleteTableTest(){  
 		try {
-			Main.TestPreparedStatement(DB_URL,"t1 = loadTable(\"" +path+"\",`t1)","select * from t1","delete from t1 where char = ?",new Object[]{'a'});
-		} catch (Exception e) {
-			e.printStackTrace();
+			Main.TestPreparedStatement(DB_URL, "t1 = loadTable(\"" +path+"\",`t1)","select * from t1","delete from t1 where char = ?", new Object[]{'a'});
 			Assert.fail();
+		} catch (Exception e) {
 		}
 	}
 	
 	@Test
 	public void DFSLoadTableInsertTest(){  
 		try {
-			Main.TestPreparedStatement(DB_URL_DFS,null,"select top 2 * from pt","insert into pt values(?, ?)",new Object[]{new YearMonth[]{YearMonth.parse("2000-01"),YearMonth.parse("2000-01")},new double[]{0.4,0.5}});
-		} catch (Exception e) {
-			e.printStackTrace();
+			Main.TestPreparedStatement(DB_URL_DFS, null, "select top 2 * from pt","insert into pt values(?, ?)", new Object[]{new YearMonth[]{YearMonth.parse("2000-01"),YearMonth.parse("2000-01")},new double[]{0.4,0.5}});
 			Assert.fail();
+		} catch (Exception e) {
 		}
 	}
 	
@@ -195,9 +240,8 @@ public class JDBCTest {
 	public void DFSLoadTableUpdateTest(){  
 		try {
 			Main.TestPreparedStatement(DB_URL_DFS,null,"select top 2 * from pt","update pt set x = ? where month = ?",new Object[]{0.5, YearMonth.parse("2000-01")});
-		} catch (Exception e) {
-			e.printStackTrace();
 			Assert.fail();
+		} catch (Exception e) {
 		}
 	}
 	
@@ -205,9 +249,8 @@ public class JDBCTest {
 	public void DFSLoadTableTest(){  
 		try {
 			Main.TestPreparedStatement(DB_URL_DFS,"","select top 2 * from pt","delete from pt where x = ?",new Object[]{YearMonth.parse("2000-01")});
-		} catch (Exception e) {
-			e.printStackTrace();
 			Assert.fail();
+		} catch (Exception e) {
 		}
 	}
 
@@ -215,9 +258,8 @@ public class JDBCTest {
 	public void batchTest1(){  
 		try {
 			Main.TestPreparedStatementBatch(DB_URL,"t1 = loadTable(\"" +path+"\",`t1)","select * from t1","insert into t1 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",o3);
-		} catch (Exception e) {
-			e.printStackTrace();
 			Assert.fail();
+		} catch (Exception e) {
 		}
 	}
 	
@@ -225,9 +267,8 @@ public class JDBCTest {
 	public void batchTest2(){  
 		try {
 			Main.TestPreparedStatementBatch1(DB_URL,o3);
-		} catch (Exception e) {
-			e.printStackTrace();
 			Assert.fail();
+		} catch (Exception e) {
 		}
 	}
 	
@@ -235,9 +276,8 @@ public class JDBCTest {
 	public void batchTest3(){  
 		try {
 			Main.TestPreparedStatementBatch2(DB_URL,o3);
-		} catch (Exception e) {
-			e.printStackTrace();
 			Assert.fail();
+		} catch (Exception e) {
 		}
 	}
 	
@@ -245,9 +285,8 @@ public class JDBCTest {
 	public void batchTest4(){  
 		try {
 			Main.TestPreparedStatementBatch3(DB_URL_DFS,new Object[][]{new Object[]{YearMonth.parse("2000-01"), 0.5}});
-		} catch (Exception e) {
-			e.printStackTrace();
 			Assert.fail();
+		} catch (Exception e) {
 		}
 	}
 	
@@ -255,9 +294,8 @@ public class JDBCTest {
 	public void resultSetInsertTest(){  
 		try {
 			Main.TestResultSetInsert(DB_URL,"t1 = loadTable(system_db,`t1)","select * from t1",o1,false);
-			fail("No exception thrown.");
+			Assert.fail();
 		} catch (Exception e) {
-			assertTrue(true);
 		}
 	}
 	
@@ -265,9 +303,8 @@ public class JDBCTest {
 	public void resultSetUpdateTest(){  
 		try {
 			Main.TestResultSetUpdate(DB_URL,"t1 = loadTable(system_db,`t1)","select * from t1",o1,false);
-			fail("No exception thrown.");
+			Assert.fail();
 		} catch (Exception e) {
-			assertTrue(true);
 		}
 	}
 	
@@ -275,9 +312,8 @@ public class JDBCTest {
 	public void resultSetDeleteTest(){  
 		try {
 			Main.TestResultSetDelete(DB_URL,"t1 = loadTable(system_db,`t1)","select * from t1",2,true);
-			fail("No exception thrown.");
+			Assert.fail();
 		} catch (Exception e) {
-			assertTrue(true);
 		}
 	}
 	
@@ -285,9 +321,8 @@ public class JDBCTest {
 	public void TestDatabaseMetaData(){  
 		try {
 			Main.TestDatabaseMetaData(DB_URL,"");
-		} catch (Exception e) {
-			e.printStackTrace();
 			Assert.fail();
+		} catch (Exception e) {
 		}
 	}
 	
@@ -295,9 +330,8 @@ public class JDBCTest {
 	public void SeqdbResultSetInsertTest(){  
 		try {
 			Main.TestResultSetInsert(DB_URL_DFS,"t1 = loadTable(\"" +path+"\",`t1,,true)","select top 10 * from pt",new Object[]{new BasicMonth(YearMonth.parse("2016-07")),0.007},true);
-			fail("No exception thrown.");
+			Assert.fail();
 		} catch (Exception e) {
-			assertTrue(true);
 		}
 	}
 	
@@ -305,9 +339,8 @@ public class JDBCTest {
 	public void SeqdbResultSetUpdateTest(){  
 		try {
 			Main.TestResultSetUpdate(DB_URL_DFS,"t1 = loadTable(\"" +path+"\",`t1,,true)","select top 10 * from pt",new Object[]{new BasicMonth(YearMonth.parse("2016-07")),0.007},true);
-			fail("No exception thrown.");
+			Assert.fail();
 		} catch (Exception e) {
-			assertTrue(true);
 		}
 	}
 	
@@ -315,13 +348,8 @@ public class JDBCTest {
 	public void SeqdbResultSetDeleteTest(){  
 		try {
 			Main.TestResultSetDelete(DB_URL_DFS,"t1 = loadTable(\"" +path+"\",`t1,,true)","select top 10 * from pt",1,true);
-			fail("No exception thrown.");
+			Assert.fail();
 		} catch (Exception e) {
-			assertTrue(true);
 		}
 	}
-	
-	
 }
-
-

@@ -4,8 +4,10 @@ import com.xxdb.data.*;
 
 import java.io.IOException;
 import java.sql.Date;
+import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -109,7 +111,7 @@ public class TypeCast {
 
 
     public static final HashMap<Integer,String> TYPEINT2STRING = new LinkedHashMap<>();
-
+	public static Scalar[] NULL = {new BasicBoolean(false), new BasicByte((byte) 0), new BasicShort((short) 0), new BasicInt(0), new BasicLong(0), new BasicFloat(0), new BasicDouble(0), new BasicString(""), new BasicDate(LocalDate.of(2020,1,1)), new BasicTimestamp(LocalDateTime.of(2020, 1, 1, 0, 0)), new BasicTime(LocalTime.of(0, 0))};
 
     static {
         String[] arr = new String[]{BASIC_VOID,
@@ -135,8 +137,32 @@ public class TypeCast {
         for(int i = 0, len = arr.length; i < len; ++i) {
             TYPEINT2STRING.put(i, arr[i]);
         }
+    	for (Scalar n : NULL) {
+			n.setNull();
+		}
     }
 
+    public static Object nullScalar(int type) throws SQLException {
+    	Object x = null;
+		switch (type) {
+		case Types.BOOLEAN: x = NULL[0]; break;
+		case Types.CHAR: x = NULL[1]; break;
+		case Types.SMALLINT: x = NULL[2]; break;
+		case Types.INTEGER: x = NULL[3]; break;
+		case Types.BIGINT: x = NULL[4]; break;
+		case Types.FLOAT: x = NULL[5]; break;
+		case Types.REAL:
+		case Types.DOUBLE: x = NULL[6]; break;
+		case Types.VARCHAR:
+		case Types.NVARCHAR:
+		case Types.NCHAR: x = NULL[7]; break;
+		case Types.DATE: x = NULL[8]; break;
+		case Types.TIMESTAMP: x = NULL[9]; break;
+		case Types.TIME: x = NULL[10]; break;
+		default: throw new SQLException("Unsupported type");
+		}
+		return x;
+    }
 
     public static String castDbString(Object o){
         String srcClassName = o.getClass().getName();
@@ -188,9 +214,6 @@ public class TypeCast {
                 return null;
         }
     }
-
-
-
 
     public static Entity java2db(Object srcValue, String targetEntityClassName) throws IOException {
         String srcValueClassName = srcValue.getClass().getName();
