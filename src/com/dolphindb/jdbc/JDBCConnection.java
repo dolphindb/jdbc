@@ -16,7 +16,6 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.sql.*;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +39,7 @@ public class JDBCConnection implements Connection {
 	private  int controlPort;
 	private String user;
 	private String password;
+
 	public JDBCConnection(String url, Properties prop) throws SQLException {
 		this.url = url;
 		dbConnection = new DBConnection();
@@ -72,7 +72,7 @@ public class JDBCConnection implements Connection {
 	}
 
 	/**
-	 * Link to other node
+	 * Connect to other node
 	 * 
 	 * @param hostname
 	 * @param port
@@ -83,14 +83,12 @@ public class JDBCConnection implements Connection {
 	 * @throws SQLException
 	 */
 	private boolean tryOtherNode(String hostname, int FuncationPort, Properties prop) throws IOException, SQLException {
-
 		controlConnection = new DBConnection();
 	    if(controlHost != null && controlPort > 0){
 	            controlConnection.connect(controlHost,controlPort);
 	            BasicTable table = (BasicTable) controlConnection.run("getClusterChunkNodesStatus()");
 	            Vector siteVector = table.getColumn("site");
-	          
-	            
+
 	            LinkedList<String> other_ports = new LinkedList<>();
 	    		for (int i = 0, len = siteVector.rows(); i < len; i++) {
 	    			other_ports.add(siteVector.get(i).getString());
@@ -102,7 +100,7 @@ public class JDBCConnection implements Connection {
 	    			String[] hostName_port = other_ports.get(index).split(":");
 	    			if (!hostName_port[1].equals(String.valueOf(FuncationPort))) {
 	    				System.out.println("connecting " + hostname + ":" + hostName_port[1]);
-	    				if (!reachAble(hostname, Integer.parseInt(hostName_port[1]), prop)) {
+	    				if (!reachable(hostname, Integer.parseInt(hostName_port[1]), prop)) {
 	    					System.out.println("Cannot connect " + hostname + ":" + hostName_port[1]);
 	    					continue;
 	    				}
@@ -116,7 +114,7 @@ public class JDBCConnection implements Connection {
 	}
 
 	/**
-	 * check is the port able to connect
+	 * Whether the node is reachable
 	 * 
 	 * @param hostname
 	 * @param port
@@ -125,8 +123,7 @@ public class JDBCConnection implements Connection {
 	 *            key, then the default controllerNode is 3
 	 * @return
 	 */
-	private boolean reachAble(String hostname, int port, Properties prop) {
-
+	private boolean reachable(String hostname, int port, Properties prop) {
 		Socket s = new Socket();
 		SocketAddress add = new InetSocketAddress(hostname, port);
 		int waitingTime = 3;
@@ -149,9 +146,7 @@ public class JDBCConnection implements Connection {
 	}
 
 	private void checklogin(String hostname, int port, Properties prop) {
-		
 		try {
-			
 			if(prop.containsKey("user") && prop.containsKey("password")) {
 				success = dbConnection.connect(hostname, port,prop.getProperty("user"),prop.getProperty("password"));	
 				setUser(prop.getProperty("user"));
@@ -175,69 +170,62 @@ public class JDBCConnection implements Connection {
 	 * @throws SQLException
 	 */
 	private void connect(String hostname, int port, Properties prop) throws IOException, SQLException {
-
-		if (reachAble(hostname, port, prop)) {
+		if (reachable(hostname, port, prop)) {
 				checklogin(hostname, port,prop);
 		} else {
 			// if the input node does not work, then try other node
 			tryOtherNode(hostname, port, prop);
-
 		}
 	}
-	
+
 	private void open(String hostname, int port, Properties prop) throws SQLException, IOException{
-    	
-	connect(hostname, port,prop);
-    // database(directory, [partitionType], [partitionScheme], [locations])
-    if(!success) throw new SQLException("Connection is fail");
-    String[] keys = new String[]{"databasePath","partitionType","partitionScheme","locations"};
-    String[] values = Utils.getProperties(prop,keys);
-    if(values[0] != null && values[0].length() > 0){
-        values[0] = "\""+values[0]+"\"";
-        StringBuilder sb = new StringBuilder(Driver.DB).append(" = database(");
-        Utils.joinOrder(sb,values,",");
-        sb.append(");\n");
-        sqlSb = new StringBuilder();
-        sqlSb.append(sb);
-//        System.out.println(sb.toString());
-        dbConnection.run(sb.toString());
-
-        if(values[0].trim().startsWith("\"dfs://")) {
-            isDFS = true;
-            databases = (Vector) dbConnection.run("getTables("+Driver.DB+")");
-            StringBuilder loadTableSb = new StringBuilder();
-            for (int i = 0, len = databases.rows(); i < len; ++i) {
-                String name = databases.get(i).getString();
-                loadTableSb.append(name).append(" = ").append("loadTable(").append(Driver.DB).append(",`").append(name).append(");\n");
-            }
-
-            sqlSb.append(loadTableSb);
-            String sql = loadTableSb.toString();
-//            System.out.println("here!!!" + sql);
-            dbConnection.run(sql);
-        }
-
-        String controllerAlias = dbConnection.run("getControllerAlias()").getString();
-        if(controllerAlias != null && controllerAlias.length() > 0){
-            isDFS = true;
-            
-            controlHost = dbConnection.run("rpc(\""+controllerAlias+"\", getNodeHost)").getString();
-            controlPort = ((BasicInt) dbConnection.run("rpc(\""+controllerAlias+"\", getNodePort)")).getInt();
-            controlConnection = new DBConnection();
-            controlConnection.connect(controlHost,controlPort);
-            BasicTable table = (BasicTable) controlConnection.run("getClusterChunkNodesStatus()");
-            Vector siteVector = table.getColumn("site");
-            hostName_ports = new LinkedList<>();
-            for (int i = 0, len = siteVector.rows(); i < len; i++) {
-                hostName_ports.add(siteVector.get(i).getString());
-            }
-        }else{
-            isDFS = false;
-        }
-    }
-}
-
-
+		connect(hostname, port,prop);
+	    // database(directory, [partitionType], [partitionScheme], [locations])
+	    if(!success) throw new SQLException("Connection is fail");
+	    String[] keys = new String[]{"databasePath","partitionType","partitionScheme","locations"};
+	    String[] values = Utils.getProperties(prop,keys);
+	    if(values[0] != null && values[0].length() > 0){
+	        values[0] = "\""+values[0]+"\"";
+	        StringBuilder sb = new StringBuilder(Driver.DB).append(" = database(");
+	        Utils.joinOrder(sb,values,",");
+	        sb.append(");\n");
+	        sqlSb = new StringBuilder();
+	        sqlSb.append(sb);
+	        dbConnection.run(sb.toString());
+	
+	        if(values[0].trim().startsWith("\"dfs://")) {
+	            isDFS = true;
+	            databases = (Vector) dbConnection.run("getTables("+Driver.DB+")");
+	            StringBuilder loadTableSb = new StringBuilder();
+	            for (int i = 0, len = databases.rows(); i < len; ++i) {
+	                String name = databases.get(i).getString();
+	                loadTableSb.append(name).append(" = ").append("loadTable(").append(Driver.DB).append(",`").append(name).append(");\n");
+	            }
+	
+	            sqlSb.append(loadTableSb);
+	            String sql = loadTableSb.toString();
+	            dbConnection.run(sql);
+	        }
+	
+	        String controllerAlias = dbConnection.run("getControllerAlias()").getString();
+	        if(controllerAlias != null && controllerAlias.length() > 0){
+	            isDFS = true;
+	            
+	            controlHost = dbConnection.run("rpc(\""+controllerAlias+"\", getNodeHost)").getString();
+	            controlPort = ((BasicInt) dbConnection.run("rpc(\""+controllerAlias+"\", getNodePort)")).getInt();
+	            controlConnection = new DBConnection();
+	            controlConnection.connect(controlHost,controlPort);
+	            BasicTable table = (BasicTable) controlConnection.run("getClusterChunkNodesStatus()");
+	            Vector siteVector = table.getColumn("site");
+	            hostName_ports = new LinkedList<>();
+	            for (int i = 0, len = siteVector.rows(); i < len; i++) {
+	                hostName_ports.add(siteVector.get(i).getString());
+	            }
+	        }else{
+	            isDFS = false;
+	        }
+	    }
+	}
 
 	@Override
 	public Statement createStatement() throws SQLException {
@@ -252,7 +240,7 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public CallableStatement prepareCall(String sql) throws SQLException {
-		Driver.unused("prepareCall(String sql)");
+		Driver.unused("prepareCall not implemented");
 		return null;
 	}
 
@@ -275,12 +263,12 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public void commit() throws SQLException {
-		Driver.unused("commit()");
+		Driver.unused("commit not implemented");
 	}
 
 	@Override
 	public void rollback() throws SQLException {
-		Driver.unused("rollback()");
+		Driver.unused("rollback not implemented");
 	}
 
 	@Override
@@ -319,35 +307,35 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public void setCatalog(String catalog) throws SQLException {
-		Driver.unused("setCatalog(String catalog");
+		Driver.unused("setCatalog not implemented");
 	}
 
 	@Override
 	public String getCatalog() throws SQLException {
-		Driver.unused("getCatalog()");
+		Driver.unused("getCatalog not implemented");
 		return null;
 	}
 
 	@Override
 	public void setTransactionIsolation(int level) throws SQLException {
-		Driver.unused("setTransactionIsolation(int level)");
+		return;
 	}
 
 	@Override
 	public int getTransactionIsolation() throws SQLException {
-		Driver.unused("getTransactionIsolation()");
-		return 0;
+		return Connection.TRANSACTION_NONE;
 	}
 
 	@Override
 	public SQLWarning getWarnings() throws SQLException {
-		Driver.unused("getWarnings()");
+//		Driver.unused("getWarnings not implemented");
 		return null;
 	}
 
 	@Override
 	public void clearWarnings() throws SQLException {
-		Driver.unused("clearWarnings()");
+//		Driver.unused("clearWarnings not implemented");
+		return;
 	}
 
 	@Override
@@ -363,52 +351,51 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-		Driver.unused("prepareCall(String sql, int resultSetType, int resultSetConcurrency)");
+		Driver.unused("prepareCall not implemented");
 		return null;
 	}
 
 	@Override
 	public Map<String, Class<?>> getTypeMap() throws SQLException {
-		Driver.unused("getTypeMap()");
+		Driver.unused("getTypeMap not implemented");
 		return null;
 	}
 
 	@Override
 	public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
-		Driver.unused("setTypeMap(Map<String, Class<?>> map)");
+		return;
 	}
 
 	@Override
 	public void setHoldability(int holdability) throws SQLException {
-		Driver.unused("setHoldability(int holdability)");
+		return;
 	}
 
 	@Override
 	public int getHoldability() throws SQLException {
-		Driver.unused("getHoldability()");
-		return 0;
+		return ResultSet.HOLD_CURSORS_OVER_COMMIT;
 	}
 
 	@Override
 	public Savepoint setSavepoint() throws SQLException {
-		Driver.unused("setSavepoint()");
+		Driver.unused("setSavepoint not supported");
 		return null;
 	}
 
 	@Override
 	public Savepoint setSavepoint(String name) throws SQLException {
-		Driver.unused("setSavepoint(String name)");
+		Driver.unused("setSavepoint not supported");
 		return null;
 	}
 
 	@Override
 	public void rollback(Savepoint savepoint) throws SQLException {
-		Driver.unused("rollback(Savepoint savepoint");
+		Driver.unused("rollback not supported");
 	}
 
 	@Override
 	public void releaseSavepoint(Savepoint savepoint) throws SQLException {
-		Driver.unused("releaseSavepoint(Savepoint savepoint)");
+		Driver.unused("releaseSavepoint not supported");
 	}
 
 	@Override
@@ -426,9 +413,8 @@ public class JDBCConnection implements Connection {
 	}
 
 	@Override
-	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency,
-			int resultSetHoldability) throws SQLException {
-		Driver.unused("prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)");
+	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+		Driver.unused("prepareCall not implemented");
 		return null;
 	}
 
@@ -452,13 +438,13 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public Clob createClob() throws SQLException {
-		Driver.unused("createClob()");
+		Driver.unused("createClob not implemented");
 		return null;
 	}
 
 	@Override
 	public Blob createBlob() throws SQLException {
-		Driver.unused("createBlob()");
+		Driver.unused("createBlob not implemented");
 		return null;
 	}
 
@@ -478,66 +464,61 @@ public class JDBCConnection implements Connection {
 	public boolean isValid(int timeout) throws SQLException {
 		return dbConnection.isConnected();
 	}
+	
+	private Properties clientInfo = new Properties();
 
 	@Override
 	public void setClientInfo(String name, String value) throws SQLClientInfoException {
-		throw new SQLClientInfoException("setClientInfo(String name, String value)", null);
+		clientInfo.setProperty(name, value);
 	}
 
 	@Override
 	public void setClientInfo(Properties properties) throws SQLClientInfoException {
-		throw new SQLClientInfoException("setClientInfo(Properties properties)", null);
+		clientInfo = properties;
 	}
 
 	@Override
 	public String getClientInfo(String name) throws SQLException {
-		Driver.unused("getClientInfo(String name)");
-		return null;
+		return (String) clientInfo.getProperty(name);
 	}
 
 	@Override
 	public Properties getClientInfo() throws SQLException {
-		Driver.unused("getClientInfo()");
-		return null;
+		return clientInfo;
 	}
 
 	@Override
 	public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
-		Driver.unused("createArrayOf(String typeName, Object[] elements)");
 		return null;
 	}
 
 	@Override
 	public Struct createStruct(String typeName, Object[] elements) throws SQLException {
-		Driver.unused("createStruct(String typeName, Object[] elements)");
 		return null;
 	}
 
 	@Override
 	public void setSchema(String schema) throws SQLException {
-		Driver.unused("setSchema(String schema)");
 	}
 
 	@Override
 	public String getSchema() throws SQLException {
-		Driver.unused("getSchema()");
 		return null;
 	}
 
 	@Override
 	public void abort(Executor executor) throws SQLException {
-		Driver.unused("abort(Executor executor)");
+		throw new SQLFeatureNotSupportedException();
 	}
 
 	@Override
 	public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
-		Driver.unused("setNetworkTimeout(Executor executor, int milliseconds)");
+		throw new SQLFeatureNotSupportedException();
 	}
 
 	@Override
 	public int getNetworkTimeout() throws SQLException {
-		Driver.unused("getNetworkTimeout()");
-		return 0;
+		throw new SQLFeatureNotSupportedException();
 	}
 
 	@Override
@@ -562,8 +543,6 @@ public class JDBCConnection implements Connection {
 
 	// Automatic switching node
 	public Entity run(String function, List<Entity> arguments) throws IOException {
-		// System.out.println("2 "+arguments.toString());
-
 		if (!isDFS) {
 			return this.dbConnection.run(function, arguments);
 		}
@@ -574,14 +553,8 @@ public class JDBCConnection implements Connection {
 			entity = this.dbConnection.run(function, arguments);
 			return entity;
 		} catch (IOException e) {
-			String message = null;
 			for (int index = 0; index < size; ++index) {
-				
-				
-				
 				String[] hostName_port = hostName_ports.get(index).split(":");
-//				System.out.println("Select " + hostName_port[0] + ":" + hostName_port[1]);
-				
 				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
 					continue;
 				}
@@ -600,7 +573,6 @@ public class JDBCConnection implements Connection {
 						return entity;
 					}
 				} catch (IOException e1) {
-					message = e1.getMessage();
 					return entity;
 				}
 				
@@ -616,21 +588,13 @@ public class JDBCConnection implements Connection {
 //				} catch (IOException e1) {
 //					message = e1.getMessage();
 //				}
-				
-				
-				
 			}
-			if (message != null) {
-				throw new IOException(message + " or All dataNodes were dead");
-			} else {
-				throw new IOException("All dataNodes were dead");
-			}
+			throw new IOException("All dataNodes were dead");
 		}
 	}
 
 	// Automatic switching node
 	public Entity run(String script) throws IOException {
-//		System.out.println(script);
 		if (!isDFS) {
 			return this.dbConnection.run(script);
 		}
@@ -646,10 +610,6 @@ public class JDBCConnection implements Connection {
 			entity = this.dbConnection.run(script);
 			return entity;
 		} catch (IOException e) {
-			
-			
-			
-			String message = null;
 			for (int index = 0; index < size; ++index) {
 				String[] hostName_port = hostName_ports.get(index).split(":");
 				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
@@ -666,25 +626,14 @@ public class JDBCConnection implements Connection {
 					}
 					if (succeeded) {
 						this.dbConnection.run(sqlSb.toString());
-//						 System.out.println(script+"------------------------\n");
 						entity = this.dbConnection.run(script);
 						return entity;
 					}
 				} catch (IOException e1) {
-					message = e1.getMessage();
 					return entity;
 				}
-
-				
-				
-				
 			}		
-			if (message != null) {
-				throw new IOException(message + " or All dataNodes were dead");
-			} else {
-				throw new IOException("All dataNodes were dead");
-			}
-
+			throw new IOException("All dataNodes were dead");
 		}
 	}
 
