@@ -151,8 +151,8 @@ public class JDBCTest {
 			// TODO: handle exception
 		}
 	}
-	
-	
+
+
 //	@Test
 //	public void createTableTest(){  
 //		Assert.assertTrue(Main.CreateTable(System.getProperty("user.dir")+"/data/createTable_all.java", path, "t1",host, port));
@@ -180,6 +180,41 @@ public class JDBCTest {
 	        Assert.assertEquals(ts, Timestamp.valueOf("2019-01-01 00:00:03"));
 	        Time t = rs.getTime(2);
 	        Assert.assertEquals(t, Time.valueOf("00:00:03"));
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	    }
+	    finally {
+	        try {
+	            if (stmt != null)
+	                stmt.close();
+	            } catch (SQLException se2) {
+	            }
+	        try {
+	            if (conn != null)
+	                conn.close();
+	        } catch (SQLException se) {
+	            se.printStackTrace();
+	        }
+	    }
+	}
+	
+	@Test
+	public void scriptTest() {
+		JDBCStatement stmt = null;
+		Connection conn = null;
+	    try {
+	    	Class.forName("com.dolphindb.jdbc.Driver");
+	        conn = DriverManager.getConnection(DB_URL_WITHLOGIN);
+
+	        stmt = (JDBCStatement) conn.createStatement();
+	        stmt.execute("a = table(1..3 as id, `a`b`c as symbol)");
+	        ResultSet rs = stmt.executeQuery("b = table(1..2 as id); select * from ej(a, b, `id)");
+	        rs.next();
+	        Assert.assertEquals(rs.getInt(1), 1);
+	        Assert.assertEquals(rs.getString(2), "a");
+	        rs.next();
+	        Assert.assertEquals(rs.getInt(1), 2);
+	        Assert.assertEquals(rs.getString(2), "b");
 	    } catch (Exception e) {
 	        e.printStackTrace();
 	    }
