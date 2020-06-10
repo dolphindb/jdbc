@@ -6,6 +6,7 @@ import java.util.Properties;
 public class JDBCTestUtil {
     static String HOST = "192.168.1.12" ;
     static int PORT = 8848 ;
+
     static String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
     static Properties LOGININFO = new Properties();
 
@@ -18,6 +19,5 @@ public class JDBCTestUtil {
             e.printStackTrace();
         }
         return conn;
-
     }
 }

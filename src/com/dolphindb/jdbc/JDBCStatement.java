@@ -128,6 +128,7 @@ public class JDBCStatement implements Statement {
         String lastStatement = strings[strings.length - 1];
         String tableName = Utils.getTableName(lastStatement);
         int dml = Utils.getDml(lastStatement);
+
         String tableType;
         switch (dml) {
             case Utils.DML_INSERT:
@@ -280,6 +281,7 @@ public class JDBCStatement implements Statement {
         String[] strings = sql.split(";");
         String lastStatement = strings[strings.length - 1];
         int dml = Utils.getDml(lastStatement);
+
         switch (dml){
             case Utils.DML_SELECT: {
                 ResultSet resultSet_ = executeQuery(sql);
