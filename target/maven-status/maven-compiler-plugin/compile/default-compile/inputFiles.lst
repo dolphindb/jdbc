@@ -1,0 +1,11 @@
+/hdd/hdd1/release/DolphinDBJDBC/src/com/dolphindb/jdbc/Driver.java
+/hdd/hdd1/release/DolphinDBJDBC/src/com/dolphindb/jdbc/Main.java
+/hdd/hdd1/release/DolphinDBJDBC/src/com/dolphindb/jdbc/Utils.java
+/hdd/hdd1/release/DolphinDBJDBC/src/com/dolphindb/jdbc/TypeCast.java
+/hdd/hdd1/release/DolphinDBJDBC/src/com/dolphindb/jdbc/JDBCConnection.java
+/hdd/hdd1/release/DolphinDBJDBC/src/com/dolphindb/jdbc/JDBCPrepareStatement.java
+/hdd/hdd1/release/DolphinDBJDBC/src/com/dolphindb/jdbc/JDBCResultSet.java
+/hdd/hdd1/release/DolphinDBJDBC/src/com/dolphindb/jdbc/JDBCDataBaseMetaData.java
+/hdd/hdd1/release/DolphinDBJDBC/src/com/dolphindb/jdbc/JDBCResultSetMetaData.java
+/hdd/hdd1/release/DolphinDBJDBC/src/com/dolphindb/jdbc/JDBCStatement.java
+/hdd/hdd1/release/DolphinDBJDBC/src/com/dolphindb/jdbc/JDBCParameterMetaData.java

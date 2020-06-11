@@ -1,0 +1,11 @@
+com/dolphindb/jdbc/JDBCDataBaseMetaData.class
+com/dolphindb/jdbc/Driver.class
+com/dolphindb/jdbc/JDBCResultSetMetaData.class
+com/dolphindb/jdbc/JDBCResultSet.class
+com/dolphindb/jdbc/Utils.class
+com/dolphindb/jdbc/JDBCConnection.class
+com/dolphindb/jdbc/JDBCParameterMetaData.class
+com/dolphindb/jdbc/TypeCast.class
+com/dolphindb/jdbc/Main.class
+com/dolphindb/jdbc/JDBCPrepareStatement.class
+com/dolphindb/jdbc/JDBCStatement.class
