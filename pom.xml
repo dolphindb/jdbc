@@ -4,6 +4,11 @@
     <groupId>com.dolphindb</groupId>
     <artifactId>jdbc</artifactId>
     <version>1.10.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <dolphindb.version>1.10.0</dolphindb.version>
+    </properties>
 
     <name>DolphinDB JDBC</name>
     <description>Impelements jdbc interface for DolphinDB base on java api </description>
