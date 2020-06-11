@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.dolphindb</groupId>
     <artifactId>jdbc</artifactId>
-    <version>1.10.0-SNAPSHOT</version>
+    <version>1.10.0</version>
 
     <name>DolphinDB JDBC</name>
     <description>Impelements jdbc interface for DolphinDB base on java api </description>
@@ -28,7 +28,7 @@
         <connection>scm:git:git@github.com:dolphindb/jdbc.git</connection>
         <developerConnection>scm:git:git@github.com:dolphindb/jdbc.git</developerConnection>
         <url>git@github.com:dolphindb/jdbc.git</url>
-      <tag>jdbc-1.0</tag>
+      <tag>jdbc-1.10.0</tag>
   </scm>
     <dependencies>
         <dependency>
