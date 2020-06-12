@@ -1,5 +1,6 @@
 *.class
 out/
 .idea/
+target/
 *.jar
 DolphinDBJDBC.iml
