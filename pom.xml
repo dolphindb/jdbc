@@ -144,7 +144,7 @@
                 <configuration>
                     <localCheckout>true</localCheckout>
                     <checkModificationExcludes>
-                        <checkModificationExclude>./target/</checkModificationExclude>
+                        <checkModificationExclude>target/</checkModificationExclude>
                     </checkModificationExcludes>
                     <pushChanges>false</pushChanges>
                     <mavenExecutorId>forked-path</mavenExecutorId>
