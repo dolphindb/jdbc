@@ -143,6 +143,9 @@
                 <version>2.5.2</version>
                 <configuration>
                     <localCheckout>true</localCheckout>
+                    <checkModificationExcludes>
+                        <checkModificationExclude>./target/</checkModificationExclude>
+                    </checkModificationExcludes>
                     <pushChanges>false</pushChanges>
                     <mavenExecutorId>forked-path</mavenExecutorId>
                     <arguments>-Dgpg.passphrase=k-BM-gchd2PXcR_</arguments>
