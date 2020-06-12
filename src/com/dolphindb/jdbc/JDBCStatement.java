@@ -92,7 +92,7 @@ public class JDBCStatement implements Statement {
         while (sql.endsWith(";"))
         	sql = sql.substring(0, sql.length() - 1);
         String[] strings = sql.split(";");
-        String lastStatement = strings[strings.length - 1];
+        String lastStatement = strings[strings.length - 1].trim();
         int dml = Utils.getDml(lastStatement);
         Entity entity;
         switch (dml){
@@ -125,7 +125,7 @@ public class JDBCStatement implements Statement {
         while (sql.endsWith(";"))
         	sql = sql.substring(0, sql.length() - 1);
         String[] strings = sql.split(";");
-        String lastStatement = strings[strings.length - 1];
+        String lastStatement = strings[strings.length - 1].trim();
         String tableName = Utils.getTableName(lastStatement);
         int dml = Utils.getDml(lastStatement);
 
@@ -279,7 +279,7 @@ public class JDBCStatement implements Statement {
         while (sql.endsWith(";"))
         	sql = sql.substring(0, sql.length() - 1);
         String[] strings = sql.split(";");
-        String lastStatement = strings[strings.length - 1];
+        String lastStatement = strings[strings.length - 1].trim();
         int dml = Utils.getDml(lastStatement);
 
         switch (dml){
