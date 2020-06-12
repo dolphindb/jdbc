@@ -41,7 +41,7 @@ import com.xxdb.data.Vector;
 public class JDBCTest {
 	private static final String path = "F:/test/jdbc";
 
-	private static final String HOST = "192.168.1.12";
+	private static final String HOST = "127.0.0.1";
 	private static final String PORT = "8848";
 	private static final String USERNAME = "admin";
 	private static final String PASSWD = "123456";

@@ -43,7 +43,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
        	preSql = preSql.substring(0, sql.length() - 1);
 		String[] strings = preSql.split(";");
-		String lastStatement = strings[strings.length - 1];
+		String lastStatement = strings[strings.length - 1].trim();
 		this.tableName = Utils.getTableName(lastStatement);
 		this.dml = Utils.getDml(lastStatement);
 
