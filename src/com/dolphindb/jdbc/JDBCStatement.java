@@ -89,15 +89,11 @@ public class JDBCStatement implements Statement {
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
         sql = sql.trim();
+        while (sql.endsWith(";"))
+        	sql = sql.substring(0, sql.length() - 1);
         String[] strings = sql.split(";");
-        if (strings.length == 0){
-            throw new SQLException("SQL was empty");
-        }
-        else if (strings.length == 2){
-            throw new SQLException("check the SQL " + sql);
-        }
-        sql = strings[0];
-        int dml = Utils.getDml(sql);
+        String lastStatement = strings[strings.length - 1].trim();
+        int dml = Utils.getDml(lastStatement);
         Entity entity;
         switch (dml){
             case Utils.DML_INSERT:
@@ -126,15 +122,13 @@ public class JDBCStatement implements Statement {
     @Override
     public int executeUpdate(String sql) throws SQLException {
         sql = sql.trim();
+        while (sql.endsWith(";"))
+        	sql = sql.substring(0, sql.length() - 1);
         String[] strings = sql.split(";");
-        if(strings.length == 0){
-            throw new SQLException("SQL was empty");
-        }else if(strings.length == 2){
-            throw new SQLException("check the SQL " + sql);
-        }
-        sql = strings[0];
-        String tableName = Utils.getTableName(sql);
-        int dml = Utils.getDml(sql);
+        String lastStatement = strings[strings.length - 1].trim();
+        String tableName = Utils.getTableName(lastStatement);
+        int dml = Utils.getDml(lastStatement);
+
         String tableType;
         switch (dml) {
             case Utils.DML_INSERT:
@@ -147,13 +141,7 @@ public class JDBCStatement implements Statement {
                             throw new SQLException(e);
                         }
                     } else {
-                        String[] values;
-                        int index = sql.indexOf(";");
-                        if (index == -1) {
-                            values = sql.substring(sql.indexOf("values") + "values".length()).replaceAll("\\(|\\)", "").split(",");
-                        } else {
-                            values = sql.substring(sql.indexOf("values") + "values".length(), index).replaceAll("\\(|\\)", "").split(",");
-                        }
+                        String[] values = lastStatement.substring(lastStatement.indexOf("values") + "values".length()).replaceAll("\\(|\\)", "").split(",");
                         StringBuilder sqlSb = new StringBuilder("append!(").append(tableName).append(",").append("table(");
 
                         String colName = "col";
@@ -288,14 +276,12 @@ public class JDBCStatement implements Statement {
     @Override
     public boolean execute(String sql) throws SQLException {
         sql = sql.trim();
+        while (sql.endsWith(";"))
+        	sql = sql.substring(0, sql.length() - 1);
         String[] strings = sql.split(";");
-        if(strings.length == 0){
-            throw new SQLException("SQL was empty");
-        }else if(strings.length == 2){
-            throw new SQLException("check the SQL " + sql);
-        }
-        sql = strings[0];
-        int dml = Utils.getDml(sql);
+        String lastStatement = strings[strings.length - 1].trim();
+        int dml = Utils.getDml(lastStatement);
+
         switch (dml){
             case Utils.DML_SELECT: {
                 ResultSet resultSet_ = executeQuery(sql);

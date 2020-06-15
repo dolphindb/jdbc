@@ -39,15 +39,14 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		super(connection);
 		this.connection = connection;
 		this.preSql = sql.trim();
+        while (preSql.endsWith(";"))
+
+       	preSql = preSql.substring(0, sql.length() - 1);
 		String[] strings = preSql.split(";");
-		if (strings.length == 0) {
-			throw new SQLException("SQL was empty");
-		} else if (strings.length == 2) {
-			throw new SQLException("check the SQL " + preSql);
-		}
-		this.preSql = strings[0];
-		this.tableName = Utils.getTableName(sql);
-		this.dml = Utils.getDml(sql);
+		String lastStatement = strings[strings.length - 1].trim();
+		this.tableName = Utils.getTableName(lastStatement);
+		this.dml = Utils.getDml(lastStatement);
+
 		this.isInsert = this.dml == Utils.DML_INSERT;
 		if (tableName != null) {
 			tableName = tableName.trim();
