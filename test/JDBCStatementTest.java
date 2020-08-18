@@ -21,25 +21,6 @@ public class JDBCStatementTest {
         PORT = 8848 ;
     }
 	
-	public static boolean CreateInMemoryTable(String host, Integer port){
-        boolean success = false;
-        DBConnection db = null;
-        try{
-            String script = "t = table(1..10 as id, 11..20 as val)";
-            db = new DBConnection();
-            db.connect(host, port);
-            db.run(script);
-            success = true;
-        }catch(Exception e){
-            e.printStackTrace();
-            success = false;
-        }finally{
-            if(db!=null)
-                db.close();
-            return success;
-        }
-    }
-    
     public static boolean CreateDfsTable(String host, Integer port){
     	boolean success = false;
     	DBConnection db = null;
@@ -64,8 +45,51 @@ public class JDBCStatementTest {
     	}
     }
 	
+    @Test
+    public void Test_statement_inmemory_execQuery() throws Exception{
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+    	Connection conn = null;
+    	Statement stmt = null;
+    	ResultSet rs = null;
+    	try{
+    		Class.forName(JDBC_DRIVER);
+    		conn = DriverManager.getConnection(url);
+    		stmt = conn.createStatement();
+    		stmt.execute("t=table(1..10 as id, 11..20 as val)");
+    		rs = stmt.executeQuery("select * from t");
+    		ResultSetMetaData rsmd = rs.getMetaData();
+    		int len = rsmd.getColumnCount();
+    		org.junit.Assert.assertEquals(len, 2);
+    	}catch(Exception e){
+    		e.printStackTrace();
+    	}finally{
+    		if(rs != null){
+    			try{
+    				rs.close();
+    			}catch(SQLException e){
+    				e.printStackTrace();
+    			}
+    		}
+    		if(stmt != null){
+    			try{
+    				stmt.close();
+    			}catch(SQLException e){
+    				e.printStackTrace();
+    			}
+    		}
+    		if(conn != null){
+    			try{
+    				conn.close();
+    			}catch(SQLException e){
+    				e.printStackTrace();
+    			}
+    		}
+    	}
+	}
+    
 	@Test
-	public void Test_statement_execQuery() throws Exception{
+	public void Test_statement_dfs_execQuery() throws Exception{
 		boolean success = CreateDfsTable(HOST, PORT);
 		org.junit.Assert.assertTrue(success);
 		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
