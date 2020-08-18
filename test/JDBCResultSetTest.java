@@ -21,25 +21,6 @@ public class JDBCResultSetTest {
         PORT = 8848 ;
     }
 	
-	public static boolean CreateInMemoryTable(String host, Integer port){
-        boolean success = false;
-        DBConnection db = null;
-        try{
-            String script = "t = table(1..10 as id, 11..20 as val)";
-            db = new DBConnection();
-            db.connect(host, port);
-            db.run(script);
-            success = true;
-        }catch(Exception e){
-            e.printStackTrace();
-            success = false;
-        }finally{
-            if(db!=null)
-                db.close();
-            return success;
-        }
-    }
-	
 	public static boolean CreateDfsTable(String host, Integer port){
     	boolean success = false;
     	DBConnection db = null;
@@ -66,8 +47,6 @@ public class JDBCResultSetTest {
 	
 	@Test
 	public void Test_ResultSet_dfs() throws Exception{
-		boolean success = CreateInMemoryTable(HOST, PORT);
-		org.junit.Assert.assertTrue(success);
 		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
 		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
     	Connection conn = null;

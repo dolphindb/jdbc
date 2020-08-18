@@ -16,25 +16,7 @@ public class JDBCDriverManageTest {
     String DATABASE;
     Properties LOGININFO = new Properties();
 
-    public static boolean CreateInMemoryTable(String host, Integer port){
-        boolean success = false;
-        DBConnection db = null;
-        try{
-            String script = "t = table(1..10 as id, 11..20 as val)";
-            db = new DBConnection();
-            db.connect(host, port);
-            db.run(script);
-            success = true;
-        }catch(Exception e){
-            e.printStackTrace();
-            success = false;
-        }finally{
-            if(db!=null)
-                db.close();
-            return success;
-        }
-    }
-    
+
     public static boolean CreateDfsTable(String host, Integer port){
     	boolean success = false;
     	DBConnection db = null;
@@ -80,6 +62,7 @@ public class JDBCDriverManageTest {
     		Class.forName(JDBC_DRIVER);
     		conn = DriverManager.getConnection(connstr);
     		stmt = conn.createStatement();
+    		stmt.execute("t = table(1..10 as id, 11..20 as val)");
     		rs = stmt.executeQuery("select * from t");
     		ResultSetMetaData rsmd = rs.getMetaData();
     		int len = rsmd.getColumnCount();
@@ -202,8 +185,6 @@ public class JDBCDriverManageTest {
     
     @Test
     public void Test_getConnection_with_host_port() throws Exception {
-        boolean success = CreateInMemoryTable(HOST, PORT);
-        org.junit.Assert.assertTrue(success);
         String url1 = "jdbc:dolphindb://"+HOST+":"+PORT;
         boolean connected = CreateConnection1(url1);
         org.junit.Assert.assertTrue(connected);
@@ -211,8 +192,6 @@ public class JDBCDriverManageTest {
 
     @Test
     public void Test_getConnection_with_dfsdatabasePath() throws Exception {
-    	boolean success = CreateInMemoryTable(HOST, PORT);
-        org.junit.Assert.assertTrue(success);
         String url1 = "jdbc:dolphindb://"+HOST+":"+PORT+"?databasePath=dfs://db_testDriverManager";
         boolean connected = CreateConnection1(url1);
         org.junit.Assert.assertTrue(connected);
@@ -220,8 +199,6 @@ public class JDBCDriverManageTest {
     
     @Test
     public void Test_getConnection_with_diskdatabasePath() throws Exception {
-    	boolean success = CreateInMemoryTable(HOST, PORT);
-        org.junit.Assert.assertTrue(success);
         String url1 = "jdbc:dolphindb://databasePath="+DATABASE;
         boolean connected = CreateConnection1(url1);
         org.junit.Assert.assertTrue(connected);
@@ -229,8 +206,6 @@ public class JDBCDriverManageTest {
     
     @Test
     public void Test_getConnection_with_nothing() throws Exception {
-    	boolean success = CreateInMemoryTable(HOST, PORT);
-        org.junit.Assert.assertTrue(success);
         String url1 = "jdbc:dolphindb://";
         boolean connected = CreateConnection1(url1);
         org.junit.Assert.assertTrue(connected);
@@ -238,8 +213,6 @@ public class JDBCDriverManageTest {
     
     @Test
     public void Test_getConnection_with_user_password() throws Exception {
-    	boolean success = CreateInMemoryTable(HOST, PORT);
-        org.junit.Assert.assertTrue(success);
         String url1 = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
         boolean connected = CreateConnection1(url1);
         org.junit.Assert.assertTrue(connected);
@@ -247,8 +220,6 @@ public class JDBCDriverManageTest {
     
     @Test
     public void Test_getConnection_three_parameters() throws Exception {
-        boolean success = CreateInMemoryTable(HOST, PORT);
-        org.junit.Assert.assertTrue(success);
         String url1 = "jdbc:dolphindb://"+HOST+":"+PORT;
         String username = "admin";
         String pwd = "123456";
@@ -258,8 +229,6 @@ public class JDBCDriverManageTest {
     
     @Test
     public void Test_getConnection_two_parameters() throws Exception {
-        boolean success = CreateInMemoryTable(HOST, PORT);
-        org.junit.Assert.assertTrue(success);
         String url1 = "jdbc:dolphindb://"+HOST+":"+PORT;
         Properties info = new Properties();
         info.put("user", "admin");
