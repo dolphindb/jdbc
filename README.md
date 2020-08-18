@@ -68,7 +68,7 @@ public static void InMemmoryAddTest(Properties info, String database, String tab
         conn = DriverManager.getConnection(url1,info);
 
         JDBCStatement stm = (JDBCStatement)conn.createStatement();
-        stm.execute("memTable = loadTable('" + database + "','" + tableName + "')");
+        stm.execute("memTable = loadTable('" + database + "',\"" + tableName + "\")");
         //SQL insert statement
         stmt = conn.prepareStatement("insert into memTable values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         stmt.setBoolean(1,true);
@@ -124,7 +124,7 @@ public static void InMemoryDeleteTest(Properties info, String database, String t
         Class.forName(JDBC_DRIVER);            
         conn = DriverManager.getConnection(url1);
         JDBCStatement stm = (JDBCStatement)conn.createStatement();
-        stm.execute("memTable = loadTable('" + database + "','" + tableName + "')");
+        stm.execute("memTable = loadTable('" + database + "',\"" + tableName + "\")");
         // SQL delete statement
         stmt = conn.prepareStatement("delete from memTable where char = ?");
         stmt.setByte(1, (byte)'A');
@@ -163,7 +163,7 @@ public static void InMemoryUpdateTest(Properties info, String database, String t
         Class.forName(JDBC_DRIVER);
         conn = DriverManager.getConnection(url1);
         JDBCStatement stm = (JDBCStatement)conn.createStatement();
-        stm.execute("memTable = loadTable('" + database + "','" + tableName + "')");
+        stm.execute("memTable = loadTable('" + database + "',\"" + tableName + "\")");
         //SQL update语句
                 stmt = conn.prepareStatement("update memTable set bool = 0b where char = 97c");
         stmt.executeUpdate();
@@ -246,7 +246,7 @@ public static void DFSAddTest(Properties info, String database, String tableName
         //load the partitioned table
         conn = DriverManager.getConnection(url2,info);
         JDBCStatement stm = (JDBCStatement)conn.createStatement();
-        stm.execute("dfsTable = loadTable('" + database + "','" + tableName + "')");
+        stm.execute("dfsTable = loadTable('" + database + "',\"" + tableName + "\")");
         //SQL insert statement
         stmt = conn.prepareStatement("insert into dfsTable values(?,?)");
         stmt.setObject(1, new BasicMonth(YearMonth.of(2016,06)));
