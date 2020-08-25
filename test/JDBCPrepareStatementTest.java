@@ -6,6 +6,7 @@ import org.junit.Test;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.util.Properties;
+//import com.xxdb.DBConnection;
 
 public class JDBCPrepareStatementTest {
     String HOST;
