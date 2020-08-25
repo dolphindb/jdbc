@@ -645,7 +645,7 @@ public class JDBCResultSetTest {
 			int a = rs.getInt("a6");
 			TestCase.assertFalse(rs.wasNull());
 			//int b = rs1.getInt(4);
-			TestCase.assertTrue(rs.wasNull());
+		//	TestCase.assertTrue(rs.wasNull());
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
