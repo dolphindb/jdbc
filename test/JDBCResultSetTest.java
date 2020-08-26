@@ -671,12 +671,12 @@ public class JDBCResultSetTest {
 					ResultSet.CONCUR_UPDATABLE,ResultSet.HOLD_CURSORS_OVER_COMMIT);
 			stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 			rs = stmt.executeQuery("select a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17 from pt");
-		/*	rs.next();
+			rs.next();
 			rs.updateNString("a10", "ss");
 			rs.updateString("a10","wew");
 			rs.updateRow();
 			rs.moveToInsertRow();
-			rs.moveToCurrentRow();*/
+			rs.moveToCurrentRow();
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
