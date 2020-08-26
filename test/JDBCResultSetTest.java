@@ -1,5 +1,7 @@
 
 import com.sun.corba.se.impl.resolver.SplitLocalResolverImpl;
+import com.xxdb.data.BasicBoolean;
+import com.xxdb.data.BasicBooleanVector;
 import junit.framework.TestCase;
 import org.junit.After;
 import org.junit.Assert;
@@ -120,6 +122,15 @@ public class JDBCResultSetTest {
 
 	@Test
 	public void Test_ResultSet_dfs_getBool() throws Exception {
+		DBConnection myConn= new DBConnection();
+		try {
+			if (!myConn.connect(HOST, PORT, "admin", "123456")) {
+				throw new IOException("Failed to connect to 2xdb server");
+			}
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
+
 		Connection conn = null;
 		Statement stmt = null;
 		ResultSet rs = null;
@@ -140,6 +151,8 @@ public class JDBCResultSetTest {
 			int i=0;
 			while (rs.next()) {
 				TestCase.assertEquals((bValue[i]), rs.getBoolean("bol"));
+				TestCase.assertEquals((bValueStr[i]), rs.getObject("bol").toString());
+				TestCase.assertEquals((bValueStr[i]), rs.getObject(1).toString());
 				TestCase.assertEquals((bValueStr[i]), rs.getString(1));
 				i++;
 			}
@@ -175,6 +188,8 @@ public class JDBCResultSetTest {
 			while (rs.next()) {
 				TestCase.assertEquals((cValue[i]), rs.getByte("char"));
 				TestCase.assertEquals((cValueStr[i]), rs.getString(1));
+				TestCase.assertEquals((cValueStr[i]), rs.getObject("char").toString());
+				TestCase.assertEquals((cValueStr[i]), rs.getObject(1).toString());
 				i++;
 			}
 		} catch (Exception e) {
@@ -222,6 +237,12 @@ public class JDBCResultSetTest {
 				TestCase.assertEquals((iValueStr[i]), rs.getString(2));
 				TestCase.assertEquals((lValue[i]), rs.getLong("l"));
 				TestCase.assertEquals((lValueStr[i]), rs.getString(3));
+				TestCase.assertEquals((sValueStr[i]), rs.getObject("s").toString());
+				TestCase.assertEquals((sValueStr[i]), rs.getObject(1).toString());
+				TestCase.assertEquals((iValueStr[i]), rs.getObject("i").toString());
+				TestCase.assertEquals((iValueStr[i]), rs.getObject(2).toString());
+				TestCase.assertEquals((lValueStr[i]), rs.getObject("l").toString());
+				TestCase.assertEquals((lValueStr[i]), rs.getObject(3).toString());
 				i++;
 			}
 		} catch (Exception e) {
@@ -255,6 +276,8 @@ public class JDBCResultSetTest {
 
 				TestCase.assertEquals((StrValue[i]), rs.getString("str"));
 				TestCase.assertEquals((StrValue[i]), rs.getString(1));
+				TestCase.assertEquals((StrValue[i]), rs.getObject("str").toString());
+				TestCase.assertEquals((StrValue[i]), rs.getObject(1).toString());
 				i++;
 			}
 		} catch (Exception e) {
@@ -272,6 +295,7 @@ public class JDBCResultSetTest {
 		Statement stmt = null;
 		ResultSet rs = null;
 		String[] DValue = {"2000-01-01", "2011-01-01", "2020-11-01", "2021-11-01"};
+		String[] DValueObj = {"2000.01.01", "2011.01.01", "2020.11.01", "2021.11.01"};
 		try {
 			Class.forName(JDBC_DRIVER);
 			conn = DriverManager.getConnection(url);
@@ -286,7 +310,9 @@ public class JDBCResultSetTest {
 			int i=0;
 			while (rs.next()) {
 				TestCase.assertEquals((DValue[i]), rs.getDate("date").toLocalDate().toString());
-				TestCase.assertEquals((DValue[i]), rs.getDate(9).toLocalDate().toString());
+				TestCase.assertEquals((DValue[i]), rs.getDate(1).toLocalDate().toString());
+				TestCase.assertEquals((DValueObj[i]), rs.getObject("date").toString());
+				TestCase.assertEquals((DValueObj[i]), rs.getObject(1).toString());
 				i++;
 			}
 		} catch (Exception e) {
@@ -320,6 +346,8 @@ public class JDBCResultSetTest {
 			while (rs.next()) {
 				TestCase.assertEquals((TValue[i]), rs.getTime("time"));
 				TestCase.assertEquals((TValueStr[i]), rs.getString(1));
+				TestCase.assertEquals((TValueStr[i]), rs.getObject("time").toString());
+				TestCase.assertEquals((TValueStr[i]), rs.getObject(1).toString());
 				i++;
 			}
 		} catch (Exception e) {
@@ -354,6 +382,8 @@ public class JDBCResultSetTest {
 			while (rs.next()) {
 				TestCase.assertEquals((TsValue[i]), rs.getTimestamp("ts"));
 				TestCase.assertEquals((TsValueStr[i]), rs.getString(1));
+				TestCase.assertEquals((TsValueStr[i]), rs.getObject("ts").toString());
+				TestCase.assertEquals((TsValueStr[i]), rs.getObject(1).toString());
 				i++;
 			}
 		} catch (Exception e) {
@@ -388,10 +418,12 @@ public class JDBCResultSetTest {
 			rs = stmt.executeQuery("select * from pt ");
 			int i=0;
 			while (rs.next()) {
-				if (rs.getDate("a14") != null) {
+				if (rs.getDate("mon") != null) {
 					TestCase.assertEquals((MValueY[i]), rs.getDate("mon").toLocalDate().getYear());
 					TestCase.assertEquals((MValueM[i]), rs.getDate(1).toLocalDate().getMonthValue());
 					TestCase.assertEquals((MValueStr[i]), rs.getString(1));
+					TestCase.assertEquals((MValueStr[i]), rs.getObject(1).toString());
+					TestCase.assertEquals((MValueStr[i]), rs.getObject("mon").toString());
 				}
 				i++;
 			}
@@ -429,7 +461,9 @@ public class JDBCResultSetTest {
 						TestCase.assertEquals(DtValueDate[i], rs.getDate(1).toLocalDate().toString());
 						TestCase.assertEquals(DtValueTime[i], rs.getTime(1).toString());
 					}
-					TestCase.assertEquals((DtValueStr[i]), rs.getString("dt"));
+				TestCase.assertEquals((DtValueStr[i]), rs.getString("dt"));
+				TestCase.assertEquals((DtValueStr[i]), rs.getObject("dt").toString());
+				TestCase.assertEquals((DtValueStr[i]), rs.getObject(1).toString());
 				i++;
 			}
 		} catch (Exception e) {
@@ -464,6 +498,8 @@ public class JDBCResultSetTest {
 			while (rs.next()) {
 				TestCase.assertEquals(((MinValueL[i])), rs.getLong(1));
 				TestCase.assertEquals((MinValueStr[i]), rs.getString("min"));
+				TestCase.assertEquals((MinValueStr[i]), rs.getObject("min").toString());
+				TestCase.assertEquals((MinValueStr[i]), rs.getObject(1).toString());
 				i++;
 			}
 		} catch (Exception e) {
@@ -498,6 +534,8 @@ public class JDBCResultSetTest {
 			while (rs.next()) {
 				TestCase.assertEquals(((SeValueL[i])), rs.getLong(1));
 				TestCase.assertEquals((SeValueStr[i]), rs.getString("sec"));
+				TestCase.assertEquals((SeValueStr[i]), rs.getObject("sec").toString());
+				TestCase.assertEquals((SeValueStr[i]), rs.getObject(1).toString());
 				i++;
 			}
 		} catch (Exception e) {
@@ -538,6 +576,11 @@ public class JDBCResultSetTest {
 				TestCase.assertEquals((NanoSValueStr[i]), rs.getString("nanoTS"));
 				TestCase.assertEquals(((NanoTValueL[i])), rs.getLong(1));
 				TestCase.assertEquals((NanoTValueStr[i]), rs.getString("nanoT"));
+				TestCase.assertEquals(((NanoSValueStr[i])), rs.getObject(2).toString());
+				TestCase.assertEquals((NanoSValueStr[i]), rs.getObject("nanoTS").toString());
+				TestCase.assertEquals(((NanoTValueStr[i])), rs.getObject(1).toString());
+				TestCase.assertEquals((NanoTValueStr[i]), rs.getObject("nanoT").toString());
+				//System.out.println(rs.getType());
 				i++;
 			}
 		} catch (Exception e) {
@@ -565,6 +608,7 @@ public class JDBCResultSetTest {
 			int[] ColumnType = {1, 2, 3, 4, 5, 15, 16, 18, 6, 8, 12, 7, 11, 14, 9, 10, 13};
 			String[] ColumnTypeName = {"DT_BOOL", "DT_BYTE", "DT_SHORT", "DT_INT", "DT_LONG", "DT_FLOAT", "DT_DOUBLE", "DT_STRING", "DT_DATE", "DT_TIME", "DT_TIMESTAMP", "DT_MONTH", "DT_DATETIME", "DT_NANOTIMESTAMP", "DT_MINUTE", "DT_SECOND", "DT_NANOTIME"};
 			String[] ColName = new String[18];
+			String [] CatalogName={"LOGICAL","INTEGRAL","INTEGRAL","INTEGRAL","INTEGRAL","FLOATING","FLOATING","LITERAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL"};
 			//getMetaData
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int len = rsmd.getColumnCount();
@@ -572,23 +616,38 @@ public class JDBCResultSetTest {
 				ColName[j] = "a" + (j + 3);
 				TestCase.assertEquals(ColName[j], rsmd.getColumnName(j + 1));
 				TestCase.assertEquals(ColName[j], rsmd.getColumnLabel(j + 1));
-				//TestCase.assertEquals(ColName[j], rsmd.getColumnType(j + 1));
+				TestCase.assertEquals(ColumnType[j], rsmd.getColumnType(j + 1));
 				TestCase.assertEquals(ColumnTypeName[j], rsmd.getColumnTypeName(j + 1));
-				TestCase.assertFalse(rsmd.isReadOnly(j+1));
+				TestCase.assertEquals(CatalogName[j], rsmd.getCatalogName(j + 1));
+				TestCase.assertEquals(ColName[j], rsmd.getTableName(j + 1));
+				//System.out.println(rsmd.isNullable(j+1));
+				//TestCase.assertEquals(,rsmd.getColumnDisplaySize(j+1));
+				//TestCase.assertEquals(,rsmd.getPrecision(j+1));
+				//TestCase.assertEquals(,rsmd.getScale(j+1));
+				//TestCase.assertEquals(,rsmd.getSchemaName(j+1));
+				//TestCase.assertTrue(rsmd.isAutoIncrement(j+1));
+				//TestCase.assertTrue(rsmd.isCaseSensitive(j+1));
+				//TestCase.assertTrue(rsmd.isCurrency(j+1));
+				//TestCase.assertTrue(rsmd.isDefinitelyWritable(j+1));
+				//TestCase.assertTrue(rsmd.isSearchable(j+1));
+				//TestCase.assertTrue(rsmd.isSigned(j+1));
+				//TestCase.assertTrue(rsmd.isWritable(j+1));
+				//TestCase.assertTrue(rsmd.isReadOnly(j+1));
 			}
 			org.junit.Assert.assertEquals(len, 17);
-
 			//get alias
-			ResultSet rs1 = stmt.executeQuery("select a3 as a1,a4 as a2 from pt ");
+			Statement stmt1 = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+			stmt1.execute("pt=loadTable('dfs://db1', 'tb')");
+			ResultSet rs1 = stmt1.executeQuery("select a3 as a1,a4 as a2 from pt ");
 			String[] ColLabel1 = {"a1","a2"};
 			ResultSetMetaData rsmd1 = rs1.getMetaData();
 			int len1 = rsmd1.getColumnCount();
 			for (int j = 0; j < len1; j++) {
 				TestCase.assertEquals(ColLabel1[j], rsmd1.getColumnName(j + 1));
 				TestCase.assertEquals(ColLabel1[j], rsmd1.getColumnLabel(j + 1));
+				TestCase.assertFalse(rsmd.isReadOnly(j+1));
 			}
 			org.junit.Assert.assertEquals(len1, 2);
-
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -644,8 +703,9 @@ public class JDBCResultSetTest {
 			rs.next();
 			int a = rs.getInt("a6");
 			TestCase.assertFalse(rs.wasNull());
-			//int b = rs1.getInt(4);
-		//	TestCase.assertTrue(rs.wasNull());
+			rs.absolute(4);
+			boolean b = rs.getBoolean(1);
+			TestCase.assertTrue(rs.wasNull());
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -664,7 +724,7 @@ public class JDBCResultSetTest {
 		try {
 			Class.forName(JDBC_DRIVER);
 			conn = DriverManager.getConnection(url);
-			stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_UPDATABLE);
+			stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,ResultSet.CONCUR_READ_ONLY);
 			stmt.execute("pt=loadTable('dfs://db1', 'tb')");
 			rs = stmt.executeQuery("select * from pt");
 			rs.beforeFirst();
@@ -687,7 +747,10 @@ public class JDBCResultSetTest {
 			TestCase.assertEquals(4, rs.getRow());
 			rs.relative(0);
 			TestCase.assertEquals(4, rs.getRow());
-			//RSType
+			//findColumn
+			TestCase.assertEquals(1,rs.findColumn("a3"));
+		//	System.out.println(rs.getFetchSize());
+			//TestCase.assertEquals(1,rs.getFetchSize());
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -697,4 +760,34 @@ public class JDBCResultSetTest {
 			conn.close();
 		}
 	}
+
+	@Test
+	public void Test_ResultSet_setType() throws Exception {
+		Connection conn = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			String script = "c=char(0 2 301 NULL);\n" +
+				"t= table(c as char);\n" +
+				"db =database(\"" + PATH + "/db1\");\n" +
+				"saveTable(db,t,`tb)";
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+			stmt.execute(script);
+			stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
+			rs = stmt.executeQuery("select * from pt");
+			rs.last();
+			rs.first();
+		//	TestCase.assertFalse(rs.isFirst());
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			rs.close();
+			stmt.close();
+			conn.close();
+		}
+	}
+
+
 }
