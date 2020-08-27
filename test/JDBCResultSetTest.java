@@ -602,13 +602,15 @@ public class JDBCResultSetTest {
 			Class.forName(JDBC_DRIVER);
 			conn = DriverManager.getConnection(url);
 			stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY);
-			stmt.execute("pt=loadTable('dfs://db1', 'tb')");
+			stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 			rs = stmt.executeQuery("select * from pt ");
 
 			int[] ColumnType = {1, 2, 3, 4, 5, 15, 16, 18, 6, 8, 12, 7, 11, 14, 9, 10, 13};
 			String[] ColumnTypeName = {"DT_BOOL", "DT_BYTE", "DT_SHORT", "DT_INT", "DT_LONG", "DT_FLOAT", "DT_DOUBLE", "DT_STRING", "DT_DATE", "DT_TIME", "DT_TIMESTAMP", "DT_MONTH", "DT_DATETIME", "DT_NANOTIMESTAMP", "DT_MINUTE", "DT_SECOND", "DT_NANOTIME"};
 			String[] ColName = new String[18];
 			String [] CatalogName={"LOGICAL","INTEGRAL","INTEGRAL","INTEGRAL","INTEGRAL","FLOATING","FLOATING","LITERAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL"};
+			String [] colClassName = {"BasicBooleanVector","BasicByteVector","BasicShortVector","BasicIntVector","BasicLongVector","BasicFloatVector","BasicDoubleVector","BasicStringVector","BasicDateVector","BasicTimeVector","BasicTimestampVector","BasicMonthVector",
+					"BasicDateTimeVector","BasicNanoTimestampVector","BasicMinuteVector","BasicSecondVector","BasicNanoTimeVector"};
 			//getMetaData
 			ResultSetMetaData rsmd = rs.getMetaData();
 			int len = rsmd.getColumnCount();
@@ -620,24 +622,25 @@ public class JDBCResultSetTest {
 				TestCase.assertEquals(ColumnTypeName[j], rsmd.getColumnTypeName(j + 1));
 				TestCase.assertEquals(CatalogName[j], rsmd.getCatalogName(j + 1));
 				TestCase.assertEquals(ColName[j], rsmd.getTableName(j + 1));
-				//System.out.println(rsmd.isNullable(j+1));
-				//TestCase.assertEquals(,rsmd.getColumnDisplaySize(j+1));
+				TestCase.assertEquals("com.xxdb.data."+colClassName[j], rsmd.getColumnClassName(j + 1));
+				TestCase.assertEquals(2,rsmd.isNullable(j+1));
+				//TestCase.assertEquals(rsmd.getColumnDisplaySize(j+1));
 				//TestCase.assertEquals(,rsmd.getPrecision(j+1));
 				//TestCase.assertEquals(,rsmd.getScale(j+1));
 				//TestCase.assertEquals(,rsmd.getSchemaName(j+1));
-				//TestCase.assertTrue(rsmd.isAutoIncrement(j+1));
-				//TestCase.assertTrue(rsmd.isCaseSensitive(j+1));
-				//TestCase.assertTrue(rsmd.isCurrency(j+1));
+				TestCase.assertFalse(rsmd.isAutoIncrement(j+1));
+				TestCase.assertTrue(rsmd.isCaseSensitive(j+1));
+				TestCase.assertFalse(rsmd.isCurrency(j+1));
 				//TestCase.assertTrue(rsmd.isDefinitelyWritable(j+1));
-				//TestCase.assertTrue(rsmd.isSearchable(j+1));
-				//TestCase.assertTrue(rsmd.isSigned(j+1));
-				//TestCase.assertTrue(rsmd.isWritable(j+1));
+				TestCase.assertTrue(rsmd.isSearchable(j+1));
+			//	TestCase.assertFalse(rsmd.isSigned(j+1));
+				TestCase.assertFalse(rsmd.isWritable(j+1));
 				//TestCase.assertTrue(rsmd.isReadOnly(j+1));
 			}
 			org.junit.Assert.assertEquals(len, 17);
 			//get alias
 			Statement stmt1 = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
-			stmt1.execute("pt=loadTable('dfs://db1', 'tb')");
+			stmt1.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 			ResultSet rs1 = stmt1.executeQuery("select a3 as a1,a4 as a2 from pt ");
 			String[] ColLabel1 = {"a1","a2"};
 			ResultSetMetaData rsmd1 = rs1.getMetaData();
@@ -645,7 +648,8 @@ public class JDBCResultSetTest {
 			for (int j = 0; j < len1; j++) {
 				TestCase.assertEquals(ColLabel1[j], rsmd1.getColumnName(j + 1));
 				TestCase.assertEquals(ColLabel1[j], rsmd1.getColumnLabel(j + 1));
-				TestCase.assertFalse(rsmd.isReadOnly(j+1));
+				TestCase.assertFalse(rsmd1.isReadOnly(j+1));
+				//TestCase.assertTrue(rsmd1.isWritable(j+1));
 			}
 			org.junit.Assert.assertEquals(len1, 2);
 		} catch (Exception e) {
@@ -717,16 +721,15 @@ public class JDBCResultSetTest {
 
 	@Test
 	public void Test_ResultSet_Browse() throws Exception {
-		CreateMemoryTable(HOST, PORT);
 		Connection conn = null;
 		Statement stmt = null;
 		ResultSet rs = null;
-		try {
+	try {
 			Class.forName(JDBC_DRIVER);
 			conn = DriverManager.getConnection(url);
-			stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,ResultSet.CONCUR_READ_ONLY);
-			stmt.execute("pt=loadTable('dfs://db1', 'tb')");
-			rs = stmt.executeQuery("select * from pt");
+			stmt = conn.createStatement();
+			String script = "t= table(1..4 as id);\n" +"select * from t";
+			rs = stmt.executeQuery(script);
 			rs.beforeFirst();
 			TestCase.assertTrue(rs.isBeforeFirst());
 			rs.afterLast();
@@ -748,7 +751,7 @@ public class JDBCResultSetTest {
 			rs.relative(0);
 			TestCase.assertEquals(4, rs.getRow());
 			//findColumn
-			TestCase.assertEquals(1,rs.findColumn("a3"));
+			TestCase.assertEquals(1,rs.findColumn("id"));
 		//	System.out.println(rs.getFetchSize());
 			//TestCase.assertEquals(1,rs.getFetchSize());
 
@@ -789,5 +792,110 @@ public class JDBCResultSetTest {
 		}
 	}
 
+	@Test
+	public void Test_ResultSet_bigData() throws Exception {
+		Connection conn = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			String script = "\n" +
+					"a = take(1 2 3 4 5,500000000);\n" +
+					"t = table(a as id)\n" +
+					"if(existsDatabase(\"dfs://db1\")){\n" +
+					"\tdropDatabase(\"dfs://db1\")\n" +
+					"}\n" +
+					"db=database(\"dfs://db1\", VALUE, 1 2 3 4 5)\n" +
+					"pt=db.createPartitionedTable(t, `pt, `id)\n" +
+					"saveTable(\"dfs://db1\",t,`tb)";
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+			stmt.execute(script);
+			stmt.execute("tb=loadTable(\"dfs://db1\",`pt)");
+			rs = stmt.executeQuery("select * from tb");
+			int i=1;
+			while (rs.next()){
+				TestCase.assertEquals(i,rs.getRow());
+				i++;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			rs.close();
+			stmt.close();
+			conn.close();
+		}
+	}
+
+	@Test
+	public void Test_ResultSet_Multiple_lines() throws SQLException {
+		Connection conn = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			String script = "a = 1..10;" +
+					"b = take(`Q`W`E,10);" +
+					"c=1..10;" +
+					"t = table(a as id,b as val,c as val1);" +
+					"select id as ids "+
+					",val as value, val1 as value1 "
+					+" from t where id =1 and val1 =1;";
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+			//stmt.execute(script);
+			rs = stmt.executeQuery(script);
+			int i=1;
+			while (rs.next()){
+				TestCase.assertEquals(i,rs.getRow());
+				i++;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			rs.close();
+			stmt.close();
+			conn.close();
+		}
+	}
+
+	@Test
+	public void Test_ResultSet_Others() throws SQLException {
+		Connection conn = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stmt = conn.createStatement();
+			String script = "k=string(0 -2 301 NULL);\n" +
+					"t= table(k as str);\n" +"select * from t ";
+			rs = stmt.executeQuery(script);
+			int i = 0;
+			while (rs.next()) {
+				TestCase.assertEquals(null, rs.getAsciiStream(1));
+				TestCase.assertEquals(null, rs.getAsciiStream("str"));
+				TestCase.assertEquals(null, rs.getUnicodeStream(1));
+				TestCase.assertEquals(null, rs.getUnicodeStream("str"));
+				TestCase.assertEquals(null, rs.getBinaryStream(1));
+				TestCase.assertEquals(null, rs.getBinaryStream("str"));
+				TestCase.assertEquals(null, rs.getBigDecimal(1));
+				TestCase.assertEquals(null, rs.getBigDecimal("str" ));
+				TestCase.assertEquals(null, rs.getBigDecimal(1, 1));
+				TestCase.assertEquals(null, rs.getBigDecimal("str", 1));
+				i++;
+			}
+			rs.clearWarnings();
+			TestCase.assertEquals(null, rs.getWarnings());
+			//System.out.println(rs.getCursorName());
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			rs.close();
+			stmt.close();
+			conn.close();
+		}
+	}
 
 }
