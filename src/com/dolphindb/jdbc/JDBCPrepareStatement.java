@@ -302,7 +302,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setBigDecimal(int parameterIndex, BigDecimal bigDecimal) throws SQLException {
-		setObject(parameterIndex, bigDecimal);
+		setObject(parameterIndex, bigDecimal.doubleValue());
 	}
 
 	@Override
