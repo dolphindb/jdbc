@@ -109,8 +109,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				BasicInt basicInt;
 				if (tableType.equals(IN_MEMORY_TABLE)) {
 					try {
-						basicInt = (BasicInt) connection.run("tableInsert", (List<Entity>) arguments);
-						return basicInt.getInt();
+							basicInt = (BasicInt) connection.run("tableInsert", (List<Entity>) arguments);
+							return basicInt.getInt();
 					} catch (IOException e) {
 						throw new SQLException(e);
 					}
@@ -120,7 +120,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			} else {
 				throw new SQLException("check the SQL " + preSql);
 			}
-
 		case Utils.DML_UPDATE:
 		case Utils.DML_DELETE:
 			if (tableName != null) {
@@ -155,6 +154,26 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 			return 0;
 		}
+	}
+
+	public int executeUpdate(Object arguments)throws SQLException{
+		if (tableName != null) {
+			getTableType();
+			BasicInt basicInt;
+			if (tableType.equals(IN_MEMORY_TABLE)) {
+				try {
+					basicInt = (BasicInt) connection.run("tableInsert", (List<Entity>) arguments);
+					return basicInt.getInt();
+				} catch (IOException e) {
+					throw new SQLException(e);
+				}
+			} else {
+				return tableAppend();
+			}
+		} else {
+			throw new SQLException("check the SQL " + preSql);
+		}
+
 	}
 
 	@SuppressWarnings("unchecked")
@@ -472,10 +491,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					arr_int[index++] = super.executeUpdate((String) args);
 				}
 				else {
-					arr_int[index++] = executeUpdate();
-					return arr_int;
+					arr_int[index++] = executeUpdate(args);
+					//return arr_int;
 				}
 			}
+
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw new BatchUpdateException(e.getMessage(), Arrays.copyOf(arr_int, index));
