@@ -275,4 +275,8 @@ public static void DFSAddTest(Properties info, String database, String tableName
  
  * 在JDBC接口中，可以使用`excute`方法执行所有的DolphinDB Sql语句，具体语法可以参考[DolphinDB Sql语法](http://www.dolphindb.com/help/Chapter8SQLStatements.html) 
 
+ * JDBC中executeUpdate（sql）返回值是sql语句更新的记录数，而在DolphinDB JDBC API中executeUpdate（sql）不支持返回delete、update和调用append的语句所影响的记录数。
+
+ * 由于BigDecimal类型的精度较高，而DolphinDB没有此数据类型，故将其统一转换为Double类型。
+
  * [下载](sample.txt)示例所有代码
