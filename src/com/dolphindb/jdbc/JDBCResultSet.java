@@ -195,6 +195,11 @@ public class JDBCResultSet implements ResultSet{
     }
 
     @Override
+    public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
+        return BigDecimal.valueOf(getDouble(columnIndex));
+    }
+
+    @Override
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException{
         Driver.unused("getBigDecimal not implemented");
         return null;
@@ -448,10 +453,7 @@ public class JDBCResultSet implements ResultSet{
         return null;
     }
 
-    @Override
-    public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
-        return null;
-    }
+
 
     @Override
     public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
