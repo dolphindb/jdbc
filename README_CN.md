@@ -1,4 +1,4 @@
-#  DolphinDB JDBC
+#  DolphinDB JDBC API
 
 DolphinDB提供JDBC的接口的实现，可以让支持JDBC接口的客户端程序直接接入DolphinDB。DolphinDB的JDBC接口是基于 DolphinDB Java API 实现，所以JDBC包内置了 DolphinDB Java API 的包。
 
@@ -150,8 +150,6 @@ public static void InMemoryDeleteTest(Properties info, String database, String t
 
 ### 1.3. 内存表的更改
 
-对数据表内容更新
-
 ```java
 public static void InMemoryUpdateTest(Properties info, String database, String tableName)
 {
@@ -189,18 +187,17 @@ public static void InMemoryUpdateTest(Properties info, String database, String t
  
 ## 2. 分布式表的新增和查询
 
-DolphinDB支持分布式数据表，本例子中演示通过JDBC来进行分布式表的新增和查询。要操作分布式表，连接的时候可以在URL中加入path以及相应内容，这样getConnection()时会预先加载分区表的元数据。
+DolphinDB支持分布式数据表，本例子中演示通过JDBC来进行分布式表的新增和查询。要操作分布式表，连接的时候可以在URL中加入path以及相应内容，这样`getConnection()`时会预先加载分区表的元数据。
 
+#### Example
 
-#### Example：
 ```URL
 jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=2000.01M..2019.05M
 ```
 
 ### 2.1. 创建分区表
 
-使用Java API 来执行创建分区表的语句，创建示例所需的分区数据库。
-示例中使用了VALUE方式进行数据分区。需要了解其他分区方式，请点击 [DolphinDB数据库分区教程](https://github.com/dolphindb/Tutorials_CN/blob/master/database.md) 
+使用Java API 来执行创建分区表的语句，创建示例所需的分区数据库。示例中使用了VALUE方式进行数据分区。需要了解其他分区方式，请点击 [DolphinDB数据库分区教程](https://github.com/dolphindb/Tutorials_CN/blob/master/database.md) 
 
 ```java
 public static boolean CreateValueTable(String database, String tableName, String host, String port)
@@ -234,7 +231,6 @@ public static boolean CreateValueTable(String database, String tableName, String
 }        
 ```
 ### 2.2. 分区表内容的增加和查询
-
 
 ```java
 public static void DFSAddTest(Properties info, String database, String tableName)
@@ -276,9 +272,9 @@ public static void DFSAddTest(Properties info, String database, String tableName
 
 ## 3 参考及附录
  
- * 在JDBC接口中，可以使用`excute`方法执行所有的DolphinDB SQL语句，具体语法可以参考[DolphinDB SQL语法](http://www.dolphindb.com/help/Chapter8SQLStatements.html) 
+ * 在JDBC接口中，可以使用`execute`方法执行所有的DolphinDB SQL语句，具体语法可以参考[DolphinDB SQL语法](http://www.dolphindb.com/help/Chapter8SQLStatements.html) 
 
- * JDBC中executeUpdate（sql）返回值是sql语句更新的记录数，而在DolphinDB JDBC API中executeUpdate（sql）不支持返回delete、update和调用append的语句所影响的记录数。
+ * JDBC中executeUpdate（sql）返回值是SQL语句更新的记录数，而在DolphinDB JDBC API中 executeUpdate（sql）不支持返回delete、update和调用append的语句所影响的记录数。
 
  * 由于BigDecimal类型的精度较高，而DolphinDB没有此数据类型，故将其统一转换为Double类型。
 
