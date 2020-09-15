@@ -240,116 +240,112 @@ public class JDBCStatementTest {
     	}
 	} 
     
-//	@Test
-//	public void Test_statement_inmemory_execUpdate() throws Exception{
-//		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver"; 
-//		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
-//	    Connection conn = null;
-//	    Statement stmt = null;
-//	    int rs = 0;
-//	    int rs1 = 0;
-//	    int rs2 = 0;
-//	    int rs3 = 0;
-//	    String s = "Can not issue SELECT via executeUpdate()";
-//	    try {
-//	    	Class.forName(JDBC_DRIVER);
-//			conn = DriverManager.getConnection(url);
-//			stmt = conn.createStatement();
-//			stmt.execute("t=table(1..10 as id,11..20 as val)");
-//			String sql = "select * from t where id>5 order by id desc";
-//			rs = stmt.executeUpdate(sql);
-//	    }catch(Exception e) {
-//	    	org.junit.Assert.assertThat(e.getMessage(), containsString(s));
-//	    }
-////		try {
-////			Class.forName(JDBC_DRIVER);
-////			conn = DriverManager.getConnection(url);
-////			stmt = conn.createStatement();
-////			stmt.execute("t=table(1..10 as id,11..20 as val)");
-////			String sql1 = "insert into t values(11 12 13,21 22 23)";
-////			String sql2 = "delete from t where id < 4";
-////			String sql3 = "update t set id=id+1";
-////			rs1 = stmt.executeUpdate(sql1);
-////			rs2 = stmt.executeUpdate(sql2);
-////			rs3 = stmt.executeUpdate(sql3);
-////			System.out.println(rs1);
-////			System.out.println(rs2);
-////			System.out.println(rs3);
-////			org.junit.Assert.assertEquals(rs1,3);
-////			org.junit.Assert.assertEquals(rs2, 1);
-////			org.junit.Assert.assertEqualsr(s3, 12);
-////		}
-////		
-////		catch(Exception e) {
-////			e.printStackTrace();			
-////		}
-//		finally {
-//    		if(stmt != null){
-//    			try{
-//    				stmt.close();
-//    			}catch(SQLException e){
-//    				e.printStackTrace();
-//    			}
-//    		}
-//    		if(conn != null){
-//    			try{
-//    				conn.close();
-//    			}catch(SQLException e){
-//    				e.printStackTrace();
-//    			}
-//    		}
-//		}
-//	}
+	@Test
+	public void Test_statement_inmemory_execUpdate() throws Exception{
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver"; 
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+	    Connection conn = null;
+	    Statement stmt = null;
+	    int rs = 0;
+	    int rs1 = 0;
+	    int rs2 = 0;
+	    int rs3 = 0;
+	    String s = "Can not issue SELECT via executeUpdate()";
+	    try {
+	    	Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stmt = conn.createStatement();
+			stmt.execute("t=table(1..10 as id,11..20 as val)");
+			String sql = "select * from t where id>5 order by id desc";
+			rs = stmt.executeUpdate(sql);
+	    }catch(Exception e) {
+	    	org.junit.Assert.assertThat(e.getMessage(), containsString(s));
+	    }
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stmt = conn.createStatement();
+			stmt.execute("t=table(1..10 as id,11..20 as val)");
+			String sql1 = "insert into t values(11 12 13,21 22 23)";
+			String sql2 = "delete from t where id < 4";
+			String sql3 = "update t set id=id+1";
+			rs1 = stmt.executeUpdate(sql1);
+			rs2 = stmt.executeUpdate(sql2);
+			rs3 = stmt.executeUpdate(sql3);
+			org.junit.Assert.assertEquals(rs1,3);
+			org.junit.Assert.assertEquals(rs2, -2);
+			org.junit.Assert.assertEquals(rs3, -2);
+		}
+		
+		catch(Exception e) {
+			e.printStackTrace();			
+		}
+		finally {
+    		if(stmt != null){
+    			try{
+    				stmt.close();
+    			}catch(SQLException e){
+    				e.printStackTrace();
+    			}
+    		}
+    		if(conn != null){
+    			try{
+    				conn.close();
+    			}catch(SQLException e){
+    				e.printStackTrace();
+    			}
+    		}
+		}
+	}
 	
-//	@Test
-//	public void Test_statement_inmemory_execBatch() throws Exception{
-//		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
-//		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
-//	    Connection conn = null;
-//	    Statement stmt = null;
-//	    ResultSet rs = null;
-//	    try {
-//	    	Class.forName(JDBC_DRIVER);
-//	    	conn = DriverManager.getConnection(url);
-//	    	stmt = conn.createStatement();
-//	    	stmt.execute("t=table(`C`MS`MS`MS`IBM`IBM`C`C`C as sym,49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 as price,"
-//	    				+ "2200 1900 2100 3200 6800 5400 1300 2500 8800 as qty,"
-//	    				+ "[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12] as timestamp)");
-//	    	stmt.addBatch("insert into t values(`IBM,66.6,6500,09:34:15)");
-//	    	stmt.addBatch("update t set qty=qty+100");
-//	    	stmt.addBatch("delete from t where sym=`IBM");
-//	    	int[] expected = {1,9,3};
-//	    	int[] affectCount= stmt.executeBatch();
-//	    	System.out.println(Arrays.toString(affectCount));
-//	    	org.junit.Assert.assertArrayEquals(expected, affectCount);
-//	    }
-//	    catch(Exception e) {
-//	    	e.printStackTrace();
-//	    }
-//		finally {
-//			if(rs != null){
-//    			try{
-//    				rs.close();
-//    			}catch(SQLException e){
-//    				e.printStackTrace();
-//    			}
-//    		}
-//    		if(stmt != null){
-//    			try{
-//    				stmt.close();
-//    			}catch(SQLException e){
-//    				e.printStackTrace();
-//    			}
-//    		}
-//    		if(conn != null){
-//    			try{
-//    				conn.close();
-//    			}catch(SQLException e){
-//    				e.printStackTrace();
-//    			}
-//    		}
-//		}
-//	}
+	@Test
+	public void Test_statement_inmemory_execBatch() throws Exception{
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+	    Connection conn = null;
+	    Statement stmt = null;
+	    ResultSet rs = null;
+	    try {
+	    	Class.forName(JDBC_DRIVER);
+	    	conn = DriverManager.getConnection(url);
+	    	stmt = conn.createStatement();
+	    	stmt.execute("t=table(`C`MS`MS`MS`IBM`IBM`C`C`C as sym,49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 as price,"
+	    				+ "2200 1900 2100 3200 6800 5400 1300 2500 8800 as qty,"
+	    				+ "[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12] as timestamp)");
+	    	stmt.addBatch("insert into t values(`IBM,66.6,6500,09:34:15)");
+	    	stmt.addBatch("update t set qty=qty+100");
+	    	stmt.addBatch("delete from t where sym=`IBM");
+	    	int[] expected = {1,-2,-2,0};
+	    	int[] affectCount= stmt.executeBatch();
+	    	org.junit.Assert.assertArrayEquals(expected, affectCount);
+	    }
+	    catch(Exception e) {
+	    	e.printStackTrace();
+	    }
+		finally {
+			if(rs != null){
+    			try{
+    				rs.close();
+    			}catch(SQLException e){
+    				e.printStackTrace();
+    			}
+    		}
+    		if(stmt != null){
+    			try{
+    				stmt.close();
+    			}catch(SQLException e){
+    				e.printStackTrace();
+    			}
+    		}
+    		if(conn != null){
+    			try{
+    				conn.close();
+    			}catch(SQLException e){
+    				e.printStackTrace();
+    			}
+    		}
+		}
+	}
 	
 	
 	@Test
@@ -582,9 +578,8 @@ public class JDBCStatementTest {
     		stmt = conn.createStatement();
     		stmt.execute("pt=loadTable('dfs://db_testStatement', 'pt')");
     		stmt.execute("t=table(`IBM as sym,35.16 as price,3500 as qty,09:36:48 as timestamp)");
-//    		int res = stmt.executeUpdate("pt.append!(t)");
-//    		System.out.println(res);
-//    		org.junit.Assert.assertEquals(res, 1);
+    		int res = stmt.executeUpdate("pt.append!(t)");
+    		org.junit.Assert.assertEquals(res, 0);
     	}catch(Exception e){
     		e.printStackTrace();
     	}finally{
@@ -612,55 +607,53 @@ public class JDBCStatementTest {
     	}
 	}
 	
-//	@Test
-//	public void Test_statement_dfs_execBatch() throws Exception{
-//		boolean success = CreateDfsTable(HOST, PORT);
-//		org.junit.Assert.assertTrue(success);
-//		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver"; 
-//		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
-//    	Connection conn = null;
-//    	Statement stmt = null;
-//    	ResultSet rs = null;
-//    	try {
-//    		Class.forName(JDBC_DRIVER);
-//    		conn = DriverManager.getConnection(url);
-//    		stmt = conn.createStatement();
-//    		stmt.execute("pt=loadTable('dfs://db_testStatement', 'pt')");
-//    		stmt.execute("t=table(`IBM as sym,66.6 as price,3500 as qty,09:34:05 as timestamp)");
-//    		stmt.addBatch("pt.append!(t)");
-//    		stmt.execute("t=table(`A`B as sym,45.5 31.2 as price,1000 6500 as qty,09:35:01 09:35:05 as timestamp)");
-//    		stmt.addBatch("pt.append!(t)");
-//    		int[] res = stmt.executeBatch();
-//    		int[] a = {1,2};
-//    		System.out.print(Arrays.toString(res));
-//    		System.out.print(Arrays.toString(a));
-//    		org.junit.Assert.assertArrayEquals(a, res);
-//    	}catch(Exception e) {
-//    		e.printStackTrace();
-//    	}finally {
-//    		if(rs != null){
-//    			try{
-//    				rs.close();
-//    			}catch(SQLException e){
-//    				e.printStackTrace();
-//    			}
-//    		}
-//    		if(stmt != null){
-//    			try{
-//    				stmt.close();
-//    			}catch(SQLException e){
-//    				e.printStackTrace();
-//    			}
-//    		}
-//    		if(conn != null){
-//    			try{
-//    				conn.close();
-//    			}catch(SQLException e){
-//    				e.printStackTrace();
-//    			}
-//    		}
-//    	}
-//	}
+	@Test
+	public void Test_statement_dfs_execBatch() throws Exception{
+		boolean success = CreateDfsTable(HOST, PORT);
+		org.junit.Assert.assertTrue(success);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver"; 
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+    	Connection conn = null;
+    	Statement stmt = null;
+    	ResultSet rs = null;
+    	try {
+    		Class.forName(JDBC_DRIVER);
+    		conn = DriverManager.getConnection(url);
+    		stmt = conn.createStatement();
+    		stmt.execute("pt=loadTable('dfs://db_testStatement', 'pt')");
+    		stmt.execute("t=table(`IBM as sym,66.6 as price,3500 as qty,09:34:05 as timestamp)");
+    		stmt.addBatch("pt.append!(t)");
+    		stmt.execute("t=table(`A`B as sym,45.5 31.2 as price,1000 6500 as qty,09:35:01 09:35:05 as timestamp)");
+    		stmt.addBatch("pt.append!(t)");
+    		int[] res = stmt.executeBatch();
+    		int[] a = {0,0,0};
+    		org.junit.Assert.assertArrayEquals(a, res);
+    	}catch(Exception e) {
+    		e.printStackTrace();
+    	}finally {
+    		if(rs != null){
+    			try{
+    				rs.close();
+    			}catch(SQLException e){
+    				e.printStackTrace();
+    			}
+    		}
+    		if(stmt != null){
+    			try{
+    				stmt.close();
+    			}catch(SQLException e){
+    				e.printStackTrace();
+    			}
+    		}
+    		if(conn != null){
+    			try{
+    				conn.close();
+    			}catch(SQLException e){
+    				e.printStackTrace();
+    			}
+    		}
+    	}
+	}
 	
 	
 	
@@ -816,7 +809,8 @@ public class JDBCStatementTest {
 		Connection conn =null;
 		Statement stmt = null;
 		ResultSet rs = null;
-		boolean res = true;
+		boolean res = false;
+		int i = 11;
 		try {
 			Class.forName(JDBC_DRIVER);
 			conn = DriverManager.getConnection(url);
@@ -824,16 +818,24 @@ public class JDBCStatementTest {
     		stmt.execute("t=table(`C`MS`MS`MS`IBM`IBM`C`C`C as sym,49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 as price,"
     				+ "2200 1900 2100 3200 6800 5400 1300 2500 8800 as qty, "
     				+ "[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12] as timestamp)");
-    		stmt.execute("t2=table(1 2 3 4 5 as is,11 12 13 14 15 as x0,21 22 23 24 25 as x1,31 32 33 34 35 as  x2)");
+    		stmt.execute("t2=table(1 2 3 4 5 as id,11 12 13 14 15 as x0,21 22 23 24 25 as x1,31 32 33 34 35 as  x2)");
     		stmt.execute("[select * from t,select * from t2]");
-//    		rs = stmt.getResultSet();
-//    		rs.absolute(1);
-//    		while(rs.next()) {
-//    			System.out.println(rs.getInt(2));
-//    		}
-
-//    		res = stmt.getMoreResults();
-//    		System.out.println(res);
+    		rs = stmt.getResultSet();
+    		while(rs.next()) {
+    			System.out.println(rs.getDouble(2));
+    		}
+    		rs.absolute(5);
+    		org.junit.Assert.assertEquals(174.97, rs.getDouble(2),0);
+    		res = stmt.getMoreResults();
+    		if(res) {
+    			ResultSet rs1 = stmt.getResultSet();
+    			while(rs1.next()) {
+    			System.out.println(rs1.getInt(2));
+    			org.junit.Assert.assertEquals(i, rs1.getInt(2));
+    			i++;
+    			}
+    		}
+    			
 		}catch(Exception e) {
 			e.printStackTrace();
 		}finally {
@@ -871,9 +873,10 @@ public class JDBCStatementTest {
     		stmt.execute("insert into t values(`IBM,20.0,1000,09:35:07)");
     		rs = stmt.getUpdateCount();		
     		org.junit.Assert.assertEquals(1, rs);
-//    		stmt.execute("delete from t where qty<5000");
-//    		rs = stmt.getUpdateCount();
-//    		org.junit.Assert.assertEquals(4, rs);
+    		stmt.execute("delete from t where qty<5000");
+    		rs = stmt.getUpdateCount();
+    		System.out.println(rs);
+    		org.junit.Assert.assertEquals(-2, rs);
 		}catch(Exception e) {
     		e.printStackTrace();
     	}finally {
@@ -927,36 +930,6 @@ public class JDBCStatementTest {
 		}
 	}
 	
-//	@Test
-//	public void Test_statement_wrap() throws Exception{
-//		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
-//		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
-//		Connection conn =null;
-//		Statement stmt = null;
-//		try {
-//			Class.forName(JDBC_DRIVER);
-//			conn = DriverManager.getConnection(url);
-//    		stmt = conn.createStatement();
-//    		stmt.unwrap(this.getClass());
-//		}catch(Exception e) {
-//			e.printStackTrace();
-//		}finally {
-//			if(conn !=null) {
-//    			try {
-//    				conn.close();
-//    			}catch(SQLException e) {
-//    				e.printStackTrace();
-//    			}
-//    		}
-//    		if(stmt !=null) {
-//    			try {
-//    				stmt.close();
-//    			}catch(SQLException e) {
-//    				e.printStackTrace();
-//    			}
-//    		}
-//		}
-//	}
 	
 	
 }
