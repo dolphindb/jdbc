@@ -515,7 +515,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setBlob(int parameterIndex, Blob blob) throws SQLException {
-		Driver.unused("setBlob not implemented");
+		byte []blobbyte = blob.getBytes(1,(int)blob.length());
+		String blobstring = new String(blobbyte);
+		setObject(parameterIndex,blobstring);
 	}
 
 	@Override
@@ -575,7 +577,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setNString(int parameterIndex, String s) throws SQLException {
-		Driver.unused("setNString not implemented");
+		setObject(parameterIndex,s);
 	}
 
 	@Override
