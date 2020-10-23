@@ -279,3 +279,15 @@ public static void DFSAddTest(Properties info, String database, String tableName
  * 由于BigDecimal类型的精度较高，而DolphinDB没有此数据类型，故将其统一转换为Double类型。
 
  * [下载](sample.txt)示例所有代码
+ * 
+ 
+## 4 如何在支持JDBC的软件中配置JDBC连接DolphinDB
+
+  通常在支持JDBC连接的应用中，需要配置如下JDBC信息：
+  * Driver Class Name : 驱动名称
+    DolphinDB JDBC 驱动名称是： `com.dolphindb.jdbc.Driver`
+  * JDBC Url : 连接字符串
+    连接字符串通常是提供连接数据库的一些关键信息，通常一个DolphinDB JDBC Url示例如下：
+    ```
+    jdbc:dolphindb://localhost:8848?user=admin&password=123456
+    ```
