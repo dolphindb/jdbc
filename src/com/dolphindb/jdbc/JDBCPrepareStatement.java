@@ -398,9 +398,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public boolean execute() throws SQLException {
 		switch (dml) {
 		case Utils.DML_SELECT: {
-			ResultSet resultSet_ = executeQuery(preSql);
+			ResultSet resultSet_ = executeQuery();
 			resultSets.offerLast(resultSet_);
-			objectQueue.offer(executeQuery());
+			objectQueue.offer(resultSet_);
 		}
 			break;
 		case Utils.DML_INSERT:
@@ -515,7 +515,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setBlob(int parameterIndex, Blob blob) throws SQLException {
-		Driver.unused("setBlob not implemented");
+		byte []blobbyte = blob.getBytes(1,(int)blob.length());
+		String blobstring = new String(blobbyte);
+		setObject(parameterIndex,blobstring);
 	}
 
 	@Override
@@ -575,7 +577,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setNString(int parameterIndex, String s) throws SQLException {
-		Driver.unused("setNString not implemented");
+		setObject(parameterIndex,s);
 	}
 
 	@Override

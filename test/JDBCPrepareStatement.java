@@ -21,6 +21,9 @@ public class JDBCPrepareStatement {
 	String HOST;
 	int PORT;
 
+	public JDBCPrepareStatement() throws SQLException {
+	}
+
 	@Before
 	public void SetUp() {
 		HOST = "localhost";
@@ -1431,5 +1434,49 @@ public class JDBCPrepareStatement {
 			}
 		}
 	}
+	@Test
+	public void test_execute_multiple_select_combine() throws ClassNotFoundException, SQLException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
+		Class.forName(JDBC_DRIVER);
+		PreparedStatement pstmt = null;
+		ResultSet rs=null;
+		String script = "login(`admin, `123456); \n" +
+				"if(existsDatabase('dfs://db_testStatement')){ dropDatabase('dfs://db_testStatement')} \n" +
+				"t = table(1..10000 as id, 10001..20000 as val) \n" +
+				"db=database('dfs://db_testStatement', RANGE, 1 2001 4001 6001 8001 10002) \n" +
+				"db.createPartitionedTable(t, `pt, `id).append!(t) \n";
+		String preSql ="pt=loadTable(\"dfs://db_testStatement\",`pt);t = table(1 as id, 1 as val);pt.append!(t);select count(*) from pt where id>10;select count(*) from pt where id<10;select count(*) from pt;select count(*) from pt;select count(*) from pt;select count(*) from pt;";
+		Connection conn = DriverManager.getConnection(url);
+		Statement stmt=conn.createStatement();
+		stmt.execute(script);
+		pstmt = conn.prepareStatement(preSql);
+		if (pstmt.execute()) {
+			rs=pstmt.getResultSet();
+			while (rs.next()) {
+				org.junit.Assert.assertEquals(10001,rs.getInt(1));
+			}
+		}
+		if (rs != null) {
+			try {
+				rs.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		if (stmt != null) {
+			try {
+				stmt.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		if (conn != null) {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 }
-
