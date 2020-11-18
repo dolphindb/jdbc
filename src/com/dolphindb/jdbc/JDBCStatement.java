@@ -274,12 +274,60 @@ public class JDBCStatement implements Statement {
     	throw new SQLFeatureNotSupportedException();
     }
 
+    //去除首尾指定字符
+    public String trimFirstAndLastChar(String str, String element){
+        boolean beginIndexFlag = true;
+        boolean endIndexFlag = true;
+        do{
+            int beginIndex = str.indexOf(element) == 0 ? 1 : 0;
+            int endIndex = str.lastIndexOf(element) + 1 == str.length() ? str.lastIndexOf(element) : str.length();
+            str = str.substring(beginIndex, endIndex);
+            beginIndexFlag = (str.indexOf(element) == 0);
+            endIndexFlag = (str.lastIndexOf(element) + 1 == str.length());
+        } while (beginIndexFlag || endIndexFlag);
+        return str;
+    }
+
     @Override
     public boolean execute(String sql) throws SQLException {
         sql = sql.trim();
         while (sql.endsWith(";"))
         	sql = sql.substring(0, sql.length() - 1);
-        String[] strings = sql.split(";");
+        //String[] strings = sql.split(";");
+
+        String[] strings = null;
+        if(sql.startsWith("[")&&sql.endsWith("]")){
+            String temp = trimFirstAndLastChar(sql,"[");
+            String temp1 = trimFirstAndLastChar(temp,"]");
+            sql = temp1;
+            strings = sql.split(",");
+
+            String[] statementbatch = strings;
+
+            for(int i =0; i< statementbatch.length;i++){
+                int dmlbatch = Utils.getDml(statementbatch[i]);
+                ResultSet resultSet_batch = executeQuery(statementbatch[i]);
+                resultSets.offerLast(resultSet_batch);
+                objectQueue.offer(resultSet_batch);
+
+            }
+            if(objectQueue.isEmpty()){
+                return false;
+            }else {
+                result = objectQueue.poll();
+                if(result instanceof ResultSet){
+                    return true;
+                }else{
+                    return false;
+                }
+            }
+        }
+        else{
+            strings = sql.split(";");
+        }
+
+
+
         String lastStatement = strings[strings.length - 1].trim();
         int dml = Utils.getDml(lastStatement);
 
@@ -353,7 +401,7 @@ public class JDBCStatement implements Statement {
     public boolean getMoreResults() throws SQLException {
         while (!resultSets.isEmpty()){
             ResultSet resultSet_ = resultSets.pollFirst();
-            if(resultSet_ != null){
+            if(resultSet_ == null){
                 resultSet_.close();
             }
         }
