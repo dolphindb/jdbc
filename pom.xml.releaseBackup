@@ -39,7 +39,7 @@
         <dependency>
             <groupId>com.dolphindb</groupId>
             <artifactId>api-java</artifactId>
-            <version>1.0.16</version>
+            <version>1.0.25</version>
         </dependency>
     </dependencies>
     <distributionManagement>
