@@ -896,7 +896,7 @@ public class JDBCStatementTest {
     		}
     	}
 	}
-	
+
 	@Test
 	public void Test_statement_isclosed() throws Exception{
 		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
@@ -906,30 +906,70 @@ public class JDBCStatementTest {
 		try {
 			Class.forName(JDBC_DRIVER);
 			conn = DriverManager.getConnection(url);
-    		stmt = conn.createStatement();
-    		conn.close();
-    		org.junit.Assert.assertTrue(conn.isClosed());
-    		org.junit.Assert.assertFalse(stmt.isClosed());
+			stmt = conn.createStatement();
+			conn.close();
+			org.junit.Assert.assertTrue(conn.isClosed());
+			org.junit.Assert.assertFalse(stmt.isClosed());
 		}catch(Exception e) {
 			e.printStackTrace();
 		}finally {
 			if(conn !=null) {
-    			try {
-    				conn.close();
-    			}catch(SQLException e) {
-    				e.printStackTrace();
-    			}
-    		}
-    		if(stmt !=null) {
-    			try {
-    				stmt.close();
-    			}catch(SQLException e) {
-    				e.printStackTrace();
-    			}
-    		}
+				try {
+					conn.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stmt !=null) {
+				try {
+					stmt.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
-	
-	
-	
+	@Test
+	public void Test_statement_blob() throws Exception {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
+		Connection conn = null;
+		Statement stmt = null;
+		int rs = 0;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stmt = conn.createStatement();
+			stmt.execute("t=table(20000:0,`id`val,[INT,BLOB]);" +
+					"\n" +
+					"t1 = table(1..10000000 as id, take(`aaaaadsfasdfaa`bbbbasdfasbbbbbb`cccasdfasdfasfcccccccccc,10000000) as name, take(`aaaaadsfasdfaa`bbbbasdfasbbbbbb`cccasdfasdfasfcccccccccc,10000000) as name1)\n" +
+					"a=t1.toJson()\n");
+			stmt.execute("insert into t values(1,a)");
+			rs = stmt.getUpdateCount();
+			org.junit.Assert.assertEquals(1, rs);
+			ResultSet rst = stmt.executeQuery("select val from t");
+			//rst = stmt.executeQuery("select id from t");
+			while (rst.next()){
+				//System.out.println(rst.getString("id"));
+				System.out.println(rst.getString("val"));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
 }
