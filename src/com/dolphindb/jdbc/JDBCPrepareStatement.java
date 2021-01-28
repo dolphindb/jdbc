@@ -1,7 +1,9 @@
 package com.dolphindb.jdbc;
 
+import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
+import com.xxdb.io.ExtendedDataInput;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,6 +13,10 @@ import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
 import java.text.MessageFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.*;
 
 public class JDBCPrepareStatement extends JDBCStatement implements PreparedStatement {
@@ -40,8 +46,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.connection = connection;
 		this.preSql = sql.trim();
         while (preSql.endsWith(";"))
+        	preSql = preSql.substring(0, preSql.length() - 1);
+//       	preSql = preSql.substring(0, sql.length() - 1);
 
-       	preSql = preSql.substring(0, sql.length() - 1);
 		String[] strings = preSql.split(";");
 		String lastStatement = strings[strings.length - 1].trim();
 		this.tableName = Utils.getTableName(lastStatement);
@@ -69,6 +76,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		sqlSplit = this.preSql.split("\\?");
 		values = new Object[sqlSplit.length + 1];
 		batch = new StringBuilder();
+//		System.out.println("new Prepare statement: " + preSql);
 	}
 
 	private void getTableType() {
@@ -103,7 +111,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			}
 		}
 		switch (dml) {
-		case Utils.DML_INSERT:
+		case Utils.DML_INSERT: //rt
 			if (tableName != null) {
 				getTableType();
 				BasicInt basicInt;
@@ -187,53 +195,43 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					List<Integer> col = unNameTable.get(colNames.get(i));
 					cols.add(new BasicIntVector(col));
 				}
+				if (colTypeString.get(i).equals("LONG")) {
+					List<Long> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicLongVector(col));
+				}
 				if (colTypeString.get(i).equals("DOUBLE")) {
 					List<Double> col = unNameTable.get(colNames.get(i));
 					cols.add(new BasicDoubleVector(col));
 				}
 				if (colTypeString.get(i).equals("SYMBOL") || colTypeString.get(i).equals("STRING")) {
-					List<String> col = unNameTable.get(colNames.get(i)); ;
+					List<String> col = unNameTable.get(colNames.get(i));
 					cols.add(new BasicStringVector(col));
 				}
 				if (colTypeString.get(i).equals("DATE")) {
-					List<BasicDate> col = unNameTable.get(colNames.get(i));
-					BasicDateVector vdate = new BasicDateVector(col.size());
-					for(int j = 0; j < col.size(); j++) {
-						vdate.setInt(j,col.get(j).getInt());
-					}
-					cols.add(vdate);
+					List<Integer> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicDateVector(col));
 				}
 				if (colTypeString.get(i).equals("MONTH")) {
-					List<BasicMonth> col = unNameTable.get(colNames.get(i));
-					BasicMonthVector vMonth = new BasicMonthVector(col.size());
-					for(int j = 0; j < col.size(); j++) {
-						vMonth.setInt(j,col.get(j).getInt());
-					}
-					cols.add(vMonth);
+					List<Integer> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicMonthVector(col));
+//					List<BasicMonth> col = unNameTable.get(colNames.get(i));
+//					BasicMonthVector vMonth = new BasicMonthVector(col.size());
+//					for(int j = 0; j < col.size(); j++) {
+//						vMonth.setInt(j,col.get(j).getInt());
+//					}
+//					cols.add(vMonth);
 				}
 				if (colTypeString.get(i).equals("DATETIME")) {
-					List<BasicDate> col = unNameTable.get(colNames.get(i));
-					BasicDateTimeVector vdate = new BasicDateTimeVector(col.size());
-					for(int j = 0, len1 = col.size(); j < len1; j++) {
-						vdate.setInt(j,col.get(j).getInt());
-					}
-					cols.add(vdate);
+					List<Integer> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicDateTimeVector(col));
 				}
 				if (colTypeString.get(i).equals("MINUTE")) {
-					List<BasicDate> col = unNameTable.get(colNames.get(i));
-					BasicMinuteVector vdate = new BasicMinuteVector(col.size());
-					for(int j = 0, len1 = col.size(); j < len1; j++) {
-						vdate.setInt(j,col.get(j).getInt());
-					}
-					cols.add(vdate);
+					List<Integer> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicMinuteVector(col));
 				}
 				if (colTypeString.get(i).equals("SECOND")) {
-					List<BasicDate> col = unNameTable.get(colNames.get(i));
-					BasicSecondVector vdate = new BasicSecondVector(col.size());
-					for(int j = 0, len1 = col.size(); j < len1; j++) {
-						vdate.setInt(j,col.get(j).getInt());
-					}
-					cols.add(vdate);
+					List<Integer> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicSecondVector(col));
 				}
 				if (colTypeString.get(i).equals("TIMESTAMP")) {
 					List<Long> col = unNameTable.get(colNames.get(i));
@@ -248,9 +246,25 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					cols.add(new BasicNanoTimestampVector(col));
 				}
 				if (colTypeString.get(i).equals("BOOL")) {
-					List<Byte> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicBooleanVector(col));
-				}								
+					List<BasicBoolean> col = unNameTable.get(colNames.get(i));
+					BasicBooleanVector vBool = new BasicBooleanVector(col.size());
+					for(int j = 0, len1 = col.size(); j < len1; j++) {
+						vBool.setBoolean(j, col.get(j).getBoolean());
+					}
+					cols.add(vBool);
+				}
+				if (colTypeString.get(i).equals("SHORT")) {
+					List<Short> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicShortVector(col));
+				}
+				if (colTypeString.get(i).equals("FLOAT")) {
+					List<Float> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicFloatVector(col));
+				}
+				if (colTypeString.get(i).equals("TIME")) {
+					List<Integer> col = unNameTable.get(colNames.get(i));
+					cols.add(new BasicTimeVector(col));
+				}
 			}
 			unNameTable = null;
 
@@ -574,7 +588,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public void setRowId(int parameterIndex, RowId rowId) throws SQLException {
 		Driver.unused("setRowId not implemented");
 	}
-
+	
 	@Override
 	public void setNString(int parameterIndex, String s) throws SQLException {
 		setObject(parameterIndex,s);
@@ -748,9 +762,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}	
 		addToCol(name, typeString, type, value);		
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private void addToCol(String name, String typeString, Object type, Object value) {
+//		System.out.println("Add to column:"+ "-->" + name + ":" + value + "(" + typeString + ")");
 		ArrayList<Object> tmp = null;
 		if (!unNameTable.containsKey(name)) {
 			tmp = new ArrayList<>();
@@ -760,44 +775,88 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 		
 		if (typeString.equals("INT")) {
-			tmp.add((int)value);
+			if (value instanceof BasicInt)
+				tmp.add(((BasicInt) value).getInt());
+			else
+				tmp.add((int)value);
+		}
+		if (typeString.equals("LONG")) {
+			if (value instanceof BasicLong)
+				tmp.add(((BasicLong) value).getLong());
+			else
+				tmp.add((long)value);
 		}
 		if (typeString.equals("DATE")) {
-			tmp.add((BasicDate)value);
+			if (value instanceof LocalDate)
+				tmp.add(new BasicDate((LocalDate) value).getInt());
+			else
+				tmp.add(((BasicDate)value).getInt());
 		}
 		if (typeString.equals("SYMBOL")) {
 			tmp.add(value.toString());
 		}
 		if (typeString.equals("DOUBLE")) {
-			if (value.getClass() == Integer.class) {
-			    tmp.add((double)((int)value));
-			}else {
+			if (value instanceof BasicDouble)
+				tmp.add(((BasicDouble) value).getDouble());
+			else
 				tmp.add((double)value);
-			}
 		}
 		if (typeString.equals("MONTH")) {
-			tmp.add((BasicMonth) value);
+			if (value instanceof YearMonth)
+				tmp.add(new BasicMonth((YearMonth) value).getInt());
+			else
+				tmp.add(((BasicMonth) value).getInt());
 		}
 		if (typeString.equals("DATETIME")) {
-			tmp.add((BasicDateTime)value);
+			if (value instanceof LocalDateTime)
+				tmp.add(new BasicDateTime((LocalDateTime) value).getInt());
+			else
+				tmp.add(((BasicDateTime)value).getInt());
 		}
 		if (typeString.equals("MINUTE")) {
-			tmp.add((BasicMinute)value);
+			if (value instanceof LocalTime)
+				tmp.add(new BasicMinute((LocalTime) value).getInt());
+			else
+				tmp.add((BasicMinute)value);
 		}
 		if (typeString.equals("SECOND")) {
-			tmp.add((BasicMinute)value);
+			if (value instanceof LocalTime)
+				tmp.add(new BasicSecond((LocalTime) value).getInt());
+			else
+				tmp.add(((BasicSecond)value).getInt());
 		}
 		if (typeString.equals("TIMESTAMP")) {
-			tmp.add((BasicTimestamp)value);
+			if (value instanceof LocalDateTime)
+				tmp.add(new BasicTimestamp((LocalDateTime) value).getLong());
+			else
+				tmp.add(((BasicTimestamp)value).getLong());
+		}
+		if (typeString.equals("TIME")) {
+			if (value instanceof LocalTime)
+				tmp.add(new BasicTime((LocalTime) value).getInt());
+			else
+				tmp.add(((BasicTime)value).getInt());;
 		}
 		if (typeString.equals("NANOTIME")) {
-			tmp.add((BasicNanoTime)value);
+			if (value instanceof LocalTime)
+				tmp.add(new BasicNanoTime((LocalTime) value).getLong());
+			else
+				tmp.add(((BasicNanoTime)value).getLong());
 		}
 		if (typeString.equals("NANOTIMESTAMP")) {
-			tmp.add((BasicNanoTimestamp)value);
+			if (value instanceof LocalDateTime)
+				tmp.add(new BasicNanoTimestamp((LocalDateTime) value).getLong());
+			else
+				tmp.add(((BasicNanoTimestamp)value).getLong());
 		}
 		if (typeString.equals("BOOL")) {
-			tmp.add((BasicBoolean)value);
+			if (value instanceof Boolean)
+				tmp.add(new BasicBoolean((boolean) value));
+			else
+				tmp.add((BasicBoolean)value);
+		}
+		if (typeString.equals("STRING")) {
+			tmp.add((String) value);
 		}
 		
 		unNameTable.put(name, tmp);
