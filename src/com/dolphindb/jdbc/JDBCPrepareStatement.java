@@ -11,10 +11,6 @@ import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
 import java.text.MessageFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.YearMonth;
 import java.util.*;
 
 public class JDBCPrepareStatement extends JDBCStatement implements PreparedStatement {
@@ -29,9 +25,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private List<Object> argumentsBatch; // String List<Entity> Vector
 	private boolean isInsert;
 	private String tableType;
-	private HashMap<Integer, Integer> colType11111;
+	private HashMap<Integer, Integer> colType;
 	private List<String> colNames;
-	private List<String> colTypeString;//todo:delete this row
 	private List<Entity.DATA_TYPE> colTypes_;
 	@SuppressWarnings("rawtypes")
 	private HashMap<String, ArrayList> unNameTable;
@@ -629,15 +624,15 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	private Object createArguments() throws IOException {
 		if (isInsert) {
-			if (colType11111 == null) {
+			if (colType == null) {
 				BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
 				BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
 				BasicIntVector typeInt = (BasicIntVector) colDefs.getColumn("typeInt");
 				int size = typeInt.rows();
-				colType11111 = new LinkedHashMap<>(size);
+				colType = new LinkedHashMap<>(size);
 								
 				for (int i = 0; i < size; i++) {
-					colType11111.put(i + 1, typeInt.getInt(i));
+					colType.put(i + 1, typeInt.getInt(i));
 				}
 			}
 			
@@ -649,17 +644,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				colNames = new ArrayList<String>();
 				for (int i = 0; i < size; i++) {
 					colNames.add(names.getString(i).toString());
-				}
-			}
-			
-			if(colTypeString == null){
-				BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
-				BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-				BasicStringVector typeString = (BasicStringVector) colDefs.getColumn("typeString");
-				int size = typeString.rows();
-				colTypeString = new ArrayList<String>();
-				for (int i = 0; i < size; i++) {
-					colTypeString.add(typeString.getString(i).toString());
 				}
 			}
 
@@ -693,11 +677,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						entity = BasicEntityFactory.createScalar(dataType, values[i]);
 						args.add(entity);
 						unNameTable.put(colNames.get(j), args);
-
-						//setColValue(colNames.get(j), colTypeString.get(j), colType.get(j), values[i]);
 						j++;
 					} else {
-						String s = TypeCast.TYPEINT2STRING.get(colType11111.get(i));
+						String s = TypeCast.TYPEINT2STRING.get(colType.get(i));
 						if (values[i] == null) {
 							throw new IOException("No value specified for parameter " + i);
 						}
