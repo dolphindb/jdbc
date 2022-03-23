@@ -1,9 +1,7 @@
 package com.dolphindb.jdbc;
 
-import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
-import com.xxdb.io.ExtendedDataInput;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -856,7 +854,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				tmp.add((BasicBoolean)value);
 		}
 		if (typeString.equals("STRING")) {
-			tmp.add((String) value);
+			tmp.add(((BasicString) value).getString());
 		}
 		
 		unNameTable.put(name, tmp);
