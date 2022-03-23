@@ -29,9 +29,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private List<Object> argumentsBatch; // String List<Entity> Vector
 	private boolean isInsert;
 	private String tableType;
-	private HashMap<Integer, Integer> colType;
+	private HashMap<Integer, Integer> colType11111;
 	private List<String> colNames;
-	private List<String> colTypeString;
+	private List<String> colTypeString;//todo:delete this row
+	private List<Entity.DATA_TYPE> colTypes_;
 	@SuppressWarnings("rawtypes")
 	private HashMap<String, ArrayList> unNameTable;
 	
@@ -115,8 +116,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				BasicInt basicInt;
 				if (tableType.equals(IN_MEMORY_TABLE)) {
 					try {
-							basicInt = (BasicInt) connection.run("tableInsert", (List<Entity>) arguments);
-							return basicInt.getInt();
+						basicInt = (BasicInt) connection.run("tableInsert", (List<Entity>) arguments);
+						return basicInt.getInt();
 					} catch (IOException e) {
 						throw new SQLException(e);
 					}
@@ -187,86 +188,25 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		if (unNameTable.size() > 1) {
 			int insertRows = 0;
 			List<Vector> cols = new ArrayList<>(unNameTable.size());
-			
-			for(int i = 0, len = colNames.size(); i< len; i++) {					
-				if (colTypeString.get(i).equals("INT")) {
-					List<Integer> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicIntVector(col));
+
+			Entity.DATA_TYPE dataType;
+			int colindex = 0;
+			for (int i = 1; i < sqlSplit.length; i++){
+				try {
+					dataType = colTypes_.get(colindex);
+					Entity entity;
+					entity = BasicEntityFactory.createScalar(dataType, values[i]);
+					Vector col = BasicEntityFactory.instance().createVectorWithDefaultValue(dataType, 1);
+					col.set(0, (Scalar) entity);
+					cols.add(col);
+				}catch (Exception e){
+					return 0;
 				}
-				if (colTypeString.get(i).equals("LONG")) {
-					List<Long> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicLongVector(col));
-				}
-				if (colTypeString.get(i).equals("DOUBLE")) {
-					List<Double> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicDoubleVector(col));
-				}
-				if (colTypeString.get(i).equals("SYMBOL") || colTypeString.get(i).equals("STRING")) {
-					List<String> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicStringVector(col));
-				}
-				if (colTypeString.get(i).equals("DATE")) {
-					List<Integer> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicDateVector(col));
-				}
-				if (colTypeString.get(i).equals("MONTH")) {
-					List<Integer> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicMonthVector(col));
-//					List<BasicMonth> col = unNameTable.get(colNames.get(i));
-//					BasicMonthVector vMonth = new BasicMonthVector(col.size());
-//					for(int j = 0; j < col.size(); j++) {
-//						vMonth.setInt(j,col.get(j).getInt());
-//					}
-//					cols.add(vMonth);
-				}
-				if (colTypeString.get(i).equals("DATETIME")) {
-					List<Integer> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicDateTimeVector(col));
-				}
-				if (colTypeString.get(i).equals("MINUTE")) {
-					List<Integer> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicMinuteVector(col));
-				}
-				if (colTypeString.get(i).equals("SECOND")) {
-					List<Integer> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicSecondVector(col));
-				}
-				if (colTypeString.get(i).equals("TIMESTAMP")) {
-					List<Long> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicTimestampVector(col));
-				}
-				if (colTypeString.get(i).equals("NANOTIME")) {
-					List<Long> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicNanoTimeVector(col));
-				}
-				if (colTypeString.get(i).equals("NANOTIMESTAMP")) {
-					List<Long> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicNanoTimestampVector(col));
-				}
-				if (colTypeString.get(i).equals("BOOL")) {
-					List<BasicBoolean> col = unNameTable.get(colNames.get(i));
-					BasicBooleanVector vBool = new BasicBooleanVector(col.size());
-					for(int j = 0, len1 = col.size(); j < len1; j++) {
-						vBool.setBoolean(j, col.get(j).getBoolean());
-					}
-					cols.add(vBool);
-				}
-				if (colTypeString.get(i).equals("SHORT")) {
-					List<Short> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicShortVector(col));
-				}
-				if (colTypeString.get(i).equals("FLOAT")) {
-					List<Float> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicFloatVector(col));
-				}
-				if (colTypeString.get(i).equals("TIME")) {
-					List<Integer> col = unNameTable.get(colNames.get(i));
-					cols.add(new BasicTimeVector(col));
-				}
+				colindex++;
 			}
 			unNameTable = null;
 
-			BasicTable insertTable = new BasicTable(colNames, cols);				
+			BasicTable insertTable = new BasicTable(colNames, cols);
 			Map<String, Entity> vars = new HashMap<String, Entity>();
 			vars.put("t1", insertTable);
 			
@@ -689,15 +629,15 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	private Object createArguments() throws IOException {
 		if (isInsert) {
-			if (colType == null) {
+			if (colType11111 == null) {
 				BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
 				BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
 				BasicIntVector typeInt = (BasicIntVector) colDefs.getColumn("typeInt");
 				int size = typeInt.rows();
-				colType = new LinkedHashMap<>(size);
+				colType11111 = new LinkedHashMap<>(size);
 								
 				for (int i = 0; i < size; i++) {
-					colType.put(i + 1, typeInt.getInt(i));
+					colType11111.put(i + 1, typeInt.getInt(i));
 				}
 			}
 			
@@ -723,28 +663,52 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				}
 			}
 
-			List<Entity> arguments = new ArrayList<>(sqlSplit.length);
-			arguments.add(tableNameArg);
-			getTableType();
-			int j = 0;
-			for (int i = 1; i < sqlSplit.length; ++i) {
-				if (!tableType.equals(IN_MEMORY_TABLE)) {
-					if (values[i] == null) {
-						throw new IOException("No value specified for parameter " + i);
-					}
-				
-					setColValue(colNames.get(j), colTypeString.get(j), colType.get(j),values[i]);				
-					j++;
-				}
-				else {
-					String s = TypeCast.TYPEINT2STRING.get(colType.get(i));
-                		if(values[i] == null) {
-                			throw new IOException("No value specified for parameter "+i);
-                		}
-					arguments.add(TypeCast.java2db(values[i], s));
+			if (colTypes_ == null){
+				BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
+				BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+				BasicIntVector colDefsTypeInt = (BasicIntVector) colDefs.getColumn("typeInt");
+				int size = colDefs.rows();
+				colTypes_ = new ArrayList<Entity.DATA_TYPE>();
+				for (int i = 0;i < size; i++){
+					colTypes_.add(Entity.DATA_TYPE.valueOf(colDefsTypeInt.getInt(i)));
 				}
 			}
-			return arguments;
+			try {
+				List<Entity> arguments = new ArrayList<>(sqlSplit.length);
+				arguments.add(tableNameArg);
+				getTableType();
+				Entity.DATA_TYPE dataType;
+				if(unNameTable == null) {
+					unNameTable = new LinkedHashMap<>();
+				}
+				int j = 0;
+				for (int i = 1; i < sqlSplit.length; ++i) {
+					if (!tableType.equals(IN_MEMORY_TABLE)) {
+						if (values[i] == null) {
+							throw new IOException("No value specified for parameter " + i);
+						}
+						ArrayList<Entity> args = new ArrayList<>(sqlSplit.length);
+						dataType = colTypes_.get(j);
+						Entity entity;
+						entity = BasicEntityFactory.createScalar(dataType, values[i]);
+						args.add(entity);
+						unNameTable.put(colNames.get(j), args);
+
+						//setColValue(colNames.get(j), colTypeString.get(j), colType.get(j), values[i]);
+						j++;
+					} else {
+						String s = TypeCast.TYPEINT2STRING.get(colType11111.get(i));
+						if (values[i] == null) {
+							throw new IOException("No value specified for parameter " + i);
+						}
+						arguments.add(TypeCast.java2db(values[i], s));
+					}
+				}
+				return arguments;
+			}catch (Exception e){
+				e.printStackTrace();
+				return null;
+			}
 		} else {
 			try {
 				return createSql();
@@ -752,112 +716,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				throw new IOException(e.getMessage());
 			}
 		}
-	}
-
-	private void setColValue(String name, String typeString, Object type, Object value) throws IOException {
-		if(unNameTable == null) {
-			unNameTable = new LinkedHashMap<>();
-		}	
-		addToCol(name, typeString, type, value);		
-	}
-
-	@SuppressWarnings("unchecked")
-	private void addToCol(String name, String typeString, Object type, Object value) {
-//		System.out.println("Add to column:"+ "-->" + name + ":" + value + "(" + typeString + ")");
-		ArrayList<Object> tmp = null;
-		if (!unNameTable.containsKey(name)) {
-			tmp = new ArrayList<>();
-		}
-		else {
-			tmp = unNameTable.get(name);
-		}
-		
-		if (typeString.equals("INT")) {
-			if (value instanceof BasicInt)
-				tmp.add(((BasicInt) value).getInt());
-			else
-				tmp.add((int)value);
-		}
-		if (typeString.equals("LONG")) {
-			if (value instanceof BasicLong)
-				tmp.add(((BasicLong) value).getLong());
-			else
-				tmp.add((long)value);
-		}
-		if (typeString.equals("DATE")) {
-			if (value instanceof LocalDate)
-				tmp.add(new BasicDate((LocalDate) value).getInt());
-			else
-				tmp.add(((BasicDate)value).getInt());
-		}
-		if (typeString.equals("SYMBOL")) {
-			tmp.add(value.toString());
-		}
-		if (typeString.equals("DOUBLE")) {
-			if (value instanceof BasicDouble)
-				tmp.add(((BasicDouble) value).getDouble());
-			else
-				tmp.add((double)value);
-		}
-		if (typeString.equals("MONTH")) {
-			if (value instanceof YearMonth)
-				tmp.add(new BasicMonth((YearMonth) value).getInt());
-			else
-				tmp.add(((BasicMonth) value).getInt());
-		}
-		if (typeString.equals("DATETIME")) {
-			if (value instanceof LocalDateTime)
-				tmp.add(new BasicDateTime((LocalDateTime) value).getInt());
-			else
-				tmp.add(((BasicDateTime)value).getInt());
-		}
-		if (typeString.equals("MINUTE")) {
-			if (value instanceof LocalTime)
-				tmp.add(new BasicMinute((LocalTime) value).getInt());
-			else
-				tmp.add((BasicMinute)value);
-		}
-		if (typeString.equals("SECOND")) {
-			if (value instanceof LocalTime)
-				tmp.add(new BasicSecond((LocalTime) value).getInt());
-			else
-				tmp.add(((BasicSecond)value).getInt());
-		}
-		if (typeString.equals("TIMESTAMP")) {
-			if (value instanceof LocalDateTime)
-				tmp.add(new BasicTimestamp((LocalDateTime) value).getLong());
-			else
-				tmp.add(((BasicTimestamp)value).getLong());
-		}
-		if (typeString.equals("TIME")) {
-			if (value instanceof LocalTime)
-				tmp.add(new BasicTime((LocalTime) value).getInt());
-			else
-				tmp.add(((BasicTime)value).getInt());;
-		}
-		if (typeString.equals("NANOTIME")) {
-			if (value instanceof LocalTime)
-				tmp.add(new BasicNanoTime((LocalTime) value).getLong());
-			else
-				tmp.add(((BasicNanoTime)value).getLong());
-		}
-		if (typeString.equals("NANOTIMESTAMP")) {
-			if (value instanceof LocalDateTime)
-				tmp.add(new BasicNanoTimestamp((LocalDateTime) value).getLong());
-			else
-				tmp.add(((BasicNanoTimestamp)value).getLong());
-		}
-		if (typeString.equals("BOOL")) {
-			if (value instanceof Boolean)
-				tmp.add(new BasicBoolean((boolean) value));
-			else
-				tmp.add((BasicBoolean)value);
-		}
-		if (typeString.equals("STRING")) {
-			tmp.add(((BasicString) value).getString());
-		}
-		
-		unNameTable.put(name, tmp);
 	}
 
 	private String createSql() throws SQLException {
