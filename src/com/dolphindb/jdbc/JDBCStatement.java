@@ -292,6 +292,7 @@ public class JDBCStatement implements Statement {
 
     @Override
     public boolean execute(String sql) throws SQLException {
+        sql = Utils.changeCase(sql);
         sql = sql.trim();
         while (sql.endsWith(";"))
         	sql = sql.substring(0, sql.length() - 1);

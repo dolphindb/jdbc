@@ -55,7 +55,7 @@ public class Utils {
         sqlWareHouse.add("pivot");
         sqlWareHouse.add("partition");
         sqlWareHouse.add("sample");
-
+        sqlWareHouse.add("loadTable");
     }
 
     public static Object java2db(Object o){
@@ -235,7 +235,7 @@ public class Utils {
         return new BasicTable(colNames, cols);
     }
 
-    public static String changeCase(String sql) throws SQLException{
+    public static String changeCase(String sql){
         createHashSet();
         StringBuilder sbSql=new StringBuilder();
         StringBuilder sbKey1=new StringBuilder();
