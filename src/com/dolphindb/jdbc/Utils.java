@@ -1,16 +1,15 @@
 package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
+import com.xxdb.data.Vector;
 
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.YearMonth;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.Random;
+import java.util.*;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,7 +25,38 @@ public class Utils {
     public static final Pattern UPDATE_PATTERN = Pattern.compile("update\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\sset\\s(.+=.+)+(\\swhere\\s(.+=.+)+)?");
 
     public static final Pattern ASSIGN_PATTERN = Pattern.compile("[a-zA-Z]{1}[a-zA-Z\\d_]*[\\s]*=");
+    public static Set<String> sqlWareHouse = new HashSet<>();
+    //public static HashMap<String, String> sqlWareHouse2 = new HashMap<>();
 
+    private static void createHashSet(){
+        sqlWareHouse.add("select");
+        sqlWareHouse.add("from");
+        sqlWareHouse.add("where");
+        sqlWareHouse.add("as");
+        sqlWareHouse.add("last");
+        sqlWareHouse.add("exec");
+        sqlWareHouse.add("or");
+        sqlWareHouse.add("and");
+        sqlWareHouse.add("order");
+        sqlWareHouse.add("group");
+        sqlWareHouse.add("by");
+        sqlWareHouse.add("interval");
+        sqlWareHouse.add("cgroup");
+        sqlWareHouse.add("having");
+        sqlWareHouse.add("update");
+        sqlWareHouse.add("set");
+        sqlWareHouse.add("insert");
+        sqlWareHouse.add("into");
+        sqlWareHouse.add("values");
+        sqlWareHouse.add("delete");
+        sqlWareHouse.add("limit");
+        sqlWareHouse.add("top");
+        sqlWareHouse.add("map");
+        sqlWareHouse.add("pivot");
+        sqlWareHouse.add("partition");
+        sqlWareHouse.add("sample");
+
+    }
 
     public static Object java2db(Object o){
         if(o instanceof BasicStringVector || o instanceof BasicAnyVector || o instanceof AbstractVector || o instanceof Vector){
@@ -106,15 +136,21 @@ public class Utils {
         }
         return properties;
     }
-
+    private static boolean startsWith(String sentence,String key){
+        if(sentence.length()<key.length())
+            return false;
+        String substr=sentence.substring(0,key.length());
+        return substr.compareToIgnoreCase(key)==0;
+    }
     public static int getDml(String sql){
-        if(sql.startsWith("select")){
+        String sqlBackup = new String(sql);
+        if(startsWith(sqlBackup,"select")){
             return DML_SELECT;
-        }else if(sql.startsWith("insert") || sql.startsWith("tableInsert")){
+        }else if(sqlBackup.startsWith("insert") || sqlBackup.startsWith("tableInsert")){
             return DML_INSERT;
-        }else if(sql.startsWith("update")){
+        }else if(sqlBackup.startsWith("update")){
             return DML_UPDATE;
-        }else if(sql.startsWith("delete")){
+        }else if(sqlBackup.startsWith("delete")){
             return DML_DELETE;
         }else {
             return DML_OTHER;
@@ -199,4 +235,29 @@ public class Utils {
         return new BasicTable(colNames, cols);
     }
 
+    public static String changeCase(String sql) throws SQLException{
+        createHashSet();
+        StringBuilder sbSql=new StringBuilder();
+        StringBuilder sbKey1=new StringBuilder();
+        char chr;
+        for (int i = 0;i < sql.length();i++){
+            chr=sql.charAt(i);
+            if ((chr >='a'&&chr <= 'z')||(chr >= 'A'&&chr <= 'Z')||(chr >= '0'&&chr <= '9')){
+                sbKey1.append(chr);
+            }else {
+                if (sbKey1.length()>0){
+                    String key = sbKey1.toString();
+                    String lowerKey=key.toLowerCase();
+                    if (sqlWareHouse.contains(lowerKey))
+                        sbSql.append(lowerKey);
+                    else{
+                        sbSql.append(key);
+                    }
+                }
+                sbSql.append(chr);
+                sbKey1.delete(0, sbKey1.length());
+            }
+        }
+        return sbSql.toString();
+    }
 }
