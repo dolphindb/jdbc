@@ -89,6 +89,7 @@ public class JDBCStatement implements Statement {
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
+        sql = Utils.changeCase(sql);
         sql = sql.trim();
         while (sql.endsWith(";"))
         	sql = sql.substring(0, sql.length() - 1);
@@ -119,6 +120,7 @@ public class JDBCStatement implements Statement {
                 throw new SQLException("the given SQL statement produces anything other than a single ResultSet object");
         }
     }
+
 
     @Override
     public int executeUpdate(String sql) throws SQLException {
