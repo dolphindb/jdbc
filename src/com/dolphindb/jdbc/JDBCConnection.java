@@ -29,7 +29,8 @@ public class JDBCConnection implements Connection {
 	private String hostName;
 	private int port;
 	private boolean success;
-	private Vector databases;
+	private String databases;
+	private Vector tables;
 	private String url;
 	private DatabaseMetaData metaData;
 	private List<String> hostName_ports;
@@ -195,10 +196,11 @@ public class JDBCConnection implements Connection {
 	
 	        if(values[0].trim().startsWith("\"dfs://")) {
 	            isDFS = true;
-	            databases = (Vector) dbConnection.run("getTables("+Driver.DB+")");
+				databases = values[0];
+	            tables = (Vector) dbConnection.run("getTables("+Driver.DB+")");
 	            StringBuilder loadTableSb = new StringBuilder();
-	            for (int i = 0, len = databases.rows(); i < len; ++i) {
-	                String name = databases.get(i).getString();
+	            for (int i = 0, len = tables.rows(); i < len; ++i) {
+	                String name = tables.get(i).getString();
 	                loadTableSb.append(name).append(" = ").append("loadTable(").append(Driver.DB).append(",`").append(name).append(");\n");
 	            }
 	
@@ -210,7 +212,6 @@ public class JDBCConnection implements Connection {
 	        String controllerAlias = dbConnection.run("getControllerAlias()").getString();
 	        if(controllerAlias != null && controllerAlias.length() > 0){
 	            isDFS = true;
-	            
 	            controlHost = dbConnection.run("rpc(\""+controllerAlias+"\", getNodeHost)").getString();
 	            controlPort = ((BasicInt) dbConnection.run("rpc(\""+controllerAlias+"\", getNodePort)")).getInt();
 	            controlConnection = new DBConnection();
@@ -671,5 +672,9 @@ public class JDBCConnection implements Connection {
 
 	public void setPassword(String password) {
 		this.password = password;
+	}
+
+	public String getDatabase() {
+		return databases;
 	}
 }

@@ -1,11 +1,11 @@
 package com.dolphindb.jdbc;
 
-import com.xxdb.data.BasicIntVector;
-import com.xxdb.data.BasicStringVector;
-import com.xxdb.data.BasicTable;
-import com.xxdb.data.Vector;
+import com.xxdb.data.*;
+import com.xxdb.data.Void;
 
+import java.io.IOException;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -19,6 +19,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
     private JDBCStatement statement;
     private static ResultSet TypeInfo;
     private static ResultSet Catalogs;
+    private static ResultSet Schemas;
     public JDBCDataBaseMetaData(JDBCConnection connection, JDBCStatement statement){
         this.connection = connection;
         this.statement = statement;
@@ -339,8 +340,42 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
     }
 
     @Override
-    public ResultSet getSchemas() {
-        return null;
+    public ResultSet getSchemas() throws SQLException{
+        try {
+            List<String> colNames = Arrays.asList("TABLE_SCHEM", "TABLE_CATALOG");
+            List<Vector> cols = new ArrayList<>();
+            String db = connection.getDatabase();
+            if (db == null){
+                List<String> table = new ArrayList<>();
+                List<String> database = new ArrayList<>();
+                Vector dbs = (BasicStringVector) connection.run("getClusterDFSDatabases()");
+                for (int i = 0; i<dbs.rows(); i++){
+                    BasicTable tb = (BasicTable) connection.run("listTables(\"" + dbs.getString(i) + "\")");
+                    Vector tbs = tb.getColumn("tableName");
+                    for (int j = 0; j < tbs.rows() ;j++){
+                        table.add(tbs.getString(j));
+                        database.add(dbs.getString(i));
+                    }
+                }
+                Vector tables = new BasicStringVector(table);
+                Vector databases = new BasicStringVector(database);
+                cols.add(tables);
+                cols.add(databases);
+            }else {
+                List<String> database = new ArrayList<>();
+                database.add(db);
+                Vector databases = new BasicStringVector(database);
+                BasicTable table = (BasicTable)connection.run("listTables(" + db + ")");
+                Vector tables = table.getColumn("tableName");
+                cols.add(tables);
+                cols.add(databases);
+            }
+            BasicTable basicTable = new BasicTable(colNames, cols);
+            Schemas =  new JDBCResultSet(connection,statement,basicTable,"");
+        }catch (IOException e){
+            int a = 1;
+        }
+        return Schemas;
     }
 
     @Override
