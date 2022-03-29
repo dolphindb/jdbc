@@ -37,6 +37,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	public JDBCPrepareStatement(JDBCConnection connection, String sql) throws SQLException {
 		super(connection);
+		sql = Utils.changeCase(sql);
 		this.connection = connection;
 		this.preSql = sql.trim();
         while (preSql.endsWith(";"))
