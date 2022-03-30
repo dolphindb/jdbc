@@ -341,20 +341,23 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getSchemas() throws SQLException{
+        int index = 0;
+        List<String> str= new ArrayList<>();
         try {
             List<String> colNames = Arrays.asList("TABLE_SCHEM", "TABLE_CATALOG");
             List<Vector> cols = new ArrayList<>();
             String db = connection.getDatabase();
+            Vector dbs = (BasicStringVector) connection.run("getClusterDFSDatabases()");
             if (db == null){
                 List<String> table = new ArrayList<>();
                 List<String> database = new ArrayList<>();
-                Vector dbs = (BasicStringVector) connection.run("getClusterDFSDatabases()");
-                for (int i = 0; i<dbs.rows(); i++){
-                    BasicTable tb = (BasicTable) connection.run("listTables(\"" + dbs.getString(i) + "\")");
+                for (index = 0; index<dbs.rows(); index++){
+                    str.add(dbs.getString(index));
+                    BasicTable tb = (BasicTable) connection.run("listTables(\"" + dbs.getString(index) + "\")");
                     Vector tbs = tb.getColumn("tableName");
                     for (int j = 0; j < tbs.rows() ;j++){
                         table.add(tbs.getString(j));
-                        database.add(dbs.getString(i));
+                        database.add(dbs.getString(index));
                     }
                 }
                 Vector tables = new BasicStringVector(table);
@@ -373,7 +376,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             BasicTable basicTable = new BasicTable(colNames, cols);
             Schemas =  new JDBCResultSet(connection,statement,basicTable,"");
         }catch (IOException e){
-            int a = 1;
+            throw new SQLException("Can not find Tables from " + str.get(index));
         }
         return Schemas;
     }
