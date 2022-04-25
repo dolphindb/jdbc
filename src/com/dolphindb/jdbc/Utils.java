@@ -238,7 +238,7 @@ public class Utils {
         createHashSet();
         StringBuilder sbSql=new StringBuilder();
         StringBuilder sbKey1=new StringBuilder();
-        char chr;
+        char chr = 0;
         for (int i = 0;i < sql.length();i++){
             chr=sql.charAt(i);
             if ((chr >='a'&&chr <= 'z')||(chr >= 'A'&&chr <= 'Z')||(chr >= '0'&&chr <= '9')){
@@ -255,6 +255,15 @@ public class Utils {
                 }
                 sbSql.append(chr);
                 sbKey1.delete(0, sbKey1.length());
+            }
+            if (i==sql.length()-1&&sbKey1.length()>0){
+                String key = sbKey1.toString();
+                String lowerKey=key.toLowerCase();
+                if (sqlWareHouse.contains(lowerKey))
+                    sbSql.append(lowerKey);
+                else{
+                    sbSql.append(key);
+                }
             }
         }
         return sbSql.toString();
