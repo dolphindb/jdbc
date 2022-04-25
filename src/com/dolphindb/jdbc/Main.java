@@ -3,8 +3,6 @@ package com.dolphindb.jdbc;
 import com.xxdb.DBConnection;
 import com.xxdb.data.*;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.sql.*;
 import java.text.MessageFormat;
