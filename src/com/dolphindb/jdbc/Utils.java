@@ -55,7 +55,6 @@ public class Utils {
         sqlWareHouse.add("pivot");
         sqlWareHouse.add("partition");
         sqlWareHouse.add("sample");
-        sqlWareHouse.add("loadTable");
     }
 
     public static Object java2db(Object o){
