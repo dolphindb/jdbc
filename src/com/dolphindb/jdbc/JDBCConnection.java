@@ -3,12 +3,8 @@
  */
 package com.dolphindb.jdbc;
 
-import com.dolphindb.jdbc.Driver;
 import com.xxdb.DBConnection;
-import com.xxdb.data.BasicInt;
-import com.xxdb.data.BasicTable;
-import com.xxdb.data.Entity;
-import com.xxdb.data.Vector;
+import com.xxdb.data.*;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -313,8 +309,20 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public String getCatalog() throws SQLException {
-		Driver.unused("getCatalog not implemented");
-		return null;
+		StringBuilder sb = new StringBuilder();
+		if (databases != null){
+			return databases;
+		}else {
+			try {
+				BasicStringVector dbs = (BasicStringVector) dbConnection.run("getClusterDFSDatabases()");
+				for (int i = 0; i < dbs.rows(); i++){
+					sb.append(dbs.getString(i) + "\n");
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			return sb.toString();
+		}
 	}
 
 	@Override
