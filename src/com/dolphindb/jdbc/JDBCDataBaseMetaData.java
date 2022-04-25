@@ -1,8 +1,6 @@
 package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
-import com.xxdb.data.Void;
-
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
