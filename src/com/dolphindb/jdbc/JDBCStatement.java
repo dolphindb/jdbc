@@ -168,16 +168,11 @@ public class JDBCStatement implements Statement {
             case Utils.DML_UPDATE:
             case Utils.DML_DELETE:
                 if (tableName != null) {
-                    tableType = getTableType(tableName);
-                    if (tableType.equals(IN_MEMORY_TABLE)) {
-                        try {
-                            connection.run(sql);
-                            return SUCCESS_NO_INFO;
-                        } catch (IOException e) {
-                            throw new SQLException(e);
-                        }
-                    } else {
-                        throw new SQLException("only local in-memory table can update");
+                    try {
+                        connection.run(sql);
+                        return SUCCESS_NO_INFO;
+                    } catch (IOException e) {
+                        throw new SQLException(e);
                     }
                 } else {
                     throw new SQLException("check the Query " + sql);
