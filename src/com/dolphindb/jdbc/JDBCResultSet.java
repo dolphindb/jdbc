@@ -32,6 +32,8 @@ public class JDBCResultSet implements ResultSet{
     private boolean isUpdatable = false;
     private Object o;
 
+    private EntityBlockReader reader;
+
     public JDBCResultSet(JDBCConnection conn, JDBCStatement statement, Entity entity, String sql) throws SQLException{
         this.conn = conn;
         this.statement = statement;
@@ -71,6 +73,35 @@ public class JDBCResultSet implements ResultSet{
 //        }
     }
 
+    public JDBCResultSet(JDBCConnection conn, JDBCStatement statement, EntityBlockReader reader, String sql) throws SQLException{
+        this.conn = conn;
+        this.statement = statement;
+        this.reader = reader;
+        if(!reader.hasNext()) {
+            throw new SQLException("ResultSet data is null");
+        }
+        BasicTable entity = null;
+        try {
+            entity = (BasicTable)reader.read();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        if(entity.isTable()){
+            this.table = entity;
+        }else{
+            throw new SQLException("ResultSet data is null");
+        }
+        rows = this.table.rows();
+        findColumnHashMap = new HashMap<>(this.table.columns());
+        for(int i=0; i<this.table.columns(); ++i){
+            findColumnHashMap.put(this.table.getColumnName(i),i+1);
+        }
+        this.isUpdatable = false;
+        if (this.isUpdatable){
+            insertRowMap = new HashMap<>(this.table.columns()+1);
+        }
+    }
+
 
     private BasicTable loadTable() throws SQLException{
         return (BasicTable) run(tableName);
@@ -78,6 +109,19 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public boolean next() throws SQLException {
+        if(this.getFetchSize() != 0) {
+            // 当未读取到大表分段或者读取分段的行数超过限定时，尝试读取下一分段
+            if(this.table == null || row >= rows - 1) {
+                try {
+                    if(!this.reader.hasNext()) return false;
+                    this.table = (BasicTable) this.reader.read();
+                    rows = this.table.rows();
+                    row = -1;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
         checkClosed();
         row++;
         return row <= rows-1;
@@ -558,6 +602,14 @@ public class JDBCResultSet implements ResultSet{
     @Override
     public int getConcurrency() throws SQLException {
         return ResultSet.CONCUR_READ_ONLY;
+    }
+
+    public EntityBlockReader getReader() {
+        return this.reader;
+    }
+
+    public void setReader(EntityBlockReader reader) {
+        this.reader = reader;
     }
 
     @Override
