@@ -29,8 +29,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private List<Entity.DATA_TYPE> colTypes_;
 	@SuppressWarnings("rawtypes")
 	private HashMap<String, ArrayList> unNameTable;
-	private int tableRows = 0;
-	
+
 	public String getTableName() {
 		return tableName;
 	}
