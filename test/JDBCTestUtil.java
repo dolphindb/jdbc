@@ -2,11 +2,11 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
-
+import java.util.ResourceBundle;
 public class JDBCTestUtil {
-    static String HOST = "192.168.1.12" ;
-    static int PORT = 8848 ;
-
+    static ResourceBundle bundle = ResourceBundle.getBundle("setup/settings");//传入文件名,不需要后缀
+    static String HOST = bundle.getString("HOST");
+    static int PORT = Integer.parseInt(bundle.getString("PORT"));
     static String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
     static Properties LOGININFO = new Properties();
 
