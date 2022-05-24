@@ -105,6 +105,12 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			} catch (IOException e) {
 				throw new SQLException(e.getMessage());
 			}
+		} else{
+			try {
+				createArguments();
+			} catch (IOException e) {
+				throw new SQLException(e.getMessage());
+			}
 		}
 		switch (dml) {
 		case Utils.DML_INSERT: //rt
@@ -197,8 +203,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			}catch (Exception e){
 				return 0;
 			}
-			if (tableRows == unNameTable.get(colNames.get(0)).size())
+			if (tableRows == unNameTable.get(colNames.get(0)).size()){
 				unNameTable = null;
+				tableRows = 0;
+			}
+
 
 			List<Entity> param = new ArrayList<>();
 			BasicTable insertTable = new BasicTable(colNames, cols);
