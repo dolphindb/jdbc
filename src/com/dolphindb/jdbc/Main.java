@@ -873,6 +873,9 @@ public class Main {
 			System.out.println(metaData.getProcedureTerm());
 			System.out.println(metaData.getResultSetHoldability());
 			System.out.println(metaData.getSchemaTerm());
+			ResultSet ss = null;
+			ss = metaData.getSchemas();
+			printData(ss);
 			System.out.println(metaData.getSearchStringEscape());
 			System.out.println("getSQLKeywords() = " + metaData.getSQLKeywords());
 			System.out.println("getSQLStateType() = " + metaData.getSQLStateType());
