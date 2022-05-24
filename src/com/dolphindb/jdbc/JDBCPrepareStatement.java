@@ -197,7 +197,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			}catch (Exception e){
 				return 0;
 			}
-			if (tableRows == argumentsBatch.size())
+			if (tableRows == unNameTable.get(colNames.get(0)).size())
 				unNameTable = null;
 
 			List<Entity> param = new ArrayList<>();

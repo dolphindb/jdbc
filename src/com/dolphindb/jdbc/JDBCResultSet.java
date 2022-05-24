@@ -504,7 +504,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public int getRow() throws SQLException {
-        return row + 1;
+        return rows;
     }
 
     @Override
