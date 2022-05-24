@@ -149,7 +149,7 @@ public class Utils {
             return DML_INSERT;
         }else if(sqlBackup.startsWith("update")){
             return DML_UPDATE;
-        }else if(sqlBackup.startsWith("delete")){
+        }else if(sqlBackup.startsWith("delete")) {
             return DML_DELETE;
         }else {
             return DML_OTHER;

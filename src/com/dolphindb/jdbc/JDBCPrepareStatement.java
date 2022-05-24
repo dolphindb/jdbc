@@ -30,6 +30,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private List<Entity.DATA_TYPE> colTypes_;
 	@SuppressWarnings("rawtypes")
 	private HashMap<String, ArrayList> unNameTable;
+	private int tableRows = 0;
 	
 	public String getTableName() {
 		return tableName;
@@ -184,43 +185,33 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		if (unNameTable.size() > 1) {
 			int insertRows = 0;
 			List<Vector> cols = new ArrayList<>(unNameTable.size());
-
-			Entity.DATA_TYPE dataType;
-			int colindex = 0;
-			for (int i = 1; i < sqlSplit.length; i++){
-				try {
-					dataType = colTypes_.get(colindex);
-					Entity entity;
-					entity = BasicEntityFactory.createScalar(dataType, values[i]);
+			try {
+				for (int i = 0; i < colNames.size(); i++){
+					Entity.DATA_TYPE dataType = colTypes_.get(i);
+					List<Entity> values = unNameTable.get(colNames.get(i));
 					Vector col = BasicEntityFactory.instance().createVectorWithDefaultValue(dataType, 1);
-					col.set(0, (Scalar) entity);
+					col.set(0, (Scalar) values.get(tableRows));
 					cols.add(col);
-				}catch (Exception e){
-					return 0;
 				}
-				colindex++;
+				tableRows++;
+			}catch (Exception e){
+				return 0;
 			}
-			unNameTable = null;
+			if (tableRows == argumentsBatch.size())
+				unNameTable = null;
 
+			List<Entity> param = new ArrayList<>();
 			BasicTable insertTable = new BasicTable(colNames, cols);
-			Map<String, Entity> vars = new HashMap<String, Entity>();
-			vars.put("t1", insertTable);
-			
-			try {
-				connection.getDBConnection().upload(vars);
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
+			param.add(insertTable);
 
 			try {
-				connection.run(tableName + ".append!(t1)");
+				connection.run("append!{" + tableName + "}", param);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 
 			cols = null;
 			insertTable = null;
-			vars = null;	
 
 			return insertRows;
 		}
@@ -229,7 +220,22 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setNull(int parameterIndex, int type) throws SQLException {
-		setObject(parameterIndex, TypeCast.nullScalar(type));
+		if (colTypes_ == null){
+			try {
+				BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
+				BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+				BasicIntVector colDefsTypeInt = (BasicIntVector) colDefs.getColumn("typeInt");
+				int size = colDefs.rows();
+				colTypes_ = new ArrayList<Entity.DATA_TYPE>();
+				for (int i = 0;i < size; i++){
+					colTypes_.add(Entity.DATA_TYPE.valueOf(colDefsTypeInt.getInt(i)));
+				}
+			}catch (Exception e){
+				System.out.println(e.getMessage());
+				return;
+			}
+		}
+		setObject(parameterIndex, TypeCast.nullScalar(colTypes_.get(parameterIndex-1)));
 	}
 
 	@Override
@@ -669,15 +675,18 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				int j = 0;
 				for (int i = 1; i < sqlSplit.length; ++i) {
 					if (!tableType.equals(IN_MEMORY_TABLE)) {
-						if (values[i] == null) {
-							throw new IOException("No value specified for parameter " + i);
-						}
-						ArrayList<Entity> args = new ArrayList<>(sqlSplit.length);
 						dataType = colTypes_.get(j);
 						Entity entity;
 						entity = BasicEntityFactory.createScalar(dataType, values[i]);
-						args.add(entity);
-						unNameTable.put(colNames.get(j), args);
+						if (unNameTable.size() == colTypes_.size()){
+							ArrayList<Entity> colValues = unNameTable.get(colNames.get(j));
+							colValues.add(entity);
+							unNameTable.put(colNames.get(j), colValues);
+						}else {
+							ArrayList<Entity> args = new ArrayList<>();
+							args.add(entity);
+							unNameTable.put(colNames.get(j), args);
+						}
 						j++;
 					} else {
 						String s = TypeCast.TYPEINT2STRING.get(colType.get(i));

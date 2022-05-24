@@ -78,6 +78,13 @@ public class TypeCast {
     public static final String BASIC_FLOAT = PACKAGE_NAME + "BasicFloat";
     public static final String BASIC_DOUBLE = PACKAGE_NAME + "BasicDouble";
     public static final String BASIC_STRING = PACKAGE_NAME + "BasicString";
+    public static final String BASIC_COMPLEX = PACKAGE_NAME + "BasicComplex";
+    public static final String BASIC_DATEHOUR = PACKAGE_NAME + "BasicDateHour";
+    public static final String BASIC_DURATION = PACKAGE_NAME + "BasicDuration";
+    public static final String BASIC_INT128 = PACKAGE_NAME + "BasicInt128";
+    public static final String BASIC_IPADDR = PACKAGE_NAME + "BasicIPAddr";
+    public static final String BASIC_POINT = PACKAGE_NAME + "BasicPoint";
+    public static final String BASIC_UUID = PACKAGE_NAME + "BasicUuid";
 
     public static final String BASIC_BOOLEAN_VECTOR = BASIC_BOOLEAN + VECTOR;
     public static final String BASIC_BYTE_VECTOR = BASIC_BYTE + VECTOR;
@@ -111,10 +118,18 @@ public class TypeCast {
 
 
     public static final HashMap<Integer,String> TYPEINT2STRING = new LinkedHashMap<>();
-	public static Scalar[] NULL = {new BasicBoolean(false), new BasicByte((byte) 0), new BasicShort((short) 0), new BasicInt(0), new BasicLong(0), new BasicFloat(0), new BasicDouble(0), new BasicString(""), new BasicDate(LocalDate.of(2020,1,1)), new BasicTimestamp(LocalDateTime.of(2020, 1, 1, 0, 0)), new BasicTime(LocalTime.of(0, 0))};
+	public static Scalar[] NULL = {new BasicBoolean(false), new BasicByte((byte) 0), new BasicShort((short) 0), new BasicInt(0),
+            new BasicLong(0), new BasicFloat(0), new BasicDouble(0), new BasicString(""),
+            new BasicDate(LocalDate.of(2020,1,1)), new BasicTimestamp(LocalDateTime.of(2020, 1, 1, 0, 0)),
+            new BasicTime(LocalTime.of(0, 0)), new BasicNanoTime(LocalTime.of(0,0,0,0)),
+            new BasicNanoTimestamp(LocalDateTime.of(2020,1,1,0,0,0,0)),
+            new BasicString("", true), new BasicDateHour(LocalDateTime.of(2020,1,1,0,0,0)),
+            new BasicComplex(0.0, 0.0), new BasicDuration(Entity.DURATION.NS, 1), new BasicInt128((long) 1,(long) 1),
+            new BasicIPAddr((long)1, (long)1), new BasicPoint(1.0, 1.0), new BasicUuid((long)1, (long)1)};
 
     static {
-        String[] arr = new String[]{BASIC_VOID,
+        String[] arr = new String[]{
+                BASIC_VOID,
                 BASIC_BOOLEAN,
                 BASIC_BYTE,
                 BASIC_SHORT,
@@ -132,7 +147,13 @@ public class TypeCast {
                 BASIC_FLOAT,
                 BASIC_DOUBLE,
                 BASIC_STRING,
-                BASIC_STRING
+                BASIC_COMPLEX,
+                BASIC_DATEHOUR,
+                BASIC_DURATION,
+                BASIC_INT128,
+                BASIC_IPADDR,
+                BASIC_POINT,
+                BASIC_UUID
         };
         for(int i = 0, len = arr.length; i < len; ++i) {
             TYPEINT2STRING.put(i, arr[i]);
@@ -142,24 +163,31 @@ public class TypeCast {
 		}
     }
 
-    public static Object nullScalar(int type) throws SQLException {
+    public static Object nullScalar(Entity.DATA_TYPE type) throws SQLException {
     	Object x = null;
 		switch (type) {
-		case Types.BOOLEAN: x = NULL[0]; break;
-		case Types.CHAR: x = NULL[1]; break;
-		case Types.SMALLINT: x = NULL[2]; break;
-		case Types.INTEGER: x = NULL[3]; break;
-		case Types.BIGINT: x = NULL[4]; break;
-		case Types.FLOAT: x = NULL[5]; break;
-		case Types.REAL:
-		case Types.DOUBLE: x = NULL[6]; break;
-		case Types.VARCHAR:
-		case Types.NVARCHAR:
-		case Types.NCHAR: x = NULL[7]; break;
-		case Types.DATE: x = NULL[8]; break;
-		case Types.TIMESTAMP: x = NULL[9]; break;
-		case Types.TIME: x = NULL[10]; break;
-		default: throw new SQLException("Unsupported type");
+            case DT_BOOL: x = NULL[0]; break;
+            case DT_BYTE: x = NULL[1]; break;
+            case DT_SHORT: x = NULL[2]; break;
+            case DT_INT: x = NULL[3]; break;
+            case DT_LONG: x = NULL[4]; break;
+            case DT_FLOAT: x = NULL[5]; break;
+            case DT_DOUBLE: x = NULL[6]; break;
+            case DT_SYMBOL:
+            case DT_STRING: x = NULL[7]; break;
+            case DT_DATE: x = NULL[8]; break;
+            case DT_TIMESTAMP: x = NULL[9]; break;
+            case DT_TIME: x = NULL[10]; break;
+            case DT_NANOTIME: x = NULL[11]; break;
+            case DT_NANOTIMESTAMP: x = NULL[12]; break;
+            case DT_BLOB: x = NULL[13]; break;
+            case DT_DATEHOUR: x = NULL[14]; break;
+            case DT_COMPLEX: x = NULL[15]; break;
+            case DT_DURATION: x = NULL[16]; break;
+            case DT_INT128: x = NULL[17]; break;
+            case DT_IPADDR: x = NULL[18]; break;
+            case DT_POINT: x = NULL[19]; break;
+		    default: throw new SQLException("Unsupported type");
 		}
 		return x;
     }
@@ -168,6 +196,7 @@ public class TypeCast {
         String srcClassName = o.getClass().getName();
         switch (srcClassName){
             case STRING:
+                return o.toString();
             case BASIC_STRING:
                 return "\""+o+"\"";
             case CHAR:
