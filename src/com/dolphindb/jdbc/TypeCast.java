@@ -123,7 +123,8 @@ public class TypeCast {
             new BasicString("", true), new BasicDateHour(LocalDateTime.of(2020,1,1,0,0,0)),
             new BasicComplex(0.0, 0.0), new BasicDuration(Entity.DURATION.NS, 1), new BasicInt128((long) 1,(long) 1),
             new BasicIPAddr((long)1, (long)1), new BasicPoint(1.0, 1.0), new BasicUuid((long)1, (long)1), new BasicMonth(2020, Month.JANUARY),
-            new BasicSecond(LocalTime.of(0,0,0)), new BasicMinute(LocalTime.of(0,0,0))};
+            new BasicSecond(LocalTime.of(0,0,0)), new BasicMinute(LocalTime.of(0,0,0)), new BasicUuid(0,0),
+            new BasicDateTime(LocalDateTime.of(2020,1,1,0,0,0))};
 
     static {
         String[] arr = new String[]{
@@ -167,7 +168,7 @@ public class TypeCast {
                 Entity.DATA_TYPE.DT_TIME,
                 Entity.DATA_TYPE.DT_MINUTE,
                 Entity.DATA_TYPE.DT_SECOND,
-                Entity.DATA_TYPE.DT_DATE,
+                Entity.DATA_TYPE.DT_DATETIME,
                 Entity.DATA_TYPE.DT_TIMESTAMP,
                 Entity.DATA_TYPE.DT_NANOTIME,
                 Entity.DATA_TYPE.DT_NANOTIMESTAMP,
@@ -219,6 +220,8 @@ public class TypeCast {
             case DT_MONTH: x = NULL[20]; break;
             case DT_SECOND: x = NULL[21]; break;
             case DT_MINUTE: x = NULL[22]; break;
+            case DT_UUID: x = NULL[23]; break;
+            case DT_DATETIME: x = NULL[24]; break;
 		    default: throw new SQLException("Unsupported type");
 		}
 		return x;
