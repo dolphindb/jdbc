@@ -1,6 +1,7 @@
 package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
+import com.xxdb.data.Vector;
 
 import java.io.IOException;
 import java.sql.Date;
@@ -9,9 +10,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.*;
 import java.time.temporal.Temporal;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 
 public class TypeCast {
 
@@ -82,6 +81,7 @@ public class TypeCast {
     public static final String BASIC_POINT = PACKAGE_NAME + "BasicPoint";
     public static final String BASIC_UUID = PACKAGE_NAME + "BasicUuid";
     public static final String BASIC_SYMBOL = PACKAGE_NAME + "BasicString";
+    public static final String BASIC_BLOB = PACKAGE_NAME + "BasicString";
 
     public static final String BASIC_BOOLEAN_VECTOR = BASIC_BOOLEAN + VECTOR;
     public static final String BASIC_BYTE_VECTOR = BASIC_BYTE + VECTOR;
@@ -146,16 +146,46 @@ public class TypeCast {
                 BASIC_DOUBLE,
                 BASIC_SYMBOL,
                 BASIC_STRING,
-                BASIC_COMPLEX,
+                BASIC_UUID,
                 BASIC_DATEHOUR,
-                BASIC_DURATION,
-                BASIC_INT128,
                 BASIC_IPADDR,
+                BASIC_INT128,
+                BASIC_BLOB,
+                BASIC_COMPLEX,
                 BASIC_POINT,
-                BASIC_UUID
+                BASIC_DURATION,
         };
-        for(int i = 0, len = arr.length; i < len; ++i) {
-            TYPEINT2STRING.put(i, arr[i]);
+        Entity.DATA_TYPE[] datatypeArr = new Entity.DATA_TYPE[]{
+                Entity.DATA_TYPE.DT_VOID,
+                Entity.DATA_TYPE.DT_BOOL,
+                Entity.DATA_TYPE.DT_BYTE,
+                Entity.DATA_TYPE.DT_SHORT,
+                Entity.DATA_TYPE.DT_INT,
+                Entity.DATA_TYPE.DT_LONG,
+                Entity.DATA_TYPE.DT_DATE,
+                Entity.DATA_TYPE.DT_MONTH,
+                Entity.DATA_TYPE.DT_TIME,
+                Entity.DATA_TYPE.DT_MINUTE,
+                Entity.DATA_TYPE.DT_SECOND,
+                Entity.DATA_TYPE.DT_DATE,
+                Entity.DATA_TYPE.DT_TIMESTAMP,
+                Entity.DATA_TYPE.DT_NANOTIME,
+                Entity.DATA_TYPE.DT_NANOTIMESTAMP,
+                Entity.DATA_TYPE.DT_FLOAT,
+                Entity.DATA_TYPE.DT_DOUBLE,
+                Entity.DATA_TYPE.DT_SYMBOL,
+                Entity.DATA_TYPE.DT_STRING,
+                Entity.DATA_TYPE.DT_UUID,
+                Entity.DATA_TYPE.DT_DATEHOUR,
+                Entity.DATA_TYPE.DT_IPADDR,
+                Entity.DATA_TYPE.DT_INT128,
+                Entity.DATA_TYPE.DT_BLOB,
+                Entity.DATA_TYPE.DT_COMPLEX,
+                Entity.DATA_TYPE.DT_POINT,
+                Entity.DATA_TYPE.DT_DURATION
+        };
+        for(int i = 0, len = datatypeArr.length; i < len; ++i) {
+            TYPEINT2STRING.put(datatypeArr[i].getValue(), arr[i]);
         }
     	for (Scalar n : NULL) {
 			n.setNull();
