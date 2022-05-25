@@ -7,11 +7,7 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.sql.Types;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.YearMonth;
+import java.time.*;
 import java.time.temporal.Temporal;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -126,7 +122,7 @@ public class TypeCast {
             new BasicNanoTimestamp(LocalDateTime.of(2020,1,1,0,0,0,0)),
             new BasicString("", true), new BasicDateHour(LocalDateTime.of(2020,1,1,0,0,0)),
             new BasicComplex(0.0, 0.0), new BasicDuration(Entity.DURATION.NS, 1), new BasicInt128((long) 1,(long) 1),
-            new BasicIPAddr((long)1, (long)1), new BasicPoint(1.0, 1.0), new BasicUuid((long)1, (long)1)};
+            new BasicIPAddr((long)1, (long)1), new BasicPoint(1.0, 1.0), new BasicUuid((long)1, (long)1), new BasicMonth(2020, Month.JANUARY)};
 
     static {
         String[] arr = new String[]{
