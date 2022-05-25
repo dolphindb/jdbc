@@ -311,7 +311,8 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Object getObject(String columnLabel) throws SQLException {
-        return table.getColumn(columnLabel).get(row);
+        o = table.getColumn(columnLabel).get(row);
+        return o;
     }
 
     @Override
