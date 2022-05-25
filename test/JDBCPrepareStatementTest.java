@@ -1,11 +1,14 @@
 import com.sun.xml.internal.bind.v2.model.core.ID;
 import com.xxdb.DBConnection;
+import com.xxdb.data.BasicDate;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.*;
 import java.text.MessageFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -922,6 +925,60 @@ public class JDBCPrepareStatementTest {
                     e.printStackTrace();
                 }
             }
+        }
+    }
+    @Test
+    public void Test_prepareStatement_dfs_query_Batch1() throws Exception {
+        String tableName = "trade";
+        String dataBase = "dfs://test_jdbc_sql";
+        Connection conn = JDBCSQLSelectTest.getConnection();
+        String sql = "insert into trade values(?,?,?,?,?,?,?,?)";
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+
+        PreparedStatement ps = null;
+
+
+        StringBuilder sb = new StringBuilder();
+        try {
+            ps = conn.prepareStatement(sql);
+
+
+            ps = conn.prepareStatement(sql);
+            StringBuilder sb2 = new StringBuilder();
+            sb2.append("if(existsDatabase(\""+ dataBase +"\"))dropDatabase(\""+ dataBase +"\")\n");
+            sb2.append("db=database(\""+ dataBase +"\", RANGE, `A`F`K`O`S`ZZZ)\n");
+            sb2.append("t1=table(100:0, `PERMNO`date`TICKER`PRC`VOL`BID`ASK`SHROUT, [INT, DATE, SYMBOL, DOUBLE, INT, DOUBLE, DOUBLE,INT])\n");
+            sb2.append("db.createPartitionedTable(t1,`trade, `TICKER)\n");
+            ps.execute(sb2.toString());
+            ps.execute("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")");
+
+            ps.clearBatch();
+            ps.setInt(1, Integer.parseInt("1"));
+            LocalDate localDate = LocalDate.parse("2010.03.13", formatter);
+            ps.setObject(2, new BasicDate(localDate));
+            ps.setString(3, "NULL");
+            ps.setNull(4, Types.DOUBLE);
+            ps.setNull(5, Types.INTEGER);
+            ps.setDouble(6, Double.parseDouble("6.1"));
+            ps.setDouble(7, Double.parseDouble("6.1"));
+            ps.setNull(8, Types.INTEGER);
+            ps.addBatch();
+
+            ps.setInt(1, Integer.parseInt("2"));
+            ps.setObject(2, new BasicDate(localDate));
+            ps.setString(3, "NULL");
+            ps.setNull(4, Types.DOUBLE);
+            ps.setNull(5, Types.INTEGER);
+            ps.setDouble(6, Double.parseDouble("6.1"));
+            ps.setDouble(7, Double.parseDouble("6.1"));
+            ps.setNull(8, Types.INTEGER);
+            ps.addBatch();
+            ps.executeBatch();
+            ps.clearBatch();
+
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
