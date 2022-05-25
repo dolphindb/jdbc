@@ -1283,6 +1283,10 @@ public class JDBCResultSet implements ResultSet{
         return (BasicNanoTimestamp)getObject(columnIndex);
     }
 
+    public BasicTable getTable() {
+        return table;
+    }
+
     private void update(String name, Object value) throws SQLException{
         update(findColumn(name),value);
     }
@@ -1301,7 +1305,9 @@ public class JDBCResultSet implements ResultSet{
     private void insert(int columnIndex, Object value) throws SQLException {
         try {
             Entity targetEntity = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
-            insertRowMap.put(columnIndex, TypeCast.java2db(value,targetEntity.getClass().getName()));
+            Entity.DATA_TYPE dataType = targetEntity.getDataType();
+            Entity entity = BasicEntityFactory.createScalar(dataType, value);
+            insertRowMap.put(columnIndex, entity);
         }catch (Exception e){
             throw new SQLException(e.getMessage());
         }
