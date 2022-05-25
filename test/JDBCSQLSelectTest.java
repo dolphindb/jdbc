@@ -67,6 +67,174 @@ public class JDBCSQLSelectTest {
 			e.printStackTrace();
 		}
 	}
+    @Test
+	public void TestCaseMixingSelect(){
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("Select * fROM trade WHEre ID=1");
+			Assert.assertTrue(rs.next());
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	@Test
+	public void TestCaseMixingLast(){
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("Select lASt(ID) fROM trade");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	public void TestCaseMixingOr(){
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("selecT count(*) fROM trade WHEre ID=1 oR 2 ");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	@Test
+	public void TestCaseMixingOrder(){
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("SElect count(*) fROM trade oRdeR By id");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	@Test
+	public void TestCaseMixingGroup(){
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("SElect count(*) fROM trade GROUP By prc");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	@Test
+	public void TestCaseMixingCgroup(){
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("SElect avg(prc) fROM trade CGROUP By prc orDER BY prc;");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	@Test
+	public void TestCaseMixingInterval(){
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("SElect count(*) fROM trade group By INterval(date,1d,\"null\")");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	@Test
+	public void TestCaseMixingHaVing () {
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("select sum(PRC) as SUM from trade group by date HAving sum(PRC) > 0 ");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	@Test
+	public void TestCaseMixingLimit () {
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("select * from trade liMIT 3 ");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	@Test
+	public void TestCaseMixingTop () {
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("select TOP 3 * from trade");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	@Test
+	public void TestCaseMixingMap () {
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("select TOP 3 * from trade Map");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	@Test
+	public void TestCaseMixingPivot () {
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("select prc  from trade piVOT by date, ticker;");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	@Test
+	public void TestCaseMixingPartition () {
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("select * from trade where partition(ID, 2);");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	@Test
+	public void TestCaseMixingSample () {
+		try {
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			ResultSet rs =s.executeQuery("select * from trade where sAMPLe(ID, 2);");
+			Assert.assertTrue(rs.next());
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
 	@Test
 	public void TestVectorSelect(){
 		try {
