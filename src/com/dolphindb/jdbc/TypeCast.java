@@ -85,6 +85,7 @@ public class TypeCast {
     public static final String BASIC_IPADDR = PACKAGE_NAME + "BasicIPAddr";
     public static final String BASIC_POINT = PACKAGE_NAME + "BasicPoint";
     public static final String BASIC_UUID = PACKAGE_NAME + "BasicUuid";
+    public static final String BASIC_SYMBOL = PACKAGE_NAME + "BasicString";
 
     public static final String BASIC_BOOLEAN_VECTOR = BASIC_BOOLEAN + VECTOR;
     public static final String BASIC_BYTE_VECTOR = BASIC_BYTE + VECTOR;
@@ -146,6 +147,7 @@ public class TypeCast {
                 BASIC_NANOTIMESTAMP,
                 BASIC_FLOAT,
                 BASIC_DOUBLE,
+                BASIC_SYMBOL,
                 BASIC_STRING,
                 BASIC_COMPLEX,
                 BASIC_DATEHOUR,
