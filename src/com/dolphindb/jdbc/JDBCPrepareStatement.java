@@ -25,7 +25,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private List<Object> argumentsBatch; // String List<Entity> Vector
 	private boolean isInsert;
 	private String tableType;
-	private HashMap<Integer, Integer> colType;
 	private List<String> colNames;
 	private List<Entity.DATA_TYPE> colTypes_;
 	@SuppressWarnings("rawtypes")
@@ -640,18 +639,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	private Object createArguments() throws IOException {
 		if (isInsert) {
-			if (colType == null) {
-				BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
-				BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-				BasicIntVector typeInt = (BasicIntVector) colDefs.getColumn("typeInt");
-				int size = typeInt.rows();
-				colType = new LinkedHashMap<>(size);
-								
-				for (int i = 0; i < size; i++) {
-					colType.put(i + 1, typeInt.getInt(i));
-				}
-			}
-			
 			if(colNames == null) {
 				BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
 				BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
@@ -683,10 +670,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				}
 				int j = 0;
 				for (int i = 1; i < sqlSplit.length; ++i) {
+					dataType = colTypes_.get(j);
+					Entity entity;
+					entity = BasicEntityFactory.createScalar(dataType, values[i]);
 					if (!tableType.equals(IN_MEMORY_TABLE)) {
-						dataType = colTypes_.get(j);
-						Entity entity;
-						entity = BasicEntityFactory.createScalar(dataType, values[i]);
 						if (unNameTable.size() == colTypes_.size()){
 							ArrayList<Entity> colValues = unNameTable.get(colNames.get(j));
 							colValues.add(entity);
@@ -696,14 +683,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 							args.add(entity);
 							unNameTable.put(colNames.get(j), args);
 						}
-						j++;
 					} else {
-						String s = TypeCast.TYPEINT2STRING.get(colType.get(i));
-						if (values[i] == null) {
-							throw new IOException("No value specified for parameter " + i);
-						}
-						arguments.add(TypeCast.java2db(values[i], s));
+						arguments.add(entity);
 					}
+					j++;
 				}
 				return arguments;
 			}catch (Exception e){
