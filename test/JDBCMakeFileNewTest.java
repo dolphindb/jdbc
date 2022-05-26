@@ -18,8 +18,8 @@ import static org.junit.Assert.*;
 
 public class JDBCMakeFileNewTest {
     static ResourceBundle bundle = ResourceBundle.getBundle("setup/settings");
-    static String HOST = bundle.getString("HOST");
-    static int PORT = Integer.parseInt(bundle.getString("PORT"));
+    static String HOST = JDBCTestUtil.HOST;
+    static int PORT = JDBCTestUtil.PORT;
     static String WORK_DIR = bundle.getString("WORK_DIR");
     static String DATA_DIR = bundle.getString("DATA_DIR");
     static ArrayList<String> colTypeString = null;
