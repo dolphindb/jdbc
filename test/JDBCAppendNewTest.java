@@ -15,9 +15,8 @@ import java.util.ArrayList;
 import java.util.ResourceBundle;
 
 public class JDBCAppendNewTest {
-    static ResourceBundle bundle = ResourceBundle.getBundle("setup/settings");
-    static String HOST = bundle.getString("HOST");
-    static int PORT = Integer.parseInt(bundle.getString("PORT"));
+    static String HOST = JDBCTestUtil.HOST;
+    static int PORT = JDBCTestUtil.PORT;
     Connection conn;
     Statement stm ;
 
