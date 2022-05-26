@@ -217,10 +217,10 @@ public class TypeCast {
             case DT_INT128: x = NULL[17]; break;
             case DT_IPADDR: x = NULL[18]; break;
             case DT_POINT: x = NULL[19]; break;
-            case DT_MONTH: x = NULL[20]; break;
-            case DT_SECOND: x = NULL[21]; break;
-            case DT_MINUTE: x = NULL[22]; break;
-            case DT_UUID: x = NULL[23]; break;
+            case DT_MONTH: x = NULL[21]; break;
+            case DT_SECOND: x = NULL[22]; break;
+            case DT_MINUTE: x = NULL[23]; break;
+            case DT_UUID: x = NULL[20]; break;
             case DT_DATETIME: x = NULL[24]; break;
 		    default: throw new SQLException("Unsupported type");
 		}
