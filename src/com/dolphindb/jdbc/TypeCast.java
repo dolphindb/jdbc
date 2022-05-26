@@ -230,8 +230,6 @@ public class TypeCast {
     public static String castDbString(Object o){
         String srcClassName = o.getClass().getName();
         switch (srcClassName){
-            case STRING:
-                return o.toString();
             case BASIC_STRING:
                 return "\""+o+"\"";
             case CHAR:
@@ -250,6 +248,7 @@ public class TypeCast {
                 return new BasicNanoTime((LocalTime) o).toString();
             case LOCAL_DATETIME:
                 return new BasicNanoTimestamp((LocalDateTime) o).toString();
+            case STRING:
             case BOOLEAN:
             case BYTE:
             case SHORT:
@@ -273,7 +272,25 @@ public class TypeCast {
             case BASIC_NANOTIMESTAMP:
             case BASIC_FLOAT:
             case BASIC_DOUBLE:
+            case BASIC_DURATION:
                 return o.toString();
+            case BASIC_DATEHOUR:
+                int value = ((BasicDateHour)o).getInt();
+                return "datehour(" + value + ")";
+            case BASIC_UUID:
+                return "uuid(\"" + o.toString() + "\")";
+            case BASIC_IPADDR:
+                return "ipaddr(\"" + o.toString() + "\")";
+            case BASIC_INT128:
+                return "int128(\"" + o.toString() + "\")";
+            case BASIC_COMPLEX:
+                double x = ((BasicComplex)o).getReal();
+                double y = ((BasicComplex)o).getImage();
+                return "complex(" + x + "," + y + ")";
+            case BASIC_POINT:
+                double a = ((BasicPoint)o).getX();
+                double b = ((BasicPoint)o).getY();
+                return "point(" + a + "," + b + ")";
             default:
                 return null;
         }
