@@ -43,8 +43,7 @@ public class JDBCMakeFileTest {
 			Statement s = conn.createStatement();
 			s.execute("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")");
 			ResultSet rs =s.executeQuery("select * from trade");
-			
-//			printData(rs);
+
 			makeFile(rs);
 			
 		} catch (SQLException e) {
@@ -126,7 +125,6 @@ public class JDBCMakeFileTest {
 			alldata.add(tmp);
 		}
 		Array2CSV(alldata,"test.csv");
-		
 	}
 	
 	public static void Array2CSV(ArrayList<ArrayList<String>> data, String path)
@@ -153,7 +151,6 @@ public class JDBCMakeFileTest {
           } catch (Exception e) {
               e.printStackTrace();
           }
-
     }
     public static String DelQuota(String str)
     {
@@ -204,53 +201,5 @@ public class JDBCMakeFileTest {
 			e.printStackTrace();
 		}
 	}
-	
-	public static void printData(ResultSet rs) throws SQLException {
-		
-		getColTypes();		
-		ResultSetMetaData resultSetMetaData = rs.getMetaData();
-		int len = resultSetMetaData.getColumnCount();
-		while (rs.next()) {			
-			for (int i = 1; i <= len; ++i) {
-				if(colTypeString.get(i-1).equals("DATE")) {
-					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getDate(i) + ",    ");
-				}if(colTypeString.get(i-1).equals("SYMBOL") || colTypeString.get(i-1).equals("STRING")) {
-					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getString(i)));
-				}if(colTypeString.get(i-1).equals("DOUBLE")) {
-					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getDouble(i)));
-				}if(colTypeString.get(i-1).equals("INT")) {
-					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getInt(i)));
-				}if(colTypeString.get(i-1).equals("DATETIME")) {
-					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTimestamp(i) + ",    ");
-				}if(colTypeString.get(i-1).equals("TIMESTAMP")) {
-					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTimestamp(i) + ",    ");
-				}if(colTypeString.get(i-1).equals("TIME")) {
-					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
-				}if(colTypeString.get(i-1).equals("LONG")) {
-					System.out.print(MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getLong(i)));
-				}if(colTypeString.get(i-1).equals("MONTH")) {
-					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getDate(i) + ",    ");
-				}if(colTypeString.get(i-1).equals("BOOL")) {
-					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getBoolean(i) + ",    ");
-				}if(colTypeString.get(i-1).equals("CHAR")) {
-					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getString(i) + ",    ");
-				}if(colTypeString.get(i-1).equals("SHORT")) {
-					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getShort(i) + ",    ");
-				}if(colTypeString.get(i-1).equals("MINUTE")) {
-					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
-				}if(colTypeString.get(i-1).equals("SECOND")) {
-					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
-				}if(colTypeString.get(i-1).equals("NANOTIME")) {
-					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTime(i) + ",    ");
-				}if(colTypeString.get(i-1).equals("NANOTIMESTAMP")) {
-					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getTimestamp(i) + ",    ");
-				}if(colTypeString.get(i-1).equals("ANY")) {
-					System.out.print( resultSetMetaData.getColumnName(i)+ ": " +rs.getObject(i) + ",    ");
-				}
-				
-				
-			}
-			System.out.print("\n");
-		}
-	}
+
 }
