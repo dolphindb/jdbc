@@ -18,13 +18,11 @@ import java.util.logging.Logger;
 import com.xxdb.DBConnection;
 
 public class JDBCStatementTest {
-	String HOST; 
-	int PORT;
+	static String HOST = JDBCTestUtil.HOST ;
+	static int PORT = JDBCTestUtil.PORT ;
 	
 	@Before
     public void SetUp(){
-        HOST = "localhost" ;
-        PORT = 8848 ;
     }
 	
     public static boolean CreateDfsTable(String host, Integer port){
