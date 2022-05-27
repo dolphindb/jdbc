@@ -48,7 +48,7 @@ public class JDBCUpdateAndDeleteTest {
 	public static void UpdateTest() {
 		try {
 		
-			PreparedStatement s = conn.prepareStatement("update "+ tableName +" set bool = ? where char = ?;update "+ tableName + "  set long = ? where int=? context by ?");
+			PreparedStatement s = conn.prepareStatement("update "+ tableName +" set bool = ? where char = ?;update "+ tableName + " set long = ? where int=? context by ?");
 			//s.execute("t1=loadTable(\""+ dataBase +"\", `"+ tableName +")");
 			Object[] objects = new Object[]{false, 'a', 0 , 22, "string"};
 

@@ -1,5 +1,3 @@
-
-import com.sun.corba.se.impl.resolver.SplitLocalResolverImpl;
 import com.xxdb.data.BasicBoolean;
 import com.xxdb.data.BasicBooleanVector;
 import junit.framework.TestCase;
@@ -22,21 +20,13 @@ import java.util.logging.Logger;
 import com.xxdb.DBConnection;
 
 public class JDBCResultSetTest {
-	String HOST;
-	int PORT;
-	static String  PATH;
-	static String JDBC_DRIVER;
-	static  String url;
+	static String HOST = JDBCTestUtil.HOST;
+	static int PORT = JDBCTestUtil.PORT;
+	static String  PATH = JDBCTestUtil.WORK_DIR;
+	static String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+	static  String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
 	@Before
 	public void SetUp() throws IOException {
-		Properties props = new Properties();
-		FileInputStream in = new FileInputStream("test/setup/settings.properties");
-		props.load(in);
-		PORT = Integer.parseInt(props.getProperty("PORT"));
-		HOST = props.getProperty("HOST");
-		PATH = props.getProperty("PATH");
-		JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
-		url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
 	}
 
 
@@ -741,7 +731,7 @@ public class JDBCResultSetTest {
 			rs.first();
 			TestCase.assertTrue(rs.isFirst());
 			rs.absolute(-2);
-			//TestCase.assertEquals(3, rs.getRow());
+			TestCase.assertEquals(3, rs.getRow());
 			rs.absolute(2);
 			TestCase.assertEquals(2, rs.getRow());
 			rs.relative(-1);

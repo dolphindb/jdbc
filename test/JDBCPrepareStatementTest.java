@@ -1,4 +1,3 @@
-import com.sun.xml.internal.bind.v2.model.core.ID;
 import com.xxdb.DBConnection;
 import com.xxdb.data.BasicDate;
 import org.junit.After;
@@ -15,20 +14,18 @@ import static org.hamcrest.CoreMatchers.containsString;
 //import com.xxdb.DBConnection;
 
 public class JDBCPrepareStatementTest {
-    String HOST;
-    int PORT;
+    static String HOST = JDBCTestUtil.HOST;
+    static int PORT = JDBCTestUtil.PORT;
     Properties LOGININFO = new Properties();
     String JDBC_DRIVER;
     String DB_URL ;
     @Before
     public void SetUp(){
-        HOST = "localhost" ;
-        PORT = 8848 ;
         JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
         LOGININFO = new Properties();
         LOGININFO.put("user", "admin");
         LOGININFO.put("password", "123456");
-        DB_URL = "jdbc:dolphindb://192.168.1.14:8941";
+        DB_URL = "jdbc:dolphindb://"+HOST+":"+PORT;
     }
     public static boolean CreateDfsTable(String host, Integer port) {
         boolean success = false;
@@ -56,11 +53,12 @@ public class JDBCPrepareStatementTest {
 
     @Test
     public  void TestPrepareStatement() throws ClassNotFoundException,SQLException{
+        CreateDfsTable(HOST,PORT);
         Properties info = new Properties();
         info.put("user", "admin");
         info.put("password", "123456");
         Connection conn = null;
-        String preSql="select count(*) from loadTable('dfs://rangedb','pt') group by ID ";
+        String preSql="select count(*) from loadTable('dfs://db_testStatement','pt') group by id ";
         PreparedStatement stmt = null;
         Class.forName(JDBC_DRIVER);
         conn = DriverManager.getConnection(DB_URL, info);
@@ -578,6 +576,7 @@ public class JDBCPrepareStatementTest {
             pstmt = conn.prepareStatement("insert into t values(?,?)");
             pstmt.setInt(1, 4);
             Timestamp t = Timestamp.valueOf("2012-06-13 13:30:10.009");
+            pstmt.setTimestamp(2, t);
             pstmt.executeUpdate();
             pstmt = conn.prepareStatement("select * from t");
             rs = pstmt.executeQuery();
