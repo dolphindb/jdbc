@@ -439,15 +439,15 @@ public class JDBCAppendNewTest {
         stm.execute("pt=loadTable('dfs://test_append_type','pt')");
         PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
         ps.setInt(1,1);
-        BasicDateHour tmp_nanotimestamp = new BasicDateHour(LocalDateTime.of(2021,1,1,1,1,1,123456));
-        ps.setObject(2, tmp_nanotimestamp);
+        BasicDateHour tmp_datehour = new BasicDateHour(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(2, tmp_datehour);
         ps.executeUpdate();
         ps.setInt(1,2);
         ps.setNull(2,Types.OTHER);
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(tmp_nanotimestamp,rs.getObject("dataType"));
+        org.junit.Assert.assertEquals(tmp_datehour,rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());

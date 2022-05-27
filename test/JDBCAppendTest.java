@@ -169,7 +169,7 @@ public static void Append10MillionDatatest() throws Exception {
 					ps.setObject(9, LocalDateTime.of(2018,10,12,14,12,01,001));
 				}
 				if(count%2==1){
-					ps.setNull(10, Types.TIMESTAMP);
+					ps.setNull(10, Types.OTHER);
 				}
 				else{
 					ps.setObject(10,   LocalDateTime.of(2018,10,12,14,12,01,123456));
