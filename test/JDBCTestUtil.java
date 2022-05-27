@@ -4,9 +4,11 @@ import java.sql.SQLException;
 import java.util.Properties;
 import java.util.ResourceBundle;
 public class JDBCTestUtil {
-    static ResourceBundle bundle = ResourceBundle.getBundle("setup/settings");//传入文件名,不需要后缀
+    static ResourceBundle bundle = ResourceBundle.getBundle("setup/settings");
     static String HOST = bundle.getString("HOST");
     static int PORT = Integer.parseInt(bundle.getString("PORT"));
+    static String WORK_DIR = bundle.getString("WORK_DIR");
+    static String DATA_DIR = bundle.getString("DATA_DIR");
     static String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
     static Properties LOGININFO = new Properties();
 
