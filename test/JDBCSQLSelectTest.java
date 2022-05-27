@@ -276,20 +276,6 @@ public class JDBCSQLSelectTest {
 
 	}
 
-	public static void main(String[] args){
-		System.out.println("JDBCSQLTest");
-		//SelectTest();
-//		testSelectGroupByHaving();
-//		testSelectGroupBy();
-//		loadTop5Datatest()
-//		testSelectWhere();
-//		try {
-//			uploadDatatest();
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-	}
-	
 	public static Connection getConnection(){
 		Properties info = new Properties();
 		info.put("user", "admin");
