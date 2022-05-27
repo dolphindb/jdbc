@@ -441,6 +441,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public int findColumn(String columnLabel) throws SQLException {
+        int x = findColumnHashMap.get(columnLabel);
         return findColumnHashMap.get(columnLabel);
     }
 
@@ -1355,7 +1356,9 @@ public class JDBCResultSet implements ResultSet{
     }
 
     public void isUpdatable() throws SQLException{
-        if (!isUpdatable) throw new SQLException("Unable to update table");
+        if (!isUpdatable) {
+            throw new SQLException("Updating the table of ResultSet is not currently supported");
+        }
     }
 
     private void createArguments(){
