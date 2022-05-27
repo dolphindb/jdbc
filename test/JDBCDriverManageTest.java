@@ -1,7 +1,4 @@
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 
 import java.sql.*;
@@ -9,22 +6,46 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 import com.xxdb.DBConnection;
+import org.junit.Test;
 
 public class JDBCDriverManageTest {
-    String HOST;
-    int PORT;
-    String DATABASE;
+	static String HOST = JDBCTestUtil.HOST;
+	static int PORT = JDBCTestUtil.PORT;
+	static String DATABASE = JDBCTestUtil.WORK_DIR+"/JDBC_driver_test_db";
     Properties LOGININFO = new Properties();
 
 
+	public static boolean CreateDiskTable(String host, Integer port){
+		boolean success = false;
+		DBConnection db = null;
+		try{
+			String script = "login(`admin, `123456); \n"+
+					"if(existsDatabase('"+DATABASE+"')){ dropDatabase('"+DATABASE+"')} \n"+
+					"t = table(1..10000 as id, take(1, 10000) as val) \n"+
+					"db=database('"+DATABASE+"', RANGE, 1 2001 4001 6001 8001 10001) \n"+
+					"db.createPartitionedTable(t, `pt, `id).append!(t) \n";
+			db = new DBConnection();
+			db.connect(host, port);
+			db.run(script);
+			success = true;
+		}catch(Exception e){
+			e.printStackTrace();
+			success = false;
+		}finally{
+			if(db != null){
+				db.close();
+			}
+			return success;
+		}
+	}
     public static boolean CreateDfsTable(String host, Integer port){
     	boolean success = false;
     	DBConnection db = null;
     	try{
     		String script = "login(`admin, `123456); \n"+
-    						"if(existsDatabase('dfs://db_testDriverManagr')){ dropDatabase('dfs://db_testDriverManagr')} \n"+
+    						"if(existsDatabase('dfs://db_testDriverManager')){ dropDatabase('dfs://db_testDriverManager')} \n"+
     						"t = table(1..10000 as id, take(1, 10000) as val) \n"+
-    						"db=database('dfs://db_testDriverManagr', RANGE, 1 2001 4001 6001 8001 10001) \n"+
+    						"db=database('dfs://db_testDriverManager', RANGE, 1 2001 4001 6001 8001 10001) \n"+
     						"db.createPartitionedTable(t, `pt, `id).append!(t) \n";
     		db = new DBConnection();
     		db.connect(host, port);
@@ -43,9 +64,6 @@ public class JDBCDriverManageTest {
     
     @Before
     public void SetUp(){
-        HOST = "localhost" ;
-        PORT = 8848 ;
-        DATABASE="g:/test/jdbc";
         LOGININFO = new Properties();
         LOGININFO.put("user", "admin");
         LOGININFO.put("password", "123456");
@@ -106,6 +124,7 @@ public class JDBCDriverManageTest {
     		Class.forName(JDBC_DRIVER);
     		conn = DriverManager.getConnection(connstr, user, pwd);
     		stmt = conn.createStatement();
+			stmt.execute("t = table(1..10 as id, 11..20 as val)");
     		rs = stmt.executeQuery("select * from t");
     		ResultSetMetaData rsmd = rs.getMetaData();
     		int len = rsmd.getColumnCount();
@@ -149,6 +168,7 @@ public class JDBCDriverManageTest {
     		Class.forName(JDBC_DRIVER);
     		conn = DriverManager.getConnection(connstr, info);
     		stmt = conn.createStatement();
+			stmt.execute("t = table(1..10 as id, 11..20 as val)");
     		rs = stmt.executeQuery("select * from t");
     		ResultSetMetaData rsmd = rs.getMetaData();
     		int len = rsmd.getColumnCount();
@@ -181,8 +201,7 @@ public class JDBCDriverManageTest {
     		return flag;
     	}
     }
-    
-    
+
     @Test
     public void Test_getConnection_with_host_port() throws Exception {
         String url1 = "jdbc:dolphindb://"+HOST+":"+PORT;
@@ -192,24 +211,32 @@ public class JDBCDriverManageTest {
 
     @Test
     public void Test_getConnection_with_dfsdatabasePath() throws Exception {
-        String url1 = "jdbc:dolphindb://"+HOST+":"+PORT+"?databasePath=dfs://db_testDriverManager";
+		CreateDfsTable(HOST,PORT);
+        String url1 = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456&databasePath=dfs://db_testDriverManager";
         boolean connected = CreateConnection1(url1);
         org.junit.Assert.assertTrue(connected);
     }
     
     @Test
     public void Test_getConnection_with_diskdatabasePath() throws Exception {
-        String url1 = "jdbc:dolphindb://databasePath="+DATABASE;
+		CreateDiskTable(HOST,PORT);
+        String url1 = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456&databasePath="+DATABASE;
         boolean connected = CreateConnection1(url1);
         org.junit.Assert.assertTrue(connected);
     }
     
     @Test
     public void Test_getConnection_with_nothing() throws Exception {
-        String url1 = "jdbc:dolphindb://";
-        boolean connected = CreateConnection1(url1);
-        org.junit.Assert.assertTrue(connected);
-    }
+		if(PORT == 8848 && (HOST == "localhost" ||HOST ==  "127.0.0.1" )) {
+			String url1 = "jdbc:dolphindb://";//default:localhost:8848
+			boolean connected = CreateConnection1(url1);
+			org.junit.Assert.assertTrue(connected);
+		}else{
+				String url1 = "jdbc:dolphindb://"+HOST+":"+PORT;
+				boolean connected = CreateConnection1(url1);
+				org.junit.Assert.assertTrue(connected);
+		}
+	}
     
     @Test
     public void Test_getConnection_with_user_password() throws Exception {
