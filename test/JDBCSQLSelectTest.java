@@ -29,7 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class JDBCSQLSelectTest {
-
 	static String HOST = JDBCTestUtil.HOST;
 	static int PORT = JDBCTestUtil.PORT ;
 	static String tableName = "trade";
@@ -240,7 +239,7 @@ public class JDBCSQLSelectTest {
 		try {
 			Statement s = conn.createStatement();
 			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
-			ResultSet rs =s.executeQuery("exec PRC from trade");
+			ResultSet rs =s.executeQuery("exec prc from trade");
 			Assert.assertTrue(rs.next());
 
 		} catch (SQLException e) {
