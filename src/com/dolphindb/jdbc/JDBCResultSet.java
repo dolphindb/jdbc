@@ -510,11 +510,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public boolean absolute(int columnIndex) throws SQLException {
-        if(row>=0) {
-            row = columnIndex - 1;
-        }else{
-            row = rows  - columnIndex;
-        }
+        row = columnIndex - 1;
         return row < rows;
     }
 
