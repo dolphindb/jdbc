@@ -553,6 +553,36 @@ public class JDBCAppendNewTest {
         org.junit.Assert.assertTrue(rs.wasNull());
     }
 
+    @Test
+    public void testAppendMul() throws SQLException {
+        createPartitionTable("INT");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        for(int i =1;i<=10;i++) {
+            ps.setInt(1, i);
+            ps.setInt(2, i*100);
+            ps.executeUpdate();
+        }
+        ResultSet rs = ps.executeQuery("select count(*) from pt");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("count"), 10);
+    }
+
+    @Test
+    public void testAppendAddBatch() throws SQLException {
+        createPartitionTable("INT");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        for(int i =1;i<=10;i++) {
+            ps.setInt(1, i);
+            ps.setInt(2, i*100);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select count(*) from pt");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("count"), 10);
+    }
 
     @After
     public void Destroy(){
