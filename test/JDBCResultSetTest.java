@@ -1,5 +1,3 @@
-
-import com.sun.corba.se.impl.resolver.SplitLocalResolverImpl;
 import com.xxdb.data.BasicBoolean;
 import com.xxdb.data.BasicBooleanVector;
 import junit.framework.TestCase;

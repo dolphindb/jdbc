@@ -1,4 +1,3 @@
-import com.sun.xml.internal.bind.v2.model.core.ID;
 import com.xxdb.DBConnection;
 import com.xxdb.data.BasicDate;
 import org.junit.After;
