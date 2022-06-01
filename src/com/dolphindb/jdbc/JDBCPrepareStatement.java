@@ -133,15 +133,15 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		case Utils.DML_DELETE:
 			if (tableName != null) {
 				getTableType();
-				if (tableType.equals(IN_MEMORY_TABLE)) {
-					try {
-						return super.executeUpdate((String) arguments);
-					} catch (SQLException e) {
-						throw new SQLException(e);
-					}
-				} else {
-					throw new SQLException("only local in-memory table can update");
+//				if (tableType.equals(IN_MEMORY_TABLE)) {
+				try {
+					return super.executeUpdate((String) arguments);
+				} catch (SQLException e) {
+					throw new SQLException(e);
 				}
+//				} else {
+//					throw new SQLException("only local in-memory table can update");
+//				}
 			} else {
 				throw new SQLException("check the SQL " + preSql);
 			}
