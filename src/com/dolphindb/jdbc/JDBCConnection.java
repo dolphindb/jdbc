@@ -167,7 +167,6 @@ public class JDBCConnection implements Connection {
 	 * @throws SQLException
 	 */
 	private void connect(String hostname, int port, Properties prop) throws IOException {
-		DBConnection connection = new DBConnection();
 		String userId = prop.getProperty("user");
 		String password = prop.getProperty("password");
 		String initialScript = prop.getProperty("initialScript");
@@ -177,7 +176,7 @@ public class JDBCConnection implements Connection {
 		if (rowHighAvailabilitySites != null) {
 			highAvailabilitySites = rowHighAvailabilitySites.split(" ");
 		}
-		success = connection.connect(hostName, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
+		success = dbConnection.connect(hostName, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
 	}
 
 	private void open(String hostname, int port, Properties prop) throws SQLException, IOException{
