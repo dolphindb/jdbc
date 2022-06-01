@@ -166,13 +166,18 @@ public class JDBCConnection implements Connection {
 	 * @throws IOException
 	 * @throws SQLException
 	 */
-	private void connect(String hostname, int port, Properties prop) throws IOException, SQLException {
-		if (reachable(hostname, port, prop)) {
-				checklogin(hostname, port,prop);
-		} else {
-			// if the input node does not work, then try other node
-			tryOtherNode(hostname, port, prop);
+	private void connect(String hostname, int port, Properties prop) throws IOException {
+		DBConnection connection = new DBConnection();
+		String userId = prop.getProperty("user");
+		String password = prop.getProperty("password");
+		String initialScript = prop.getProperty("initialScript");
+		Boolean highAvailability = Boolean.valueOf(prop.getProperty("highAvailability"));
+		String rowHighAvailabilitySites = prop.getProperty("highAvailabilitySites");
+		String[] highAvailabilitySites = null;
+		if (rowHighAvailabilitySites != null) {
+			highAvailabilitySites = rowHighAvailabilitySites.split(" ");
 		}
+		success = connection.connect(hostName, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
 	}
 
 	private void open(String hostname, int port, Properties prop) throws SQLException, IOException{
