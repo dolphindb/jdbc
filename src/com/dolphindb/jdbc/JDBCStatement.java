@@ -3,6 +3,8 @@ package com.dolphindb.jdbc;
 import com.xxdb.data.BasicInt;
 import com.xxdb.data.BasicTable;
 import com.xxdb.data.Entity;
+import com.xxdb.data.EntityBlockReader;
+import com.xxdb.io.ProgressListener;
 
 import java.io.IOException;
 import java.sql.*;
@@ -21,6 +23,8 @@ public class JDBCStatement implements Statement {
     protected static final String IN_MEMORY_TABLE = "IN-MEMORY TABLE";
     protected boolean isClosed;
     private int timeout = 100;
+
+    private int fetchSize = 0;
 
     public JDBCStatement(JDBCConnection cnn){
         this.connection = cnn;
@@ -104,9 +108,20 @@ public class JDBCStatement implements Statement {
                 throw new SQLException("the given SQL statement produces anything other than a single ResultSet object");
             case Utils.DML_SELECT:
                 try {
-                    entity = connection.run(sql);
+                    if(this.fetchSize != 0) {
+                        if(fetchSize < 8192) {
+                            throw new SQLException("fetchSize must be greater than 8192");
+                        }
+                        entity = connection.run(sql, fetchSize);
+                    }
+                    else {
+                        entity = connection.run(sql);
+                    }
                     if(entity instanceof BasicTable){
                         resultSet = new JDBCResultSet(connection, this, entity, sql);
+                        return resultSet;
+                    }else if(entity instanceof EntityBlockReader) {
+                        resultSet = new JDBCResultSet(connection, this, (EntityBlockReader) entity, sql);
                         return resultSet;
                     }
                     else{
@@ -429,13 +444,12 @@ public class JDBCStatement implements Statement {
 
     @Override
     public void setFetchSize(int fetchSize) throws SQLException {
-        Driver.unused();
+        this.fetchSize = fetchSize;
     }
 
     @Override
     public int getFetchSize() throws SQLException {
-        Driver.unused();
-       return 0;
+       return fetchSize;
     }
 
     @Override

@@ -1,7 +1,16 @@
+import com.dolphindb.jdbc.JDBCConnection;
+import com.dolphindb.jdbc.JDBCResultSet;
+import com.xxdb.DBConnection;
+import com.xxdb.data.BasicTable;
+import com.xxdb.data.Entity;
+import com.xxdb.data.EntityBlockReader;
+import com.xxdb.data.Vector;
+import com.xxdb.io.ProgressListener;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.sql.*;
 import java.util.Properties;
 
@@ -1025,42 +1034,34 @@ public class JDBCBasicInterfaceTest {
     }
 
     @Test
-    public void createHarmonyDataBaseAndTableForTSDB() throws ClassNotFoundException, SQLException {
-        Statement statement = connection.createStatement();
-        String sql_create_databast_table = "login(\"admin\", \"123456\")\n" +
-                "ht = loadTable(\"dfs://hashdb1\", \"tsdb_table1\" )\n" +
-                "n=10000000\n" +
-                "date = 2022.01.01..2022.01.10\n" +
-                "dates = rand(date, n)\n" +
-                "price = rand(1..10, n)\n" +
-                "t = table(dates, price)\n" +
-                "ht.append!(t)";
-        statement.execute(sql_create_databast_table);
-    }
-
-    @Test
-    public void read_harmony_database_tsdb() throws SQLException {
+    public void testFetchSizeJDBC_prestatement_tsdb() throws IOException, SQLException {
         Statement statement = connection.createStatement();
         statement.execute("ht = loadTable(\"dfs://hashdb1\", `tsdb_table1)");
-        statement.execute("select * from ht");
-        ResultSet resultSet = statement.getResultSet();
-        System.out.println("==============查询结果==============");
-        //print_table(resultSet);
+        PreparedStatement preparedStatement = connection.prepareStatement("select * from ht");
+        preparedStatement.setFetchSize(8192);
+        preparedStatement.execute();
+        ResultSet resultSet = preparedStatement.getResultSet();
+        print_table(resultSet);
     }
 
     @Test
-    public void dfs_table_update() throws SQLException, ClassNotFoundException {
-        createDataBaseAndTableForOLAP();
+    public void testFetchSizeJDBC_statemenet_olap() throws IOException, SQLException {
         Statement statement = connection.createStatement();
         statement.execute("ht = loadTable(\"dfs://hashdb1\", `olap_table1)");
+        statement.setFetchSize(10000);
         statement.execute("select * from ht");
         ResultSet resultSet = statement.getResultSet();
         print_table(resultSet);
-        statement.executeUpdate("delete from ht where price = 1");
-        statement.executeUpdate("update ht set dates = 1000.10.10 where price = 0");
-        statement.execute("select * from ht");
-        resultSet = statement.getResultSet();
-        print_table(resultSet);
+    }
 
+    @Test
+    public void testFetchSizeJDBC_prestatement_olap() throws IOException, SQLException {
+        Statement statement = connection.createStatement();
+        statement.execute("ht = loadTable(\"dfs://hashdb1\", `olap_table1)");
+        PreparedStatement preparedStatement = connection.prepareStatement("select * from ht");
+        preparedStatement.setFetchSize(8192);
+        preparedStatement.execute();
+        ResultSet resultSet = preparedStatement.getResultSet();
+        print_table(resultSet);
     }
 }
