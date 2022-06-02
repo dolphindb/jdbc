@@ -5,6 +5,7 @@ package com.dolphindb.jdbc;
 
 import com.xxdb.DBConnection;
 import com.xxdb.data.*;
+import com.xxdb.io.ProgressListener;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -646,6 +647,49 @@ public class JDBCConnection implements Connection {
 					return entity;
 				}
 			}		
+			throw new IOException("All dataNodes were dead");
+		}
+	}
+
+	public Entity run(String script, int fetchSize) throws IOException {
+		if (!isDFS) {
+			return this.dbConnection.run(script, (ProgressListener) null, 4, 2, fetchSize);
+		}
+		script = script.trim();
+		Matcher matcher = Utils.ASSIGN_PATTERN.matcher(script);
+		if (matcher.find()) {
+			sqlSb.append(script).append(";\n");
+		}
+
+		int size = hostName_ports.size();
+		Entity entity = null;
+		try {
+			entity = this.dbConnection.run(script);
+			return entity;
+		} catch (IOException e) {
+			for (int index = 0; index < size; ++index) {
+				String[] hostName_port = hostName_ports.get(index).split(":");
+				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
+					continue;
+				}
+				this.dbConnection = new DBConnection();
+				try {
+					boolean succeeded;
+					if(getUser()!=null && getPassword()!=null){
+						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]), getUser(), getPassword());
+					}
+					else{
+						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]));
+					}
+					if (succeeded) {
+						this.dbConnection.run(sqlSb.toString());
+						entity = this.dbConnection.run(script, (ProgressListener) null, 4, 2, fetchSize);
+						return entity;
+					}
+				} catch (IOException e1) {
+					return entity;
+				}
+			}
 			throw new IOException("All dataNodes were dead");
 		}
 	}
