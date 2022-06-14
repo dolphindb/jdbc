@@ -171,6 +171,9 @@ public class JDBCConnection implements Connection {
 		String userId = prop.getProperty("user");
 		String password = prop.getProperty("password");
 		String initialScript = prop.getProperty("initialScript");
+		initialScript = Utils.changeCase(initialScript);
+		if (initialScript!=null&&initialScript.equals("select 1"))
+			initialScript = "select 1 as val";
 		Boolean highAvailability = Boolean.valueOf(prop.getProperty("highAvailability"));
 		String rowHighAvailabilitySites = prop.getProperty("highAvailabilitySites");
 		String[] highAvailabilitySites = null;

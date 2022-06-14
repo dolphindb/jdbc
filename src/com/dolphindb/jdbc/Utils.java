@@ -235,6 +235,8 @@ public class Utils {
     }
 
     public static String changeCase(String sql){
+        if (sql==null)
+            return sql;
         createHashSet();
         StringBuilder sbSql=new StringBuilder();
         StringBuilder sbKey1=new StringBuilder();

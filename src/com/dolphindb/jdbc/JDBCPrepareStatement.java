@@ -39,7 +39,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public JDBCPrepareStatement(JDBCConnection connection, String sql) throws SQLException {
 		super(connection);
 		sql = Utils.changeCase(sql);
-		if (sql.equals("select 1"))
+		if (sql!=null&&sql.equals("select 1"))
             sql = "select 1 as val";
 		this.connection = connection;
 		this.preSql = sql.trim();
