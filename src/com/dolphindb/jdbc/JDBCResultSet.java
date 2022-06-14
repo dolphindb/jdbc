@@ -31,6 +31,7 @@ public class JDBCResultSet implements ResultSet{
     private boolean isClosed = false;
     private boolean isUpdatable = false;
     private Object o;
+    private Entity entity;
 
     private EntityBlockReader reader;
 
@@ -39,19 +40,18 @@ public class JDBCResultSet implements ResultSet{
         this.statement = statement;
         if(entity.isTable()){
             this.table = (BasicTable) entity;
+            rows = this.table.rows();
+            findColumnHashMap = new HashMap<>(this.table.columns());
+            for(int i=0; i<this.table.columns(); ++i){
+                findColumnHashMap.put(this.table.getColumnName(i),i+1);
+            }
+            this.isUpdatable = false;
+            if (this.isUpdatable){
+                insertRowMap = new HashMap<>(this.table.columns()+1);
+            }
         }else{
-            throw new SQLException("ResultSet data is null");
+            this.entity = entity;
         }
-        rows = this.table.rows();
-        findColumnHashMap = new HashMap<>(this.table.columns());
-        for(int i=0; i<this.table.columns(); ++i){
-            findColumnHashMap.put(this.table.getColumnName(i),i+1);
-        }
-        this.isUpdatable = false;
-        if (this.isUpdatable){
-            insertRowMap = new HashMap<>(this.table.columns()+1);
-        }
-
 //        if(sql == null || sql.length() == 0){
 //            this.isUpdatable = false;
 //        }else{
@@ -1270,6 +1270,13 @@ public class JDBCResultSet implements ResultSet{
     @Override
     public boolean isWrapperFor(Class<?> aClass) throws SQLException {
         return aClass.isInstance(this);
+    }
+
+    public Entity getResult() throws SQLException{
+        if (table == null)
+            return entity;
+        else
+            return table;
     }
 
     public BasicDate getBasicDate(String columnLabel) throws SQLException{

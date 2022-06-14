@@ -125,6 +125,9 @@ public class JDBCStatement implements Statement {
                     }else if(entity instanceof EntityBlockReader) {
                         resultSet = new JDBCResultSet(connection, this, (EntityBlockReader) entity, sql);
                         return resultSet;
+                    }else if (entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR){
+                        resultSet = new JDBCResultSet(connection, this, entity, sql);
+                        return resultSet;
                     }
                     else{
                         throw new SQLException("the given SQL statement produces anything other than a single ResultSet object");
