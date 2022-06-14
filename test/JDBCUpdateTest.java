@@ -60,7 +60,8 @@ public class JDBCUpdateTest {
             sb.append("int128 =  rand(int128(),2);\n");
             sb.append("blob= [`Hello, `world];\n");
             sb.append("complex= [complex(1,2),complex(2,3)];\n");
-            sb.append("t1= table(bool,char,short,int,long,float,double,string,symbol,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp,datehour,uuid,ipaddr,int128,blob,complex);\n");
+            sb.append("point= [point(1,2),point(2,3)];\n");
+            sb.append("t1= table(bool,char,short,int,long,float,double,string,symbol,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp,datehour,uuid,ipaddr,int128,blob,complex,point);\n");
             sb.append("share t1 as trade;");
             db = new DBConnection();
             db.connect(HOST,PORT);
@@ -456,5 +457,22 @@ public class JDBCUpdateTest {
         rs.next();
         org.junit.Assert.assertEquals(100,rs.getInt(4));
     }
+
+    @Test
+    public void testUpdatePoint() throws SQLException {
+        createTable();
+        PreparedStatement s = conn.prepareStatement("update trade set point = ?");
+        BasicPoint point = new BasicPoint(0,0);
+        s.setObject(1,point);
+        s.execute();
+        ResultSet rs = s.executeQuery("select * from trade");
+        rs.next();
+        org.junit.Assert.assertEquals(point,rs.getObject(25));
+        rs.next();
+        org.junit.Assert.assertEquals(point,rs.getObject(25));
+    }
+
+
+
 
 }

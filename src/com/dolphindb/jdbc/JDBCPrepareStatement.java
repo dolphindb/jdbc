@@ -29,8 +29,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private List<Entity.DATA_TYPE> colTypes_;
 	@SuppressWarnings("rawtypes")
 	private HashMap<String, ArrayList> unNameTable;
-	private int tableRows = 0;
-	
+
 	public String getTableName() {
 		return tableName;
 	}
@@ -135,15 +134,15 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		case Utils.DML_DELETE:
 			if (tableName != null) {
 				getTableType();
-				if (tableType.equals(IN_MEMORY_TABLE)) {
-					try {
-						return super.executeUpdate((String) arguments);
-					} catch (SQLException e) {
-						throw new SQLException(e);
-					}
-				} else {
-					throw new SQLException("only local in-memory table can update");
+//				if (tableType.equals(IN_MEMORY_TABLE)) {
+				try {
+					return super.executeUpdate((String) arguments);
+				} catch (SQLException e) {
+					throw new SQLException(e);
 				}
+//				} else {
+//					throw new SQLException("only local in-memory table can update");
+//				}
 			} else {
 				throw new SQLException("check the SQL " + preSql);
 			}

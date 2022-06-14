@@ -554,6 +554,25 @@ public class JDBCAppendNewTest {
     }
 
     @Test
+    public void testAppendTypePoint() throws SQLException {
+        createPartitionTable("POINT");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1);
+        BasicPoint points = new BasicPoint(0,0);
+        ps.setObject(2, points);
+        ps.executeUpdate();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals(points,rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+    @Test
     public void testAppendMul() throws SQLException {
         createPartitionTable("INT");
         stm.execute("pt=loadTable('dfs://test_append_type','pt')");
