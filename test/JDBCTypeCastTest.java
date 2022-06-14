@@ -52,7 +52,8 @@ public class JDBCTypeCastTest {
                     "col_int128 =  rand(int128(),4)\n" +
                     "col_blob = blob(`A`D`C`H)\n" +
                     "col_complex = [complex(1,2),complex(2,3),complex(3,4),complex(4,5)]\n" +
-                    "tb = table(col_sym,col_date,col_time,col_month,col_dt,col_str,col_char,col_float,col_doub,col_int,col_nanotime,col_nanotimestamp,col_bool,col_short,col_long,col_minute,col_second,col_datetime,col_timestamp,col_uuid,col_ipaddr,col_int128,col_blob,col_complex)";
+                    "col_point = [point(1,2),point(3,4),point(5,6),point(7,8)]\n"+
+                    "tb = table(col_sym,col_date,col_time,col_month,col_dt,col_str,col_char,col_float,col_doub,col_int,col_nanotime,col_nanotimestamp,col_bool,col_short,col_long,col_minute,col_second,col_datetime,col_timestamp,col_uuid,col_ipaddr,col_int128,col_blob,col_complex,col_point)";
             System.out.println(sqlDDL);
             stm.executeUpdate(sqlDDL);
             //读取内存表到RecordSet
@@ -84,6 +85,7 @@ public class JDBCTypeCastTest {
                     BasicInt128 int128 = (BasicInt128)rs.getObject(22);
                     BasicString blobs = (BasicString)rs.getObject(23);
                     BasicComplex complexs = (BasicComplex)rs.getObject(24);
+                    BasicPoint points = (BasicPoint) rs.getObject(25);
                 }catch(Exception ex){
                     Assert.fail(ex.getMessage());
                 }
