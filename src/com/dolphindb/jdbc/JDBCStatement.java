@@ -90,6 +90,8 @@ public class JDBCStatement implements Statement {
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
         sql = Utils.changeCase(sql);
+        if (sql.equals("select 1"))
+            sql = "select 1 as val";
         sql = sql.trim();
         while (sql.endsWith(";"))
         	sql = sql.substring(0, sql.length() - 1);
@@ -293,6 +295,8 @@ public class JDBCStatement implements Statement {
     @Override
     public boolean execute(String sql) throws SQLException {
         sql = Utils.changeCase(sql);
+        if (sql.equals("select 1"))
+            sql = "select 1 as val";
         sql = sql.trim();
         while (sql.endsWith(";"))
         	sql = sql.substring(0, sql.length() - 1);
