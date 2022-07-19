@@ -11,6 +11,7 @@ import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
 import java.text.MessageFormat;
+import java.time.YearMonth;
 import java.util.*;
 
 public class JDBCPrepareStatement extends JDBCStatement implements PreparedStatement {
@@ -675,7 +676,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				for (int i = 1; i < sqlSplit.length; ++i) {
 					dataType = colTypes_.get(j);
 					Entity entity;
-					entity = BasicEntityFactory.createScalar(dataType, values[i]);
+					if(values[i] instanceof YearMonth){
+						entity = new BasicMonth(((YearMonth) values[i]).getYear(), ((YearMonth) values[i]).getMonth());
+					}else {
+						entity = BasicEntityFactory.createScalar(dataType, values[i]);
+					}
 					if (!tableType.equals(IN_MEMORY_TABLE)) {
 						if (unNameTable.size() == colTypes_.size()){
 							ArrayList<Entity> colValues = unNameTable.get(colNames.get(j));
