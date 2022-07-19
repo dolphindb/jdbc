@@ -677,10 +677,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					dataType = colTypes_.get(j);
 					Entity entity;
 					if(values[i] instanceof YearMonth){
-						entity = new BasicMonth(((YearMonth) values[i]).getYear(), ((YearMonth) values[i]).getMonth());
-					}else {
-						entity = BasicEntityFactory.createScalar(dataType, values[i]);
+						values[i] = new BasicMonth(((YearMonth) values[i]).getYear(), ((YearMonth) values[i]).getMonth());
 					}
+					entity = BasicEntityFactory.createScalar(dataType, values[i]);
 					if (!tableType.equals(IN_MEMORY_TABLE)) {
 						if (unNameTable.size() == colTypes_.size()){
 							ArrayList<Entity> colValues = unNameTable.get(colNames.get(j));
