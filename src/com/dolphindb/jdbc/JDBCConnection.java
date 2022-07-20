@@ -180,7 +180,17 @@ public class JDBCConnection implements Connection {
 		if (rowHighAvailabilitySites != null) {
 			highAvailabilitySites = rowHighAvailabilitySites.split(" ");
 		}
-		success = dbConnection.connect(hostName, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
+		if(userId != null && password != null){
+			if (initialScript != null && highAvailability && highAvailabilitySites != null){
+				success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
+			}else {
+				success = dbConnection.connect(hostname, port, userId, password);
+			}
+		}else if(initialScript != null && highAvailabilitySites != null){
+			success = dbConnection.connect(hostname, port, initialScript, highAvailabilitySites);
+		}else {
+			success = dbConnection.connect(hostName, port);
+		}
 	}
 
 	private void open(String hostname, int port, Properties prop) throws SQLException, IOException{
