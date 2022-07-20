@@ -134,7 +134,7 @@ public class doctest
     {
         try {
             Class.forName(JDBC_DRIVER);
-            conn = DriverManager.getConnection(url1,info);
+            conn = DriverManager.getConnection(url1);
             JDBCStatement stm = (JDBCStatement)conn.createStatement();
             stm.execute("memTable = loadTable('" + database + "','" + tableName + "')");
             //SQL delete语句
@@ -169,7 +169,7 @@ public class doctest
     {
         try {
             Class.forName(JDBC_DRIVER);
-            conn = DriverManager.getConnection(url1,info);
+            conn = DriverManager.getConnection(url1);
             JDBCStatement stm = (JDBCStatement)conn.createStatement();
             stm.execute("memTable = loadTable('" + database + "','" + tableName + "')");
             //SQL update statement
