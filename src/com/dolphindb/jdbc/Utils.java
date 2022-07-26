@@ -112,18 +112,36 @@ public class Utils {
 
     public static void parseProperties(String s, Properties prop, String split1, String split2) throws SQLException {
         String[] strings1 = s.split(split1);
-        String[] strings2;
-        for (String item : strings1){
-            if(item.length()>0) {
-                strings2 = item.split(split2);
-                if(strings2.length == 2) {
-                    if(strings2[0].length()==0) throw new SQLException(item + "     is error");
-                    prop.setProperty(strings2[0], strings2[1]);
-                }else {
+        int index = 0;
+        String[] var7 = strings1;
+        int var8 = strings1.length;
+
+        for(int var9 = 0; var9 < var8; ++var9) {
+            String item = var7[var9];
+            if (item.contains("tb_")) {
+                int index1 = item.indexOf("_");
+                int index2 = item.indexOf("=");
+                int index3 = item.indexOf("+");
+                String subString1 = item.substring(index1 + 1, index2);
+                String subString2 = item.substring(index2 + 1, index3);
+                String subString3 = item.substring(index3 + 1);
+                prop.setProperty("script" + index, subString1 + "=loadTable(\"" + subString2 + "\",`" + subString3 + ")");
+                ++index;
+            } else if (item.length() > 0) {
+                String[] strings2 = item.split(split2);
+                if (strings2.length != 2) {
                     throw new SQLException(item + "     is error");
                 }
+
+                if (strings2[0].length() == 0) {
+                    throw new SQLException(item + "     is error");
+                }
+
+                prop.setProperty(strings2[0], strings2[1]);
             }
         }
+
+        prop.setProperty("length", String.valueOf(index));
     }
 
     public static String[] getProperties(Properties prop,String[] keys){
