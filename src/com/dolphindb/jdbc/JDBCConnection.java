@@ -47,6 +47,7 @@ public class JDBCConnection implements Connection {
 		controlPort = -1;
 		setUser(null);
 		setPassword(null);
+        clientInfo = prop;
 		try {
 			open(hostName, port, prop);
 		} catch (IOException e) {
@@ -255,8 +256,7 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public CallableStatement prepareCall(String sql) throws SQLException {
-		Driver.unused("prepareCall not implemented");
-		return null;
+		return new JDBCCallableStatement(this,sql);
 	}
 
 	@Override
@@ -378,8 +378,7 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-		Driver.unused("prepareCall not implemented");
-		return null;
+		return prepareCall(sql);
 	}
 
 	@Override
@@ -441,8 +440,8 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-		Driver.unused("prepareCall not implemented");
-		return null;
+		checkIsClosed();
+		return prepareCall(sql);
 	}
 
 	@Override
