@@ -4,43 +4,52 @@ DolphinDB's JDBC interface is based on the implementation of DolphinDB Java API,
 
 The JDBC interface mainly provides the two interfaces of direct execution and pre-compilation through the two objects `JDBCStatement` and `JDBCPrepareStatement`, respectively.
 
+To use the JDBC, you can use the following maven dependency:
+
+```xml
+<dependency>
+    <groupId>com.dolphindb</groupId>
+    <artifactId>jdbc</artifactId>
+    <version>1.30.17.1</version>
+</dependency>
+```
+
 ## 1. Operations on in-memory tables
 
 First of all, we create a template table and save it to disk through DolphinDB Java API.
 
 ```java
-public static boolean CreateTable(String database,String tableName,String host, String port)
-{
-    boolean success=false;
+public static boolean CreateTable(String database, String tableName, String host, int port) {
+    boolean success = false;
     DBConnection db = null;
     try {
-         String sb="bool = [1b, 0b];\n" +
-                "char = [97c, 'A'];\n" +
-                "short = [122h, 123h];\n" +
-                "int = [21, 22];\n" +
-                "long = [22l, 23l];\n" +
-                "float  = [2.1f, 2.2f];\n" +
-                "double = [2.1, 2.2];\n" +
-                "string= [`Hello, `world];\n" +
-                "date = [2013.06.13, 2013.06.14];\n" +
-                "month = [2016.06M, 2016.07M];\n" +
-                "time = [13:30:10.008, 13:30:10.009];\n" +
-                "minute = [13:30m, 13:31m];\n" +
-                "second = [13:30:10, 13:30:11];\n" +
-                "datetime = [2012.06.13 13:30:10, 2012.06.13 13:30:10];\n" +
-                "timestamp = [2012.06.13 13:30:10.008, 2012.06.13 13:30:10.009];\n" +
-                "nanotime = [13:30:10.008007006, 13:30:10.008007007];\n" +
-                "nanotimestamp = [2012.06.13 13:30:10.008007006, 2012.06.13 13:30:10.008007007];\n" +
-                "tb1= table(bool,char,short,int,long,float,double,string,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp);\n" +
-                "db=database(\""+database+"\")\n" +
-                "saveTable(db, tb1, "+tableName+");\n";
+        String sb = "bool = [1b, 0b];\n" +
+            "char = [97c, 'A'];\n" +
+            "short = [122h, 123h];\n" +
+            "int = [21, 22];\n" +
+            "long = [22l, 23l];\n" +
+            "float  = [2.1f, 2.2f];\n" +
+            "double = [2.1, 2.2];\n" +
+            "string= [`Hello, `world];\n" +
+            "date = [2013.06.13, 2013.06.14];\n" +
+            "month = [2016.06M, 2016.07M];\n" +
+            "time = [13:30:10.008, 13:30:10.009];\n" +
+            "minute = [13:30m, 13:31m];\n" +
+            "second = [13:30:10, 13:30:11];\n" +
+            "datetime = [2012.06.13 13:30:10, 2012.06.13 13:30:10];\n" +
+            "timestamp = [2012.06.13 13:30:10.008, 2012.06.13 13:30:10.009];\n" +
+            "nanotime = [13:30:10.008007006, 13:30:10.008007007];\n" +
+            "nanotimestamp = [2012.06.13 13:30:10.008007006, 2012.06.13 13:30:10.008007007];\n" +
+            "tb1= table(bool,char,short,int,long,float,double,string,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp);\n" +
+            "db=database(\"" + database + "\");\n" +
+            "saveTable(db, tb1, `" + tableName + ");\n";
         db = new DBConnection();
-        db.connect(host, Integer.parseInt(port));
+        db.connect(host, port);
         db.run(sb);
-        success=true;
+        success = true;
     } catch (Exception e) {
         e.printStackTrace();
-        success=false;
+        success = false;
     } finally {
         if (db != null)
             db.close();
@@ -54,33 +63,32 @@ The operation of in-memory table through the JDBC interface is to first preset t
 then write the parameters through the `set` method, and finally specify the parameters and execute the statement through the `executeUpdate` function.
 
 ```java
-public static void InMemmoryAddTest(Properties info, String database, String tableName)
-{
+public static void InMemmoryAddTest(String database, String tableName) {
     try {
         Class.forName(JDBC_DRIVER);
-        conn = DriverManager.getConnection(url1,info);
+        conn = DriverManager.getConnection(DB_URL_WITHLOGIN);
 
-        JDBCStatement stm = (JDBCStatement)conn.createStatement();
+        JDBCStatement stm = (JDBCStatement) conn.createStatement();
         stm.execute("memTable = loadTable('" + database + "',\"" + tableName + "\")");
         //SQL insert statement
         stmt = conn.prepareStatement("insert into memTable values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-        stmt.setBoolean(1,true);
-        stmt.setByte(2,(byte)98);
-        stmt.setShort(3,(short)112);
-        stmt.setInt(4,21);
-        stmt.setLong(5,22l);
-        stmt.setFloat(6,2.1f);
-        stmt.setDouble(7,2.1);
-        stmt.setString(8,"hello");
-        stmt.setDate(9, Date.valueOf(LocalDate.of(2013,06,13)));
-        stmt.setObject(10,  YearMonth.of(2016,06));
+        stmt.setBoolean(1, true);
+        stmt.setByte(2, (byte) 98);
+        stmt.setShort(3, (short) 112);
+        stmt.setInt(4, 21);
+        stmt.setLong(5, 22l);
+        stmt.setFloat(6, 2.1f);
+        stmt.setDouble(7, 2.1);
+        stmt.setString(8, "hello");
+        stmt.setDate(9, Date.valueOf(LocalDate.of(2013, 06, 13)));
+        stmt.setObject(10, new BasicMonth(YearMonth.of(2016, 06)));
         stmt.setObject(11, Time.valueOf("13:30:10"));
-        stmt.setObject(12, LocalTime.of(13,30));
-        stmt.setObject(13,LocalTime.of(13,30,10));
-        stmt.setObject(14,LocalDateTime.of(2012,06,13,13,30,10));
-        stmt.setObject(15,LocalDateTime.of(2012,06,13,13,30,10,8000000));
-        stmt.setObject(16,LocalTime.of(13,30,10,8007006));
-        stmt.setObject(17,LocalDateTime.of(2012,06,13,13,30,10,8007006));
+        stmt.setObject(12, LocalTime.of(13, 30));
+        stmt.setObject(13, LocalTime.of(13, 30, 10));
+        stmt.setObject(14, LocalDateTime.of(2012, 06, 13, 13, 30, 10));
+        stmt.setObject(15, LocalDateTime.of(2012, 06, 13, 13, 30, 10, 8000000));
+        stmt.setObject(16, LocalTime.of(13, 30, 10, 8007006));
+        stmt.setObject(17, LocalDateTime.of(2012, 06, 13, 13, 30, 10, 8007006));
         stmt.executeUpdate();
 
         //load table
@@ -88,13 +96,12 @@ public static void InMemmoryAddTest(Properties info, String database, String tab
         printData(rs);
     } catch (Exception e) {
         e.printStackTrace();
-    }
-    finally {
+    } finally {
         try {
             if (stmt != null)
                 stmt.close();
-            } catch (SQLException se2) {
-            }
+        } catch (SQLException se2) {
+        }
         try {
             if (conn != null)
                 conn.close();
@@ -110,14 +117,13 @@ public static void InMemmoryAddTest(Properties info, String database, String tab
 To delete records from a table, fill in the corresponding deletion conditions at "?". 
 
 ```java
-public static void InMemoryDeleteTest(Properties info, String database, String tableName)
-{        
+public static void InMemoryDeleteTest(String database, String tableName){
     try {
-        Class.forName(JDBC_DRIVER);            
-        conn = DriverManager.getConnection(url1);
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(DB_URL_WITHLOGIN);
         JDBCStatement stm = (JDBCStatement)conn.createStatement();
         stm.execute("memTable = loadTable('" + database + "',\"" + tableName + "\")");
-        // SQL delete statement
+        //SQL delete statement
         stmt = conn.prepareStatement("delete from memTable where char = ?");
         stmt.setByte(1, (byte)'A');
         stmt.executeUpdate();
@@ -139,44 +145,44 @@ public static void InMemoryDeleteTest(Properties info, String database, String t
         } catch (SQLException se) {
             se.printStackTrace();
         }
-    }
+    }    
 }
 ```
 
 ### 1.3. Update in memory tables
 
 ```java
-public static void InMemoryUpdateTest(Properties info, String database, String tableName)
-{
+public static void InMemoryUpdateTest(String database, String tableName){
     try {
         Class.forName(JDBC_DRIVER);
-        conn = DriverManager.getConnection(url1);
+        conn = DriverManager.getConnection(DB_URL_WITHLOGIN);
         JDBCStatement stm = (JDBCStatement)conn.createStatement();
         stm.execute("memTable = loadTable('" + database + "',\"" + tableName + "\")");
-        //SQL update语句
-                stmt = conn.prepareStatement("update memTable set bool = 0b where char = 97c");
+        // SQL update statement
+        stmt = conn.prepareStatement("update memTable set bool = 0b where char = 97c");
         stmt.executeUpdate();
-        // check if records have been deleted
+        // check if records have been updated
         ResultSet rs = stmt.executeQuery("select * from memTable where char=97c");
         printData(rs);
     } catch (Exception e) {
         e.printStackTrace();
-    } finally {
+    } finally
+    {
         try {
             if (stmt != null)
                 stmt.close();
-        } catch (SQLException se2) {        
+        } catch (SQLException se2) {
         }
         try {
             if (conn != null)
-               conn.close();
+                conn.close();
         } catch (SQLException se) {
             se.printStackTrace();
         }
     }
 }
 ```
- 
+
 ## 2. Query or appending to a partitioned table
 
 The example below demonstrates querying of and appending to a partitioned table through JDBC. In order to connect to a partitioned table, 
@@ -231,11 +237,11 @@ public static void DFSAddTest(Properties info, String database, String tableName
     try {
         Class.forName(JDBC_DRIVER);
         
-        //load the partitioned table
+        // load the partitioned table
         conn = DriverManager.getConnection(url2,info);
         JDBCStatement stm = (JDBCStatement)conn.createStatement();
         stm.execute("dfsTable = loadTable('" + database + "',\"" + tableName + "\")");
-        //SQL insert statement
+        // SQL insert statement
         stmt = conn.prepareStatement("insert into dfsTable values(?,?)");
         stmt.setObject(1, new BasicMonth(YearMonth.of(2016,06)));
         stmt.setInt(2,3);
@@ -262,7 +268,7 @@ public static void DFSAddTest(Properties info, String database, String tableName
 ```
 
 ## 3 References
- 
+
  * In the JDBC interface, you can use the `execute` method to execute all DolphinDB SQL statements. For details, see [DolphinDB SQL](http://www.dolphindb.com/help/Chapter8SQLStatements.html) 
 
  * [Download](sample.txt) sample code
