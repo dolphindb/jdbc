@@ -267,7 +267,7 @@ public static void DFSAddTest(String database, String tableName) {
 
 ## 3 参考及附录
 
- * 在 JDBC 接口中，可以使用 `execute` 方法执行所有的 DolphinDB SQL 语句，具体语法参考 [DolphinDB SQL 语法](http://www.dolphindb.com/help/Chapter8SQLStatements.html)。
+ * 在 JDBC 接口中，可以使用 `execute` 方法执行所有的 DolphinDB SQL 语句，具体语法参考 [DolphinDB SQL 语法](https://www.dolphindb.cn/cn/help/SQLStatements/index.html)。
  * JDBC 中 executeUpdate(sql) 返回 SQL 语句更新的记录数，而在 DolphinDB JDBC API 中 executeUpdate(sql) 不支持返回 delete, update 和调用 append 的语句所影响的记录数。
  * 由于 DolphinDB 不支持更高精度的 BigDecimal 类型，故 DolphinDB JDBC API 将 BigDecimal 类型转换为 DOUBLE 类型。
  * [下载](sample.txt) 示例所有代码。
