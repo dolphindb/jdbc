@@ -1,10 +1,22 @@
 #  DolphinDB JDBC API
 
+- [DolphinDB JDBC API](#dolphindb-jdbc-api)
+  - [1. Operations on In-Memory Tables](#1-operations-on-in-memory-tables)
+    - [1.1. Append Records](#11-append-records)
+    - [1.2. Delete Records](#12-delete-records)
+    - [1.3. Update Records](#13-update-records)
+  - [2. Operations on DFS Tables](#2-operations-on-dfs-tables)
+    - [2.1. Create a DFS Table](#21-create-a-dfs-table)
+    - [2.2. Query and Insert Records](#22-query-and-insert-records)
+  - [3 References](#3-references)
+
+
+DolphinDB provides an implementation of the JDBC interface, allowing client programs that support the JDBC interface to directly access DolphinDB.
 DolphinDB's JDBC interface is based on the implementation of DolphinDB Java API, so the JDBC package has a built-in DolphinDB Java API package.
 
 The JDBC interface mainly provides the two interfaces of direct execution and pre-compilation through the two objects `JDBCStatement` and `JDBCPrepareStatement`, respectively.
 
-To use the JDBC, you can use the following maven dependency:
+To use the JDBC, you can use the following Maven dependency:
 
 ```xml
 <dependency>
@@ -14,9 +26,9 @@ To use the JDBC, you can use the following maven dependency:
 </dependency>
 ```
 
-## 1. Operations on in-memory tables
+## 1. Operations on In-Memory Tables
 
-First of all, we create a template table and save it to disk through DolphinDB Java API.
+First, use the following code to create a template table and save it to disk through DolphinDB Java API.
 
 ```java
 public static boolean CreateTable(String database, String tableName, String host, int port) {
@@ -57,7 +69,8 @@ public static boolean CreateTable(String database, String tableName, String host
     }
 }
 ```
-### 1.1. Append new records to an in-memory table
+
+### 1.1. Append Records
 
 The operation of in-memory table through the JDBC interface is to first preset the SQL template through the `prepareStatement` method, 
 then write the parameters through the `set` method, and finally specify the parameters and execute the statement through the `executeUpdate` function.
@@ -112,9 +125,9 @@ public static void InMemmoryAddTest(String database, String tableName) {
 }
 ```
 
-### 1.2. Delete records from an in-memory table
+### 1.2. Delete Records
 
-To delete records from a table, fill in the corresponding deletion conditions at "?". 
+To delete records from an in-memory table, fill in the corresponding deletion conditions at "?". 
 
 ```java
 public static void InMemoryDeleteTest(String database, String tableName){
@@ -149,7 +162,7 @@ public static void InMemoryDeleteTest(String database, String tableName){
 }
 ```
 
-### 1.3. Update in memory tables
+### 1.3. Update Records
 
 ```java
 public static void InMemoryUpdateTest(String database, String tableName){
@@ -183,20 +196,20 @@ public static void InMemoryUpdateTest(String database, String tableName){
 }
 ```
 
-## 2. Query or appending to a partitioned table
+## 2. Operations on DFS Tables
 
-The example below demonstrates querying of and appending to a partitioned table through JDBC. In order to connect to a partitioned table, 
-you can add path and corresponding content to the URL when connecting, so that `getConnection()` will preload the metadata of the partition table.
+The example below demonstrates querying of and appending to a DFS table through JDBC. In order to connect to a DFS table, 
+you can add path and corresponding content to the URL when connecting, so that `getConnection()` will preload the metadata of the table.
 
-#### Example
+**Example**
 
 ```URL
 jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=2000.01M..2019.05M
 ```
 
-### 2.1. Create a partitioned table
+### 2.1. Create a DFS Table
 
-Use Java API to create the partitioned table.
+Use Java API to create the DFS table.
 
 ```java
 public static boolean CreateValueTable(String database, String tableName, String host, String port)
@@ -229,7 +242,7 @@ public static boolean CreateValueTable(String database, String tableName, String
     }
 }
 ```
-### 2.2. Query and append to a partitioned table
+### 2.2. Query and Insert Records
 
 ```java
 public static void DFSAddTest(Properties info, String database, String tableName)
@@ -269,7 +282,7 @@ public static void DFSAddTest(Properties info, String database, String tableName
 
 ## 3 References
 
- * In the JDBC interface, you can use the `execute` method to execute all DolphinDB SQL statements. For details, see [DolphinDB SQL](http://www.dolphindb.com/help/Chapter8SQLStatements.html) 
+ * In the JDBC interface, you can use the `execute` method to execute all DolphinDB SQL statements. For details, see [DolphinDB SQL](https://www.dolphindb.com/help/SQLStatements/index.html) 
 
  * [Download](sample.txt) sample code
 
