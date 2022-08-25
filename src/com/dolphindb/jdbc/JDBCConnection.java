@@ -74,7 +74,7 @@ public class JDBCConnection implements Connection {
 	 * Connect to other node
 	 * 
 	 * @param hostname
-	 * @param port
+	 * @param FuncationPort
 	 * @param prop:
 	 *            get controllerNode from prop, if prop does not contain
 	 *            controllerNode key, then the default controllerNode is 8920
@@ -195,52 +195,68 @@ public class JDBCConnection implements Connection {
 	}
 
 	private void open(String hostname, int port, Properties prop) throws SQLException, IOException{
-		connect(hostname, port,prop);
-	    // database(directory, [partitionType], [partitionScheme], [locations])
-	    if(!success) throw new SQLException("Connection is fail");
-	    String[] keys = new String[]{"databasePath","partitionType","partitionScheme","locations"};
-	    String[] values = Utils.getProperties(prop,keys);
-	    if(values[0] != null && values[0].length() > 0){
-	        values[0] = "\""+values[0]+"\"";
-	        StringBuilder sb = new StringBuilder(Driver.DB).append(" = database(");
-	        Utils.joinOrder(sb,values,",");
-	        sb.append(");\n");
-	        sqlSb = new StringBuilder();
-	        sqlSb.append(sb);
-	        dbConnection.run(sb.toString());
-	
-	        if(values[0].trim().startsWith("\"dfs://")) {
-	            isDFS = true;
-				databases = values[0];
-	            tables = (Vector) dbConnection.run("getTables("+Driver.DB+")");
-	            StringBuilder loadTableSb = new StringBuilder();
-	            for (int i = 0, len = tables.rows(); i < len; ++i) {
-	                String name = tables.get(i).getString();
-	                loadTableSb.append(name).append(" = ").append("loadTable(").append(Driver.DB).append(",`").append(name).append(");\n");
-	            }
-	
-	            sqlSb.append(loadTableSb);
-	            String sql = loadTableSb.toString();
-	            dbConnection.run(sql);
-	        }
-	
-	        String controllerAlias = dbConnection.run("getControllerAlias()").getString();
-	        if(controllerAlias != null && controllerAlias.length() > 0){
-	            isDFS = true;
-	            controlHost = dbConnection.run("rpc(\""+controllerAlias+"\", getNodeHost)").getString();
-	            controlPort = ((BasicInt) dbConnection.run("rpc(\""+controllerAlias+"\", getNodePort)")).getInt();
-	            controlConnection = new DBConnection();
-	            controlConnection.connect(controlHost,controlPort);
-	            BasicTable table = (BasicTable) controlConnection.run("getClusterChunkNodesStatus()");
-	            Vector siteVector = table.getColumn("site");
-	            hostName_ports = new LinkedList<>();
-	            for (int i = 0, len = siteVector.rows(); i < len; i++) {
-	                hostName_ports.add(siteVector.get(i).getString());
-	            }
-	        }else{
-	            isDFS = false;
-	        }
-	    }
+		this.connect(hostname, port, prop);
+		if (!this.success) {
+			throw new SQLException("Connection is fail");
+		} else {
+			String[] keys = new String[]{"databasePath", "partitionType", "partitionScheme", "locations"};
+			String[] values = Utils.getProperties(prop, keys);
+			String hasScripts = prop.getProperty("length");
+			if (values[0] != null && values[0].length() > 0) {
+				values[0] = "\"" + values[0] + "\"";
+				StringBuilder sb = (new StringBuilder("system_db")).append(" = database(");
+				Utils.joinOrder(sb, values, ",");
+				sb.append(");\n");
+				this.sqlSb = new StringBuilder();
+				this.sqlSb.append(sb);
+				this.dbConnection.run(sb.toString());
+				if (values[0].trim().startsWith("\"dfs://")) {
+					this.isDFS = true;
+					this.databases = values[0];
+					this.tables = (Vector)this.dbConnection.run("getTables(system_db)");
+					StringBuilder loadTableSb = new StringBuilder();
+					int i = 0;
+
+					for(int len = this.tables.rows(); i < len; ++i) {
+						String name = this.tables.get(i).getString();
+						loadTableSb.append(name).append(" = ").append("loadTable(").append("system_db").append(",`").append(name).append(");\n");
+					}
+
+					this.sqlSb.append(loadTableSb);
+					String sql = loadTableSb.toString();
+					this.dbConnection.run(sql);
+				}
+
+				String controllerAlias = this.dbConnection.run("getControllerAlias()").getString();
+				if (controllerAlias != null && controllerAlias.length() > 0) {
+					this.isDFS = true;
+					this.controlHost = this.dbConnection.run("rpc(\"" + controllerAlias + "\", getNodeHost)").getString();
+					this.controlPort = ((BasicInt)this.dbConnection.run("rpc(\"" + controllerAlias + "\", getNodePort)")).getInt();
+					this.controlConnection = new DBConnection();
+					this.controlConnection.connect(this.controlHost, this.controlPort);
+					BasicTable table = (BasicTable)this.controlConnection.run("getClusterChunkNodesStatus()");
+					Vector siteVector = table.getColumn("site");
+					this.hostName_ports = new LinkedList();
+					int i = 0;
+
+					for(int len = siteVector.rows(); i < len; ++i) {
+						this.hostName_ports.add(siteVector.get(i).getString());
+					}
+				} else {
+					this.isDFS = false;
+				}
+			}
+
+			if (hasScripts != null) {
+				int length = Integer.parseInt(prop.getProperty("length"));
+				if (length > 0) {
+					for(int i = 0; i < length; ++i) {
+						this.dbConnection.run(prop.getProperty("script" + i));
+					}
+				}
+			}
+
+		}
 	}
 
 	@Override
@@ -490,7 +506,7 @@ public class JDBCConnection implements Connection {
 	public boolean isValid(int timeout) throws SQLException {
 		return dbConnection.isConnected();
 	}
-	
+
 	private Properties clientInfo = new Properties();
 
 	@Override
