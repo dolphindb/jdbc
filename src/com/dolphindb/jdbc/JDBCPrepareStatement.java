@@ -40,14 +40,14 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public JDBCPrepareStatement(JDBCConnection connection, String sql) throws SQLException {
 		super(connection);
 		sql = Utils.changeCase(sql);
-		if (sql!=null&&sql.equals("select 1"))
-            sql = "select 1 as val";
 		this.connection = connection;
 		this.preSql = sql.trim();
         while (preSql.endsWith(";"))
         	preSql = preSql.substring(0, preSql.length() - 1);
 //       	preSql = preSql.substring(0, sql.length() - 1);
-
+		sql = sql.trim();
+		if (sql!=null&&sql.equals("select 1"))
+			sql = "select 1 as val";
 		String[] strings = preSql.split(";");
 		String lastStatement = strings[strings.length - 1].trim();
 		this.tableName = Utils.getTableName(lastStatement);

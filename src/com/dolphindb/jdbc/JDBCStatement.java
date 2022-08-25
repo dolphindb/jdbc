@@ -94,11 +94,12 @@ public class JDBCStatement implements Statement {
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
         sql = Utils.changeCase(sql);
-        if (sql!=null&&sql.equals("select 1"))
-            sql = "select 1 as val";
         sql = sql.trim();
         while (sql.endsWith(";"))
         	sql = sql.substring(0, sql.length() - 1);
+        sql = sql.trim();
+        if (sql!=null&&sql.equals("select 1"))
+            sql = "select 1 as val";
         String[] strings = sql.split(";");
         String lastStatement = strings[strings.length - 1].trim();
         int dml = Utils.getDml(lastStatement);
@@ -308,11 +309,12 @@ public class JDBCStatement implements Statement {
     @Override
     public boolean execute(String sql) throws SQLException {
         sql = Utils.changeCase(sql);
-        if (sql!=null&&sql.equals("select 1"))
-            sql = "select 1 as val";
         sql = sql.trim();
         while (sql.endsWith(";"))
         	sql = sql.substring(0, sql.length() - 1);
+        sql = sql.trim();
+        if (sql!=null&&sql.equals("select 1"))
+            sql = "select 1 as val";
         //String[] strings = sql.split(";");
 
         String[] strings = null;

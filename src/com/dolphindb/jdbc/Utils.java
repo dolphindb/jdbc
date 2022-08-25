@@ -288,4 +288,9 @@ public class Utils {
         }
         return sbSql.toString();
     }
+
+    public static String getSelectOneColName(String sql){
+        String colName = sql.substring(sql.indexOf(" as ") + " as ".length());
+        return colName;
+    }
 }
