@@ -125,7 +125,7 @@ public class Utils {
                 String subString1 = item.substring(index1 + 1, index2);
                 String subString2 = item.substring(index2 + 1, index3);
                 String subString3 = item.substring(index3 + 1);
-                prop.setProperty("script" + index, subString1 + "=loadTable(\"" + subString2 + "\",`" + subString3 + ")");
+                prop.setProperty("script" + index, subString1 + "=loadTable(\"" + subString2 + "\",\"" + subString3 + "\")");
                 ++index;
             } else if (item.length() > 0) {
                 String[] strings2 = item.split(split2);
