@@ -1,6 +1,7 @@
 package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
+import com.xxdb.data.Vector;
 
 import javax.sql.rowset.serial.SerialBlob;
 import java.io.*;
@@ -36,7 +37,7 @@ public class JDBCResultSet implements ResultSet{
 
     private EntityBlockReader reader;
 
-    public JDBCResultSet(JDBCConnection conn, JDBCStatement statement, Entity entity, String sql) throws SQLException{
+    public JDBCResultSet(JDBCConnection conn, JDBCStatement statement, Entity entity, String sql) throws SQLException {
         this.conn = conn;
         this.statement = statement;
         if(entity.isTable()){
@@ -52,6 +53,29 @@ public class JDBCResultSet implements ResultSet{
             }
         }else{
             this.entity = entity;
+            if(sql!=null&&sql.contains("select 1 as ")){
+                List<String> colNames = new ArrayList<>(1);
+                colNames.add(Utils.getSelectOneColName(sql));
+                List<Vector> cols = new ArrayList<>(1);
+                Vector vector = new BasicIntVector(1);
+                Scalar scalar = new BasicInt(1);
+                try {
+                    vector.set(0,scalar);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                cols.add(vector);
+                this.table = new BasicTable(colNames,cols);
+                rows = this.table.rows();
+                findColumnHashMap = new HashMap<>(this.table.columns());
+                for(int i=0; i<this.table.columns(); ++i){
+                    findColumnHashMap.put(this.table.getColumnName(i),i+1);
+                }
+                this.isUpdatable = false;
+                if (this.isUpdatable){
+                    insertRowMap = new HashMap<>(this.table.columns()+1);
+                }
+            }
         }
 //        if(sql == null || sql.length() == 0){
 //            this.isUpdatable = false;
