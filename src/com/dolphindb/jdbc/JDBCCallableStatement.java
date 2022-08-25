@@ -303,6 +303,7 @@ public class JDBCCallableStatement extends JDBCPrepareStatement implements Calla
         return super.executeUpdate();
     }
 
+    @Override
     public boolean execute() throws SQLException{
         boolean allowMultiQueries = Boolean.valueOf(connection.getClientInfo("allowMultiQueries"));
         boolean returnResult = false;
@@ -343,6 +344,7 @@ public class JDBCCallableStatement extends JDBCPrepareStatement implements Calla
     }
 
 
+    @Override
     public boolean getMoreResults() throws SQLException{
         if (!resultSets.isEmpty()){
             return true;

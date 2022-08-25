@@ -2,6 +2,7 @@ package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
 
+import javax.sql.rowset.serial.SerialBlob;
 import java.io.*;
 import java.math.BigDecimal;
 import java.net.URL;
@@ -909,7 +910,8 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Blob getBlob(int columnIndex) throws SQLException {
-        return null;
+        Blob blob = new SerialBlob(getObject(columnIndex).toString().getBytes());
+        return blob;
     }
 
     @Override
@@ -929,7 +931,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Blob getBlob(String columnLabel) throws SQLException {
-        return null;
+        return getBlob(findColumn(columnLabel));
     }
 
     @Override
@@ -994,12 +996,12 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void updateBlob(int columnIndex, Blob blob) throws SQLException {
-    	return;
+    	update(columnIndex,blob);
     }
 
     @Override
     public void updateBlob(String columnLabel, Blob blob) throws SQLException {
-    	return;
+        update(columnLabel,blob);
     }
 
     @Override
