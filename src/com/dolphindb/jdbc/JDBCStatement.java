@@ -110,6 +110,7 @@ public class JDBCStatement implements Statement {
             case Utils.DML_DELETE:
                 throw new SQLException("the given SQL statement produces anything other than a single ResultSet object");
             case Utils.DML_SELECT:
+            case Utils.DML_EXEC:
                 try {
                     if(this.fetchSize != 0) {
                         if(fetchSize < 8192) {
@@ -127,6 +128,9 @@ public class JDBCStatement implements Statement {
                         resultSet = new JDBCResultSet(connection, this, (EntityBlockReader) entity, sql);
                         return resultSet;
                     }else if (entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR){
+                        resultSet = new JDBCResultSet(connection, this, entity, sql);
+                        return resultSet;
+                    }else if (entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR){
                         resultSet = new JDBCResultSet(connection, this, entity, sql);
                         return resultSet;
                     }
@@ -199,7 +203,8 @@ public class JDBCStatement implements Statement {
                     throw new SQLException("check the Query " + sql);
                 }
             case Utils.DML_SELECT:
-                throw new SQLException("Can not issue SELECT via executeUpdate()");
+            case Utils.DML_EXEC:
+                throw new SQLException("Can not issue SELECT or EXEC via executeUpdate()");
             default:
                 Entity entity;
                 try {
@@ -354,7 +359,8 @@ public class JDBCStatement implements Statement {
         int dml = Utils.getDml(lastStatement);
 
         switch (dml){
-            case Utils.DML_SELECT: {
+            case Utils.DML_SELECT:
+            case Utils.DML_EXEC: {
                 ResultSet resultSet_ = executeQuery(sql);
                 resultSets.offerLast(resultSet_);
                 objectQueue.offer(resultSet_);
