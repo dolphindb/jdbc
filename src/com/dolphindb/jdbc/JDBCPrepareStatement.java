@@ -58,6 +58,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			tableName = tableName.trim();
 			switch (this.dml) {
 			case Utils.DML_SELECT:
+			case Utils.DML_EXEC:
 			case Utils.DML_INSERT:
 			case Utils.DML_DELETE: {
 				if (tableName.length() > 0) {
@@ -150,6 +151,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				throw new SQLException("check the SQL " + preSql);
 			}
 		case Utils.DML_SELECT:
+		case Utils.DML_EXEC:
 			throw new SQLException("can not produces ResultSet");
 
 		default:
@@ -363,7 +365,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	@Override
 	public boolean execute() throws SQLException {
 		switch (dml) {
-		case Utils.DML_SELECT: {
+		case Utils.DML_SELECT:
+		case Utils.DML_EXEC: {
 			ResultSet resultSet_ = executeQuery();
 			resultSets.offerLast(resultSet_);
 			objectQueue.offer(resultSet_);

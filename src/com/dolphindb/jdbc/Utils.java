@@ -19,6 +19,7 @@ public class Utils {
     public static final int DML_INSERT = 1;
     public static final int DML_UPDATE = 2;
     public static final int DML_DELETE = 3;
+    public static final int DML_EXEC = 4;
 
     public static final Pattern INSERT_PATTERN = Pattern.compile("insert\\sinto\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\svalues\\s*\\(.+\\)");
     public static final Pattern DELETE_PATTERN  = Pattern.compile("delete\\sfrom\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\s(where\\s(.+=.+)+)?");
@@ -169,7 +170,9 @@ public class Utils {
             return DML_UPDATE;
         }else if(sqlBackup.startsWith("delete")) {
             return DML_DELETE;
-        }else {
+        }else if(sqlBackup.startsWith("exec")){
+            return DML_EXEC;
+        }else{
             return DML_OTHER;
         }
     }
