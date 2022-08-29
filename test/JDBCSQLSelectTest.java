@@ -1,3 +1,5 @@
+package test;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -246,6 +248,20 @@ public class JDBCSQLSelectTest {
 			e.printStackTrace();
 			Assert.assertTrue("test return vector with exception ",true);
 		}
+	}
+
+	@Test
+	public void test_select1() throws SQLException {
+		Statement s = conn.createStatement();
+		ResultSet rs = s.executeQuery("select 1 as val");
+		Assert.assertTrue(rs.next());
+		Assert.assertEquals("1",rs.getString(1));
+		Statement s2 = conn.createStatement();
+		ResultSet rs2 = s2.executeQuery("select 1");
+		Assert.assertTrue(rs2.next());
+		Assert.assertEquals("1",rs2.getString("val"));
+		Assert.assertEquals("1",rs2.getString(1));
+		Assert.assertEquals(rs2.getString(1),rs.getString(1));
 	}
 
 	@Test
