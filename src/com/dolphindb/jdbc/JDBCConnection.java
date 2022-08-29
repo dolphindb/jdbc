@@ -199,20 +199,32 @@ public class JDBCConnection implements Connection {
 		if (!this.success) {
 			throw new SQLException("Connection is fail");
 		} else {
-			String[] keys = new String[]{"databasePath", "partitionType", "partitionScheme", "locations"};
-			String[] values = Utils.getProperties(prop, keys);
+			String[] key = new String[]{"databasePath"};
+			String[] value = new String[6];
+			String[] valueName = Utils.getProperties(prop, key);
 			String hasScripts = prop.getProperty("length");
-			if (values[0] != null && values[0].length() > 0) {
-				values[0] = "\"" + values[0] + "\"";
+			if (valueName[0] != null && valueName[0].length() > 0) {
+				valueName[0] = "\"" + valueName[0] + "\"";
+				value[0] = valueName[0];
+				Entity dbInfo = this.dbConnection.run("database(" + value[0] + ").schema()");
+				Entity partitionTypeName = ((BasicDictionary) dbInfo).get(new BasicString("partitionTypeName"));
+				value[1] = partitionTypeName.getString();
+				Entity partitionScheme = ((BasicDictionary) dbInfo).get(new BasicString("partitionSchema"));
+				value[2] = partitionScheme.getString();
+				value[3] = " ";
+				Entity engineType = ((BasicDictionary) dbInfo).get(new BasicString("engineType"));
+				value[4] = "\"" + engineType.getString()  + "\"";
+				Entity atomic = ((BasicDictionary) dbInfo).get(new BasicString("atomic"));
+				value[5] = "\"" + atomic.getString()  + "\"";
 				StringBuilder sb = (new StringBuilder("system_db")).append(" = database(");
-				Utils.joinOrder(sb, values, ",");
+				Utils.joinOrder(sb, value, ",");
 				sb.append(");\n");
 				this.sqlSb = new StringBuilder();
 				this.sqlSb.append(sb);
 				this.dbConnection.run(sb.toString());
-				if (values[0].trim().startsWith("\"dfs://")) {
+				if (value[0].trim().startsWith("\"dfs://")) {
 					this.isDFS = true;
-					this.databases = values[0];
+					this.databases = value[0];
 					this.tables = (Vector)this.dbConnection.run("getTables(system_db)");
 					StringBuilder loadTableSb = new StringBuilder();
 					int i = 0;
