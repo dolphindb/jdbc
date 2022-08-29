@@ -265,6 +265,18 @@ public class JDBCSQLSelectTest {
 	}
 
 	@Test
+	public void test_exec() throws SQLException {
+		Statement stm = conn.createStatement();
+		ResultSet rs = stm.executeQuery("exec top 100 * from loadTable(\"dfs://valuedb\",\"pt\");");
+		Assert.assertTrue(rs.next());
+		ResultSet rs2 = stm.executeQuery("EXEC TOP 100 * FROM loadTable(\"dfs://testValue\",\"nt\");");
+		Assert.assertTrue(rs2.next());
+		ResultSet rs3 = stm.executeQuery("Exec count(*) as x fRom loadTable(\"dfs://valuedb\",\"dt\")");
+		ResultSet rs4 = stm.executeQuery("eXec top 5 * from loadTable(\"dfs://valuedb\",\"pt\")");
+		Assert.assertTrue(rs4.next());
+	}
+
+	@Test
 	public void TestScalarSelect(){
 		try {
 			Statement s = conn.createStatement();

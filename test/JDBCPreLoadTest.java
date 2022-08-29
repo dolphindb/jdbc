@@ -2,6 +2,7 @@ package test;
 
 import com.xxdb.DBConnection;
 import com.xxdb.data.BasicTable;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,9 +35,20 @@ public class JDBCPreLoadTest {
                     "dt = db.createPartitionedTable(t2,`dt,`date)\n" +
                     "pt.append!(t);\n" +
                     "dt.append!(t2);";
+            String script2 = "n = 1000000\n" +
+                    "date = take(2006.01.01..2006.01.31,n);\n" +
+                    "de = rand(30.0,n)\n" +
+                    "t3 = table(date,de)\n" +
+                    "if(existsDatabase(\"dfs://testValue\")){\n" +
+                    "    dropDatabase(\"dfs://testValue\")\n" +
+                    "}\n" +
+                    "db2 = database(\"dfs://testValue\",VALUE,2006.01.01..2006.01.31)\n" +
+                    "nt = db2.createPartitionedTable(t3,`nt,`date);\n" +
+                    "nt.append!(t3);";
             db = new DBConnection();
             db.connect(HOST, PORT);
             db.run(script);
+            db.run(script2);
             success = true;
         }catch(Exception e){
             e.printStackTrace();
@@ -86,7 +98,7 @@ public class JDBCPreLoadTest {
         Statement stm = conn.createStatement();
         ResultSet rs = stm.executeQuery("select * from dt");
         Assert.assertTrue(rs.next());
-    }
+}
 
     @Test
     public void test_PreLoad_multiTable() throws IOException, SQLException {
@@ -102,6 +114,23 @@ public class JDBCPreLoadTest {
             Assert.assertEquals(resultSet.getString(1),rs.getString(1));
             Assert.assertEquals(resultSet.getString(2),rs.getString(2));
             Assert.assertEquals(resultSet.getString(3),rs.getString(3));
+        }
+    }
+
+    @Test
+    public void test_PreLoad_multiTable_multiDb() throws IOException, SQLException {
+        conn = DriverManager.getConnection(url+"?tb_pt=dfs://valuedb+pt&tb_nt=dfs://testValue+nt",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select top 100 * from pt;");
+        ResultSet rs2 = stm.executeQuery("select top 100 * from nt;");
+        ResultSet rs3 = stm.executeQuery("select top 100 * from ej(pt,nt,`date)");
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue(rs2.next());
+        Assert.assertTrue(rs3.next());
+        while(rs.next()&& rs2.next() && rs3.next()){
+            System.out.println(rs.getString(1)+" "+rs.getString(2));
+            System.out.println(rs2.getString(1)+" "+rs2.getString(2));
+            System.out.println(rs3.getString(1)+" "+rs3.getString(2)+" "+rs3.getString(3));
         }
     }
 }
