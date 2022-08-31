@@ -210,7 +210,7 @@ public class JDBCConnection implements Connection {
 				Entity partitionTypeName = ((BasicDictionary) dbInfo).get(new BasicString("partitionTypeName"));
 				value[1] = partitionTypeName.getString();
 				Entity partitionScheme = ((BasicDictionary) dbInfo).get(new BasicString("partitionSchema"));
-				value[2] = partitionScheme.getString();
+				value[2] = Utils.VectorToString(partitionScheme);
 				value[3] = " ";
 				Entity engineType = ((BasicDictionary) dbInfo).get(new BasicString("engineType"));
 				value[4] = "\"" + engineType.getString()  + "\"";
