@@ -296,4 +296,17 @@ public class Utils {
         String colName = sql.substring(sql.indexOf(" as ") + " as ".length());
         return colName;
     }
+
+    public static String VectorToString(Entity entity){
+        String result = "";
+        if(entity instanceof AbstractVector){
+            int length = ((Vector) entity).rows();
+            for(int i = 0;i < length; i++){
+                String s = String.valueOf(((Vector) entity).get(i));
+                result = result + s + " ";
+            }
+        }
+        return result;
+    }
+
 }
