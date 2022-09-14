@@ -378,10 +378,12 @@ public class JDBCStatement implements Statement {
                 } catch (IOException e) {
                     throw new SQLException(e);
                 }
-                if (entity instanceof BasicTable) {
-                    ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, sql);
-                    resultSets.offerLast(resultSet_);
-                    objectQueue.offer(resultSet_);
+                if(entity != null){
+                    if (entity instanceof BasicTable || entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR || entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR) {
+                        ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, sql);
+                        resultSets.offerLast(resultSet_);
+                        objectQueue.offer(resultSet_);
+                    }
                 }
             }
         }
