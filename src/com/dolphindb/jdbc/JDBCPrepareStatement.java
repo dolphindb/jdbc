@@ -388,7 +388,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				} catch (IOException e) {
 					throw new SQLException(e);
 				}
-				if (entity instanceof BasicTable || entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR || entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR) {
+				if (entity instanceof BasicTable) {
 					ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, newSql);
 					resultSets.offerLast(resultSet_);
 					objectQueue.offer(resultSet_);

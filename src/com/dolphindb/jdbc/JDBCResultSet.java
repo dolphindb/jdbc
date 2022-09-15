@@ -51,15 +51,7 @@ public class JDBCResultSet implements ResultSet{
             if (this.isUpdatable){
                 insertRowMap = new HashMap<>(this.table.columns()+1);
             }
-        }
-//        else if(entity.isScalar()){
-//            Scalar scalar = (Scalar)entity;
-//            scalarToTable(scalar);
-//        }else if(entity.isVector()&&!sql.contains("select 1 as ")){
-//            Vector vector = (Vector) entity;
-//            vectorToTable(vector);
-//        }
-        else{
+        }else{
             this.entity = entity;
             if(sql!=null&&sql.contains("select 1 as ")){
                 List<String> colNames = new ArrayList<>(1);
@@ -180,55 +172,23 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public boolean wasNull() throws SQLException {
-        return ((Scalar) o).isNull();
+    	return ((Scalar) o).isNull();
     }
 
     @Override
     public Object getObject(int columnIndex) throws SQLException {
         o = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
-        if(o == null){
-            return null;
-        }
-        switch (((Scalar)o).getDataType()){
-            case DT_BLOB:
-                return getBlob(columnIndex);
-            case DT_STRING:
-                return getString(columnIndex);
-            case DT_BOOL:
-                return getBoolean(columnIndex);
-            case DT_BYTE:
-                return getByte(columnIndex);
-            case DT_SHORT:
-                return getShort(columnIndex);
-            case DT_INT:
-                return getInt(columnIndex);
-            case DT_LONG:
-                return getLong(columnIndex);
-            case DT_FLOAT:
-                return getFloat(columnIndex);
-            case DT_DOUBLE:
-                return getDouble(columnIndex);
-            case DT_DATE:
-                return getDate(columnIndex);
-            case DT_TIME:
-                return getTime(columnIndex);
-            case DT_TIMESTAMP:
-                return getTimestamp(columnIndex);
-        }
         return o;
     }
 
     @Override
     public String getString(int columnIndex) throws SQLException{
-//        return ((Entity) getObject(columnIndex)).getString();
-        return table.getColumn(adjustColumnIndex(columnIndex)).get(row).getString();
-
+        return ((Entity) getObject(columnIndex)).getString();
     }
 
     @Override
     public boolean getBoolean(int columnIndex) throws SQLException{
-//    	Scalar x = (Scalar) getObject(columnIndex);
-        Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+    	Scalar x = (Scalar) getObject(columnIndex);
     	if (x.isNull()) return false;
     	try {
 			return x.getNumber().byteValue() == 0 ? false : true;
@@ -239,8 +199,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public byte getByte(int columnIndex) throws SQLException{
-//    	Scalar x = (Scalar) getObject(columnIndex);
-        Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+    	Scalar x = (Scalar) getObject(columnIndex);
     	if (x.isNull()) return 0;
     	try {
 			return x.getNumber().byteValue();
@@ -251,8 +210,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public short getShort(int columnIndex) throws SQLException {
-//    	Scalar x = (Scalar) getObject(columnIndex);
-        Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+    	Scalar x = (Scalar) getObject(columnIndex);
     	if (x.isNull()) return 0;
     	try {
 			return x.getNumber().shortValue();
@@ -263,8 +221,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public int getInt(int columnIndex) throws SQLException {
-//    	Scalar x = (Scalar) getObject(columnIndex);
-        Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+    	Scalar x = (Scalar) getObject(columnIndex);
     	if (x.isNull()) return 0;
     	try {
 			return x.getNumber().intValue();
@@ -275,8 +232,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public long getLong(int columnIndex) throws SQLException {
-//    	Scalar x = (Scalar) getObject(columnIndex);
-        Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+    	Scalar x = (Scalar) getObject(columnIndex);
     	if (x.isNull()) return 0;
     	try {
 			return x.getNumber().longValue();
@@ -287,8 +243,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public float getFloat(int columnIndex) throws SQLException {
-//    	Scalar x = (Scalar) getObject(columnIndex);
-        Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+    	Scalar x = (Scalar) getObject(columnIndex);
     	if (x.isNull()) return 0;
     	try {
 			return x.getNumber().floatValue();
@@ -299,8 +254,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public double getDouble(int columnIndex) throws SQLException {
-//    	Scalar x = (Scalar) getObject(columnIndex);
-        Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+    	Scalar x = (Scalar) getObject(columnIndex);
     	if (x.isNull()) return 0;
     	try {
 			return x.getNumber().doubleValue();
@@ -328,8 +282,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Date getDate(int columnIndex) throws SQLException {
-//        Scalar x = (Scalar) getObject(columnIndex);
-        Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+        Scalar x = (Scalar) getObject(columnIndex);
         LocalDate localdate = null;
         if (x instanceof BasicDate) {
             localdate = ((BasicDate) x).getDate();
@@ -360,8 +313,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Time getTime(int columnIndex) throws SQLException {
-//        Scalar x = (Scalar) getObject(columnIndex);
-        Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+        Scalar x = (Scalar) getObject(columnIndex);
         LocalTime time = null;
         if (x instanceof BasicMinute){
             time = ((BasicMinute) x).getMinute();
@@ -396,8 +348,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-//        Scalar scalar = (Scalar) getObject(columnIndex);
-        Scalar scalar = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+        Scalar scalar = (Scalar) getObject(columnIndex);
         LocalDateTime dateTime = null;
         if (scalar instanceof BasicDateTime){
             dateTime = ((BasicDateTime) scalar).getDateTime();
@@ -429,7 +380,8 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Object getObject(String columnLabel) throws SQLException {
-        return getObject(findColumn(columnLabel));
+        o = table.getColumn(columnLabel).get(row);
+        return o;
     }
 
     @Override
@@ -1347,7 +1299,10 @@ public class JDBCResultSet implements ResultSet{
     }
 
     public Entity getResult() throws SQLException{
+        if (table == null)
             return entity;
+        else
+            return table;
     }
 
     public BasicDate getBasicDate(String columnLabel) throws SQLException{
@@ -1501,45 +1456,5 @@ public class JDBCResultSet implements ResultSet{
             arguments.add(insertRowMap.get(i));
         }
     }
-//
-//    private void scalarToTable(Scalar scalar) {
-//        List<String> colNames = new ArrayList<>(1);
-//        List<Vector> cols = new ArrayList<>(1);
-//        Vector vector = new BasicAnyVector(1);
-//        colNames.add("default");
-//        try {
-//            vector.set(0,scalar);
-//        } catch (Exception e) {
-//            throw new RuntimeException(e);
-//        }
-//        cols.add(vector);
-//        this.table = new BasicTable(colNames,cols);
-//        rows = this.table.rows();
-//        findColumnHashMap = new HashMap<>(this.table.columns());
-//        for(int i=0; i<this.table.columns(); ++i){
-//            findColumnHashMap.put(this.table.getColumnName(i),i+1);
-//        }
-//        this.isUpdatable = false;
-//        if (this.isUpdatable){
-//            insertRowMap = new HashMap<>(this.table.columns()+1);
-//        }
-//    }
-//
-//    private void vectorToTable(Vector vector) {
-//        List<String> colNames = new ArrayList<>(1);
-//        List<Vector> cols = new ArrayList<>(1);
-//        colNames.add("default");
-//        cols.add(vector);
-//        this.table = new BasicTable(colNames,cols);
-//        rows = this.table.rows();
-//        findColumnHashMap = new HashMap<>(this.table.columns());
-//        for(int i=0; i<this.table.columns(); ++i){
-//            findColumnHashMap.put(this.table.getColumnName(i),i+1);
-//        }
-//        this.isUpdatable = false;
-//        if (this.isUpdatable){
-//            insertRowMap = new HashMap<>(this.table.columns()+1);
-//        }
-//    }
 
 }
