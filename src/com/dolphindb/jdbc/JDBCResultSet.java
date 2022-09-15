@@ -220,15 +220,15 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public String getString(int columnIndex) throws SQLException{
-        return ((Entity) getObject(columnIndex)).getString();
-//        return table.getColumn(adjustColumnIndex(columnIndex)).get(row).getString();
+//        return ((Entity) getObject(columnIndex)).getString();
+        return table.getColumn(adjustColumnIndex(columnIndex)).get(row).getString();
+
     }
 
     @Override
     public boolean getBoolean(int columnIndex) throws SQLException{
 //    	Scalar x = (Scalar) getObject(columnIndex);
         Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
-        o = x;
     	if (x.isNull()) return false;
     	try {
 			return x.getNumber().byteValue() == 0 ? false : true;
@@ -241,7 +241,6 @@ public class JDBCResultSet implements ResultSet{
     public byte getByte(int columnIndex) throws SQLException{
 //    	Scalar x = (Scalar) getObject(columnIndex);
         Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
-        o = x;
     	if (x.isNull()) return 0;
     	try {
 			return x.getNumber().byteValue();
@@ -254,7 +253,6 @@ public class JDBCResultSet implements ResultSet{
     public short getShort(int columnIndex) throws SQLException {
 //    	Scalar x = (Scalar) getObject(columnIndex);
         Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
-        o = x;
     	if (x.isNull()) return 0;
     	try {
 			return x.getNumber().shortValue();
@@ -267,7 +265,6 @@ public class JDBCResultSet implements ResultSet{
     public int getInt(int columnIndex) throws SQLException {
 //    	Scalar x = (Scalar) getObject(columnIndex);
         Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
-        o = x;
     	if (x.isNull()) return 0;
     	try {
 			return x.getNumber().intValue();
@@ -280,7 +277,6 @@ public class JDBCResultSet implements ResultSet{
     public long getLong(int columnIndex) throws SQLException {
 //    	Scalar x = (Scalar) getObject(columnIndex);
         Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
-        o = x;
     	if (x.isNull()) return 0;
     	try {
 			return x.getNumber().longValue();
@@ -293,7 +289,6 @@ public class JDBCResultSet implements ResultSet{
     public float getFloat(int columnIndex) throws SQLException {
 //    	Scalar x = (Scalar) getObject(columnIndex);
         Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
-        o = x;
     	if (x.isNull()) return 0;
     	try {
 			return x.getNumber().floatValue();
@@ -306,7 +301,6 @@ public class JDBCResultSet implements ResultSet{
     public double getDouble(int columnIndex) throws SQLException {
 //    	Scalar x = (Scalar) getObject(columnIndex);
         Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
-        o = x;
     	if (x.isNull()) return 0;
     	try {
 			return x.getNumber().doubleValue();
@@ -336,7 +330,6 @@ public class JDBCResultSet implements ResultSet{
     public Date getDate(int columnIndex) throws SQLException {
 //        Scalar x = (Scalar) getObject(columnIndex);
         Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
-        o = x;
         LocalDate localdate = null;
         if (x instanceof BasicDate) {
             localdate = ((BasicDate) x).getDate();
@@ -369,7 +362,6 @@ public class JDBCResultSet implements ResultSet{
     public Time getTime(int columnIndex) throws SQLException {
 //        Scalar x = (Scalar) getObject(columnIndex);
         Scalar x = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
-        o = x;
         LocalTime time = null;
         if (x instanceof BasicMinute){
             time = ((BasicMinute) x).getMinute();
@@ -406,7 +398,6 @@ public class JDBCResultSet implements ResultSet{
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
 //        Scalar scalar = (Scalar) getObject(columnIndex);
         Scalar scalar = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
-        o = scalar;
         LocalDateTime dateTime = null;
         if (scalar instanceof BasicDateTime){
             dateTime = ((BasicDateTime) scalar).getDateTime();
@@ -992,7 +983,6 @@ public class JDBCResultSet implements ResultSet{
     @Override
     public Blob getBlob(int columnIndex) throws SQLException {
         Blob blob = new SerialBlob(getObject(columnIndex).toString().getBytes());
-        o = blob;
         return blob;
     }
 
