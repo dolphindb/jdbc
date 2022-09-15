@@ -213,7 +213,9 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public String getString(int columnIndex) throws SQLException{
-        return ((Entity) getObject(columnIndex)).getString();
+//        return ((Entity) getObject(columnIndex)).getString();
+        o = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+        return ((Entity)o).getString();
     }
 
     @Override
