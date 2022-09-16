@@ -1,28 +1,14 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
-import java.text.MessageFormat;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Properties;
-
-import com.dolphindb.jdbc.Driver;
 import com.xxdb.DBConnection;
-import com.xxdb.data.BasicDate;
 import com.xxdb.data.BasicDictionary;
 import com.xxdb.data.BasicString;
 import com.xxdb.data.BasicStringVector;
 import com.xxdb.data.BasicTable;
+
+import java.io.IOException;
+import java.sql.*;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Properties;
 
 public class JDBCUpdateAndDeleteTest {
 	

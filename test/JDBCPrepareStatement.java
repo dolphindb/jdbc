@@ -27,7 +27,7 @@ public class JDBCPrepareStatement {
 	@Before
 	public void SetUp() {
 		HOST = "localhost";
-		PORT = 8848;
+		PORT = 9002;
 	}
 
 	public static boolean CreateDfsTable(String host, Integer port) {
@@ -564,6 +564,7 @@ public class JDBCPrepareStatement {
 			pstmt = conn.prepareStatement("insert into t values(?,?)");
 			pstmt.setInt(1, 4);
 			Timestamp t = Timestamp.valueOf("2012-06-13 13:30:10.009");
+			pstmt.setTimestamp(2,t);
 			pstmt.executeUpdate();
 			pstmt = conn.prepareStatement("select * from t");
 			rs = pstmt.executeQuery();
