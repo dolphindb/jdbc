@@ -1,4 +1,6 @@
 
+import com.dolphindb.jdbc.JDBCResultSet;
+import com.dolphindb.jdbc.JDBCStatement;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -248,7 +250,7 @@ public class JDBCStatementTest {
 	    int rs1 = 0;
 	    int rs2 = 0;
 	    int rs3 = 0;
-	    String s = "Can not issue SELECT via executeUpdate()";
+	    String s = "Can not issue SELECT or EXEC via executeUpdate()";
 	    try {
 	    	Class.forName(JDBC_DRIVER);
 			conn = DriverManager.getConnection(url);
@@ -368,11 +370,11 @@ public class JDBCStatementTest {
     		org.junit.Assert.assertThat(e.getMessage(),containsString(s));
     	}
     	try {
-    		Class.forName(JDBC_DRIVER); 
+    		Class.forName(JDBC_DRIVER);
     		conn = DriverManager.getConnection(url);
     		stmt = conn.createStatement();
     		stmt.execute("pt=loadTable('dfs://db_testStatement', 'pt')");
-    		stmt.execute("update pt set qty=qty+100");
+    		stmt.execute("update pt set price=price+100");
     	}catch(Exception e) {
     		org.junit.Assert.assertThat(e.getMessage(),containsString(s));
     	}
@@ -557,7 +559,7 @@ public class JDBCStatementTest {
     		conn = DriverManager.getConnection(url);
     		stmt = conn.createStatement();
     		stmt.execute("pt=loadTable('dfs://db_testStatement', 'pt')");
-    		stmt.executeUpdate("delete from pt where id=1");
+    		stmt.executeUpdate("delete from pt where qty=1300");
     	}catch(Exception e) {
     		org.junit.Assert.assertThat(e.getMessage(),containsString(s));
     	}
@@ -566,7 +568,7 @@ public class JDBCStatementTest {
     		conn = DriverManager.getConnection(url);
     		stmt = conn.createStatement();
     		stmt.execute("pt=loadTable('dfs://db_testStatement', 'pt')");
-    		stmt.executeUpdate("update pt set id=id+1");
+    		stmt.executeUpdate("update pt set price=price+1");
     	}catch(Exception e) {
     		org.junit.Assert.assertThat(e.getMessage(),containsString(s));
     	}
@@ -965,6 +967,135 @@ public class JDBCStatementTest {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void test_JDBCStatement_executeTable(){
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		ResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			stm.execute("use testOuRui");
+			stm.execute("query()");
+			rs = stm.getResultSet();
+			Assert.assertTrue(rs.next());
+			Assert.assertEquals("2",rs.getString(1));
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			if(conn !=null) {
+				try {
+					conn.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	@Test
+	public void test_JDBCStatement_executeScalar(){
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			stm.execute("use testOuRui");
+			stm.execute("printStr('123')");
+			rs = (JDBCResultSet) stm.getResultSet();
+			Assert.assertEquals("b123",rs.getResult().getString());
+			Assert.assertTrue(rs.getResult().isScalar());
+			Assert.assertFalse(rs.getResult().isTable());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			if(conn !=null) {
+				try {
+					conn.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void test_JDBCStatement_executeVector(){
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			stm.execute("use testOuRui");
+			stm.execute("printVector()");
+			rs = (JDBCResultSet) stm.getResultSet();
+			Assert.assertEquals("[1,2,3,4]",rs.getResult().getString());
+			Assert.assertTrue(rs.getResult().isVector());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			if(conn !=null) {
+				try {
+					conn.close();
+				}catch(Exception e) {
 					e.printStackTrace();
 				}
 			}
