@@ -1,11 +1,12 @@
+import com.dolphindb.jdbc.JDBCResultSet;
 import com.xxdb.DBConnection;
 import com.xxdb.data.BasicDate;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.*;
-import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;
@@ -1477,6 +1478,135 @@ public class JDBCPrepareStatementTest {
             pstmt.executeUpdate();
         } catch (Exception e) {
             org.junit.Assert.assertThat(e.getMessage(), containsString(s));
+        } finally {
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    @Test
+    public void test_PreparedStatement_executeTable(){
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        String s = "only local in-memory table can update";
+        try {
+            Class.forName(JDBC_DRIVER);
+            conn = DriverManager.getConnection(url);
+            stmt = conn.createStatement();
+            stmt.execute("use testOuRui;query()");
+            rs = stmt.getResultSet();
+            Assert.assertTrue(rs.next());
+            System.out.println(rs.getString(1));
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    @Test
+    public void test_PreparedStatement_executeScalar(){
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
+        Connection conn = null;
+        Statement stmt = null;
+        JDBCResultSet rs = null;
+        String s = "only local in-memory table can update";
+        try {
+            Class.forName(JDBC_DRIVER);
+            conn = DriverManager.getConnection(url);
+            stmt = conn.createStatement();
+            stmt.execute("use testOuRui;printStr('123')");
+            rs = (JDBCResultSet) stmt.getResultSet();
+            Assert.assertEquals("b123",rs.getResult().getString());
+            Assert.assertTrue(rs.getResult().isScalar());
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    @Test
+    public void test_PreparedStatement_executeVector(){
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
+        Connection conn = null;
+        Statement stmt = null;
+        JDBCResultSet rs = null;
+        String s = "only local in-memory table can update";
+        try {
+            Class.forName(JDBC_DRIVER);
+            conn = DriverManager.getConnection(url);
+            stmt = conn.createStatement();
+            stmt.execute("use testOuRui;printVector()");
+            rs = (JDBCResultSet) stmt.getResultSet();
+            Assert.assertEquals("[1,2,3,4]",rs.getResult().getString());
+            Assert.assertTrue(rs.getResult().isVector());
+        } catch (Exception e) {
+            e.printStackTrace();
         } finally {
             if (rs != null) {
                 try {

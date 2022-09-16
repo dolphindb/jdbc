@@ -14,8 +14,6 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 
-import static org.junit.Assert.*;
-
 public class JDBCMakeFileNewTest {
     static ResourceBundle bundle = ResourceBundle.getBundle("setup/settings");
     static String HOST = JDBCTestUtil.HOST;
