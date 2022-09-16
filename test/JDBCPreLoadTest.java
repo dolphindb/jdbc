@@ -1,5 +1,3 @@
-package test;
-
 import com.xxdb.DBConnection;
 import com.xxdb.data.BasicTable;
 import org.junit.After;
@@ -22,7 +20,7 @@ public class JDBCPreLoadTest {
         DBConnection db = null;
 
         try{
-            String script = "n=1000000\n" +
+            String script = "n=500800\n" +
                     "date=take(2006.01.01..2006.01.31, n);\n" +
                     "x=rand(10.0, n);\n" +
                     "t=table(date, x);\n" +
@@ -35,7 +33,7 @@ public class JDBCPreLoadTest {
                     "dt = db.createPartitionedTable(t2,`dt,`date)\n" +
                     "pt.append!(t);\n" +
                     "dt.append!(t2);";
-            String script2 = "n = 1000000\n" +
+            String script2 = "n = 50080000\n" +
                     "date = take(2006.01.01..2006.01.31,n);\n" +
                     "de = rand(30.0,n)\n" +
                     "t3 = table(date,de)\n" +
@@ -127,10 +125,28 @@ public class JDBCPreLoadTest {
         Assert.assertTrue(rs.next());
         Assert.assertTrue(rs2.next());
         Assert.assertTrue(rs3.next());
-        while(rs.next()&& rs2.next() && rs3.next()){
+        while(rs.next()&& rs2.next()){
             System.out.println(rs.getString(1)+" "+rs.getString(2));
             System.out.println(rs2.getString(1)+" "+rs2.getString(2));
             System.out.println(rs3.getString(1)+" "+rs3.getString(2)+" "+rs3.getString(3));
         }
+    }
+
+    @Test
+    public void test_PreLoad_allTable() throws SQLException {
+         conn = DriverManager.getConnection(url+"?databasePath=dfs://valuedb",info);
+         Statement stm = conn.createStatement();
+         ResultSet rs = stm.executeQuery("select TOP 100 * from pt");
+         int index=0;
+        while(rs.next()){
+            System.out.println((++index)+":"+rs.getString(1)+" "+rs.getString(2));
+        }
+        Assert.assertEquals(100,index);
+        ResultSet resultSet = stm.executeQuery("select top 100 * from dt");
+        int count = 0;
+        while(resultSet.next()){
+            System.out.println((++count)+":"+resultSet.getString(1)+" "+resultSet.getString(2));
+        }
+        Assert.assertEquals(100,count);
     }
 }

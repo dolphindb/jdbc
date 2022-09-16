@@ -1,12 +1,3 @@
-import com.dolphindb.jdbc.JDBCConnection;
-import com.dolphindb.jdbc.JDBCResultSet;
-import com.xxdb.DBConnection;
-import com.xxdb.data.BasicTable;
-import com.xxdb.data.Entity;
-import com.xxdb.data.EntityBlockReader;
-import com.xxdb.data.Vector;
-import com.xxdb.io.ProgressListener;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,7 +36,7 @@ public class JDBCBasicInterfaceTest {
     public void init() throws ClassNotFoundException, SQLException {
         properties.put("user", "admin");
         properties.put("password", "123456");
-        url = "jdbc:dolphindb://192.168.56.10:9002";
+        url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
         dataBase = "dfs://jdbcTest";
         tableName = "test";
         Class.forName("com.dolphindb.jdbc.Driver");
@@ -58,8 +49,7 @@ public class JDBCBasicInterfaceTest {
      * @throws ClassNotFoundException
      * @throws SQLException
      */
-    @Test
-    public void createDataBaseAndTableForTSDB() throws ClassNotFoundException, SQLException {
+    private void createDataBaseAndTableForTSDB() throws ClassNotFoundException, SQLException {
         try {
             statement = connection.createStatement();
             String sql_create_databast_table = "login(`admin, `123456)\n" +
@@ -82,8 +72,7 @@ public class JDBCBasicInterfaceTest {
      * @throws ClassNotFoundException
      * @throws SQLException
      */
-    @Test
-    public void createDataBaseAndTableForOLAP() throws ClassNotFoundException, SQLException {
+    private void createDataBaseAndTableForOLAP() throws ClassNotFoundException, SQLException {
 
         Statement statement = connection.createStatement();
         //创建数据库以及表格
@@ -126,7 +115,7 @@ public class JDBCBasicInterfaceTest {
             statement = connection.createStatement();
             String create_stream_table = "id = 1..5\n" +
                     "x = 1..5\n" +
-                    "test = streamTable(id as `id, x as x)";
+                    "test = streamTable(id as `id, x as `x)";
             statement.execute(create_stream_table);
         } finally {
             if(statement != null)statement.close();
@@ -231,10 +220,10 @@ public class JDBCBasicInterfaceTest {
     @Test
     public void stat_executeQuery_dfs_tsdb_table() throws SQLException, ClassNotFoundException {
         try {
-            statement = connection.createStatement();
             createDataBaseAndTableForTSDB();
+            statement = connection.createStatement();
             // 加载ht表
-            statement.execute("ht = loadTable(\"dfs://hashdb1\", `tsdb_table1)");
+            statement.execute("ht = loadTable(\"dfs://hashdb1\",\"tsdb_table1\")");
             // 查询ht表
             ResultSet resultSet = statement.executeQuery("select * from ht");
             System.out.println("查询结果如下：");
@@ -270,7 +259,7 @@ public class JDBCBasicInterfaceTest {
         Statement statement = connection.createStatement();
         createDataBaseAndTableForOLAP();
         // 加载ht表
-        statement.execute("ht = loadTable(\"dfs://hashdb1\", `olap_table1)");
+        statement.execute("ht = loadTable(\"dfs://hashdb1\",\"olap_table1\")");
         // 查询ht表
         ResultSet resultSet = statement.executeQuery("select * from ht");
         System.out.println("查询结果如下：");
@@ -355,9 +344,9 @@ public class JDBCBasicInterfaceTest {
     @Test
     public void stat_executeUpdate_dfs_tsdb_table() throws SQLException, ClassNotFoundException {
         try {
-            statement = connection.createStatement();
             createDataBaseAndTableForTSDB();
-            statement.execute("ht = loadTable(\"dfs://hashdb1\", `tsdb_table1)");
+            statement = connection.createStatement();
+            statement.execute("ht = loadTable(\"dfs://hashdb1\",\"tsdb_table1\")");
             ResultSet resultSet = statement.executeQuery("select * from ht");
             System.out.println("==============修改前的表==============");
             print_table(resultSet);
@@ -407,8 +396,9 @@ public class JDBCBasicInterfaceTest {
      */
     @Test
     public void stat_executeUpdate_dfs_olap_table() throws SQLException, ClassNotFoundException {
+        createDataBaseAndTableForOLAP();
         Statement statement = connection.createStatement();
-        statement.execute("ht = loadTable(\"dfs://hashdb1\", `olap_table1)");
+        statement.execute("ht = loadTable(\"dfs://hashdb1\",\"olap_table1\")");
         ResultSet resultSet = statement.executeQuery("select * from ht");
         System.out.println("==============修改前的表==============");
         print_table(resultSet);
@@ -493,7 +483,7 @@ public class JDBCBasicInterfaceTest {
                 preparedStatement = connection.prepareStatement("select * from test");
                 result = preparedStatement.execute();
             } finally {
-                if(preparedStatement != null) preparedStatement.close();
+                //if(preparedStatement != null) preparedStatement.close();
             }
             if(result == true) {
                 ResultSet resultSet = preparedStatement.getResultSet();
@@ -628,9 +618,10 @@ public class JDBCBasicInterfaceTest {
     @Test
     public void pre_executeQuery_dfs_tsdb_table() throws ClassNotFoundException, SQLException {
         try {
-            statement = connection.createStatement();
             createDataBaseAndTableForTSDB();
-            statement.execute("ht = loadTable(\"dfs://hashdb1\", `tsdb_table1)");
+            statement = connection.createStatement();
+
+            statement.execute("ht = loadTable(\"dfs://hashdb1\",\"tsdb_table1\")");
             preSel = connection.prepareStatement("select * from ht where price > ?");
             preSel.setInt(1, 0);
             ResultSet resultSet = preSel.executeQuery();
@@ -799,18 +790,18 @@ public class JDBCBasicInterfaceTest {
     @Test
     public void pre_executeUpdate_stream_table() throws SQLException {
         create_stream_table();
-        PreparedStatement preStat = connection.prepareStatement("select * from st");
+        PreparedStatement preStat = connection.prepareStatement("select * from test");
         boolean result = preStat.execute();
         if(result == true) {
             ResultSet resultSet = preStat.getResultSet();
             ResultSetMetaData metaData = resultSet.getMetaData();
             System.out.println("==============修改前的表==============");
         }
-        PreparedStatement preAdd = connection.prepareStatement("insert into st values(?, ?)");
+        PreparedStatement preAdd = connection.prepareStatement("insert into test values(?, ?)");
         preAdd.setInt(1, 6);
         preAdd.setInt(2, 11);
         preAdd.executeUpdate();
-        preStat = connection.prepareStatement("select * from st");
+        preStat = connection.prepareStatement("select * from test");
         result = preStat.execute();
         if(result == true) {
             ResultSet resultSet = preStat.getResultSet();
@@ -919,7 +910,7 @@ public class JDBCBasicInterfaceTest {
         Statement statement = connection.createStatement();
         createDataBaseAndTableForOLAP();
         // 加载ht表
-        statement.execute("ht = loadTable(\"dfs://hashdb1\", `olap_table1)");
+        statement.execute("ht = loadTable(\"dfs://hashdb1\",\"olap_table1\")");
         // 查询ht表
         ResultSet resultSet = statement.executeQuery("select * from ht");
         System.out.println("==============修改前的表==============");
@@ -950,8 +941,8 @@ public class JDBCBasicInterfaceTest {
     @Test
     public void batch_operation_memory_table() throws SQLException {
         try {
-            statement = connection.createStatement();
             create_memory_table();
+            statement = connection.createStatement();
             statement.execute("select * from test");
             ResultSet resultSet = statement.getResultSet();
             print_table(resultSet);
@@ -972,8 +963,8 @@ public class JDBCBasicInterfaceTest {
     @Test
     public void batch_operation_stream_table() throws SQLException {
         try {
-            statement = connection.createStatement();
             create_stream_table();
+            statement = connection.createStatement();
             statement.execute("select * from test");
             ResultSet resultSet = statement.getResultSet();
             print_table(resultSet);
@@ -1011,9 +1002,9 @@ public class JDBCBasicInterfaceTest {
     @Test
     public void batch_operation_dfs_tsdb_table() throws SQLException, ClassNotFoundException {
         try {
-            statement = connection.createStatement();
             createDataBaseAndTableForTSDB();
-            statement.execute("ht = loadTable(\"dfs://hashdb1\", `tsdb_table1)");
+            statement = connection.createStatement();
+            statement.execute("ht = loadTable(\"dfs://hashdb1\", \"tsdb_table1\")");
             statement.execute("select * from ht");
             ResultSet resultSet = statement.getResultSet();
             System.out.println("==============修改前的表==============");
@@ -1034,9 +1025,10 @@ public class JDBCBasicInterfaceTest {
     }
 
     @Test
-    public void testFetchSizeJDBC_prestatement_tsdb() throws IOException, SQLException {
+    public void testFetchSizeJDBC_prestatement_tsdb() throws IOException, SQLException, ClassNotFoundException {
+        createDataBaseAndTableForTSDB();
         Statement statement = connection.createStatement();
-        statement.execute("ht = loadTable(\"dfs://hashdb1\", `tsdb_table1)");
+        statement.execute("ht = loadTable(\"dfs://hashdb1\",\"tsdb_table1\")");
         PreparedStatement preparedStatement = connection.prepareStatement("select * from ht");
         preparedStatement.setFetchSize(8192);
         preparedStatement.execute();
@@ -1045,9 +1037,10 @@ public class JDBCBasicInterfaceTest {
     }
 
     @Test
-    public void testFetchSizeJDBC_statemenet_olap() throws IOException, SQLException {
+    public void testFetchSizeJDBC_statemenet_olap() throws IOException, SQLException, ClassNotFoundException {
+        createDataBaseAndTableForOLAP();
         Statement statement = connection.createStatement();
-        statement.execute("ht = loadTable(\"dfs://hashdb1\", `olap_table1)");
+        statement.execute("ht = loadTable(\"dfs://hashdb1\",\"olap_table1\")");
         statement.setFetchSize(10000);
         statement.execute("select * from ht");
         ResultSet resultSet = statement.getResultSet();
@@ -1055,9 +1048,10 @@ public class JDBCBasicInterfaceTest {
     }
 
     @Test
-    public void testFetchSizeJDBC_prestatement_olap() throws IOException, SQLException {
+    public void testFetchSizeJDBC_prestatement_olap() throws IOException, SQLException, ClassNotFoundException {
+        createDataBaseAndTableForOLAP();
         Statement statement = connection.createStatement();
-        statement.execute("ht = loadTable(\"dfs://hashdb1\", `olap_table1)");
+        statement.execute("ht = loadTable(\"dfs://hashdb1\",\"olap_table1\")");
         PreparedStatement preparedStatement = connection.prepareStatement("select * from ht");
         preparedStatement.setFetchSize(8192);
         preparedStatement.execute();
