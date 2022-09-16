@@ -1,5 +1,3 @@
-package test;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -241,8 +239,11 @@ public class JDBCSQLSelectTest {
 		try {
 			Statement s = conn.createStatement();
 			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
-			ResultSet rs =s.executeQuery("exec prc from trade");
+			ResultSet rs =s.executeQuery("select prc from trade");
 			Assert.assertTrue(rs.next());
+			while(rs.next()) {
+				System.out.println(rs.getString(1));
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -267,12 +268,12 @@ public class JDBCSQLSelectTest {
 	@Test
 	public void test_exec() throws SQLException {
 		Statement stm = conn.createStatement();
-		ResultSet rs = stm.executeQuery("exec top 100 * from loadTable(\"dfs://valuedb\",\"pt\");");
+		ResultSet rs = stm.executeQuery("exec top 100 * from loadTable(\"dfs://test_jdbc_sql\",\"trade\");");
 		Assert.assertTrue(rs.next());
-		ResultSet rs2 = stm.executeQuery("EXEC TOP 100 * FROM loadTable(\"dfs://testValue\",\"nt\");");
+		ResultSet rs2 = stm.executeQuery("EXEC TOP 100 * FROM loadTable(\"dfs://test_jdbc_sql\",\"trade\");");
 		Assert.assertTrue(rs2.next());
-		ResultSet rs3 = stm.executeQuery("Exec count(*) as x fRom loadTable(\"dfs://valuedb\",\"dt\")");
-		ResultSet rs4 = stm.executeQuery("eXec top 5 * from loadTable(\"dfs://valuedb\",\"pt\")");
+		ResultSet rs3 = stm.executeQuery("Exec count(*) as x fRom loadTable(\"dfs://test_jdbc_sql\",\"trade\")");
+		ResultSet rs4 = stm.executeQuery("eXec top 5 * from loadTable(\"dfs://test_jdbc_sql\",\"trade\")");
 		Assert.assertTrue(rs4.next());
 	}
 
