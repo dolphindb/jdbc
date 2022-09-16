@@ -1,18 +1,14 @@
-import com.dolphindb.jdbc.JDBCStatement;
 import com.xxdb.DBConnection;
 import com.xxdb.data.*;
-import org.junit.*;
-import com.xxdb.data.BasicTimestamp;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-import java.time.*;
-import java.time.format.DateTimeFormatter;
-import javax.sound.sampled.Port;
-import java.io.IOException;
-import java.lang.reflect.Type;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.ResourceBundle;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.YearMonth;
 
 public class JDBCAppendNewTest {
     static String HOST = JDBCTestUtil.HOST;

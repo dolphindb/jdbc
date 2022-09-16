@@ -288,7 +288,7 @@ public class JDBCUpdateTest {
     public void testUpdateTimestamp() throws SQLException {
         createTable();
         PreparedStatement s = conn.prepareStatement("update trade set timestamp = ?");
-        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021,1,1,1,1,1,001));
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021,1,1,1,1,1,1));
         s.setObject(1,tmp_timestamp);
         s.execute();
         ResultSet rs = s.executeQuery("select * from trade");

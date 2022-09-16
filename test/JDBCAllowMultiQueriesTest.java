@@ -1,4 +1,3 @@
-package test;
 
 import com.xxdb.DBConnection;
 import com.xxdb.data.BasicInt;
@@ -19,7 +18,25 @@ public class JDBCAllowMultiQueriesTest {
     static String dataBase = "dfs://db1";
     static String TableName = "trades";
     Connection conn;
+    @Before
+    public void createDataBaseTable() throws IOException {
+        DBConnection connection = new DBConnection();
+        connection.connect(HOST,PORT,"admin","123456");
+        String script = "n=1000000\n" +
+                "date=rand(2018.08.01..2018.08.03,n)\n" +
+                "sym=rand(`AAPL`MS`C`YHOO,n)\n" +
+                "qty=rand(1..1000,n)\n" +
+                "price=rand(100.0,n)\n" +
+                "t=table(date,sym,qty,price)\n" +
+                "if(existsDatabase(\"dfs://db1\")){\n" +
+                "\tdropDatabase(\"dfs://db1\")\n" +
+                "}\n" +
+                "db=database(\"dfs://db1\",VALUE,2018.08.01..2018.08.03)\n" +
+                "trades=db.createPartitionedTable(t,`trades,`date).append!(t)";
+        connection.run(script);
 
+
+    }
     @Before
     public void setup() throws ClassNotFoundException, SQLException {
         Class.forName("com.dolphindb.jdbc.Driver");
@@ -27,7 +44,7 @@ public class JDBCAllowMultiQueriesTest {
     }
 
     @Test
-    public void test_MultiQueries_select_statement() throws SQLException {
+    public void test_MultiQueries_select_statement() throws SQLException, IOException {
 //        CallableStatement cstm = conn.prepareCall("select qty,date from loadTable(\"dfs://db1\",\"trades\") where sym=`AAPL and price=13.403838942758739;\n" +
 //                "select date from loadTable(\"dfs://db1\",\"trades\") where sym=`MS and price=78.17140694241971;");
 //        Assert.assertTrue(cstm.execute());
@@ -70,7 +87,10 @@ public class JDBCAllowMultiQueriesTest {
     public void test_MultiQueries_update() throws SQLException,IOException{
         DBConnection conndb = new DBConnection();
         conndb.connect(HOST,PORT,"admin","123456");
+        conndb.run("tableInsert(loadTable(\"dfs://db1\",\"trades\"),table(2019.08.18 as date,`XM as sym,251 as qty,26.226226226 as price));");
+        conndb.run("tableInsert(loadTable(\"dfs://db1\",\"trades\"),table(2019.08.20 as date,`OPP as sym,257 as qty,13.403838942758739 as price));");
         BasicTable bi = (BasicTable) conndb.run("select qty from loadTable(\""+dataBase+"\",\""+TableName+"\") where price=26.226226226");
+
         int qty = Integer.parseInt(bi.getColumn(0).get(0).getString());
         CallableStatement cstm = conn.prepareCall("pt=loadTable(\"dfs://db1\",\"trades\");\n" +
                 "update pt set qty=qty+1;\n" +
