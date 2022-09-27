@@ -264,7 +264,7 @@ public class Utils {
         char chr = 0;
         for (int i = 0;i < sql.length();i++){
             chr=sql.charAt(i);
-            if ((chr >='a'&&chr <= 'z')||(chr >= 'A'&&chr <= 'Z')||(chr >= '0'&&chr <= '9')){
+            if ((chr >='a'&&chr <= 'z')||(chr >= 'A'&&chr <= 'Z')||(chr >= '0'&&chr <= '9')||(chr == '_')){
                 sbKey1.append(chr);
             }else {
                 if (sbKey1.length()>0){
