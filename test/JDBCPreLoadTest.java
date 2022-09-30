@@ -269,6 +269,226 @@ public class JDBCPreLoadTest {
         Assert.assertEquals(100,index);
     }
 
+    @Test
+    public void test_Preload_Hash_PartitionedDatabase() throws SQLException, IOException {
+        String script = "n=1000000;\n" +
+                " cbool = take(true false false true,n);\n" +
+                " cchar = take('a'..'z',n);\n" +
+                " cshort = take(1h..200h,n);\n" +
+                " cint = rand(1000,n);\n" +
+                " clong = take(200l..2000l,n)\n" +
+                " cdate = take(2011.08.16..2022.09.30,n)\n" +
+                " cmonth = take(2012.01M..2022.10M,n)\n" +
+                " ctime = take(00:00:00.001..23:59:59.999,n)\n" +
+                " cminute = take(00:01m..23:59m,n)\n" +
+                " csecond = take(00:00:01..23:59:59,n)\n" +
+                " cdatetime = take(2011.01.01 00:00:01..2022.09.30 23:59:59,n)\n" +
+                " ctimestamp = take(2022.09.30 00:00:00.001..2022.09.30 23:59:59.999,n)\n" +
+                " cnanotime = take(23:59:58.000000001..23:59:59.999999999,n)\n" +
+                " cnanotimestamp = take(2022.09.30 23:59:58.000000001..2022.09.30 23:59:58.999999999,n)\n" +
+                " cfloat = rand(300.0f,n)\n" +
+                " cdouble = rand(230.0,n)\n" +
+                " cstring = take(\"hello\" \"world\" \"dolphindb\",n)\n" +
+                " cdatehour = datehour(take(2011.01.01 01:00:00..2022.09.30 23:59:59,n))\n" +
+                " cdecimal32 = decimal32(take(1..2022,n),2)\n" +
+                " cdecimal64 = decimal64(take(2022..4044,n),2)\n" +
+                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour)\n" +
+                " if(existsDatabase(\"dfs://testPreload\")){\n" +
+                "     dropDatabase(\"dfs://testPreload\")\n" +
+                " }\n" +
+                " db = database(\"dfs://testPreload\",HASH,[INT, 2])\n" +
+                " pt = db.createPartitionedTable(t,`pt,`cint)\n" +
+                " pt.append!(t)";
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        db.run(script);
+        db.close();
+        conn = DriverManager.getConnection(url+"?databasePath=dfs://testPreload",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select TOP 101 * from pt");
+        Assert.assertTrue(rs.next());
+        int index = 0;
+        while(rs.next()){
+            System.out.println((index++)+":"+rs.getString(1)+" "+rs.getString(2));
+        }
+        Assert.assertEquals(100,index);
+    }
+
+    @Test
+    public void test_PreLoad_range_PartitionedDatabase() throws IOException, SQLException {
+        String script = "n=1000000;\n" +
+                " cbool = take(true false false true,n);\n" +
+                " cchar = take('a'..'z',n);\n" +
+                " cshort = take(1h..200h,n);\n" +
+                " cint = rand(1000,n);\n" +
+                " clong = take(200l..2000l,n)\n" +
+                " cdate = take(2011.08.16..2022.09.30,n)\n" +
+                " cmonth = take(2012.01M..2022.10M,n)\n" +
+                " ctime = take(00:00:00.001..23:59:59.999,n)\n" +
+                " cminute = take(00:01m..23:59m,n)\n" +
+                " csecond = take(00:00:01..23:59:59,n)\n" +
+                " cdatetime = take(2011.01.01 00:00:01..2022.09.30 23:59:59,n)\n" +
+                " ctimestamp = take(2022.09.30 00:00:00.001..2022.09.30 23:59:59.999,n)\n" +
+                " cfloat = rand(300.0f,n)\n" +
+                " cdouble = rand(230.0,n)\n" +
+                " cstring = take(\"hello\" \"world\" \"dolphindb\",n)\n" +
+                " cdatehour = datehour(take(2011.01.01 01:00:00..2022.09.30 23:59:59,n))\n" +
+                " cdecimal32 = decimal32(take(1..2022,n),2)\n" +
+                " cdecimal64 = decimal64(take(2022..4044,n),2)\n" +
+                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour)\n" +
+                " if(existsDatabase(\"dfs://testPreload\")){\n" +
+                "     dropDatabase(\"dfs://testPreload\")\n" +
+                " }\n" +
+                " db = database(\"dfs://testPreload\",RANGE,0 200 500 900 1000)\n" +
+                " pt = db.createPartitionedTable(t,`pt,`cint)\n" +
+                " pt.append!(t)";
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        db.run(script);
+        db.close();
+        conn = DriverManager.getConnection(url+"?databasePath=dfs://testPreload",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select TOP 101 * from pt");
+        Assert.assertTrue(rs.next());
+        int index = 0;
+        while(rs.next()){
+            System.out.println((index++)+":"+rs.getString(1)+" "+rs.getString(2));
+        }
+        Assert.assertEquals(100,index);
+    }
+
+    @Test
+    public void test_Preload_List_PartitonedTable() throws SQLException, IOException {
+        String script = "n=1000000;\n" +
+                " cbool = take(true false false true,n);\n" +
+                " cchar = take('a'..'z',n);\n" +
+                " cshort = take(1h..200h,n);\n" +
+                " cint = rand(1000,n);\n" +
+                " clong = take(200l..2000l,n)\n" +
+                " cdate = take(2011.08.16..2022.09.30,n)\n" +
+                " cmonth = take(2012.01M..2022.10M,n)\n" +
+                " ctime = take(00:00:00.001..23:59:59.999,n)\n" +
+                " cminute = take(00:01m..23:59m,n)\n" +
+                " csecond = take(00:00:01..23:59:59,n)\n" +
+                " cdatetime = take(2011.01.01 00:00:01..2022.09.30 23:59:59,n)\n" +
+                " ctimestamp = take(2022.09.30 00:00:00.001..2022.09.30 23:59:59.999,n)\n" +
+                " cfloat = rand(300.0f,n)\n" +
+                " cdouble = rand(230.0,n)\n" +
+                " cstring = take(\"hello\" \"world\" \"dolphindb\",n)\n" +
+                " cdatehour = datehour(take(2011.01.01 01:00:00..2022.09.30 23:59:59,n))\n" +
+                " cdecimal32 = decimal32(take(1..2022,n),2)\n" +
+                " cdecimal64 = decimal64(take(2022..4044,n),2)\n" +
+                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour)\n" +
+                " if(existsDatabase(\"dfs://testPreload\")){\n" +
+                "     dropDatabase(\"dfs://testPreload\")\n" +
+                " }\n" +
+                " db = database(\"dfs://testPreload\",LIST,[\"hello\" \"world\",\"dolphindb\"])\n" +
+                " pt = db.createPartitionedTable(t,`pt,`cstring)\n" +
+                " pt.append!(t)";
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        db.run(script);
+        db.close();
+        conn = DriverManager.getConnection(url+"?databasePath=dfs://testPreload",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select TOP 101 * from pt");
+        Assert.assertTrue(rs.next());
+        int index = 0;
+        while(rs.next()){
+            System.out.println((index++)+":"+rs.getString(1)+" "+rs.getString(2));
+        }
+        Assert.assertEquals(100,index);
+    }
+
+    @Test
+    public void test_Preload_COMPO_PartitionedTable() throws SQLException, IOException {
+        String script = "n=1000000;\n" +
+                " cbool = take(true false false true,n);\n" +
+                " cchar = take('a'..'z',n);\n" +
+                " cshort = take(1h..200h,n);\n" +
+                " cint = rand(1000,n);\n" +
+                " clong = take(200l..2000l,n)\n" +
+                " cdate = take(2011.08.16..2022.09.30,n)\n" +
+                " cmonth = take(2012.01M..2022.10M,n)\n" +
+                " ctime = take(00:00:00.001..23:59:59.999,n)\n" +
+                " cminute = take(00:01m..23:59m,n)\n" +
+                " csecond = take(00:00:01..23:59:59,n)\n" +
+                " cdatetime = take(2011.01.01 00:00:01..2022.09.30 23:59:59,n)\n" +
+                " ctimestamp = take(2022.09.30 00:00:00.001..2022.09.30 23:59:59.999,n)\n" +
+                " cfloat = rand(300.0f,n)\n" +
+                " cdouble = rand(230.0,n)\n" +
+                " cstring = take(\"hello\" \"world\" \"dolphindb\",n)\n" +
+                " cdatehour = datehour(take(2011.01.01 01:00:00..2022.09.30 23:59:59,n))\n" +
+                " cdecimal32 = decimal32(take(1..2022,n),2)\n" +
+                " cdecimal64 = decimal64(take(2022..4044,n),2)\n" +
+                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour)\n" +
+                " if(existsDatabase(\"dfs://testPreload\")){\n" +
+                "     dropDatabase(\"dfs://testPreload\")\n" +
+                " }\n" +
+                "dbDate = database(,VALUE,2011.08.16..2022.09.30);" +
+                "dbInt = database(,RANGE,0 200 300 500 1000);" +
+                " db = database(\"dfs://testPreload\",COMPO,[dbDate,dbInt])\n" +
+                " pt = db.createPartitionedTable(t,`pt,`cdate`cint)\n" +
+                " pt.append!(t)";
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        db.run(script);
+        db.close();
+        conn = DriverManager.getConnection(url+"?databasePath=dfs://testPreload",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select TOP 101 * from pt");
+        Assert.assertTrue(rs.next());
+        int index = 0;
+        while(rs.next()){
+            System.out.println((index++)+":"+rs.getString(1)+" "+rs.getString(2));
+        }
+        Assert.assertEquals(100,index);
+    }
+
+    @Test
+    public void test_Preload_value_PartitionedTable() throws SQLException, IOException {
+        String script = "n=1000000;\n" +
+                " cbool = take(true false false true,n);\n" +
+                " cchar = take('a'..'z',n);\n" +
+                " cshort = take(1h..200h,n);\n" +
+                " cint = rand(1000,n);\n" +
+                " clong = take(200l..2000l,n)\n" +
+                " cdate = take(2011.08.16..2022.09.30,n)\n" +
+                " cmonth = take(2012.01M..2022.10M,n)\n" +
+                " ctime = take(00:00:00.001..23:59:59.999,n)\n" +
+                " cminute = take(00:01m..23:59m,n)\n" +
+                " csecond = take(00:00:01..23:59:59,n)\n" +
+                " cdatetime = take(2011.01.01 00:00:01..2022.09.30 23:59:59,n)\n" +
+                " ctimestamp = take(2022.09.30 00:00:00.001..2022.09.30 23:59:59.999,n)\n" +
+                " cfloat = rand(300.0f,n)\n" +
+                " cdouble = rand(230.0,n)\n" +
+                " cstring = take(\"hello\" \"world\" \"dolphindb\",n)\n" +
+                " cdatehour = datehour(take(2011.01.01 01:00:00..2022.09.30 23:59:59,n))\n" +
+                " cdecimal32 = decimal32(take(1..2022,n),2)\n" +
+                " cdecimal64 = decimal64(take(2022..4044,n),2)\n" +
+                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour)\n" +
+                " if(existsDatabase(\"dfs://testPreload\")){\n" +
+                "     dropDatabase(\"dfs://testPreload\")\n" +
+                " }\n" +
+                " db = database(\"dfs://testPreload\",VALUE,1..1000)\n" +
+                " pt = db.createPartitionedTable(t,`pt,`cint)\n" +
+                " pt.append!(t)";
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        db.run(script);
+        db.close();
+        conn = DriverManager.getConnection(url+"?databasePath=dfs://testPreload",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select TOP 101 * from pt");
+        Assert.assertTrue(rs.next());
+        int index = 0;
+        while(rs.next()){
+            System.out.println((index++)+":"+rs.getString(1)+" "+rs.getString(2));
+        }
+        Assert.assertEquals(100,index);
+    }
+
+
 
 
 
