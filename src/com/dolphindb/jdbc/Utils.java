@@ -56,6 +56,14 @@ public class Utils {
         sqlWareHouse.add("pivot");
         sqlWareHouse.add("partition");
         sqlWareHouse.add("sample");
+        sqlWareHouse.add("desc");
+        sqlWareHouse.add("asc");
+        sqlWareHouse.add("sum");
+        sqlWareHouse.add("max");
+        sqlWareHouse.add("min");
+        sqlWareHouse.add("avg");
+        sqlWareHouse.add("count");
+        sqlWareHouse.add("distinct");
     }
 
     public static Object java2db(Object o){
@@ -307,6 +315,33 @@ public class Utils {
             }
         }
         return result;
+    }
+
+    public static String outerJoinToFullJoin(String sql){
+        if(!sql.contains("outer join")){
+            return sql;
+        }
+        if(sql.contains("left outer join")){
+            sql = sql.replaceAll("left outer join","left join");
+        }else if(sql.contains("right outer")){
+            sql = sql.replaceAll("right outer join","right join");
+        }else{
+            sql = sql.replaceAll("outer join","full join");
+        }
+        return sql;
+    }
+
+    public static String oracleToDolphin(String sql){
+        if(sql.contains("length")){
+            sql = sql.replaceAll("length\\s*\\(","strlen(");
+        }
+        if(sql.contains("nvl")){
+            sql = sql.replaceAll("nvl\\s*\\(","ifValid(");
+        }
+        if(sql.contains("replace")){
+            sql = sql.replaceAll("replace\\s*\\(","strReplace(");
+        }
+        return sql;
     }
 
 }
