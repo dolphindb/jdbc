@@ -1,6 +1,10 @@
 
 import com.dolphindb.jdbc.JDBCResultSet;
 import com.dolphindb.jdbc.JDBCStatement;
+import com.xxdb.data.BasicIntVector;
+import com.xxdb.data.BasicTable;
+import com.xxdb.data.Entity;
+import com.xxdb.data.Vector;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -11,6 +15,7 @@ import org.junit.rules.ExpectedException;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import java.awt.List;
+import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1101,4 +1106,559 @@ public class JDBCStatementTest {
 			}
 		}
 	}
+
+	@Test
+	public void test_JDBCStatement_length(){
+		Assert.assertTrue(CreateDfsTable(HOST,PORT));
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			rs = (JDBCResultSet) stm.executeQuery("select length(sym) from loadTable(\"dfs://db_testStatement\",\"pt\");");
+			Assert.assertTrue(rs.next());
+			BasicTable bt = (BasicTable) rs.getResult();
+			ArrayList<String> colNames = new ArrayList<>();
+			colNames.add("strlen_sym");
+			ArrayList<Vector> cols = new ArrayList<>();
+			cols.add(new BasicIntVector(new int[]{1,2,2,1,1,2,3,3,1}));
+			BasicTable ex = new BasicTable(colNames,cols);
+			Assert.assertEquals(ex.getString(),bt.getString());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			if(conn !=null) {
+				try {
+					conn.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void test_JDBCStatement_Nvl() throws IOException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST,PORT,"admin","123456");
+		String script = "t=table(`C`MS`MS`MS`IBM`IBM`C`C`C`APPL`XM as sym," +
+				"49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 NULL NULL as price," +
+				"2200 1900 2100 3200 6800 5400 1300 2500 8800 1080 9000 as qty, " +
+				"[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12,09:40:35,09:42:27] as timestamp)" +
+				"share t as st";
+		db.run(script);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+            rs = (JDBCResultSet) stm.executeQuery("select sym,nvl(price,100),qty from st where qty>1000");
+			BasicTable bt = (BasicTable) rs.getResult();
+			System.out.println(bt.getString());
+			Assert.assertEquals("100",bt.getColumn(1).get(9).getString());
+			Assert.assertEquals("100",bt.getColumn(1).get(10).getString());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			db.run("undef(`st,SHARED)");
+			if(conn !=null) {
+				try {
+					conn.close();
+					db.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void test_JDBCStatement_replace() throws IOException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		ResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			stm.execute("x = replace(\"abcde\",\"cd\",\"Fg\");");
+			rs = stm.executeQuery("x;");
+			Assert.assertEquals("abFge",rs.getString(1));
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			if(conn !=null) {
+				try {
+					conn.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void test_JDBCStatement_replaceTable() throws IOException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST,PORT,"admin","123456");
+		String script = "t=table(`C`MS`MS`MS`IBM`IBM`C`C`C`APPL`XM as sym," +
+				"49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 NULL NULL as price," +
+				"2200 1900 2100 3200 6800 5400 1300 2500 8800 1080 9000 as qty, " +
+				"[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12,09:40:35,09:42:27] as timestamp)" +
+				"share t as st";
+		db.run(script);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			rs = (JDBCResultSet) stm.executeQuery("select price,qty,replace(sym,\"IBM\",\"BMI\") from st");
+			BasicTable bt = (BasicTable) rs.getResult();
+			System.out.println(bt.getString());
+			Assert.assertEquals("BMI",bt.getColumn(2).get(4).getString());
+			Assert.assertEquals("BMI",bt.getColumn(2).get(5).getString());
+			Assert.assertNotEquals("IBM",bt.getColumn(2).get(4).getString());
+			Assert.assertNotEquals("IBM",bt.getColumn(2).get(5).getString());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			db.run("undef(`st,SHARED)");
+			if(conn !=null) {
+				try {
+					conn.close();
+					db.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void test_JDBCStatement_count() throws IOException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST,PORT,"admin","123456");
+		String script = "t=table(`C`MS`MS`MS`IBM`IBM`C`C`C`APPL`XM as sym," +
+				"49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 NULL NULL as price," +
+				"2200 1900 2100 3200 6800 5400 1300 2500 8800 1080 9000 as qty, " +
+				"[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12,09:40:35,09:42:27] as timestamp)" +
+				"share t as st";
+		db.run(script);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			rs = (JDBCResultSet) stm.executeQuery("select count(sym),count(price),count(qty),count(timestamp ) from st");
+			BasicTable bt = (BasicTable) rs.getResult();
+			System.out.println(bt.getString());
+			Assert.assertEquals(11,bt.getColumn(0).get(0).getNumber());
+			Assert.assertEquals(9,bt.getColumn(1).get(0).getNumber());
+			Assert.assertEquals(11,bt.getColumn(2).get(0).getNumber());
+			Assert.assertEquals(11,bt.getColumn(3).get(0).getNumber());
+			JDBCResultSet JR = (JDBCResultSet) stm.executeQuery("select count(*) from st;");
+			System.out.println(JR.getResult().getString());
+			JDBCResultSet JRS = (JDBCResultSet) stm.executeQuery("select count(1) from st");
+			System.out.println(JRS.getResult().getString());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			db.run("undef(`st,SHARED)");
+			if(conn !=null) {
+				try {
+					conn.close();
+					db.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void test_JDBCStatement_avg_min_max_sum() throws IOException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST,PORT,"admin","123456");
+		String script = "t=table(`C`MS`MS`MS`IBM`IBM`C`C`C`APPL`XM as sym," +
+				"49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 NULL NULL as price," +
+				"2200 1900 2100 3200 6800 5400 1300 2500 8800 1080 9000 as qty, " +
+				"[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12,09:40:35,09:42:27] as timestamp)" +
+				"share t as st";
+		db.run(script);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			rs = (JDBCResultSet) stm.executeQuery("select avg(price),avg(qty) from st");
+			BasicTable bt = (BasicTable) rs.getResult();
+			System.out.println(bt.getString());
+            JDBCResultSet JR = (JDBCResultSet) stm.executeQuery("select min(price),MAX(qty) from st;");
+			BasicTable bt2 = (BasicTable) JR.getResult();
+			Assert.assertEquals(29.46,bt2.getColumn(0).get(0).getNumber());
+			Assert.assertEquals(9000,bt2.getColumn(1).get(0).getNumber());
+			JDBCResultSet JRS = (JDBCResultSet) stm.executeQuery("select sum(price),sum(qty) from st;");
+			System.out.println(JRS.getResult().getString());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			db.run("undef(`st,SHARED)");
+			if(conn !=null) {
+				try {
+					conn.close();
+					db.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void test_JDBCStatement_distinct_desc_asc() throws IOException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST,PORT,"admin","123456");
+		String script = "t=table(`C`MS`MS`MS`IBM`IBM`C`C`C`APPL`XM as sym," +
+				"49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 NULL NULL as price," +
+				"2200 1900 2100 3200 6800 5400 1300 2500 8800 1080 9000 as qty, " +
+				"[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12,09:40:35,09:42:27] as timestamp)" +
+				"share t as st";
+		db.run(script);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			rs = (JDBCResultSet) stm.executeQuery("select distinct sym from st");
+			BasicTable bt = (BasicTable) rs.getResult();
+			System.out.println(bt.getString());
+			Assert.assertEquals(5,bt.rows());
+			JDBCResultSet JR = (JDBCResultSet) stm.executeQuery("select * from st order by price desc;");
+			BasicTable bt2 = (BasicTable) JR.getResult();
+			Assert.assertEquals(175.23,bt2.getColumn(1).get(0).getNumber());
+			JDBCResultSet jrs = (JDBCResultSet) stm.executeQuery("select * from st order by qty asc;");
+			BasicTable bt3 = (BasicTable) jrs.getResult();
+			Assert.assertEquals(1080,bt3.getColumn(2).get(0).getNumber());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			db.run("undef(`st,SHARED)");
+			if(conn !=null) {
+				try {
+					conn.close();
+					db.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void test_JDBCStatement_left_outer_join() throws IOException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST,PORT,"admin","123456");
+		String script = "t=table(`C`MS`MS`MS`IBM`IBM`C`C`C`APPL`XM as sym," +
+				"49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 NULL NULL as price," +
+				"2200 1900 2100 3200 6800 5400 1300 2500 8800 1080 9000 as qty, " +
+				"[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12,09:40:35,09:42:27] as timestamp)" +
+				"share t as st";
+		String script2 = "t2 = table(`IBM`IBM`XM`APPL`AMZON`MS`GOOG`ORCL as sym," +
+				"'a' 'b' 'c' 'd' 'e' 'f' 'g' 'h' as char," +
+				"true false false true true true false false as bool," +
+				"11:30m 12:30m 13:30m 14:30m 15:30m 16:30m 17:30m 18:30m as minute)" +
+				"share t2 as st2";
+		db.run(script);
+		db.run(script2);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			rs = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from st2 left outer join st on st.sym = st2.sym;");
+			BasicTable bt = (BasicTable) rs.getResult();
+			System.out.println(bt.getString());
+			Assert.assertEquals(12,bt.rows());
+            Assert.assertTrue(bt.getColumn(1).get(6).isNull());
+			Assert.assertTrue(bt.getColumn(2).get(4).isNull());
+			Assert.assertTrue(bt.getColumn(3).get(6).isNull());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			db.run("undef(`st,SHARED)");
+			if(conn !=null) {
+				try {
+					conn.close();
+					db.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void test_JDBCStatement_right_outer_join() throws IOException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST,PORT,"admin","123456");
+		String script = "t=table(`C`MS`MS`MS`IBM`IBM`C`C`C`APPL`XM as sym," +
+				"49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 NULL NULL as price," +
+				"2200 1900 2100 3200 6800 5400 1300 2500 8800 1080 9000 as qty, " +
+				"[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12,09:40:35,09:42:27] as timestamp)" +
+				"share t as st";
+		String script2 = "t2 = table(`IBM`IBM`XM`APPL`AMZON`MS`GOOG`ORCL as sym," +
+				"'a' 'b' 'c' 'd' 'e' 'f' 'g' 'h' as char," +
+				"true false false true true true false false as bool," +
+				"11:30m 12:30m 13:30m 14:30m 15:30m 16:30m 17:30m 18:30m as minute)" +
+				"share t2 as st2";
+		db.run(script);
+		db.run(script2);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			rs = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from st2 right outer join st on st2.sym = st.sym;");
+			BasicTable bt = (BasicTable) rs.getResult();
+			System.out.println(bt.getString());
+			Assert.assertEquals(12,bt.rows());
+//			Assert.assertTrue(bt.getColumn(1).get(6).isNull());
+//			Assert.assertTrue(bt.getColumn(2).get(4).isNull());
+//			Assert.assertTrue(bt.getColumn(3).get(6).isNull());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			db.run("undef(`st,SHARED)");
+			if(conn !=null) {
+				try {
+					conn.close();
+					db.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void test_JDBCStatement_outer_join() throws IOException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST,PORT,"admin","123456");
+		String script = "t=table(`C`MS`MS`MS`IBM`IBM`C`C`C`APPL`XM as sym," +
+				"49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 NULL NULL as price," +
+				"2200 1900 2100 3200 6800 5400 1300 2500 8800 1080 9000 as qty, " +
+				"[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12,09:40:35,09:42:27] as timestamp)" +
+				"share t as st";
+		String script2 = "t2 = table(`IBM`IBM`XM`APPL`AMZON`MS`GOOG`ORCL as sym," +
+				"'a' 'b' 'c' 'd' 'e' 'f' 'g' 'h' as char," +
+				"true false false true true true false false as bool," +
+				"11:30m 12:30m 13:30m 14:30m 15:30m 16:30m 17:30m 18:30m as minute)" +
+				"share t2 as st2";
+		db.run(script);
+		db.run(script2);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			rs = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from st2 outer join st on st.sym = st2.sym;");
+			BasicTable bt = (BasicTable) rs.getResult();
+			System.out.println(bt.getString());
+			Assert.assertEquals(16,bt.rows());
+			Assert.assertTrue(bt.getColumn(1).get(6).isNull());
+			Assert.assertTrue(bt.getColumn(2).get(4).isNull());
+			Assert.assertTrue(bt.getColumn(3).get(6).isNull());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			db.run("undef(`st,SHARED)");
+			if(conn !=null) {
+				try {
+					conn.close();
+					db.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
 }
