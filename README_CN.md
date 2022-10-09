@@ -2,9 +2,23 @@
 
 DolphinDB 提供 JDBC 的接口的实现，可以让支持 JDBC 接口的客户端程序直接接入 DolphinDB。DolphinDB 的 JDBC 接口基于 DolphinDB Java API 实现，所以 JDBC 包内置了 DolphinDB Java API 的包。
 
-JDBC 接口主要通过 `JDBCStatement` 与 `JDBCPrepareStatement` 提供直接执行和预编译执行两种方式的接口。
+JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallableStatement` 提供直接执行和预编译执行三种方式的接口。
 
-下面通过几个示例程序来展示以上两个对象的使用方法。
+|接口|介绍|
+|----|-------|
+|JDBCStatement|可以正常访问数据库，适用于运行静态 SQL 语句。 Statement 接口不接受参数。|
+|JDBCPrepareStatement|继承了 JDBCStatement。可多次使用 SQL 语句， PreparedStatement 接口运行时接受输入的参数。|
+|JDBCCallableStatement|继承了 JDBCPrepareStatement（不调用存储过程）。支持通过分号（;）分隔多个 SQL 语句。|
+
+<!-- 待讨论包含方法不发是否需要放上去
+|接口|介绍|包含方法|
+|----|-------|-----|
+|JDBCStatement|可以正常访问数据库，适用于运行静态 SQL 语句。 Statement 接口不接受参数。|execute, executeUpdate, executeQuery|
+|JDBCPrepareStatement|继承了 JDBCStatement。可多次使用 SQL 语句， PreparedStatement 接口运行时接受输入的参数。|setInt, setFloat, setString, setDate, addBatch, setCharacterStream, setBinaryStream|
+|JDBCCallableStatement|继承了 JDBCPrepareStatement（不调用存储过程）。支持通过分号（;）分隔多个 SQL 语句，实现多条语句串行执行。|registerOutParameter, setNull, setString, wasNull, getlnt|
+-->
+
+下面通过几个示例程序来展示以上三个对象的使用方法。
 
 使用前，可以通过 maven 引入 JDBC：以 1.30.17.1 为例
 
@@ -18,7 +32,7 @@ JDBC 接口主要通过 `JDBCStatement` 与 `JDBCPrepareStatement` 提供直接�
 
 ## 1. 内存表的增删改查
 
-使用 Java API 将 demo 需要的模板表保存到磁盘。在 demo 中通过 loadTable 可以快速创建内存表。脚本代码如下：
+使用 Java API 将 demo 需要的模板表保存到磁盘。在 demo 中通过 loadTable 可以快速创建内存表。请注意，变量名及表名不可与 DolphinDB 的关键字同名。脚本代码如下：
 
 ```java
 public static boolean CreateTable(String database, String tableName, String host, int port) {
@@ -282,3 +296,15 @@ public static void DFSAddTest(String database, String tableName) {
     ```URL
     jdbc:dolphindb://localhost:8848?user=admin&password=123456
     ```
+    URL 支持的参数如下：
+
+    |参数|作用|
+    |------|----------|
+    |user|数据库用户名（用于连接数据库）|
+    |password|用户密码（用于连接数据库）|
+    |waitingTime|测试连接的超时时间，单位为秒，默认值为3。|
+    |initialScript|传入函数定义脚本|
+    |allowMultiQueries|	在一条语句中，允许使用“;”来分隔多条查询（布尔类型，默认为 false）。|
+    |databasePath|分布式数据库路径。指定该参数可以在初始化时将分布式表加载到内存。|
+
+    若需要创建 JDBCCallableStatement 对象，则连接字符串须指定 allowMultiQueries=true。
