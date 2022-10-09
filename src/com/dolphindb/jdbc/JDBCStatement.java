@@ -100,6 +100,8 @@ public class JDBCStatement implements Statement {
         sql = sql.trim();
         if (sql!=null&&sql.equals("select 1"))
             sql = "select 1 as val";
+        sql = Utils.outerJoinToFullJoin(sql);
+        sql = Utils.oracleToDolphin(sql);
         String[] strings = sql.split(";");
         String lastStatement = strings[strings.length - 1].trim();
         int dml = Utils.getDml(lastStatement);
