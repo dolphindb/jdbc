@@ -1570,10 +1570,10 @@ public class JDBCStatementTest {
 			rs = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from st2 right outer join st on st2.sym = st.sym;");
 			BasicTable bt = (BasicTable) rs.getResult();
 			System.out.println(bt.getString());
-			Assert.assertEquals(12,bt.rows());
-//			Assert.assertTrue(bt.getColumn(1).get(6).isNull());
-//			Assert.assertTrue(bt.getColumn(2).get(4).isNull());
-//			Assert.assertTrue(bt.getColumn(3).get(6).isNull());
+			Assert.assertEquals(13,bt.rows());
+			Assert.assertTrue(bt.getColumn(4).get(0).isNull());
+			Assert.assertTrue(bt.getColumn(5).get(8).isNull());
+			Assert.assertTrue(bt.getColumn(6).get(9).isNull());
 		}catch(Exception e) {
 			e.printStackTrace();
 		}finally {
@@ -1695,8 +1695,15 @@ public class JDBCStatementTest {
 			map.put("JoinTable",bt);
 			db.upload(map);
 			Assert.assertEquals(0,db.run("select * from JoinTable where sym=`XM").rows());
-			JDBCResultSet jr = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from st outer join st2 on st.sym = st2.sym");
+			JDBCResultSet jr = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from st2 outer join st on st.sym = st2.sym");
 			System.out.println(jr.getResult().rows());
+			JDBCResultSet jd = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from st2 right outer join st on st.sym = st2.sym");
+			System.out.println(jd.getResult().rows());
+			Map<String,Entity> map2 = new HashMap<>();
+			BasicTable bt2 = (BasicTable) jd.getResult();
+			map2.put("RJTable",bt2);
+			db.upload(map2);
+			Assert.assertTrue(db.run("select * from RJTable where sym=`XM").rows()>0);
 		}catch(Exception e) {
 			e.printStackTrace();
 		}finally {
@@ -1839,10 +1846,16 @@ public class JDBCStatementTest {
 			map.put("JoinTable",bt);
 			db.upload(map);
 			Assert.assertEquals(0,db.run("select * from JoinTable where sym=`XM").rows());
-            JDBCResultSet jr = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from pt outer join qt on pt.sym = qt.sym");
+            JDBCResultSet jr = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from qt outer join pt on pt.sym = qt.sym");
 			System.out.println(jr.getResult().rows());
 			JDBCResultSet je = (JDBCResultSet) stm.executeQuery("select Count(1) from pt");
 			System.out.println(je.getResult().getString());
+			JDBCResultSet jd = (JDBCResultSet) stm.executeQuery("select sym,char,bool,minute,price,qty,timestamp from qt right outer join pt on qt.sym = pt.sym");
+			Map<String,Entity> map2 = new HashMap<>();
+			BasicTable bt2 = (BasicTable) jd.getResult();
+			map2.put("RJTable",bt2);
+			db.upload(map2);
+			Assert.assertEquals(7143,db.run("select * from RJTable where sym=`XM").rows());
 		}catch(Exception e) {
 			e.printStackTrace();
 		}finally {
