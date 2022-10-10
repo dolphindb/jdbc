@@ -15,14 +15,12 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Properties;
 
+import com.dolphindb.jdbc.JDBCResultSet;
 import com.xxdb.DBConnection;
-import com.xxdb.data.BasicDate;
-import com.xxdb.data.BasicDictionary;
-import com.xxdb.data.BasicString;
-import com.xxdb.data.BasicStringVector;
-import com.xxdb.data.BasicTable;
+import com.xxdb.data.*;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -286,6 +284,68 @@ public class JDBCSQLSelectTest {
 
 		} catch (SQLException e) {
 			Assert.assertTrue("test return pair with exception ",true);
+		}
+	}
+
+	@Test
+	public void test_Statement_oracle_function(){
+		try{
+			Statement s = conn.createStatement();
+			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select DisTinct ticker from trade");
+			Assert.assertEquals(2,rs.getResult().rows());
+			JDBCResultSet jr = (JDBCResultSet) s.executeQuery("select * from trade where ticker=`C order by date AsC");
+			BasicTable bt = (BasicTable) jr.getResult();
+			Assert.assertEquals("2018.01.01",bt.getColumn("date").get(0).getString());
+			JDBCResultSet js = (JDBCResultSet) s.executeQuery("select * from trade where ticker=`E order by id dESc");
+			BasicTable jst = (BasicTable) js.getResult();
+			Assert.assertEquals(98,jst.getColumn("id").get(0).getNumber());
+			JDBCResultSet je = (JDBCResultSet) s.executeQuery("select cOuNt(id),sUm(prc),mAX(bid),aVg(bid),mIn(prc) from trade");
+			BasicTable jet = (BasicTable) je.getResult();
+			Assert.assertEquals(99L,jet.getColumn(0).get(0).getNumber());
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	public void test_Statement_length_nvl_replace() throws IOException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST,PORT,"admin","123456");
+		String script = "t=table(`C`MS`MS`MS`IBM`IBM`C`C`C`APPL`XM as sym," +
+				"49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 NULL NULL as price," +
+				"2200 1900 2100 3200 6800 5400 1300 2500 8800 1080 9000 as qty, " +
+				"[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12,09:40:35,09:42:27] as timestamp)" +
+				"share t as st";
+		String script2 = "t2 = table(`IBM`IBM`XM`APPL`AMZON`MS`GOOG`ORCL as sym," +
+				"'a' 'b' 'c' 'd' 'e' 'f' 'g' 'h' as char," +
+				"true false false true true true false false as bool," +
+				"11:30m 12:30m 13:30m 14:30m 15:30m 16:30m 17:30m 18:30m as minute)" +
+				"share t2 as st2";
+		db.run(script);
+		db.run(script2);
+		try{
+			Statement s = conn.createStatement();
+			JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select length(sym) from st");
+			System.out.println(rs.getResult().getString());
+			List<String> colNames = new ArrayList<>();
+			List<Vector> cols = new ArrayList<>();
+			colNames.add("strlen_sym");
+			cols.add(new BasicIntVector(new int[]{1,2,2,2,3,3,1,1,1,4,2}));
+			BasicTable bt = new BasicTable(colNames,cols);
+			Assert.assertEquals(bt.getString(),rs.getResult().getString());
+			JDBCResultSet jd = (JDBCResultSet) s.executeQuery("select sym,nvl(price,200),qty from st;");
+			BasicTable jdt = (BasicTable) jd.getResult();
+			Assert.assertEquals(200.0,jdt.getColumn(1).get(9).getNumber());
+			Assert.assertNotNull(jdt.getColumn(1).get(10));
+			JDBCResultSet jb = (JDBCResultSet) s.executeQuery("select replace(sym,\"IBM\",\"FBI\") from st");
+			BasicTable jbt = (BasicTable) jb.getResult();
+			Assert.assertEquals("FBI",jbt.getColumn(0).get(4).getString());
+			Assert.assertNotEquals("IBM",jbt.getColumn(0).get(5).getString());
+			db.run("undef(`st,SHARED)");
+			db.run("undef(`st2,SHARED)");
+		}catch(Exception e){
+			e.printStackTrace();
 		}
 	}
 	@After
