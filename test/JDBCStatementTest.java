@@ -17,9 +17,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import java.awt.List;
 import java.io.IOException;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Properties;
+import java.util.*;
 import java.util.logging.Logger;
 
 import com.xxdb.DBConnection;
@@ -37,13 +35,18 @@ public class JDBCStatementTest {
     	DBConnection db = null;
     	try{
     		String script = "login(`admin, `123456); \n"+
-    				"if(existsDatabase('dfs://db_testStatement')){ dropDatabase('dfs://db_testStatement')}\n" + 
+    				"if(existsDatabase(\"dfs://db_testStatement\")){ dropDatabase('dfs://db_testStatement')}\n" +
     				"t=table(`C`MS`MS`MS`IBM`IBM`C`C`C as sym,"
     				+ "49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 as price"
     				+ ",2200 1900 2100 3200 6800 5400 1300 2500 8800 as qty, "
-    				+ "[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12] as timestamp)\n" + 
-    				"db=database('dfs://db_testStatement', RANGE, 0 3000 9000)\n" + 
-    				"pt=db.createPartitionedTable(t, `pt, `qty).append!(t)";
+    				+ "[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12] as timestamp)\n" +
+					"t2 = table(`IBM`IBM`XM`APPL`AMZON`MS`GOOG`ORCL as sym," +
+					"'a' 'b' 'c' 'd' 'e' 'f' 'g' 'h' as char," +
+					"true false false true true true false false as bool," +
+					"11:30m 12:30m 13:30m 14:30m 15:30m 16:30m 17:30m 18:30m as minute);"+
+    				"db=database(\"dfs://db_testStatement\",VALUE,`C`AMZON`MS`IBM`XM`GOOG`ORCL`APPL);\n" +
+    				"pt=db.createPartitionedTable(t, `pt, `sym).append!(t);" +
+					"qt=db.createPartitionedTable(t2,`qt,`sym).append!(t2);";
 //    		String script = "login(`admin, `123456); \n"+
 //					"if(existsDatabase('dfs://db_testStatement')){ dropDatabase('dfs://db_testStatement')} \n"+
 //					"t = table(1..10000 as id, take(1, 10000) as val) \n"+
@@ -466,7 +469,7 @@ public class JDBCStatementTest {
     		org.junit.Assert.assertEquals(6800, rs3.getInt(3));	
     		rs4 = stmt.executeQuery("select max(price) from pt group by sym");
     		rs4.absolute(3);
-    		org.junit.Assert.assertEquals(175.23, rs4.getDouble(2),0);
+    		org.junit.Assert.assertEquals(30.02, rs4.getDouble(2),0);
     		rs5 = stmt.executeQuery("select wavg(price, qty) as wvap from pt where sym = 'IBM' cgroup by timestamp order by timestamp");
     		rs5.absolute(1);
     		org.junit.Assert.assertEquals(174.97, rs5.getDouble(2),0);
@@ -1125,7 +1128,7 @@ public class JDBCStatementTest {
 			ArrayList<String> colNames = new ArrayList<>();
 			colNames.add("strlen_sym");
 			ArrayList<Vector> cols = new ArrayList<>();
-			cols.add(new BasicIntVector(new int[]{1,2,2,1,1,2,3,3,1}));
+			cols.add(new BasicIntVector(new int[]{1,1,1,1,3,3,2,2,2}));
 			BasicTable ex = new BasicTable(colNames,cols);
 			Assert.assertEquals(ex.getString(),bt.getString());
 		}catch(Exception e) {
@@ -1650,6 +1653,213 @@ public class JDBCStatementTest {
 				}
 			}
 			db.run("undef(`st,SHARED)");
+			if(conn !=null) {
+				try {
+					conn.close();
+					db.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void test_JDBCStatement_BigData_outer_join() throws IOException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST,PORT,"admin","123456");
+		String script = "t=table(take(`C`AMZON`IBM`XM`GOOG`APPL`ORCL,50000) as sym," +
+				"rand(198.99,50000) as price," +
+				"take(1..2000,50000) as qty, " +
+				"take(01:01:01..23:59:59,50000) as timestamp)" +
+				"share t as st";
+		String script2 = "t2 = table(take(`C`IBM`GOOG`APPL`ORCL`AMZON,5000) as sym," +
+				"take('a'..'z',5000) as char," +
+				"take(true false false true true true false false,5000) as bool," +
+				"take(01:01m..23:59m,5000) as minute)" +
+				"share t2 as st2";
+		db.run(script);
+		db.run(script2);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			rs = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from st2 left outer join st on st.sym = st2.sym;");
+			Map<String,Entity> map = new HashMap<>();
+			BasicTable bt = (BasicTable) rs.getResult();
+			map.put("JoinTable",bt);
+			db.upload(map);
+			Assert.assertEquals(0,db.run("select * from JoinTable where sym=`XM").rows());
+			JDBCResultSet jr = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from st outer join st2 on st.sym = st2.sym");
+			System.out.println(jr.getResult().rows());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			db.run("undef(`st,SHARED)");
+			db.run("undef(`st2,SHARED)");
+			if(conn !=null) {
+				try {
+					conn.close();
+					db.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void test_JDBCStatement_DFS_oracle_function() throws IOException {
+		DBConnection db1 = new DBConnection();
+		db1.connect(HOST,PORT,"admin","123456");
+		Assert.assertTrue(CreateDfsTable(HOST,PORT));
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456"+"&databasePath=dfs://db_testStatement";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			rs = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from qt left outer join pt on qt.sym = pt.sym;");
+			BasicTable bt = (BasicTable) rs.getResult();
+			System.out.println(bt.getString());
+			Assert.assertTrue(bt.getColumn(1).get(0).isNull());
+			Assert.assertTrue(bt.getColumn(2).get(1).isNull());
+			Assert.assertTrue(bt.getColumn(3).get(2).isNull());
+			JDBCResultSet JR = (JDBCResultSet) stm.executeQuery("select price,qty,replace(sym,\"IBM\",\"BMI\") from pt");
+			BasicTable a = (BasicTable) JR.getResult();
+			Map<String,Entity> map = new HashMap<>();
+			map.put("replaceTable",a);
+			db1.upload(map);
+			Assert.assertEquals(0,db1.run("select * from replaceTable where strReplace_sym=`IBM;").rows());
+			JDBCResultSet jrs = (JDBCResultSet) stm.executeQuery("select couNt(sym),COUNT(price),COUNT(qty),count(timestamp) from pt");
+ 			BasicTable jt = (BasicTable) jrs.getResult();
+			Assert.assertEquals(9L,jt.getColumn(0).get(0).getNumber());
+			Assert.assertEquals(9L,jt.getColumn(1).get(0).getNumber());
+			Assert.assertEquals(9L,jt.getColumn(2).get(0).getNumber());
+			Assert.assertEquals(9L,jt.getColumn(3).get(0).getNumber());
+			JDBCResultSet jr = (JDBCResultSet) stm.executeQuery("select count(*) from qt");
+			System.out.println(jr.getResult().getString());
+			JDBCResultSet s = (JDBCResultSet) stm.executeQuery("select COUNT(1) from qt");
+			System.out.println(s.getResult().getString());
+			JDBCResultSet re = (JDBCResultSet) stm.executeQuery("select Avg(price),MAX(qty),MIN(price),suM(qty) from pt;");
+			System.out.println(re.getResult().getString());
+			JDBCResultSet je = (JDBCResultSet) stm.executeQuery("select Distinct sym from qt");
+			BasicTable jet = (BasicTable) je.getResult();
+			Assert.assertEquals(7,jet.rows());
+			JDBCResultSet js = (JDBCResultSet) stm.executeQuery("select * from pt order by price aSc;");
+			BasicTable jst = (BasicTable) js.getResult();
+			Assert.assertEquals(29.46,jst.getColumn(1).get(0).getNumber());
+			JDBCResultSet jc = (JDBCResultSet) stm.executeQuery("select * from pt order by qty dEsc;");
+			BasicTable jct = (BasicTable) jc.getResult();
+			Assert.assertEquals(8800,jct.getColumn(2).get(0).getNumber());
+			JDBCResultSet oj = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from qt  outer join pt on qt.sym = pt.sym;");
+			System.out.println(oj.getResult().getString());
+			BasicTable ojt = (BasicTable) oj.getResult();
+			Assert.assertEquals(16,ojt.rows());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
+			if(conn !=null) {
+				try {
+					conn.close();
+					db1.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Test
+	public void test_JDBCStatement_DFS_bigdata() throws IOException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST,PORT,"admin","123456");
+		String script = "t=table(take(`C`AMZON`IBM`XM`GOOG`APPL`ORCL,50000) as sym," +
+				"rand(198.99,50000) as price," +
+				"take(1..2000,50000) as qty, " +
+				"take(01:01:01..23:59:59,50000) as timestamp);" +
+				"t2 = table(take(`C`IBM`GOOG`APPL`ORCL`AMZON,5000) as sym," +
+				"take('a'..'z',5000) as char," +
+				"take(true false false true true true false false,5000) as bool," +
+				"take(01:01m..23:59m,5000) as minute);" +
+				"if(existsDatabase(\"dfs://db_testStatement\")){dropDatabase(\"dfs://db_testStatement\")}" +
+				"db=database(\"dfs://db_testStatement\",VALUE,`C`AMZON`IBM`GOOG`APPL`ORCL`XM);" +
+				"pt=db.createTable(t,`pt).append!(t);" +
+				"qt=db.createTable(t2,`qt).append!(t2);";
+		db.run(script);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456"+"&databasePath=dfs://db_testStatement";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		try {
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			stm = (JDBCStatement) conn.createStatement();
+			rs = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from qt left outer join pt on pt.sym = qt.sym;");
+			Map<String,Entity> map = new HashMap<>();
+			BasicTable bt = (BasicTable) rs.getResult();
+			System.out.println(bt.rows());
+			map.put("JoinTable",bt);
+			db.upload(map);
+			Assert.assertEquals(0,db.run("select * from JoinTable where sym=`XM").rows());
+            JDBCResultSet jr = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from pt outer join qt on pt.sym = qt.sym");
+			System.out.println(jr.getResult().rows());
+			JDBCResultSet je = (JDBCResultSet) stm.executeQuery("select Count(1) from pt");
+			System.out.println(je.getResult().getString());
+		}catch(Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(rs !=null) {
+				try {
+					rs.close();
+				}catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if(stm!= null) {
+				try {
+					stm.close();
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}
 			if(conn !=null) {
 				try {
 					conn.close();
