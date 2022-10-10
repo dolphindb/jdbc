@@ -200,12 +200,12 @@ public static void InMemoryUpdateTest(String database, String tableName){
 
 ## 2. 分布式表的新增和查询
 
-DolphinDB 支持分布式数据表。本例子演示通过 JDBC 来进行分布式表的新增和查询。要操作分布式表，连接的时候需在 URL 中加入 path 以及相应内容。`getConnection()` 时会预先加载分区表的元数据。
+DolphinDB 支持分布式数据表。本例子演示通过 JDBC 来进行分布式表的新增和查询。要操作分布式表，连接的时候需在 URL 中加入 databasePath。`getConnection()` 时会预先加载分区表的元数据。
 
 #### Example
 
 ```URL
-jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=2000.01M..2019.05M
+jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb
 ```
 
 ### 2.1. 创建分区表
