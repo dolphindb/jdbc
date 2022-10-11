@@ -13,14 +13,12 @@ import java.sql.Types;
 import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 import com.dolphindb.jdbc.JDBCResultSet;
 import com.xxdb.DBConnection;
 import com.xxdb.data.*;
+import com.xxdb.data.Vector;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -344,6 +342,46 @@ public class JDBCSQLSelectTest {
 			Assert.assertNotEquals("IBM",jbt.getColumn(0).get(5).getString());
 			db.run("undef(`st,SHARED)");
 			db.run("undef(`st2,SHARED)");
+			db.close();
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+	@Test
+	public void test_Statement_oracle_outer_join() throws IOException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST,PORT,"admin","123456");
+		String script = "t=table(`C`MS`MS`MS`IBM`IBM`C`C`C`APPL`XM as sym," +
+				"49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 NULL NULL as price," +
+				"2200 1900 2100 3200 6800 5400 1300 2500 8800 1080 9000 as qty, " +
+				"[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12,09:40:35,09:42:27] as timestamp);" +
+				"t2 = table(`IBM`IBM`XM`APPL`AMZON`MS`GOOG`ORCL as sym," +
+				"'a' 'b' 'c' 'd' 'e' 'f' 'g' 'h' as char," +
+				"true false false true true true false false as bool," +
+				"11:30m 12:30m 13:30m 14:30m 15:30m 16:30m 17:30m 18:30m as minute);" +
+				"if(existsDatabase(\"dfs://db_testStatement\")){dropDatabase(\"dfs://db_testStatement\")}" +
+				"db=database(\"dfs://db_testStatement\",VALUE,`C`MS`IBM`APPL`XM`AMZON`GOOG`ORCL);" +
+				"pt=db.createPartitionedTable(t,`pt,`sym).append!(t);" +
+				"qt=db.createPartitionedTable(t2,`qt,`sym).append!(t2);";
+		db.run(script);
+		try{
+			Statement s = conn.createStatement();
+			s.execute("qt = loadTable(\"dfs://db_testStatement\",\"qt\")");
+			s.execute("pt = loadTable(\"dfs://db_testStatement\",\"pt\")");
+			JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select sym,qty,price,char,bool,minute,timestamp from qt left outer join pt on qt.sym=pt.sym");
+			BasicTable bt = (BasicTable) rs.getResult();
+			Map<String,Entity> map = new HashMap<>();
+			map.put("LJTable",bt);
+			db.upload(map);
+			Assert.assertEquals(0,db.run("select * from LJTable where sym=`C").rows());
+			JDBCResultSet jd = (JDBCResultSet) s.executeQuery("select sym,qty,price,char,bool,minute,timestamp from qt outer join pt on qt.sym=pt.sym");
+			Assert.assertEquals(16,jd.getResult().rows());
+			JDBCResultSet jr = (JDBCResultSet) s.executeQuery("select sym,char,bool,minute,price,qty,timestamp from qt right outer join pt on qt.sym=pt.sym");
+			BasicTable jrt = (BasicTable) jr.getResult();
+			Map<String,Entity> map1 = new HashMap<>();
+			map1.put("RJTable",jrt);
+			db.tryUpload(map1);
+			Assert.assertEquals(0,db.run("select * from RJTable where sym=`GOOG").rows());
 		}catch(Exception e){
 			e.printStackTrace();
 		}
