@@ -487,9 +487,4 @@ public class JDBCPreLoadTest {
         }
         Assert.assertEquals(100,index);
     }
-
-
-
-
-
 }
