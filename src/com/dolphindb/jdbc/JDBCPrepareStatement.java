@@ -32,6 +32,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@SuppressWarnings("rawtypes")
 	private HashMap<String, ArrayList> unNameTable;
+	private int[] sizes;
 
 	public String getTableName() {
 		return tableName;
@@ -75,6 +76,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.preSql += ";";
 		sqlSplit = this.preSql.split("\\?");
 		values = new Object[sqlSplit.length + 1];
+		sizes = new int[sqlSplit.length + 1];
 		batch = new StringBuilder();
 //		System.out.println("new Prepare statement: " + preSql);
 	}
@@ -360,6 +362,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	@Override
 	public void setObject(int parameterIndex, Object object, int targetSqlType, int scaleOrLength) throws SQLException {
 		setObject(parameterIndex, object);
+		if(targetSqlType == Entity.DATA_TYPE.DT_DECIMAL.getValue() || targetSqlType == Entity.DATA_TYPE.DT_DECIMAL32.getValue()
+				|| targetSqlType == Entity.DATA_TYPE.DT_DECIMAL64.getValue() || targetSqlType == Entity.DATA_TYPE.DT_DECIMAL128.getValue()){
+			sizes[parameterIndex] = scaleOrLength;
+		}
 	}
 
 	@Override
@@ -682,7 +688,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					if(values[i] instanceof YearMonth){
 						values[i] = new BasicMonth(((YearMonth) values[i]).getYear(), ((YearMonth) values[i]).getMonth());
 					}
-					entity = BasicEntityFactory.createScalar(dataType, values[i]);
+					entity = BasicEntityFactory.createScalar(dataType, values[i], sizes[i]);
 					if (!tableType.equals(IN_MEMORY_TABLE)) {
 						if (unNameTable.size() == colTypes_.size()){
 							ArrayList<Entity> colValues = unNameTable.get(colNames.get(j));
