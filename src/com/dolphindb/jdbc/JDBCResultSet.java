@@ -1391,7 +1391,14 @@ public class JDBCResultSet implements ResultSet{
         try {
             Entity targetEntity = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
             Entity.DATA_TYPE dataType = targetEntity.getDataType();
-            Entity entity = BasicEntityFactory.createScalar(dataType, value);
+            int size = 0;
+            if(dataType.getName().equals(Entity.DATA_TYPE.DT_DECIMAL.getName()) || dataType.getName().equals(Entity.DATA_TYPE.DT_DECIMAL32.getName()) ||
+            dataType.getName().equals(Entity.DATA_TYPE.DT_DECIMAL64.getName()) || dataType.getName().equals(Entity.DATA_TYPE.DT_DECIMAL128.getName())){
+                String value2 = String.valueOf(value);
+                String[] values = value2.split("\\.");
+                size = values[1].length();
+            }
+            Entity entity = BasicEntityFactory.createScalar(dataType, value, size);
             insertRowMap.put(columnIndex, entity);
         }catch (Exception e){
             throw new SQLException(e.getMessage());
