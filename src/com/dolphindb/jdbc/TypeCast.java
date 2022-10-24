@@ -605,7 +605,7 @@ public class TypeCast {
                     int size = srcEntity.rows();
                     srcTempos = new Temporal[size];
                     for (int i = 0; i < size; ++i) {
-                        srcTempos[i] = ((Vector) srcEntity).get(i).getTemporal();
+                        srcTempos[i] = ((Scalar)((Vector) srcEntity).get(i)).getTemporal();
 
                     }
                     return Tempos2dateTime(srcTempos, srcEntityClassName, targetEntityClassName);
@@ -627,7 +627,7 @@ public class TypeCast {
                             int size = srcEntity.rows();
                             srcTempos = new Temporal[size];
                             for (int i = 0; i < size; ++i) {
-                                srcTempos[i] = ((Vector) srcEntity).get(i).getTemporal();
+                                srcTempos[i] = ((Scalar)((Vector) srcEntity).get(i)).getTemporal();
                             }
                             return Tempos2dateTime(srcTempos, srcScalarFromVectorClassName, targetEntityClassName);
                         default:
