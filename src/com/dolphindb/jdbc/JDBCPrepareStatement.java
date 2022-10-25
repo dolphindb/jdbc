@@ -345,6 +345,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		if (values != null) {
 			for (int i = 0, len = values.length; i < len; ++i) {
 				values[i] = null;
+				sizes[i] = 0;
 			}
 		}
 	}
@@ -357,6 +358,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 							parameterIndex, sqlSplit.length - 1));
 		}
 		values[parameterIndex] = object;
+		sizes[parameterIndex] = 0;
 	}
 
 	@Override
@@ -456,6 +458,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		super.close();
 		sqlSplit = null;
 		values = null;
+		sizes = null;
 	}
 
 	@Override
