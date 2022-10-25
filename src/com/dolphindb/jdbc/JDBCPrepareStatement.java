@@ -203,6 +203,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					Entity.DATA_TYPE dataType = colTypes_.get(i);
 					List<Entity> values = unNameTable.get(colNames.get(i));
 					Vector col = BasicEntityFactory.instance().createVectorWithDefaultValue(dataType, 1);
+					if(dataType.getValue() == 37){
+						((BasicDecimal32Vector)col).setScale(sizes[i+1]);
+					}else if(dataType.getValue() == 38){
+						((BasicDecimal64Vector)col).setScale(sizes[i+1]);
+					}
 					col.set(0, (Scalar) values.get(tableRows));
 					cols.add(col);
 				}
