@@ -33,6 +33,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	@SuppressWarnings("rawtypes")
 	private HashMap<String, ArrayList> unNameTable;
 	private int[] sizes;
+	private int[] types;
 
 	public String getTableName() {
 		return tableName;
@@ -77,6 +78,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		sqlSplit = this.preSql.split("\\?");
 		values = new Object[sqlSplit.length + 1];
 		sizes = new int[sqlSplit.length + 1];
+		types = new int[sqlSplit.length + 1];
 		batch = new StringBuilder();
 //		System.out.println("new Prepare statement: " + preSql);
 	}
@@ -202,17 +204,28 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				for (int i = 0; i < colNames.size(); i++){
 					Entity.DATA_TYPE dataType = colTypes_.get(i);
 					List<Entity> values = unNameTable.get(colNames.get(i));
-					Vector col = BasicEntityFactory.instance().createVectorWithDefaultValue(dataType, 1);
-					if(dataType.getValue() == 37){
+					Vector col;
+					if(types[i+1] != -1 && types[i+1] == 37){
+						col = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.DT_DECIMAL32, 1);
+						if(sizes[i+1]<0 || sizes[i+1] > 9){
+							throw new SQLException("The size of the Decimal32 type should be in the range 0-9");
+						}
 						((BasicDecimal32Vector)col).setScale(sizes[i+1]);
-					}else if(dataType.getValue() == 38){
+					}else if(types[i+1] != -1 && types[i+1] == 38){
+						col = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.DT_DECIMAL64, 1);
+						if(sizes[i+1]<0 || sizes[i+1] > 18){
+							throw new SQLException("The size of the Decimal64 type should be in the range 0-18");
+						}
 						((BasicDecimal64Vector)col).setScale(sizes[i+1]);
+					}else{
+						col = BasicEntityFactory.instance().createVectorWithDefaultValue(dataType, 1);
 					}
 					col.set(0, (Scalar) values.get(tableRows));
 					cols.add(col);
 				}
 				tableRows++;
 			}catch (Exception e){
+				e.printStackTrace();
 				return 0;
 			}
 			if (tableRows == unNameTable.get(colNames.get(0)).size()){
@@ -346,6 +359,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			for (int i = 0, len = values.length; i < len; ++i) {
 				values[i] = null;
 				sizes[i] = 0;
+				types[i] = -1;
 			}
 		}
 	}
@@ -359,6 +373,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 		values[parameterIndex] = object;
 		sizes[parameterIndex] = 0;
+		types[parameterIndex] = -1;
 	}
 
 	@Override
@@ -372,6 +387,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		if(targetSqlType == Entity.DATA_TYPE.DT_DECIMAL.getValue() || targetSqlType == Entity.DATA_TYPE.DT_DECIMAL32.getValue()
 				|| targetSqlType == Entity.DATA_TYPE.DT_DECIMAL64.getValue() || targetSqlType == Entity.DATA_TYPE.DT_DECIMAL128.getValue()){
 			sizes[parameterIndex] = scaleOrLength;
+			types[parameterIndex] = targetSqlType;
 		}
 	}
 
@@ -459,6 +475,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		sqlSplit = null;
 		values = null;
 		sizes = null;
+		types = null;
 	}
 
 	@Override
