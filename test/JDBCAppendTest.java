@@ -86,7 +86,6 @@ public class JDBCAppendTest {
 	}
 	
 public static void Append10MillionDatatest() throws Exception {
-		
 		Connection conn = null;
 		PreparedStatement ps = null;
 		Statement stmt = null;
