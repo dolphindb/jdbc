@@ -31,6 +31,31 @@ public class JDBCUpdateTest {
         }
     }
 
+    public static boolean createPartitionTable(String dataType){
+        boolean success = false;
+        DBConnection db = null;
+        try{
+            String script = "login(`admin, `123456); \n"+
+                    "if(existsDatabase('dfs://test_append_type'))" +
+                    "{ dropDatabase('dfs://test_append_type')} \n"+
+                    "t = table(10:0,`id`dataType,[INT,"+dataType+"]) \n"+
+                    "db=database('dfs://test_append_type', RANGE, 1 2001 4001 6001 8001 10001) \n"+
+                    "db.createPartitionedTable(t, `pt, `id) \n";
+            db = new DBConnection();
+            db.connect(HOST, PORT);
+            db.run(script);
+            success = true;
+        }catch(Exception e){
+            e.printStackTrace();
+            success = false;
+        }finally{
+            if(db != null){
+                db.close();
+            }
+            return success;
+        }
+    }
+
     public static boolean createTable() {
         DBConnection db = null;
         try {
@@ -488,6 +513,24 @@ public class JDBCUpdateTest {
     }
 
     @Test
+    public void testUpdateDecimal32_in_partition_table() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        for(int i = 0;i<100;i++){
+            ps.setInt(1, i);
+            ps.setObject(2, i*10, 37, 4);
+            ps.executeUpdate();
+        }
+        PreparedStatement s = conn.prepareStatement("update pt set dataType = ?");
+        s.setObject(1,21.23221,37,4);
+        s.execute();
+        ResultSet rs = s.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("21.2322",rs.getObject(2).toString());
+    }
+
+    @Test
     public void testUpdateDecimal64() throws SQLException {
         createTable();
         PreparedStatement s = conn.prepareStatement("update trade set decimal64 = ?");
@@ -498,6 +541,24 @@ public class JDBCUpdateTest {
         org.junit.Assert.assertEquals("276541.23221000",rs.getObject(27).toString());
         rs.next();
         org.junit.Assert.assertEquals("276541.23221000",rs.getObject(27).toString());
+    }
+
+    @Test
+    public void testUpdateDecimal64_in_partition_table() throws SQLException {
+        createPartitionTable("DECIMAL64(8)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        for(int i = 0;i<100;i++){
+            ps.setInt(1, i);
+            ps.setObject(2, i*10, 38, 8);
+            ps.executeUpdate();
+        }
+        PreparedStatement s = conn.prepareStatement("update pt set dataType = ?");
+        s.setObject(1,21.2322,38,8);
+        s.execute();
+        ResultSet rs = s.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("21.23220000",rs.getObject(2).toString());
     }
 
 
