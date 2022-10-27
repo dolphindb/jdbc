@@ -1,9 +1,7 @@
 
 import com.dolphindb.jdbc.JDBCResultSet;
 import com.dolphindb.jdbc.JDBCStatement;
-import com.xxdb.data.BasicIntVector;
-import com.xxdb.data.BasicTable;
-import com.xxdb.data.Entity;
+import com.xxdb.data.*;
 import com.xxdb.data.Vector;
 import org.junit.After;
 import org.junit.Assert;
@@ -1329,10 +1327,10 @@ public class JDBCStatementTest {
 			rs = (JDBCResultSet) stm.executeQuery("select count(sym),count(price),count(qty),count(timestamp ) from st");
 			BasicTable bt = (BasicTable) rs.getResult();
 			System.out.println(bt.getString());
-			Assert.assertEquals(11,bt.getColumn(0).get(0).getNumber());
-			Assert.assertEquals(9,bt.getColumn(1).get(0).getNumber());
-			Assert.assertEquals(11,bt.getColumn(2).get(0).getNumber());
-			Assert.assertEquals(11,bt.getColumn(3).get(0).getNumber());
+			Assert.assertEquals(11,((Scalar)bt.getColumn(0).get(0)).getNumber());
+			Assert.assertEquals(9,((Scalar)bt.getColumn(1).get(0)).getNumber());
+			Assert.assertEquals(11,((Scalar)bt.getColumn(2).get(0)).getNumber());
+			Assert.assertEquals(11,((Scalar)bt.getColumn(3).get(0)).getNumber());
 			JDBCResultSet JR = (JDBCResultSet) stm.executeQuery("select count(*) from st;");
 			System.out.println(JR.getResult().getString());
 			JDBCResultSet JRS = (JDBCResultSet) stm.executeQuery("select count(1) from st");
@@ -1390,8 +1388,8 @@ public class JDBCStatementTest {
 			System.out.println(bt.getString());
             JDBCResultSet JR = (JDBCResultSet) stm.executeQuery("select min(price),MAX(qty) from st;");
 			BasicTable bt2 = (BasicTable) JR.getResult();
-			Assert.assertEquals(29.46,bt2.getColumn(0).get(0).getNumber());
-			Assert.assertEquals(9000,bt2.getColumn(1).get(0).getNumber());
+			Assert.assertEquals(29.46,((Scalar)bt2.getColumn(0).get(0)).getNumber());
+			Assert.assertEquals(9000,((Scalar)bt2.getColumn(1).get(0)).getNumber());
 			JDBCResultSet JRS = (JDBCResultSet) stm.executeQuery("select sum(price),sum(qty) from st;");
 			System.out.println(JRS.getResult().getString());
 		}catch(Exception e) {
@@ -1448,10 +1446,10 @@ public class JDBCStatementTest {
 			Assert.assertEquals(5,bt.rows());
 			JDBCResultSet JR = (JDBCResultSet) stm.executeQuery("select * from st order by price desc;");
 			BasicTable bt2 = (BasicTable) JR.getResult();
-			Assert.assertEquals(175.23,bt2.getColumn(1).get(0).getNumber());
+			Assert.assertEquals(175.23,((Scalar)bt2.getColumn(1).get(0)).getNumber());
 			JDBCResultSet jrs = (JDBCResultSet) stm.executeQuery("select * from st order by qty asc;");
 			BasicTable bt3 = (BasicTable) jrs.getResult();
-			Assert.assertEquals(1080,bt3.getColumn(2).get(0).getNumber());
+			Assert.assertEquals(1080,((Scalar)bt3.getColumn(2).get(0)).getNumber());
 		}catch(Exception e) {
 			e.printStackTrace();
 		}finally {
@@ -1510,9 +1508,9 @@ public class JDBCStatementTest {
 			BasicTable bt = (BasicTable) rs.getResult();
 			System.out.println(bt.getString());
 			Assert.assertEquals(12,bt.rows());
-            Assert.assertTrue(bt.getColumn(1).get(6).isNull());
-			Assert.assertTrue(bt.getColumn(2).get(4).isNull());
-			Assert.assertTrue(bt.getColumn(3).get(6).isNull());
+            Assert.assertTrue(((Scalar)bt.getColumn(1).get(6)).isNull());
+			Assert.assertTrue(((Scalar)bt.getColumn(2).get(4)).isNull());
+			Assert.assertTrue(((Scalar)bt.getColumn(3).get(6)).isNull());
 		}catch(Exception e) {
 			e.printStackTrace();
 		}finally {
@@ -1571,9 +1569,9 @@ public class JDBCStatementTest {
 			BasicTable bt = (BasicTable) rs.getResult();
 			System.out.println(bt.getString());
 			Assert.assertEquals(13,bt.rows());
-			Assert.assertTrue(bt.getColumn(4).get(0).isNull());
-			Assert.assertTrue(bt.getColumn(5).get(8).isNull());
-			Assert.assertTrue(bt.getColumn(6).get(9).isNull());
+			Assert.assertTrue(((Scalar)bt.getColumn(4).get(0)).isNull());
+			Assert.assertTrue(((Scalar)bt.getColumn(5).get(8)).isNull());
+			Assert.assertTrue(((Scalar)bt.getColumn(6).get(9)).isNull());
 		}catch(Exception e) {
 			e.printStackTrace();
 		}finally {
@@ -1632,9 +1630,9 @@ public class JDBCStatementTest {
 			BasicTable bt = (BasicTable) rs.getResult();
 			System.out.println(bt.getString());
 			Assert.assertEquals(16,bt.rows());
-			Assert.assertTrue(bt.getColumn(1).get(6).isNull());
-			Assert.assertTrue(bt.getColumn(2).get(4).isNull());
-			Assert.assertTrue(bt.getColumn(3).get(6).isNull());
+			Assert.assertTrue(((Scalar)bt.getColumn(1).get(6)).isNull());
+			Assert.assertTrue(((Scalar)bt.getColumn(2).get(4)).isNull());
+			Assert.assertTrue(((Scalar)bt.getColumn(3).get(6)).isNull());
 		}catch(Exception e) {
 			e.printStackTrace();
 		}finally {
@@ -1751,9 +1749,9 @@ public class JDBCStatementTest {
 			rs = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from qt left outer join pt on qt.sym = pt.sym;");
 			BasicTable bt = (BasicTable) rs.getResult();
 			System.out.println(bt.getString());
-			Assert.assertTrue(bt.getColumn(1).get(0).isNull());
-			Assert.assertTrue(bt.getColumn(2).get(1).isNull());
-			Assert.assertTrue(bt.getColumn(3).get(2).isNull());
+			Assert.assertTrue(((Scalar)bt.getColumn(1).get(0)).isNull());
+			Assert.assertTrue(((Scalar)bt.getColumn(2).get(1)).isNull());
+			Assert.assertTrue(((Scalar)bt.getColumn(3).get(2)).isNull());
 			JDBCResultSet JR = (JDBCResultSet) stm.executeQuery("select price,qty,replace(sym,\"IBM\",\"BMI\") from pt");
 			BasicTable a = (BasicTable) JR.getResult();
 			Map<String,Entity> map = new HashMap<>();
@@ -1762,10 +1760,10 @@ public class JDBCStatementTest {
 			Assert.assertEquals(0,db1.run("select * from replaceTable where strReplace_sym=`IBM;").rows());
 			JDBCResultSet jrs = (JDBCResultSet) stm.executeQuery("select couNt(sym),COUNT(price),COUNT(qty),count(timestamp) from pt");
  			BasicTable jt = (BasicTable) jrs.getResult();
-			Assert.assertEquals(9L,jt.getColumn(0).get(0).getNumber());
-			Assert.assertEquals(9L,jt.getColumn(1).get(0).getNumber());
-			Assert.assertEquals(9L,jt.getColumn(2).get(0).getNumber());
-			Assert.assertEquals(9L,jt.getColumn(3).get(0).getNumber());
+			Assert.assertEquals(9L,((Scalar)jt.getColumn(0).get(0)).getNumber());
+			Assert.assertEquals(9L,((Scalar)jt.getColumn(1).get(0)).getNumber());
+			Assert.assertEquals(9L,((Scalar)jt.getColumn(2).get(0)).getNumber());
+			Assert.assertEquals(9L,((Scalar)jt.getColumn(3).get(0)).getNumber());
 			JDBCResultSet jr = (JDBCResultSet) stm.executeQuery("select count(*) from qt");
 			System.out.println(jr.getResult().getString());
 			JDBCResultSet s = (JDBCResultSet) stm.executeQuery("select COUNT(1) from qt");
@@ -1777,10 +1775,10 @@ public class JDBCStatementTest {
 			Assert.assertEquals(7,jet.rows());
 			JDBCResultSet js = (JDBCResultSet) stm.executeQuery("select * from pt order by price aSc;");
 			BasicTable jst = (BasicTable) js.getResult();
-			Assert.assertEquals(29.46,jst.getColumn(1).get(0).getNumber());
+			Assert.assertEquals(29.46,((Scalar)jst.getColumn(1).get(0)).getNumber());
 			JDBCResultSet jc = (JDBCResultSet) stm.executeQuery("select * from pt order by qty dEsc;");
 			BasicTable jct = (BasicTable) jc.getResult();
-			Assert.assertEquals(8800,jct.getColumn(2).get(0).getNumber());
+			Assert.assertEquals(8800,((Scalar)jct.getColumn(2).get(0)).getNumber());
 			JDBCResultSet oj = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from qt  outer join pt on qt.sym = pt.sym;");
 			System.out.println(oj.getResult().getString());
 			BasicTable ojt = (BasicTable) oj.getResult();

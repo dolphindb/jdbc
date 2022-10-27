@@ -297,10 +297,10 @@ public class JDBCSQLSelectTest {
 			Assert.assertEquals("2018.01.01",bt.getColumn("date").get(0).getString());
 			JDBCResultSet js = (JDBCResultSet) s.executeQuery("select * from trade where ticker=`E order by id dESc");
 			BasicTable jst = (BasicTable) js.getResult();
-			Assert.assertEquals(98,jst.getColumn("id").get(0).getNumber());
+			Assert.assertEquals(98,((Scalar)jst.getColumn("id").get(0)).getNumber());
 			JDBCResultSet je = (JDBCResultSet) s.executeQuery("select cOuNt(id),sUm(prc),mAX(bid),aVg(bid),mIn(prc) from trade");
 			BasicTable jet = (BasicTable) je.getResult();
-			Assert.assertEquals(99L,jet.getColumn(0).get(0).getNumber());
+			Assert.assertEquals(99L,((Scalar)jet.getColumn(0).get(0)).getNumber());
 		}catch(Exception e){
 			e.printStackTrace();
 		}
@@ -334,7 +334,7 @@ public class JDBCSQLSelectTest {
 			Assert.assertEquals(bt.getString(),rs.getResult().getString());
 			JDBCResultSet jd = (JDBCResultSet) s.executeQuery("select sym,nvl(price,200),qty from st;");
 			BasicTable jdt = (BasicTable) jd.getResult();
-			Assert.assertEquals(200.0,jdt.getColumn(1).get(9).getNumber());
+			Assert.assertEquals(200.0,((Scalar)jdt.getColumn(1).get(9)).getNumber());
 			Assert.assertNotNull(jdt.getColumn(1).get(10));
 			JDBCResultSet jb = (JDBCResultSet) s.executeQuery("select replace(sym,\"IBM\",\"FBI\") from st");
 			BasicTable jbt = (BasicTable) jb.getResult();
