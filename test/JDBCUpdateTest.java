@@ -61,7 +61,9 @@ public class JDBCUpdateTest {
             sb.append("blob= [`Hello, `world];\n");
             sb.append("complex= [complex(1,2),complex(2,3)];\n");
             sb.append("point= [point(1,2),point(2,3)];\n");
-            sb.append("t1= table(bool,char,short,int,long,float,double,string,symbol,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp,datehour,uuid,ipaddr,int128,blob,complex,point);\n");
+            sb.append("decimal32= decimal32([213.432,1.12],4);\n");
+            sb.append("decimal64= decimal64([13.43241,231.54323],8);\n");
+            sb.append("t1= table(bool,char,short,int,long,float,double,string,symbol,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp,datehour,uuid,ipaddr,int128,blob,complex,point,decimal32,decimal64);\n");
             sb.append("share t1 as trade;");
             db = new DBConnection();
             db.connect(HOST,PORT);
@@ -472,7 +474,31 @@ public class JDBCUpdateTest {
         org.junit.Assert.assertEquals(point,rs.getObject(25));
     }
 
+    @Test
+    public void testUpdateDecimal32() throws SQLException {
+        createTable();
+        PreparedStatement s = conn.prepareStatement("update trade set decimal32 = ?");
+        s.setObject(1,21.23221,37,4);
+        s.execute();
+        ResultSet rs = s.executeQuery("select * from trade");
+        rs.next();
+        org.junit.Assert.assertEquals("21.2322",rs.getObject(26).toString());
+        rs.next();
+        org.junit.Assert.assertEquals("21.2322",rs.getObject(26).toString());
+    }
 
+    @Test
+    public void testUpdateDecimal64() throws SQLException {
+        createTable();
+        PreparedStatement s = conn.prepareStatement("update trade set decimal64 = ?");
+        s.setObject(1,276541.23221,38,8);
+        s.execute();
+        ResultSet rs = s.executeQuery("select * from trade");
+        rs.next();
+        org.junit.Assert.assertEquals("276541.23221000",rs.getObject(27).toString());
+        rs.next();
+        org.junit.Assert.assertEquals("276541.23221000",rs.getObject(27).toString());
+    }
 
 
 }

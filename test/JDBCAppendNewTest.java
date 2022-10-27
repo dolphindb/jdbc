@@ -1,9 +1,11 @@
 import com.xxdb.DBConnection;
 import com.xxdb.data.*;
+import jdk.internal.org.objectweb.asm.Type;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -598,6 +600,394 @@ public class JDBCAppendNewTest {
         rs.next();
         org.junit.Assert.assertEquals(rs.getInt("count"), 10);
     }
+
+    @Test
+    public void testAppendTypeDecimal32_normal() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,1.2345,37,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("1.2345",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal32_null() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,2);
+        ps.setNull(2, Types.OTHER);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+
+    @Test
+    public void testAppendTypeDecimal32_0() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,0,37,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("0.0000",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal32_minus() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,-1.34214,37,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("-1.3421",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal32_size_over_scale() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,23211.34232114,37,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("23211.3423",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal32_size_minus_scale() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,23211,37,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("23211.0000",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal32_special1() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,0.000001,37,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("0.0000",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal32_special2() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,1.00012,37,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("1.0001",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal32_overflow() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,37,5);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("class com.xxdb.data.BasicDecimal32",rs.getObject("dataType").getClass().toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal32_scale_diff() throws SQLException {
+        createPartitionTable("DECIMAL32(2)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,37,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("123421.00",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal32_scale_0() throws SQLException {
+        createPartitionTable("DECIMAL32(0)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,37,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("123421",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal32_scale_9() throws SQLException {
+        createPartitionTable("DECIMAL32(9)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,1.0001,37,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("1.000100000",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal32_table_overflow() throws SQLException {
+        createPartitionTable("DECIMAL32(6)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,38,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        org.junit.Assert.assertEquals(0,rs.getRow());
+    }
+
+    @Test
+    public void testAppendTypeDecimal32_scale_invalue() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,37,10);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        org.junit.Assert.assertEquals(0,rs.getRow());
+    }
+
+    @Test
+    public void testAppendTypeDecimal32_dataType_not_match() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,38,10);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        org.junit.Assert.assertEquals(0,rs.getRow());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_normal() throws SQLException {
+        createPartitionTable("DECIMAL64(8)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,1412.234532,38,8);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("1412.23453200",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_null() throws SQLException {
+        createPartitionTable("DECIMAL64(4)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,2);
+        ps.setNull(2, Types.OTHER);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_0() throws SQLException {
+        createPartitionTable("DECIMAL64(8)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,0,38,8);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("0.00000000",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_minus() throws SQLException {
+        createPartitionTable("DECIMAL64(8)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,-1.34214,38,8);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("-1.34214000",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_size_over_scale() throws SQLException {
+        createPartitionTable("DECIMAL64(8)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,26411.342641432414,38,8);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("26411.34264143",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_size_minus_scale() throws SQLException {
+        createPartitionTable("DECIMAL64(8)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,26411,38,8);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("26411.00000000",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_special1() throws SQLException {
+        createPartitionTable("DECIMAL64(8)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,0.00000000000001,38,8);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("0.00000000",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_special2() throws SQLException {
+        createPartitionTable("DECIMAL64(8)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,1.00000012,38,8);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("1.00000012",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_overflow() throws SQLException {
+        createPartitionTable("DECIMAL64(10)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,38,5);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("class com.xxdb.data.BasicDecimal64",rs.getObject("dataType").getClass().toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_scale_diff() throws SQLException {
+        createPartitionTable("DECIMAL64(2)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,38,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("123421.00",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_scale_0() throws SQLException {
+        createPartitionTable("DECIMAL64(0)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,38,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("123421",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_scale_9() throws SQLException {
+        createPartitionTable("DECIMAL64(9)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,1.0001,38,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("1.000100000",rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_table_overflow() throws SQLException {
+        createPartitionTable("DECIMAL64(6)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,38,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        org.junit.Assert.assertEquals(0,rs.getRow());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_scale_invalue() throws SQLException {
+        createPartitionTable("DECIMAL64(8)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,38,20);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        org.junit.Assert.assertEquals(0,rs.getRow());
+    }
+
+    @Test
+    public void testAppendTypeDecimal64_dataType_not_match() throws SQLException {
+        createPartitionTable("DECIMAL64(8)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,37,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        org.junit.Assert.assertEquals(0,rs.getRow());
+    }
+
 
     @After
     public void Destroy(){
