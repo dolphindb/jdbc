@@ -182,7 +182,7 @@ public class JDBCConnection implements Connection {
 			highAvailabilitySites = rowHighAvailabilitySites.split(" ");
 		}
 		if(userId != null && password != null){
-			if (initialScript != null && highAvailability && highAvailabilitySites != null){
+			if (highAvailability){
 				success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
 			}else {
 				success = dbConnection.connect(hostname, port, userId, password);
