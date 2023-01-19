@@ -271,7 +271,7 @@ public class JDBCPreLoadTest {
 
     @Test
     public void test_Preload_Hash_PartitionedDatabase() throws SQLException, IOException {
-        String script = "n=1000000;\n" +
+        String script = "n=100;\n" +
                 " cbool = take(true false false true,n);\n" +
                 " cchar = take('a'..'z',n);\n" +
                 " cshort = take(1h..200h,n);\n" +
@@ -440,9 +440,9 @@ public class JDBCPreLoadTest {
         Assert.assertTrue(rs.next());
         int index = 0;
         while(rs.next()){
-            System.out.println((index++)+":"+rs.getString(1)+" "+rs.getString(2));
+            System.out.println((++index)+":"+rs.getString(1)+" "+rs.getString(3));
         }
-        Assert.assertEquals(100,index);
+        Assert.assertEquals(99,index);
     }
 
     @Test

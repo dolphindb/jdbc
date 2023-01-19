@@ -692,5 +692,106 @@ public class JDBCResultSetTest {
 		stmt.close();
 		conn.close();
 	}
+	@Test
+	public void Test_getFetchDirection() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String script = "t= table(1..4 as id);\n" +"select * from t";
+		rs = stmt.executeQuery(script);
+		rs.setFetchDirection(1);
+		TestCase.assertEquals(1000, rs.getFetchDirection());
+	}
+	@Test
+	public void Test_getFetchSize() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String script = "t= table(1..4 as id);\n" +"select * from t";
+		rs = stmt.executeQuery(script);
+		rs.setFetchSize(1);
+		TestCase.assertEquals(0, rs.getFetchSize());
+	}
+	@Test
+	public void Test_getType() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String script = "t= table(1..4 as id);\n" +"select * from t";
+		rs = stmt.executeQuery(script);
+		TestCase.assertEquals(1005, rs.getType());
+	}
+	@Test
+	public void Test_getConcurrency() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String script = "t= table(1..4 as id);\n" +"select * from t";
+		rs = stmt.executeQuery(script);
+		TestCase.assertEquals(1007, rs.getConcurrency());
+	}
+	@Test
+	public void Test_rowUpdated() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String script = "t= table(1..4 as id);\n" +"select * from t";
+		rs = stmt.executeQuery(script);
+		TestCase.assertEquals(false, rs.rowUpdated());
+	}
+	@Test
+	public void Test_rowInserted() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String script = "t= table(1..4 as id);\n" +"select * from t";
+		rs = stmt.executeQuery(script);
+		TestCase.assertEquals(false, rs.rowInserted());
+	}
+	@Test
+	public void Test_rowDeleted() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String script = "t= table(1..4 as id);\n" +"select * from t";
+		rs = stmt.executeQuery(script);
+		TestCase.assertEquals(false, rs.rowDeleted());
+	}
+	@Test
+	public void Test_updateNull() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String script = "t= table(1..4 as id);\n" +"select * from t";
+		rs = stmt.executeQuery(script);
+		rs.updateNull(0);//方法未实现
+		rs.next();
+		int a = rs.getInt("id");
+		TestCase.assertEquals(1, rs.getInt("id"));
+	}
+	@Ignore
+	public void Test_updateBoolean() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String script = "t= table(1..4 as id);\n" +"select * from t";
+		rs = stmt.executeQuery(script);
+		rs.updateBoolean(0,true);//方法未实现
+		rs.next();
+		int a = rs.getInt("id");
+		TestCase.assertEquals(true, rs.getInt("id"));
+	}
+	@Ignore
+	public void Test_insertRow() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String script = "t= table(1..4 as id);\n" +"select * from t";
+		rs = stmt.executeQuery(script);
+		rs.insertRow();
+		rs.next();
+		int a = rs.getInt("id");
+		TestCase.assertEquals(true, rs.getInt("id"));
+	}
 }
 

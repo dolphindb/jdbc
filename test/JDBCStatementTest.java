@@ -1770,7 +1770,7 @@ public class JDBCStatementTest {
 			System.out.println(s.getResult().getString());
 			JDBCResultSet re = (JDBCResultSet) stm.executeQuery("select Avg(price),MAX(qty),MIN(price),suM(qty) from pt;");
 			System.out.println(re.getResult().getString());
-			JDBCResultSet je = (JDBCResultSet) stm.executeQuery("select Distinct sym from qt");
+			JDBCResultSet je = (JDBCResultSet) stm.executeQuery("select Distinct(sym) from qt");
 			BasicTable jet = (BasicTable) je.getResult();
 			Assert.assertEquals(7,jet.rows());
 			JDBCResultSet js = (JDBCResultSet) stm.executeQuery("select * from pt order by price aSc;");

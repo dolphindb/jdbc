@@ -18,16 +18,15 @@ import javax.lang.model.type.NullType;
 import static org.hamcrest.CoreMatchers.containsString;
 
 public class JDBCPrepareStatement {
-	String HOST;
-	int PORT;
+	static String HOST = JDBCTestUtil.HOST;
+	static int PORT = JDBCTestUtil.PORT;
 
 	public JDBCPrepareStatement() throws SQLException {
 	}
 
 	@Before
 	public void SetUp() {
-		HOST = "localhost";
-		PORT = 9002;
+
 	}
 
 	public static boolean CreateDfsTable(String host, Integer port) {
