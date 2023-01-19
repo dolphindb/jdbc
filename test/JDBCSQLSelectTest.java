@@ -290,7 +290,7 @@ public class JDBCSQLSelectTest {
 		try{
 			Statement s = conn.createStatement();
 			s.execute("trade=loadTable(\""+ dataBase +"\", `" + tableName + ")");
-			JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select DisTinct ticker from trade");
+			JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select DisTinct(ticker) from trade");
 			Assert.assertEquals(2,rs.getResult().rows());
 			JDBCResultSet jr = (JDBCResultSet) s.executeQuery("select * from trade where ticker=`C order by date AsC");
 			BasicTable bt = (BasicTable) jr.getResult();
