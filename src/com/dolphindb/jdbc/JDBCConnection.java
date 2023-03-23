@@ -212,10 +212,17 @@ public class JDBCConnection implements Connection {
 			this.parseConfiguration(valueName, prop);
 
 			// 解析脚本
-			parseScript(hasScripts, prop);
+			this.parseScript(hasScripts, prop);
 		}
 	}
 
+	/**
+	 * author: qiqiwu
+	 *
+	 * @param valueName
+	 * @param prop
+	 * @throws IOException
+	 */
 	public void parseConfiguration(String[] valueName, Properties prop) throws IOException {
 
 		if (valueName[0] != null && valueName[0].length() > 0) {
@@ -228,11 +235,19 @@ public class JDBCConnection implements Connection {
 			this.parseDfsAndTableName(valueName, prop);
 
 			// 解析controllerAlias
+			// 这段逻辑原来是由qiqiwu写的，但发现没有必要，代码冗余，先注掉
 			String controllerAlias = this.dbConnection.run("getControllerAlias()").getString();
-			this.parseControllerAlias(controllerAlias);
+			// this.parseControllerAlias(controllerAlias);
 		}
 	}
 
+	/**
+	 * author: qiqiwu
+	 *
+	 * @param valueName
+	 * @param prop
+	 * @throws IOException
+	 */
 	public void parseDfsAndTableName(String[] valueName, Properties prop) throws IOException {
 		if (valueName[0].trim().startsWith("dfs://")) {
 			this.isDFS = true;
@@ -266,27 +281,13 @@ public class JDBCConnection implements Connection {
 		}
 	}
 
-	public void parseControllerAlias(String controllerAlias) throws IOException {
-		if (controllerAlias != null && controllerAlias.length() > 0) {
-			this.isDFS = true;
-			this.controlHost = this.dbConnection.run("rpc(\"" + controllerAlias + "\", getNodeHost)").getString();
-			this.controlPort = ((BasicInt)this.dbConnection.run("rpc(\"" + controllerAlias + "\", getNodePort)")).getInt();
-			this.controlConnection = new DBConnection();
-			this.controlConnection.connect(this.controlHost, this.controlPort);
-			// todo 待确认点：单节点会有问题
-			BasicTable table = (BasicTable)this.controlConnection.run("getClusterChunkNodesStatus()");
-			Vector siteVector = table.getColumn("site");
-			this.hostName_ports = new LinkedList();
-			int i = 0;
-
-			for(int len = siteVector.rows(); i < len; ++i) {
-				this.hostName_ports.add(siteVector.get(i).getString());
-			}
-		} else {
-			this.isDFS = false;
-		}
-	}
-
+	/**
+	 * author: qiqiwu
+	 *
+	 * @param hasScripts
+	 * @param prop
+	 * @throws IOException
+	 */
 	public void parseScript(String hasScripts, Properties prop) throws IOException {
 		if (hasScripts != null) {
 			int length = Integer.parseInt(prop.getProperty("length"));
@@ -297,6 +298,33 @@ public class JDBCConnection implements Connection {
 			}
 		}
 	}
+
+	/**
+	 * author: qiqiwu
+	 *
+	 * @throws IOException
+	 */
+//	public void parseControllerAlias(String controllerAlias) throws IOException {
+//		if (controllerAlias != null && controllerAlias.length() > 0) {
+//			this.isDFS = true;
+//			this.controlHost = this.dbConnection.run("rpc(\"" + controllerAlias + "\", getNodeHost)").getString();
+//			this.controlPort = ((BasicInt)this.dbConnection.run("rpc(\"" + controllerAlias + "\", getNodePort)")).getInt();
+//			this.controlConnection = new DBConnection();
+//			this.controlConnection.connect(this.controlHost, this.controlPort);
+//			BasicTable table = (BasicTable)this.controlConnection.run("getClusterChunkNodesStatus()");
+//			Vector siteVector = table.getColumn("site");
+//			this.hostName_ports = new LinkedList();
+//			int i = 0;
+//
+//			for(int len = siteVector.rows(); i < len; ++i) {
+//				this.hostName_ports.add(siteVector.get(i).getString());
+//			}
+//		} else {
+//			this.isDFS = false;
+//		}
+//	}
+
+
 
 	@Override
 	public Statement createStatement() throws SQLException {
