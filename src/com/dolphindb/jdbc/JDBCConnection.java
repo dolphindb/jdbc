@@ -6,6 +6,7 @@ package com.dolphindb.jdbc;
 import com.xxdb.DBConnection;
 import com.xxdb.data.*;
 import com.xxdb.io.ProgressListener;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -58,7 +59,8 @@ public class JDBCConnection implements Connection {
 			} else {
 				throw new SQLException(e);
 			}
-
+		} catch (Exception e) {
+			throw new RuntimeException(e);
 		}
 	}
 	
@@ -194,65 +196,105 @@ public class JDBCConnection implements Connection {
 		}
 	}
 
-	private void open(String hostname, int port, Properties prop) throws SQLException, IOException{
+	private void open(String hostname, int port, Properties prop) throws Exception {
+		// 尝试连接
 		this.connect(hostname, port, prop);
+		// 1、如果连接成功
 		if (!this.success) {
 			throw new SQLException("Connection is fail");
+		// 2、如果连接失败
 		} else {
 			String[] key = new String[]{"databasePath"};
 			String[] valueName = Utils.getProperties(prop, key);
 			String hasScripts = prop.getProperty("length");
-			if (valueName[0] != null && valueName[0].length() > 0) {
-				StringBuilder sb = (new StringBuilder("system_db")).append(" = database(\"").append(valueName[0]).append("\");\n");
-				this.sqlSb = new StringBuilder();
-				this.sqlSb.append(sb);
-				this.dbConnection.run(sb.toString());
-				if (valueName[0].trim().startsWith("dfs://")) {
-					this.isDFS = true;
-					this.databases = valueName[0];
-					this.tables = (Vector)this.dbConnection.run("getTables(system_db)");
-					StringBuilder loadTableSb = new StringBuilder();
-					int i = 0;
 
-					for(int len = this.tables.rows(); i < len; ++i) {
-						String name = this.tables.get(i).getString();
-						loadTableSb.append(name).append(" = ").append("loadTable(").append("system_db").append(",`").append(name).append(");\n");
-					}
+			// 解析库、表、controllerAlias配置
+			this.parseConfiguration(valueName, prop);
 
-					this.sqlSb.append(loadTableSb);
-					String sql = loadTableSb.toString();
-					this.dbConnection.run(sql);
+			// 解析脚本
+			parseScript(hasScripts, prop);
+		}
+	}
+
+	public void parseConfiguration(String[] valueName, Properties prop) throws IOException {
+
+		if (valueName[0] != null && valueName[0].length() > 0) {
+			StringBuilder sb = (new StringBuilder("system_db")).append(" = database(\"").append(valueName[0]).append("\");\n");
+			this.sqlSb = new StringBuilder();
+			this.sqlSb.append(sb);
+			this.dbConnection.run(sb.toString());
+
+			// 如果是'dfs://'开头的的分布式库，1）若未指定tablename，load所有表名；若指定了tablename，load指定表
+			this.parseDfsAndTableName(valueName, prop);
+
+			// 解析controllerAlias
+			String controllerAlias = this.dbConnection.run("getControllerAlias()").getString();
+			this.parseControllerAlias(controllerAlias);
+		}
+	}
+
+	public void parseDfsAndTableName(String[] valueName, Properties prop) throws IOException {
+		if (valueName[0].trim().startsWith("dfs://")) {
+			this.isDFS = true;
+			this.databases = valueName[0];
+			// 如果指定了要加载的表名
+			if (StringUtils.isNotEmpty(prop.getProperty("tablename"))) {
+				String tablename = prop.getProperty("tablename");
+				tablename = tablename.trim();
+				String[] tableNames = tablename.split(",");
+				String[] finaltablenames = new String[tableNames.length];
+				for (int i = 0; i < tableNames.length; i++) {
+					finaltablenames[i] = tableNames[i];
 				}
+				BasicStringVector basicStringVector = new BasicStringVector(finaltablenames);
+				this.tables = (Vector) basicStringVector;
+			} else {
+				// 未指定表名，load所有
+				this.tables = (Vector)this.dbConnection.run("getTables(system_db)");
+			}
+			StringBuilder loadTableSb = new StringBuilder();
+			int i = 0;
 
-				String controllerAlias = this.dbConnection.run("getControllerAlias()").getString();
-				if (controllerAlias != null && controllerAlias.length() > 0) {
-					this.isDFS = true;
-					this.controlHost = this.dbConnection.run("rpc(\"" + controllerAlias + "\", getNodeHost)").getString();
-					this.controlPort = ((BasicInt)this.dbConnection.run("rpc(\"" + controllerAlias + "\", getNodePort)")).getInt();
-					this.controlConnection = new DBConnection();
-					this.controlConnection.connect(this.controlHost, this.controlPort);
-					BasicTable table = (BasicTable)this.controlConnection.run("getClusterChunkNodesStatus()");
-					Vector siteVector = table.getColumn("site");
-					this.hostName_ports = new LinkedList();
-					int i = 0;
-
-					for(int len = siteVector.rows(); i < len; ++i) {
-						this.hostName_ports.add(siteVector.get(i).getString());
-					}
-				} else {
-					this.isDFS = false;
-				}
+			for(int len = this.tables.rows(); i < len; ++i) {
+				String name = this.tables.get(i).getString();
+				loadTableSb.append(name).append(" = ").append("loadTable(").append("system_db").append(",`").append(name).append(");\n");
 			}
 
-			if (hasScripts != null) {
-				int length = Integer.parseInt(prop.getProperty("length"));
-				if (length > 0) {
-					for(int i = 0; i < length; ++i) {
-						this.dbConnection.run(prop.getProperty("script" + i));
-					}
+			this.sqlSb.append(loadTableSb);
+			String sql = loadTableSb.toString();
+			this.dbConnection.run(sql);
+		}
+	}
+
+	public void parseControllerAlias(String controllerAlias) throws IOException {
+		if (controllerAlias != null && controllerAlias.length() > 0) {
+			this.isDFS = true;
+			this.controlHost = this.dbConnection.run("rpc(\"" + controllerAlias + "\", getNodeHost)").getString();
+			this.controlPort = ((BasicInt)this.dbConnection.run("rpc(\"" + controllerAlias + "\", getNodePort)")).getInt();
+			this.controlConnection = new DBConnection();
+			this.controlConnection.connect(this.controlHost, this.controlPort);
+			// todo 待确认点：单节点会有问题
+			BasicTable table = (BasicTable)this.controlConnection.run("getClusterChunkNodesStatus()");
+			Vector siteVector = table.getColumn("site");
+			this.hostName_ports = new LinkedList();
+			int i = 0;
+
+			for(int len = siteVector.rows(); i < len; ++i) {
+				this.hostName_ports.add(siteVector.get(i).getString());
+			}
+		} else {
+			this.isDFS = false;
+		}
+	}
+
+	public void parseScript(String hasScripts, Properties prop) throws IOException {
+		if (hasScripts != null) {
+			int length = Integer.parseInt(prop.getProperty("length"));
+			if (length > 0) {
+				for(int i = 0; i < length; ++i) {
+					this.dbConnection.run(prop.getProperty("script" + i));
 				}
 			}
-
 		}
 	}
 
