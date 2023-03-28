@@ -1,5 +1,6 @@
 import com.alibaba.fastjson.JSON;
 import com.dolphindb.jdbc.JDBCConnection;
+import com.xxdb.DBConnection;
 import com.xxdb.data.Entity;
 import org.junit.Test;
 
@@ -91,6 +92,44 @@ public class TestForZhongJin {
         String str = "tb1,tb2,tb3";
         String[] strings = str.split(",");
         System.out.println(strings.length);
+    }
+
+    /**
+     * 测试同学提供的case
+     */
+    public boolean CreateConnection1(String connstr) throws ClassNotFoundException, SQLException {
+        Boolean trigger = false;
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+        Connection conn;
+        conn = DriverManager.getConnection(connstr);
+        Statement stmt = conn.createStatement();
+        stmt.execute("t = table(1..10 as id, 11..20 as val)");
+        ResultSet rs = stmt.executeQuery("select * from t");
+        ResultSetMetaData rsmd = rs.getMetaData();
+        if(rsmd.getColumnCount() == 2){
+            trigger = true;
+        }
+        return trigger;
+    }
+    public static void CreateDfsTable(String host, Integer port) throws IOException {
+        String script = "login(`admin, `123456); \n"+
+                "if(existsDatabase('dfs://db_testDriverManager')){ dropDatabase('dfs://db_testDriverManager')} \n"+
+                "t = table(1..10000 as id, take(1, 10000) as val) \n"+
+                "db=database('dfs://db_testDriverManager', RANGE, 1 2001 4001 6001 8001 10001) \n"+
+                "db.createPartitionedTable(t, `pt, `id).append!(t) \n";
+        DBConnection db = new DBConnection();
+        db.connect(host, port);
+        db.run(script);
+        db.close();
+    }
+
+    @Test
+    public void Test_getConnection_with_dfsdatabasePath() throws Exception {
+        CreateDfsTable(HOST,PORT);
+        String url1 = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456&databasePath=dfs://db_testDriverManager";
+        boolean connected = CreateConnection1(url1);
+        org.junit.Assert.assertTrue(connected);
     }
 
 
