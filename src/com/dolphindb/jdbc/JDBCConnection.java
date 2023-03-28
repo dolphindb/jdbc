@@ -31,7 +31,7 @@ public class JDBCConnection implements Connection {
 	private Vector tables;
 	private String url;
 	private DatabaseMetaData metaData;
-	private List<String> hostName_ports;
+	// private List<String> hostName_ports;
 	private boolean isDFS;
 	private StringBuilder sqlSb;
 	private  String controlHost;
@@ -323,8 +323,6 @@ public class JDBCConnection implements Connection {
 //			this.isDFS = false;
 //		}
 //	}
-
-
 
 	@Override
 	public Statement createStatement() throws SQLException {
@@ -656,34 +654,35 @@ public class JDBCConnection implements Connection {
 			return this.dbConnection.run(function, arguments);
 		}
 
-		int size = hostName_ports.size();
+		// int size = hostName_ports.size();
 		Entity entity = null;
 		try {
 			entity = this.dbConnection.run(function, arguments);
 			return entity;
 		} catch (IOException e) {
-			for (int index = 0; index < size; ++index) {
-				String[] hostName_port = hostName_ports.get(index).split(":");
-				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
-					continue;
-				}
-				this.dbConnection = new DBConnection();
-				try {
-					boolean succeeded;
-					if(getUser()!=null && getPassword()!=null){
-						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]), getUser(), getPassword());
-					}
-					else{
-						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]));
-					}
-					if (succeeded) {
-						this.dbConnection.run(sqlSb.toString());
-						entity = this.dbConnection.run(function, arguments);
-						return entity;
-					}
-				} catch (IOException e1) {
-					return entity;
-				}
+			throw new IOException("All dataNodes were dead");
+//			for (int index = 0; index < size; ++index) {
+//				String[] hostName_port = hostName_ports.get(index).split(":");
+//				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
+//					continue;
+//				}
+//				this.dbConnection = new DBConnection();
+//				try {
+//					boolean succeeded;
+//					if(getUser()!=null && getPassword()!=null){
+//						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]), getUser(), getPassword());
+//					}
+//					else{
+//						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]));
+//					}
+//					if (succeeded) {
+//						this.dbConnection.run(sqlSb.toString());
+//						entity = this.dbConnection.run(function, arguments);
+//						return entity;
+//					}
+//				} catch (IOException e1) {
+//					return entity;
+//				}
 				
 //				this.dbConnection.close();
 //				this.dbConnection = new DBConnection();
@@ -697,8 +696,7 @@ public class JDBCConnection implements Connection {
 //				} catch (IOException e1) {
 //					message = e1.getMessage();
 //				}
-			}
-			throw new IOException("All dataNodes were dead");
+			// }
 		}
 	}
 
@@ -713,36 +711,36 @@ public class JDBCConnection implements Connection {
 			sqlSb.append(script).append(";\n");
 		}
 
-		int size = hostName_ports.size();
+		// int size = hostName_ports.size();
 		Entity entity = null;
 		try {
 			entity = this.dbConnection.run(script);
 			return entity;
 		} catch (IOException e) {
-			for (int index = 0; index < size; ++index) {
-				String[] hostName_port = hostName_ports.get(index).split(":");
-				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
-					continue;
-				}
-				this.dbConnection = new DBConnection();
-				try {
-					boolean succeeded;
-					if(getUser()!=null && getPassword()!=null){
-						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]), getUser(), getPassword());
-					}
-					else{
-						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]));
-					}
-					if (succeeded) {
-						this.dbConnection.run(sqlSb.toString());
-						entity = this.dbConnection.run(script);
-						return entity;
-					}
-				} catch (IOException e1) {
-					return entity;
-				}
-			}		
 			throw new IOException("All dataNodes were dead");
+//			for (int index = 0; index < size; ++index) {
+//				String[] hostName_port = hostName_ports.get(index).split(":");
+//				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
+//					continue;
+//				}
+//				this.dbConnection = new DBConnection();
+//				try {
+//					boolean succeeded;
+//					if(getUser()!=null && getPassword()!=null){
+//						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]), getUser(), getPassword());
+//					}
+//					else{
+//						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]));
+//					}
+//					if (succeeded) {
+//						this.dbConnection.run(sqlSb.toString());
+//						entity = this.dbConnection.run(script);
+//						return entity;
+//					}
+//				} catch (IOException e1) {
+//					return entity;
+//				}
+//			}
 		}
 	}
 
@@ -756,36 +754,36 @@ public class JDBCConnection implements Connection {
 			sqlSb.append(script).append(";\n");
 		}
 
-		int size = hostName_ports.size();
+		// int size = hostName_ports.size();
 		Entity entity = null;
 		try {
 			entity = this.dbConnection.run(script);
 			return entity;
 		} catch (IOException e) {
-			for (int index = 0; index < size; ++index) {
-				String[] hostName_port = hostName_ports.get(index).split(":");
-				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
-					continue;
-				}
-				this.dbConnection = new DBConnection();
-				try {
-					boolean succeeded;
-					if(getUser()!=null && getPassword()!=null){
-						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]), getUser(), getPassword());
-					}
-					else{
-						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]));
-					}
-					if (succeeded) {
-						this.dbConnection.run(sqlSb.toString());
-						entity = this.dbConnection.run(script, (ProgressListener) null, 4, 2, fetchSize);
-						return entity;
-					}
-				} catch (IOException e1) {
-					return entity;
-				}
-			}
 			throw new IOException("All dataNodes were dead");
+//			for (int index = 0; index < size; ++index) {
+//				String[] hostName_port = hostName_ports.get(index).split(":");
+//				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
+//					continue;
+//				}
+//				this.dbConnection = new DBConnection();
+//				try {
+//					boolean succeeded;
+//					if(getUser()!=null && getPassword()!=null){
+//						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]), getUser(), getPassword());
+//					}
+//					else{
+//						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]));
+//					}
+//					if (succeeded) {
+//						this.dbConnection.run(sqlSb.toString());
+//						entity = this.dbConnection.run(script, (ProgressListener) null, 4, 2, fetchSize);
+//						return entity;
+//					}
+//				} catch (IOException e1) {
+//					return entity;
+//				}
+//			}
 		}
 	}
 
