@@ -61,6 +61,29 @@ public class TestForZhongJin {
     }
 
     @Test
+    public void testSetMultiTableName2() throws SQLException, IOException, ClassNotFoundException {
+
+        // String[] tablenames = {"pt1", "pt2"};
+        String[] tablenames = {"pt1"};
+        String tablename = String.join(",", tablenames);
+        StringBuilder stringBuilder = new StringBuilder();
+        String testUrl = "jdbc:dolphindb://"+"192.168.100.43"+":"+8903+"?user=admin&password=123456&databasePath=dfs://TEST";
+        stringBuilder.append(testUrl);
+        stringBuilder.append("&tablename=");
+        stringBuilder.append(tablename);
+        String url = stringBuilder.toString();
+
+        System.out.println(url);
+
+        Class.forName("com.dolphindb.jdbc.Driver");
+
+        // JDBCConnection jdbcConnection = new JDBCConnection(url, prop);
+        // 获取jdbc链接
+        Connection connection = DriverManager.getConnection(url);
+        DatabaseMetaData metaData = connection.getMetaData();
+    }
+
+    @Test
     public void testStringJoint() {
         String[] hosts = {"host1", "host2", "host3"};
         String database = "mydb";
