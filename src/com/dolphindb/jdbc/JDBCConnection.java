@@ -253,8 +253,8 @@ public class JDBCConnection implements Connection {
 			this.isDFS = true;
 			this.databases = valueName[0];
 			// 如果指定了要加载的表名
-			if (StringUtils.isNotEmpty(prop.getProperty("tablename"))) {
-				String tablename = prop.getProperty("tablename");
+			if (StringUtils.isNotEmpty(prop.getProperty("tableName"))) {
+				String tablename = prop.getProperty("tableName");
 				tablename = tablename.trim();
 				String[] tableNames = tablename.split(",");
 				String[] finaltablenames = new String[tableNames.length];
