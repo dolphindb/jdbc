@@ -302,7 +302,6 @@ public class JDBCConnection implements Connection {
 	/**
 	 * author: qiqiwu
 	 *
-	 * @throws IOException
 	 */
 //	public void parseControllerAlias(String controllerAlias) throws IOException {
 //		if (controllerAlias != null && controllerAlias.length() > 0) {
