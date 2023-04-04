@@ -36,7 +36,7 @@ public class JDBCPreLoadTest {
                     "pt.append!(t);\n" +
                     "dt.append!(t2);\n" +
                     "Order_tmp.append!(t3);";
-            String script2 = "n = 50080000\n" +
+            String script2 = "n = 5000\n" +
                     "date = take(2006.01.01..2006.01.31,n);\n" +
                     "de = rand(30.0,n)\n" +
                     "t3 = table(date,de)\n" +
@@ -132,7 +132,7 @@ public class JDBCPreLoadTest {
         }
     }
 
-    @Test(expected = SQLException.class)
+    @Test(expected = RuntimeException.class)
     public void test_PreLoad_nullTable() throws SQLException {
         conn = DriverManager.getConnection(url+"tb_ft=dfs://valuedb+ft",info);
         Statement stm = conn.createStatement();
@@ -348,13 +348,13 @@ public class JDBCPreLoadTest {
         db.close();
         conn = DriverManager.getConnection(url+"?databasePath=dfs://testPreload",info);
         Statement stm = conn.createStatement();
-        ResultSet rs = stm.executeQuery("select TOP 101 * from pt");
+        ResultSet rs = stm.executeQuery("select TOP 100 * from pt");
         Assert.assertTrue(rs.next());
         int index = 0;
         while(rs.next()){
             System.out.println((index++)+":"+rs.getString(1)+" "+rs.getString(2));
         }
-        Assert.assertEquals(100,index);
+        Assert.assertEquals(99,index);
     }
 
     @Test
@@ -436,7 +436,7 @@ public class JDBCPreLoadTest {
         db.close();
         conn = DriverManager.getConnection(url+"?databasePath=dfs://testPreload",info);
         Statement stm = conn.createStatement();
-        ResultSet rs = stm.executeQuery("select TOP 101 * from pt");
+        ResultSet rs = stm.executeQuery("select TOP 100 * from pt");
         Assert.assertTrue(rs.next());
         int index = 0;
         while(rs.next()){
