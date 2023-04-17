@@ -229,15 +229,30 @@ public class JDBCConnection implements Connection {
 					this.isDFS = true;
 					this.controlHost = this.dbConnection.run("rpc(\"" + controllerAlias + "\", getNodeHost)").getString();
 					this.controlPort = ((BasicInt)this.dbConnection.run("rpc(\"" + controllerAlias + "\", getNodePort)")).getInt();
-					this.controlConnection = new DBConnection();
-					this.controlConnection.connect(this.controlHost, this.controlPort);
-					BasicTable table = (BasicTable)this.controlConnection.run("getClusterChunkNodesStatus()");
-					Vector siteVector = table.getColumn("site");
-					this.hostName_ports = new LinkedList();
-					int i = 0;
+					boolean ishostportReady=false;
+					try {
+						this.controlConnection = new DBConnection();
+						this.controlConnection.connect(this.controlHost, this.controlPort);
+						if(this.controlConnection.isConnected()) {
+							BasicTable table = (BasicTable) this.controlConnection.run("getClusterChunkNodesStatus()");
+							Vector siteVector = table.getColumn("site");
+							this.hostName_ports = new LinkedList();
+							int i = 0;
 
-					for(int len = siteVector.rows(); i < len; ++i) {
-						this.hostName_ports.add(siteVector.get(i).getString());
+							for (int len = siteVector.rows(); i < len; ++i) {
+								this.hostName_ports.add(siteVector.get(i).getString());
+							}
+							ishostportReady = true;
+						}
+					}catch (Exception e){
+						e.printStackTrace();
+					}
+					if(ishostportReady == false){
+						this.isDFS = false;
+						this.controlHost=null;
+						this.controlPort=-1;
+						this.controlConnection = null;
+						this.hostName_ports = null;
 					}
 				} else {
 					this.isDFS = false;
