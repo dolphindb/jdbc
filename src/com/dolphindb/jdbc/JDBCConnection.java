@@ -58,7 +58,8 @@ public class JDBCConnection implements Connection {
 			} else {
 				throw new SQLException(e);
 			}
-
+		} catch (Exception e) {
+			throw new RuntimeException(e);
 		}
 	}
 	
