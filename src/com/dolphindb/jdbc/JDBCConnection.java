@@ -21,7 +21,7 @@ import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
 
 public class JDBCConnection implements Connection {
-	private DBConnection controlConnection;
+	//private DBConnection controlConnection;
 	private DBConnection dbConnection;
 	private String hostName;
 	private int port;
@@ -30,11 +30,11 @@ public class JDBCConnection implements Connection {
 	private Vector tables;
 	private String url;
 	private DatabaseMetaData metaData;
-	private List<String> hostName_ports;
-	private boolean isDFS;
-	private StringBuilder sqlSb;
-	private  String controlHost;
-	private  int controlPort;
+	//private List<String> hostName_ports;
+	//private boolean isDFS;
+	//private StringBuilder sqlSb;
+	//private  String controlHost;
+	//private  int controlPort;
 	private String user;
 	private String password;
 
@@ -43,8 +43,8 @@ public class JDBCConnection implements Connection {
 		dbConnection = new DBConnection();
 		hostName = prop.getProperty("hostName");
 		port = Integer.parseInt(prop.getProperty("port"));
-		controlHost = null;
-		controlPort = -1;
+		//controlHost = null;
+		//controlPort = -1;
 		setUser(null);
 		setPassword(null);
         clientInfo = prop;
@@ -81,6 +81,7 @@ public class JDBCConnection implements Connection {
 	 * @throws IOException
 	 * @throws SQLException
 	 */
+	/*
 	private boolean tryOtherNode(String hostname, int FuncationPort, Properties prop) throws IOException, SQLException {
 		controlConnection = new DBConnection();
 	    if(controlHost != null && controlPort > 0){
@@ -111,7 +112,7 @@ public class JDBCConnection implements Connection {
 	        }
 	    return false;
 	}
-
+	*/
 	/**
 	 * Whether the node is reachable
 	 * 
@@ -122,7 +123,7 @@ public class JDBCConnection implements Connection {
 	 *            key, then the default controllerNode is 3
 	 * @return
 	 */
-	private boolean reachable(String hostname, int port, Properties prop) {
+	/*private boolean reachable(String hostname, int port, Properties prop) {
 		Socket s = new Socket();
 		SocketAddress add = new InetSocketAddress(hostname, port);
 		int waitingTime = 3;
@@ -142,9 +143,9 @@ public class JDBCConnection implements Connection {
 			}
 		}
 		return true;
-	}
+	}*/
 
-	private void checklogin(String hostname, int port, Properties prop) {
+	/*private void checklogin(String hostname, int port, Properties prop) {
 		try {
 			if(prop.containsKey("user") && prop.containsKey("password")) {
 				success = dbConnection.connect(hostname, port,prop.getProperty("user"),prop.getProperty("password"));	
@@ -157,8 +158,8 @@ public class JDBCConnection implements Connection {
 			e.printStackTrace();
 		}
 		
-	}
-	
+	}*/
+
 	/**
 	 * build connect to port
 	 * 
@@ -168,13 +169,19 @@ public class JDBCConnection implements Connection {
 	 * @throws IOException
 	 * @throws SQLException
 	 */
-	private void connect(String hostname, int port, Properties prop) throws IOException {
+	private void connect(String hostname, int port, Properties prop, String appendInitScript) throws IOException {
 		String userId = prop.getProperty("user");
 		String password = prop.getProperty("password");
 		String initialScript = prop.getProperty("initialScript");
 		initialScript = Utils.changeCase(initialScript);
 		if (initialScript!=null&&initialScript.equals("select 1"))
 			initialScript = "select 1 as val";
+		if(appendInitScript != null) {
+			if(initialScript!=null)
+				initialScript = appendInitScript + "\n" + initialScript;
+			else
+				initialScript = appendInitScript;
+		}
 		Boolean highAvailability = Boolean.valueOf(prop.getProperty("highAvailability"));
 		String rowHighAvailabilitySites = prop.getProperty("highAvailabilitySites");
 		String[] highAvailabilitySites = null;
@@ -185,90 +192,55 @@ public class JDBCConnection implements Connection {
 			if (highAvailability){
 				success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
 			}else {
-				success = dbConnection.connect(hostname, port, userId, password);
+				success = dbConnection.connect(hostname, port, userId, password,null,false,null,true);
 			}
 		}else if(initialScript != null && highAvailabilitySites != null){
 			success = dbConnection.connect(hostname, port, initialScript, highAvailabilitySites);
 		}else {
-			success = dbConnection.connect(hostName, port);
+			success = dbConnection.connect(hostName, port,"","",null,false,null,true);
 		}
 	}
 
 	private void open(String hostname, int port, Properties prop) throws SQLException, IOException{
-		this.connect(hostname, port, prop);
+		this.connect(hostname, port, prop,null);
 		if (!this.success) {
-			throw new SQLException("Connection is fail");
-		} else {
-			String[] key = new String[]{"databasePath"};
-			String[] valueName = Utils.getProperties(prop, key);
-			String hasScripts = prop.getProperty("length");
-			if (valueName[0] != null && valueName[0].length() > 0) {
-				StringBuilder sb = (new StringBuilder("system_db")).append(" = database(\"").append(valueName[0]).append("\");\n");
-				this.sqlSb = new StringBuilder();
-				this.sqlSb.append(sb);
-				this.dbConnection.run(sb.toString());
-				if (valueName[0].trim().startsWith("dfs://")) {
-					this.isDFS = true;
-					this.databases = valueName[0];
-					this.tables = (Vector)this.dbConnection.run("getTables(system_db)");
-					StringBuilder loadTableSb = new StringBuilder();
-					int i = 0;
-
-					for(int len = this.tables.rows(); i < len; ++i) {
-						String name = this.tables.get(i).getString();
-						loadTableSb.append(name).append(" = ").append("loadTable(").append("system_db").append(",`").append(name).append(");\n");
-					}
-
-					this.sqlSb.append(loadTableSb);
-					String sql = loadTableSb.toString();
-					this.dbConnection.run(sql);
-				}
-
-				String controllerAlias = this.dbConnection.run("getControllerAlias()").getString();
-				if (controllerAlias != null && controllerAlias.length() > 0) {
-					this.isDFS = true;
-					this.controlHost = this.dbConnection.run("rpc(\"" + controllerAlias + "\", getNodeHost)").getString();
-					this.controlPort = ((BasicInt)this.dbConnection.run("rpc(\"" + controllerAlias + "\", getNodePort)")).getInt();
-					boolean ishostportReady=false;
-					try {
-						this.controlConnection = new DBConnection();
-						this.controlConnection.connect(this.controlHost, this.controlPort);
-						if(this.controlConnection.isConnected()) {
-							BasicTable table = (BasicTable) this.controlConnection.run("getClusterChunkNodesStatus()");
-							Vector siteVector = table.getColumn("site");
-							this.hostName_ports = new LinkedList();
-							int i = 0;
-
-							for (int len = siteVector.rows(); i < len; ++i) {
-								this.hostName_ports.add(siteVector.get(i).getString());
-							}
-							ishostportReady = true;
-						}
-					}catch (Exception e){
-						e.printStackTrace();
-					}
-					if(ishostportReady == false){
-						this.isDFS = false;
-						this.controlHost=null;
-						this.controlPort=-1;
-						this.controlConnection = null;
-						this.hostName_ports = null;
-					}
-				} else {
-					this.isDFS = false;
-				}
-			}
-
-			if (hasScripts != null) {
-				int length = Integer.parseInt(prop.getProperty("length"));
-				if (length > 0) {
-					for(int i = 0; i < length; ++i) {
-						this.dbConnection.run(prop.getProperty("script" + i));
-					}
-				}
-			}
-
+			throw new SQLException("Connection is failed");
 		}
+		StringBuffer sbInitScript=new StringBuffer();
+		String[] key = new String[]{"databasePath"};
+		String[] valueName = Utils.getProperties(prop, key);
+		if (valueName[0] != null && valueName[0].length() > 0) {
+			StringBuilder sb = (new StringBuilder("system_db")).append(" = database(\"").append(valueName[0]).append("\");\n");
+			this.dbConnection.run(sb.toString());
+			sbInitScript.append(sb);
+			if (valueName[0].trim().startsWith("dfs://")) {
+				//this.isDFS = true;
+				this.databases = valueName[0];
+				this.tables = (Vector) this.dbConnection.run("getTables(system_db)");
+				StringBuilder loadTableSb = new StringBuilder();
+				int i = 0;
+
+				for (int len = this.tables.rows(); i < len; ++i) {
+					String name = this.tables.get(i).getString();
+					loadTableSb.append(name).append(" = ").append("loadTable(").append("system_db").append(",`").append(name).append(");\n");
+				}
+
+				sbInitScript.append(loadTableSb);
+				//String sql = loadTableSb.toString();
+				//this.dbConnection.run(sql);
+			}
+		}
+		String hasScripts = prop.getProperty("length");
+		if (hasScripts != null) {
+			int length = Integer.parseInt(prop.getProperty("length"));
+			if (length > 0) {
+				for(int i = 0; i < length; ++i) {
+					sbInitScript.append(prop.getProperty("script" + i)+"\n");
+				}
+			}
+		}
+		if(sbInitScript.length()>0)
+			this.connect(hostname, port, prop,sbInitScript.toString());
 	}
 
 	@Override
@@ -597,12 +569,14 @@ public class JDBCConnection implements Connection {
 
 	// Automatic switching node
 	public Entity run(String function, List<Entity> arguments) throws IOException {
-		if (!isDFS) {
-			return this.dbConnection.run(function, arguments);
-		}
+		//if (!isDFS) {
+		return this.dbConnection.run(function, arguments);
+		/*}
 
-		int size = hostName_ports.size();
+		//int size = hostName_ports.size();
 		Entity entity = null;
+		entity = this.dbConnection.run(function, arguments);
+		return entity;
 		try {
 			entity = this.dbConnection.run(function, arguments);
 			return entity;
@@ -644,14 +618,14 @@ public class JDBCConnection implements Connection {
 //				}
 			}
 			throw new IOException("All dataNodes were dead");
-		}
+		}*/
 	}
 
 	// Automatic switching node
 	public Entity run(String script) throws IOException {
-		if (!isDFS) {
-			return this.dbConnection.run(script);
-		}
+		//if (!isDFS) {
+		return this.dbConnection.run(script);
+		/*}
 		script = script.trim();
 		Matcher matcher = Utils.ASSIGN_PATTERN.matcher(script);
 		if (matcher.find()) {
@@ -688,13 +662,13 @@ public class JDBCConnection implements Connection {
 				}
 			}		
 			throw new IOException("All dataNodes were dead");
-		}
+		}*/
 	}
 
 	public Entity run(String script, int fetchSize) throws IOException {
-		if (!isDFS) {
-			return this.dbConnection.run(script, (ProgressListener) null, 4, 2, fetchSize);
-		}
+		//if (!isDFS) {
+		return this.dbConnection.run(script, (ProgressListener) null, 4, 2, fetchSize);
+		/*}
 		script = script.trim();
 		Matcher matcher = Utils.ASSIGN_PATTERN.matcher(script);
 		if (matcher.find()) {
@@ -731,7 +705,7 @@ public class JDBCConnection implements Connection {
 				}
 			}
 			throw new IOException("All dataNodes were dead");
-		}
+		}*/
 	}
 
 	public String getUrl() {
