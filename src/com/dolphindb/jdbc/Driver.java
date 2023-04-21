@@ -94,7 +94,7 @@ public class Driver implements java.sql.Driver {
                         }
                     }
                 }
-            }else if(strings.length == 2){
+            } else if(strings.length == 2){
                 String s1 = strings[0];
                 if (s1.length() > 0) {
                     String[] hostname_port = s1.split(":");
@@ -105,13 +105,13 @@ public class Driver implements java.sql.Driver {
                     else{
                         throw new SQLException("hostname_port " + strings[0] + " error");
                     }
-                }
-                else{
+                } else{
                     prop.setProperty("hostName", "localhost");
                     prop.setProperty("port", "8848");
                 }
                 String s2 = strings[1];
                 if (s2.length() > 0) {
+                    // 这一步会解析jdbc连接配置字符串中的属性，并以kv的方式添加到prop里
                     Utils.parseProperties(s2,prop,"&","=");
                 }
             }
