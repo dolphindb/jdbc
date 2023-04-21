@@ -6,6 +6,7 @@ package com.dolphindb.jdbc;
 import com.xxdb.DBConnection;
 import com.xxdb.data.*;
 import com.xxdb.io.ProgressListener;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -216,7 +217,20 @@ public class JDBCConnection implements Connection {
 			if (valueName[0].trim().startsWith("dfs://")) {
 				//this.isDFS = true;
 				this.databases = valueName[0];
-				this.tables = (Vector) this.dbConnection.run("getTables(system_db)");
+				// if set specific tableanme to load
+				if (StringUtils.isNotEmpty(prop.getProperty("tableName"))) {
+					String tablename = prop.getProperty("tableName");
+					tablename = tablename.trim();
+					String[] tableNames = tablename.split(",");
+					String[] finaltablenames = new String[tableNames.length];
+					for (int i = 0; i < tableNames.length; i++) {
+						finaltablenames[i] = tableNames[i];
+					}
+					BasicStringVector basicStringVector = new BasicStringVector(finaltablenames);
+					this.tables = (Vector) basicStringVector;
+				} else {
+					this.tables = (Vector) this.dbConnection.run("getTables(system_db)");
+				}
 				StringBuilder loadTableSb = new StringBuilder();
 				int i = 0;
 
