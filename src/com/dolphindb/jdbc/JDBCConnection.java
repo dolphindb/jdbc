@@ -170,7 +170,7 @@ public class JDBCConnection implements Connection {
 	 * @throws IOException
 	 * @throws SQLException
 	 */
-	private void connect(String hostname, int port, Properties prop, String appendInitScript) throws IOException {
+	private void connect(String hostname, int port, Properties prop, String appendInitScript) throws IOException, SQLException {
 		String userId = prop.getProperty("user");
 		String password = prop.getProperty("password");
 		String initialScript = prop.getProperty("initialScript");
@@ -183,7 +183,20 @@ public class JDBCConnection implements Connection {
 			else
 				initialScript = appendInitScript;
 		}
-		Boolean highAvailability = Boolean.valueOf(prop.getProperty("highAvailability"));
+		String highAvailabilityStr = prop.getProperty("highAvailability");
+		String enableHighAvailabilityStr = prop.getProperty("enableHighAvailability");
+		Boolean highAvailability = false;
+		if(highAvailabilityStr == null){
+			highAvailability = Boolean.valueOf(enableHighAvailabilityStr);
+		}else if(enableHighAvailabilityStr == null){
+			highAvailability = Boolean.valueOf(highAvailabilityStr);
+		}else{
+			Boolean param1 = Boolean.valueOf(highAvailabilityStr);
+			Boolean param2 = Boolean.valueOf(enableHighAvailabilityStr);
+			if(param1 != param2)
+				throw new SQLException("The values of the \"highAvailability\" and \"enableHighAvailability\" parameters in the URL must be the same if both are configured. ");
+			highAvailability = param1;
+		}
 		String rowHighAvailabilitySites = prop.getProperty("highAvailabilitySites");
 		String[] highAvailabilitySites = null;
 		if (rowHighAvailabilitySites != null) {
