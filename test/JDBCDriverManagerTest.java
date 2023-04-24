@@ -169,13 +169,13 @@ public class JDBCDriverManagerTest {
 		CreateConnection1(url1);
 	}
 
-	@Test(expected = SQLException.class)
+	@Test()
 	public void Test_createConnection_url_default_8848() throws Exception {
 		String url1 = "jdbc:dolphindb://?";
 		CreateConnection1(url1);
 	}
 
-	@Test(expected = SQLException.class)
+	@Test()
 	public void Test_createConnection_url_default_8848_2() throws Exception {
 		String url1 = "jdbc:dolphindb://";
 		CreateConnection1(url1);
