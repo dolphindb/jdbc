@@ -406,6 +406,7 @@ public class JDBCSQLSelectTest {
 		Properties info = new Properties();
 		info.put("user", "admin");
 		info.put("password", "123456");
+		info.put("highAvailability", "true");
 		Connection conn = null;
 		try {
 			Class.forName("com.dolphindb.jdbc.Driver");
