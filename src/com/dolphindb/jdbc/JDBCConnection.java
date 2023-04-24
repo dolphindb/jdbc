@@ -173,16 +173,20 @@ public class JDBCConnection implements Connection {
 	private void connect(String hostname, int port, Properties prop, String appendInitScript) throws IOException, SQLException {
 		String userId = prop.getProperty("user");
 		String password = prop.getProperty("password");
-		String initialScript = prop.getProperty("initialScript");
+		String initialScript = prop.getProperty("script0");
 		initialScript = Utils.changeCase(initialScript);
 		if (initialScript!=null&&initialScript.equals("select 1"))
 			initialScript = "select 1 as val";
-		if(appendInitScript != null) {
-			if(initialScript!=null)
-				initialScript = appendInitScript + "\n" + initialScript;
-			else
-				initialScript = appendInitScript;
+//		if(appendInitScript != null) {
+//			if(initialScript!=null)
+//				initialScript = appendInitScript + "\n" + initialScript;
+//			else
+//				initialScript = appendInitScript;
+//		}
+		if (initialScript != null && appendInitScript != null) {
+			initialScript = appendInitScript + "\n" + initialScript;
 		}
+
 		String highAvailabilityStr = prop.getProperty("highAvailability");
 		String enableHighAvailabilityStr = prop.getProperty("enableHighAvailability");
 		Boolean highAvailability = false;
@@ -202,15 +206,25 @@ public class JDBCConnection implements Connection {
 		if (rowHighAvailabilitySites != null) {
 			highAvailabilitySites = rowHighAvailabilitySites.split(" ");
 		}
-		if(userId != null && password != null){
+//		if(userId != null && password != null){
+//			if (highAvailability){
+//				success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
+//			}else {
+//				success = dbConnection.connect(hostname, port, userId, password,null,false,null,true);
+//			}
+//		}else if(initialScript != null && highAvailabilitySites != null){
+//			success = dbConnection.connect(hostname, port, initialScript, highAvailabilitySites);
+//		}else {
+//			success = dbConnection.connect(hostName, port,"","",null,false,null,true);
+//		}
+
+		if (userId != null && password != null) {
 			if (highAvailability){
 				success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
-			}else {
-				success = dbConnection.connect(hostname, port, userId, password,null,false,null,true);
+			} else {
+				success = dbConnection.connect(hostname, port, userId, password, initialScript,false,null,true);
 			}
-		}else if(initialScript != null && highAvailabilitySites != null){
-			success = dbConnection.connect(hostname, port, initialScript, highAvailabilitySites);
-		}else {
+		} else {
 			success = dbConnection.connect(hostName, port,"","",null,false,null,true);
 		}
 	}
