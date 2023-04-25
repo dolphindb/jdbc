@@ -5,6 +5,7 @@ package com.dolphindb.jdbc;
 
 import com.xxdb.DBConnection;
 import com.xxdb.data.*;
+import com.xxdb.data.Vector;
 import com.xxdb.io.ProgressListener;
 import org.apache.commons.lang3.StringUtils;
 
@@ -14,10 +15,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.sql.*;
 import java.text.MessageFormat;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
 
@@ -206,7 +204,7 @@ public class JDBCConnection implements Connection {
 			if (highAvailability){
 				success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
 			}else {
-				success = dbConnection.connect(hostname, port, userId, password,null,false,null,true);
+				success = dbConnection.connect(hostname, port, userId, password, initialScript,false,null,true);
 			}
 		}else if(initialScript != null && highAvailabilitySites != null){
 			success = dbConnection.connect(hostname, port, initialScript, highAvailabilitySites);
@@ -226,7 +224,6 @@ public class JDBCConnection implements Connection {
 		if (valueName[0] != null && valueName[0].length() > 0) {
 			StringBuilder sb = (new StringBuilder("system_db")).append(" = database(\"").append(valueName[0]).append("\");\n");
 			this.dbConnection.run(sb.toString());
-			sbInitScript.append(sb);
 			if (valueName[0].trim().startsWith("dfs://")) {
 				//this.isDFS = true;
 				this.databases = valueName[0];
@@ -242,19 +239,27 @@ public class JDBCConnection implements Connection {
 					BasicStringVector basicStringVector = new BasicStringVector(finaltablenames);
 					this.tables = (Vector) basicStringVector;
 				} else {
-					this.tables = (Vector) this.dbConnection.run("getTables(system_db)");
+					// if not specific tableanme, load all tables; but need to authenticate every table.
+					List<String> tableNameList = new ArrayList<>();
+					StringBuilder loadTableSb = new StringBuilder();
+					Vector vector = (Vector) this.dbConnection.run("getTables(system_db)");
+					for (int i = 0; i < vector.rows(); i++) {
+						Entity tempTableEntity = vector.get(i);
+						String tempTable = tempTableEntity.getString();
+						StringBuilder builder = new StringBuilder();
+						builder.append("loadTable(\"").append(valueName[0]).append("\", \"").append(tempTable).append("\");");
+						try {
+							this.dbConnection.run(builder.toString());
+						} catch (Exception e) {
+							continue;
+						}
+						tableNameList.add(tempTable);
+						loadTableSb.append(tempTable).append(" = ").append(builder.toString()).append("\n");
+					}
+					BasicStringVector basicStringVector = new BasicStringVector(tableNameList);
+					this.tables = (Vector) basicStringVector;
+					sbInitScript.append(loadTableSb);
 				}
-				StringBuilder loadTableSb = new StringBuilder();
-				int i = 0;
-
-				for (int len = this.tables.rows(); i < len; ++i) {
-					String name = this.tables.get(i).getString();
-					loadTableSb.append(name).append(" = ").append("loadTable(").append("system_db").append(",`").append(name).append(");\n");
-				}
-
-				sbInitScript.append(loadTableSb);
-				//String sql = loadTableSb.toString();
-				//this.dbConnection.run(sql);
 			}
 		}
 		String hasScripts = prop.getProperty("length");
@@ -267,8 +272,7 @@ public class JDBCConnection implements Connection {
 			}
 		}
 		if(sbInitScript.length()>0)
-			// this.connect(hostname, port, prop,sbInitScript.toString());
-			this.dbConnection.run(sbInitScript.toString());
+			this.connect(hostname, port, prop, sbInitScript.toString());
 	}
 
 	@Override
