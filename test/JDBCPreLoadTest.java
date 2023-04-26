@@ -132,9 +132,9 @@ public class JDBCPreLoadTest {
         }
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = SQLException.class)
     public void test_PreLoad_nullTable() throws SQLException {
-        conn = DriverManager.getConnection(url+"tb_ft=dfs://valuedb+ft",info);
+        conn = DriverManager.getConnection(url+"?tb_ft=dfs://valuedb+ft",info);
         Statement stm = conn.createStatement();
         ResultSet rs = stm.executeQuery("select * from ft");
         Assert.assertTrue(rs.next());
@@ -308,9 +308,10 @@ public class JDBCPreLoadTest {
         ResultSet rs = stm.executeQuery("select TOP 101 * from pt");
         Assert.assertTrue(rs.next());
         int index = 0;
-        while(rs.next()){
+        do{
             System.out.println((index++)+":"+rs.getString(1)+" "+rs.getString(2));
-        }
+
+        }while(rs.next());
         Assert.assertEquals(100,index);
     }
 
@@ -439,9 +440,10 @@ public class JDBCPreLoadTest {
         ResultSet rs = stm.executeQuery("select TOP 100 * from pt");
         Assert.assertTrue(rs.next());
         int index = 0;
-        while(rs.next()){
-            System.out.println((++index)+":"+rs.getString(1)+" "+rs.getString(3));
-        }
+        do{
+            System.out.println((index++)+":"+rs.getString(1)+" "+rs.getString(2));
+
+        }while(rs.next());
         Assert.assertEquals(100,index);
     }
 
