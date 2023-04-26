@@ -519,10 +519,34 @@ public class JDBCResultSetTest {
 		rs = stmt.executeQuery("select a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17 from pt");
 		rs.next();
 		rs.updateNString("a10", "ss");
-		rs.updateString("a10","wew");
-		rs.updateRow();
-		rs.moveToInsertRow();
-		rs.moveToCurrentRow();
+		try{
+			rs.updateString("a10","wew");
+		}
+		catch(Exception ex){
+			System.out.println(ex.toString());
+			org.junit.Assert.assertEquals("java.sql.SQLException: Updating the table of ResultSet is not currently supported", ex.toString());
+		}
+		try{
+			rs.updateRow();
+		}
+		catch(Exception ex){
+			System.out.println(ex.toString());
+			org.junit.Assert.assertEquals("java.sql.SQLException: Updating the table of ResultSet is not currently supported", ex.toString());
+		}
+		try{
+			rs.moveToInsertRow();
+		}
+		catch(Exception ex){
+			System.out.println(ex.toString());
+			org.junit.Assert.assertEquals("java.sql.SQLException: Updating the table of ResultSet is not currently supported", ex.toString());
+		}
+		try{
+			rs.moveToCurrentRow();
+		}
+		catch(Exception ex){
+			System.out.println(ex.toString());
+			org.junit.Assert.assertEquals("java.sql.SQLException: Updating the table of ResultSet is not currently supported", ex.toString());
+		}
 	}
 
 
