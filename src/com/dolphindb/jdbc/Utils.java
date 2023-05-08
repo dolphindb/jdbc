@@ -265,6 +265,9 @@ public class Utils {
     private static boolean isKeyChar(char chr){
         return (chr >='a'&&chr <= 'z')||(chr >= 'A'&&chr <= 'Z')||(chr >= '0'&&chr <= '9')||(chr == '_');
     }
+    private static boolean isStringChar(char chr){
+        return chr=='\''||chr=='"'||chr=='`';
+    }
 
     public static String changeCase(String sql){
         if (sql==null)
@@ -282,6 +285,10 @@ public class Utils {
                 if(isInString=='`'){//check ` end flag
                     if(isKeyChar(chr)==false){//end with no key char
                         isInString=0;
+                        continueSplashCount=0;
+                        if(isStringChar(chr)){
+                            isInString=chr;
+                        }
                     }
                 }else{// string
                     if(chr=='\\')
@@ -296,7 +303,7 @@ public class Utils {
                 sbSql.append(chr);
                 continue;
             }else{//not in string
-                if(chr=='\''||chr=='"'||chr=='`'){//start of string
+                if(isStringChar(chr)){//start of string
                     isInString=chr;
                     sbSql.append(chr);
                     continueSplashCount=0;
