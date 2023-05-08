@@ -284,7 +284,7 @@ public class JDBCPreLoadTest {
                 " csecond = take(00:00:01..23:59:59,n)\n" +
                 " cdatetime = take(2011.01.01 00:00:01..2022.09.30 23:59:59,n)\n" +
                 " ctimestamp = take(2022.09.30 00:00:00.001..2022.09.30 23:59:59.999,n)\n" +
-                " cnanotime = take(23:59:58.000000001..23:59:59.008007016,n)\n" +
+                " cnanotime = take(23:59:58.000000001..23:59:58.000007016,n)\n" +
                 " cnanotimestamp = take(2022.09.30 23:59:58.000000001..2022.09.30 23:59:58.000001112,n)\n" +
                 " cfloat = rand(300.0f,n)\n" +
                 " cdouble = rand(230.0,n)\n" +
