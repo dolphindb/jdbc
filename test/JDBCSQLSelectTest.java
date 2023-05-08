@@ -391,7 +391,7 @@ public class JDBCSQLSelectTest {
 	public void Test_case_OR_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`OR \"fdeDROR\" \"韩的OR韩的\" \"寒冷-FTW-EM-OR/M/L\" \"-OR|\"\"-OR45\" \"!OR!\" \"@OR@\" \"#OR#\" \"$OR$\" \"%OR%\" \"^OR^\" \"&OR&\" \"*OR*\" \"(OR)\" \"[OR]\" \"{OR}\" \"=OR=\" \"+OR+\" \"-OR-\"\"_OR_\" \"|OR|\" \"、OR、\" \"\\\\OR\\\\\" \":OR:\" \"?OR?\" \"<OR>\" \";;OR;;\" \"\\\"OR\\\"\"  \" OR \" \",,OR,,\" \"..OR..\" \"OR..\" \"//OR///\",34)\n" +
+				"ticker=take(`OR \"fdeDROR\" \"韩的OR韩的\" \"寒冷-FTW-EM-OR/M/L\" \"-OR|\"\"-OR45\" \"!OR!\" \"@OR@\" \"#OR#\" \"$OR$\" \"%OR%\" \"^OR^\" \"&OR&\" \"*OR*\" \"(OR)\" \"[OR]\" \"{OR}\" \"=OR=\" \"+OR+\" \"-OR-\"\"_OR_\" \"|OR|\" \"、OR、\" \"\\\\OR\\\\\" \":OR:\" \"?OR?\" \"<OR>\" \";;OR;;\" \"\\\"OR\\\"\"  \" OR \" \",,OR,,\" \"..OR..\" \"OR..\" \"//OR///\" \"`OR\" \"\\\"OR\" '\\\"OR' '`OR',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -399,13 +399,13 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%OR%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 	@Test
 	public void Test_case_SELECT_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`SELECT \"fdeDRSELECT\" \"韩的SELECT韩的\" \"寒冷-FTW-EM-SELECT/M/L\" \"-SELECT|\"\"-SELECT45\" \"!SELECT!\" \"@SELECT@\" \"#SELECT#\" \"$SELECT$\" \"%SELECT%\" \"^SELECT^\" \"&SELECT&\" \"*SELECT*\" \"(SELECT)\" \"[SELECT]\" \"{SELECT}\" \"=SELECT=\" \"+SELECT+\" \"-SELECT-\"\"_SELECT_\" \"|SELECT|\" \"、SELECT、\" \"\\\\SELECT\\\\\" \":SELECT:\" \"?SELECT?\" \"<SELECT>\" \";;SELECT;;\" \"\\\"SELECT\\\"\"  \" SELECT \" \",,SELECT,,\" \"..SELECT..\" \"SELECT..\" \"//SELECT///\",34)\n" +
+				"ticker=take(`SELECT \"fdeDRSELECT\" \"韩的SELECT韩的\" \"寒冷-FTW-EM-SELECT/M/L\" \"-SELECT|\"\"-SELECT45\" \"!SELECT!\" \"@SELECT@\" \"#SELECT#\" \"$SELECT$\" \"%SELECT%\" \"^SELECT^\" \"&SELECT&\" \"*SELECT*\" \"(SELECT)\" \"[SELECT]\" \"{SELECT}\" \"=SELECT=\" \"+SELECT+\" \"-SELECT-\"\"_SELECT_\" \"|SELECT|\" \"、SELECT、\" \"\\\\SELECT\\\\\" \":SELECT:\" \"?SELECT?\" \"<SELECT>\" \";;SELECT;;\" \"\\\"SELECT\\\"\"  \" SELECT \" \",,SELECT,,\" \"..SELECT..\" \"SELECT..\" \"//SELECT///\" \"`SELECT\" \"\\\"SELECT\" '\\\"SELECT' '`SELECT',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -413,13 +413,13 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%SELECT%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 	@Test
 	public void Test_case_FROM_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`FROM \"fdeDRFROM\" \"韩的FROM韩的\" \"寒冷-FTW-EM-FROM/M/L\" \"-FROM|\"\"-FROM45\" \"!FROM!\" \"@FROM@\" \"#FROM#\" \"$FROM$\" \"%FROM%\" \"^FROM^\" \"&FROM&\" \"*FROM*\" \"(FROM)\" \"[FROM]\" \"{FROM}\" \"=FROM=\" \"+FROM+\" \"-FROM-\"\"_FROM_\" \"|FROM|\" \"、FROM、\" \"\\\\FROM\\\\\" \":FROM:\" \"?FROM?\" \"<FROM>\" \";;FROM;;\" \"\\\"FROM\\\"\"  \" FROM \" \",,FROM,,\" \"..FROM..\" \"FROM..\" \"//FROM///\",34)\n" +
+				"ticker=take(`FROM \"fdeDRFROM\" \"韩的FROM韩的\" \"寒冷-FTW-EM-FROM/M/L\" \"-FROM|\"\"-FROM45\" \"!FROM!\" \"@FROM@\" \"#FROM#\" \"$FROM$\" \"%FROM%\" \"^FROM^\" \"&FROM&\" \"*FROM*\" \"(FROM)\" \"[FROM]\" \"{FROM}\" \"=FROM=\" \"+FROM+\" \"-FROM-\"\"_FROM_\" \"|FROM|\" \"、FROM、\" \"\\\\FROM\\\\\" \":FROM:\" \"?FROM?\" \"<FROM>\" \";;FROM;;\" \"\\\"FROM\\\"\"  \" FROM \" \",,FROM,,\" \"..FROM..\" \"FROM..\" \"//FROM///\" \"`FROM\" \"\\\"FROM\" '\\\"FROM' '`FROM',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -427,14 +427,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%FROM%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_WHERE_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`WHERE \"fdeDRWHERE\" \"韩的WHERE韩的\" \"寒冷-FTW-EM-WHERE/M/L\" \"-WHERE|\"\"-WHERE45\" \"!WHERE!\" \"@WHERE@\" \"#WHERE#\" \"$WHERE$\" \"%WHERE%\" \"^WHERE^\" \"&WHERE&\" \"*WHERE*\" \"(WHERE)\" \"[WHERE]\" \"{WHERE}\" \"=WHERE=\" \"+WHERE+\" \"-WHERE-\"\"_WHERE_\" \"|WHERE|\" \"、WHERE、\" \"\\\\WHERE\\\\\" \":WHERE:\" \"?WHERE?\" \"<WHERE>\" \";;WHERE;;\" \"\\\"WHERE\\\"\"  \" WHERE \" \",,WHERE,,\" \"..WHERE..\" \"WHERE..\" \"//WHERE///\",34)\n" +
+				"ticker=take(`WHERE \"fdeDRWHERE\" \"韩的WHERE韩的\" \"寒冷-FTW-EM-WHERE/M/L\" \"-WHERE|\"\"-WHERE45\" \"!WHERE!\" \"@WHERE@\" \"#WHERE#\" \"$WHERE$\" \"%WHERE%\" \"^WHERE^\" \"&WHERE&\" \"*WHERE*\" \"(WHERE)\" \"[WHERE]\" \"{WHERE}\" \"=WHERE=\" \"+WHERE+\" \"-WHERE-\"\"_WHERE_\" \"|WHERE|\" \"、WHERE、\" \"\\\\WHERE\\\\\" \":WHERE:\" \"?WHERE?\" \"<WHERE>\" \";;WHERE;;\" \"\\\"WHERE\\\"\"  \" WHERE \" \",,WHERE,,\" \"..WHERE..\" \"WHERE..\" \"//WHERE///\" \"`WHERE\" \"\\\"WHERE\" '\\\"WHERE' '`WHERE',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -442,14 +442,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%WHERE%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_AS_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`AS \"fdeDRAS\" \"韩的AS韩的\" \"寒冷-FTW-EM-AS/M/L\" \"-AS|\"\"-AS45\" \"!AS!\" \"@AS@\" \"#AS#\" \"$AS$\" \"%AS%\" \"^AS^\" \"&AS&\" \"*AS*\" \"(AS)\" \"[AS]\" \"{AS}\" \"=AS=\" \"+AS+\" \"-AS-\"\"_AS_\" \"|AS|\" \"、AS、\" \"\\\\AS\\\\\" \":AS:\" \"?AS?\" \"<AS>\" \";;AS;;\" \"\\\"AS\\\"\"  \" AS \" \",,AS,,\" \"..AS..\" \"AS..\" \"//AS///\",34)\n" +
+				"ticker=take(`AS \"fdeDRAS\" \"韩的AS韩的\" \"寒冷-FTW-EM-AS/M/L\" \"-AS|\"\"-AS45\" \"!AS!\" \"@AS@\" \"#AS#\" \"$AS$\" \"%AS%\" \"^AS^\" \"&AS&\" \"*AS*\" \"(AS)\" \"[AS]\" \"{AS}\" \"=AS=\" \"+AS+\" \"-AS-\"\"_AS_\" \"|AS|\" \"、AS、\" \"\\\\AS\\\\\" \":AS:\" \"?AS?\" \"<AS>\" \";;AS;;\" \"\\\"AS\\\"\"  \" AS \" \",,AS,,\" \"..AS..\" \"AS..\" \"//AS///\" \"`AS\" \"\\\"AS\" '\\\"AS' '`AS',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -457,14 +457,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%AS%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_LAST_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`LAST \"fdeDRLAST\" \"韩的LAST韩的\" \"寒冷-FTW-EM-LAST/M/L\" \"-LAST|\"\"-LAST45\" \"!LAST!\" \"@LAST@\" \"#LAST#\" \"$LAST$\" \"%LAST%\" \"^LAST^\" \"&LAST&\" \"*LAST*\" \"(LAST)\" \"[LAST]\" \"{LAST}\" \"=LAST=\" \"+LAST+\" \"-LAST-\"\"_LAST_\" \"|LAST|\" \"、LAST、\" \"\\\\LAST\\\\\" \":LAST:\" \"?LAST?\" \"<LAST>\" \";;LAST;;\" \"\\\"LAST\\\"\"  \" LAST \" \",,LAST,,\" \"..LAST..\" \"LAST..\" \"//LAST///\",34)\n" +
+				"ticker=take(`LAST \"fdeDRLAST\" \"韩的LAST韩的\" \"寒冷-FTW-EM-LAST/M/L\" \"-LAST|\"\"-LAST45\" \"!LAST!\" \"@LAST@\" \"#LAST#\" \"$LAST$\" \"%LAST%\" \"^LAST^\" \"&LAST&\" \"*LAST*\" \"(LAST)\" \"[LAST]\" \"{LAST}\" \"=LAST=\" \"+LAST+\" \"-LAST-\"\"_LAST_\" \"|LAST|\" \"、LAST、\" \"\\\\LAST\\\\\" \":LAST:\" \"?LAST?\" \"<LAST>\" \";;LAST;;\" \"\\\"LAST\\\"\"  \" LAST \" \",,LAST,,\" \"..LAST..\" \"LAST..\" \"//LAST///\" \"`LAST\" \"\\\"LAST\" '\\\"LAST' '`LAST',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -472,13 +472,13 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%LAST%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 	@Test
 	public void Test_case_EXEC_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`EXEC \"fdeDREXEC\" \"韩的EXEC韩的\" \"寒冷-FTW-EM-EXEC/M/L\" \"-EXEC|\"\"-EXEC45\" \"!EXEC!\" \"@EXEC@\" \"#EXEC#\" \"$EXEC$\" \"%EXEC%\" \"^EXEC^\" \"&EXEC&\" \"*EXEC*\" \"(EXEC)\" \"[EXEC]\" \"{EXEC}\" \"=EXEC=\" \"+EXEC+\" \"-EXEC-\"\"_EXEC_\" \"|EXEC|\" \"、EXEC、\" \"\\\\EXEC\\\\\" \":EXEC:\" \"?EXEC?\" \"<EXEC>\" \";;EXEC;;\" \"\\\"EXEC\\\"\"  \" EXEC \" \",,EXEC,,\" \"..EXEC..\" \"EXEC..\" \"//EXEC///\",34)\n" +
+				"ticker=take(`EXEC \"fdeDREXEC\" \"韩的EXEC韩的\" \"寒冷-FTW-EM-EXEC/M/L\" \"-EXEC|\"\"-EXEC45\" \"!EXEC!\" \"@EXEC@\" \"#EXEC#\" \"$EXEC$\" \"%EXEC%\" \"^EXEC^\" \"&EXEC&\" \"*EXEC*\" \"(EXEC)\" \"[EXEC]\" \"{EXEC}\" \"=EXEC=\" \"+EXEC+\" \"-EXEC-\"\"_EXEC_\" \"|EXEC|\" \"、EXEC、\" \"\\\\EXEC\\\\\" \":EXEC:\" \"?EXEC?\" \"<EXEC>\" \";;EXEC;;\" \"\\\"EXEC\\\"\"  \" EXEC \" \",,EXEC,,\" \"..EXEC..\" \"EXEC..\" \"//EXEC///\" \"`EXEC\" \"\\\"EXEC\" '\\\"EXEC' '`EXEC',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -486,13 +486,13 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%EXEC%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 	@Test
 	public void Test_case_ORDER_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`ORDER \"fdeDRORDER\" \"韩的ORDER韩的\" \"寒冷-FTW-EM-ORDER/M/L\" \"-ORDER|\"\"-ORDER45\" \"!ORDER!\" \"@ORDER@\" \"#ORDER#\" \"$ORDER$\" \"%ORDER%\" \"^ORDER^\" \"&ORDER&\" \"*ORDER*\" \"(ORDER)\" \"[ORDER]\" \"{ORDER}\" \"=ORDER=\" \"+ORDER+\" \"-ORDER-\"\"_ORDER_\" \"|ORDER|\" \"、ORDER、\" \"\\\\ORDER\\\\\" \":ORDER:\" \"?ORDER?\" \"<ORDER>\" \";;ORDER;;\" \"\\\"ORDER\\\"\"  \" ORDER \" \",,ORDER,,\" \"..ORDER..\" \"ORDER..\" \"//ORDER///\",34)\n" +
+				"ticker=take(`ORDER \"fdeDRORDER\" \"韩的ORDER韩的\" \"寒冷-FTW-EM-ORDER/M/L\" \"-ORDER|\"\"-ORDER45\" \"!ORDER!\" \"@ORDER@\" \"#ORDER#\" \"$ORDER$\" \"%ORDER%\" \"^ORDER^\" \"&ORDER&\" \"*ORDER*\" \"(ORDER)\" \"[ORDER]\" \"{ORDER}\" \"=ORDER=\" \"+ORDER+\" \"-ORDER-\"\"_ORDER_\" \"|ORDER|\" \"、ORDER、\" \"\\\\ORDER\\\\\" \":ORDER:\" \"?ORDER?\" \"<ORDER>\" \";;ORDER;;\" \"\\\"ORDER\\\"\"  \" ORDER \" \",,ORDER,,\" \"..ORDER..\" \"ORDER..\" \"//ORDER///\" \"`ORDER\" \"\\\"ORDER\" '\\\"ORDER' '`ORDER',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -500,14 +500,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%ORDER%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_GROUP_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`GROUP \"fdeDRGROUP\" \"韩的GROUP韩的\" \"寒冷-FTW-EM-GROUP/M/L\" \"-GROUP|\"\"-GROUP45\" \"!GROUP!\" \"@GROUP@\" \"#GROUP#\" \"$GROUP$\" \"%GROUP%\" \"^GROUP^\" \"&GROUP&\" \"*GROUP*\" \"(GROUP)\" \"[GROUP]\" \"{GROUP}\" \"=GROUP=\" \"+GROUP+\" \"-GROUP-\"\"_GROUP_\" \"|GROUP|\" \"、GROUP、\" \"\\\\GROUP\\\\\" \":GROUP:\" \"?GROUP?\" \"<GROUP>\" \";;GROUP;;\" \"\\\"GROUP\\\"\"  \" GROUP \" \",,GROUP,,\" \"..GROUP..\" \"GROUP..\" \"//GROUP///\",34)\n" +
+				"ticker=take(`GROUP \"fdeDRGROUP\" \"韩的GROUP韩的\" \"寒冷-FTW-EM-GROUP/M/L\" \"-GROUP|\"\"-GROUP45\" \"!GROUP!\" \"@GROUP@\" \"#GROUP#\" \"$GROUP$\" \"%GROUP%\" \"^GROUP^\" \"&GROUP&\" \"*GROUP*\" \"(GROUP)\" \"[GROUP]\" \"{GROUP}\" \"=GROUP=\" \"+GROUP+\" \"-GROUP-\"\"_GROUP_\" \"|GROUP|\" \"、GROUP、\" \"\\\\GROUP\\\\\" \":GROUP:\" \"?GROUP?\" \"<GROUP>\" \";;GROUP;;\" \"\\\"GROUP\\\"\"  \" GROUP \" \",,GROUP,,\" \"..GROUP..\" \"GROUP..\" \"//GROUP///\" \"`GROUP\" \"\\\"GROUP\" '\\\"GROUP' '`GROUP',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -516,13 +516,13 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%GROUP%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 	@Test
 	public void Test_case_BY_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`BY \"fdeDRBY\" \"韩的BY韩的\" \"寒冷-FTW-EM-BY/M/L\" \"-BY|\"\"-BY45\" \"!BY!\" \"@BY@\" \"#BY#\" \"$BY$\" \"%BY%\" \"^BY^\" \"&BY&\" \"*BY*\" \"(BY)\" \"[BY]\" \"{BY}\" \"=BY=\" \"+BY+\" \"-BY-\"\"_BY_\" \"|BY|\" \"、BY、\" \"\\\\BY\\\\\" \":BY:\" \"?BY?\" \"<BY>\" \";;BY;;\" \"\\\"BY\\\"\"  \" BY \" \",,BY,,\" \"..BY..\" \"BY..\" \"//BY///\",34)\n" +
+				"ticker=take(`BY \"fdeDRBY\" \"韩的BY韩的\" \"寒冷-FTW-EM-BY/M/L\" \"-BY|\"\"-BY45\" \"!BY!\" \"@BY@\" \"#BY#\" \"$BY$\" \"%BY%\" \"^BY^\" \"&BY&\" \"*BY*\" \"(BY)\" \"[BY]\" \"{BY}\" \"=BY=\" \"+BY+\" \"-BY-\"\"_BY_\" \"|BY|\" \"、BY、\" \"\\\\BY\\\\\" \":BY:\" \"?BY?\" \"<BY>\" \";;BY;;\" \"\\\"BY\\\"\"  \" BY \" \",,BY,,\" \"..BY..\" \"BY..\" \"//BY///\" \"`BY\" \"\\\"BY\" '\\\"BY' '`BY',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -531,14 +531,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%BY%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_INTERVAL_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`INTERVAL \"fdeDRINTERVAL\" \"韩的INTERVAL韩的\" \"寒冷-FTW-EM-INTERVAL/M/L\" \"-INTERVAL|\"\"-INTERVAL45\" \"!INTERVAL!\" \"@INTERVAL@\" \"#INTERVAL#\" \"$INTERVAL$\" \"%INTERVAL%\" \"^INTERVAL^\" \"&INTERVAL&\" \"*INTERVAL*\" \"(INTERVAL)\" \"[INTERVAL]\" \"{INTERVAL}\" \"=INTERVAL=\" \"+INTERVAL+\" \"-INTERVAL-\"\"_INTERVAL_\" \"|INTERVAL|\" \"、INTERVAL、\" \"\\\\INTERVAL\\\\\" \":INTERVAL:\" \"?INTERVAL?\" \"<INTERVAL>\" \";;INTERVAL;;\" \"\\\"INTERVAL\\\"\"  \" INTERVAL \" \",,INTERVAL,,\" \"..INTERVAL..\" \"INTERVAL..\" \"//INTERVAL///\",34)\n" +
+				"ticker=take(`INTERVAL \"fdeDRINTERVAL\" \"韩的INTERVAL韩的\" \"寒冷-FTW-EM-INTERVAL/M/L\" \"-INTERVAL|\"\"-INTERVAL45\" \"!INTERVAL!\" \"@INTERVAL@\" \"#INTERVAL#\" \"$INTERVAL$\" \"%INTERVAL%\" \"^INTERVAL^\" \"&INTERVAL&\" \"*INTERVAL*\" \"(INTERVAL)\" \"[INTERVAL]\" \"{INTERVAL}\" \"=INTERVAL=\" \"+INTERVAL+\" \"-INTERVAL-\"\"_INTERVAL_\" \"|INTERVAL|\" \"、INTERVAL、\" \"\\\\INTERVAL\\\\\" \":INTERVAL:\" \"?INTERVAL?\" \"<INTERVAL>\" \";;INTERVAL;;\" \"\\\"INTERVAL\\\"\"  \" INTERVAL \" \",,INTERVAL,,\" \"..INTERVAL..\" \"INTERVAL..\" \"//INTERVAL///\" \"`INTERVAL\" \"\\\"INTERVAL\" '\\\"INTERVAL' '`INTERVAL',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -547,14 +547,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%INTERVAL%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_CGROUP_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`CGROUP \"fdeDRCGROUP\" \"韩的CGROUP韩的\" \"寒冷-FTW-EM-CGROUP/M/L\" \"-CGROUP|\"\"-CGROUP45\" \"!CGROUP!\" \"@CGROUP@\" \"#CGROUP#\" \"$CGROUP$\" \"%CGROUP%\" \"^CGROUP^\" \"&CGROUP&\" \"*CGROUP*\" \"(CGROUP)\" \"[CGROUP]\" \"{CGROUP}\" \"=CGROUP=\" \"+CGROUP+\" \"-CGROUP-\"\"_CGROUP_\" \"|CGROUP|\" \"、CGROUP、\" \"\\\\CGROUP\\\\\" \":CGROUP:\" \"?CGROUP?\" \"<CGROUP>\" \";;CGROUP;;\" \"\\\"CGROUP\\\"\"  \" CGROUP \" \",,CGROUP,,\" \"..CGROUP..\" \"CGROUP..\" \"//CGROUP///\",34)\n" +
+				"ticker=take(`CGROUP \"fdeDRCGROUP\" \"韩的CGROUP韩的\" \"寒冷-FTW-EM-CGROUP/M/L\" \"-CGROUP|\"\"-CGROUP45\" \"!CGROUP!\" \"@CGROUP@\" \"#CGROUP#\" \"$CGROUP$\" \"%CGROUP%\" \"^CGROUP^\" \"&CGROUP&\" \"*CGROUP*\" \"(CGROUP)\" \"[CGROUP]\" \"{CGROUP}\" \"=CGROUP=\" \"+CGROUP+\" \"-CGROUP-\"\"_CGROUP_\" \"|CGROUP|\" \"、CGROUP、\" \"\\\\CGROUP\\\\\" \":CGROUP:\" \"?CGROUP?\" \"<CGROUP>\" \";;CGROUP;;\" \"\\\"CGROUP\\\"\"  \" CGROUP \" \",,CGROUP,,\" \"..CGROUP..\" \"CGROUP..\" \"//CGROUP///\" \"`CGROUP\" \"\\\"CGROUP\" '\\\"CGROUP' '`CGROUP',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -563,14 +563,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%CGROUP%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_HAVING_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`HAVING \"fdeDRHAVING\" \"韩的HAVING韩的\" \"寒冷-FTW-EM-HAVING/M/L\" \"-HAVING|\"\"-HAVING45\" \"!HAVING!\" \"@HAVING@\" \"#HAVING#\" \"$HAVING$\" \"%HAVING%\" \"^HAVING^\" \"&HAVING&\" \"*HAVING*\" \"(HAVING)\" \"[HAVING]\" \"{HAVING}\" \"=HAVING=\" \"+HAVING+\" \"-HAVING-\"\"_HAVING_\" \"|HAVING|\" \"、HAVING、\" \"\\\\HAVING\\\\\" \":HAVING:\" \"?HAVING?\" \"<HAVING>\" \";;HAVING;;\" \"\\\"HAVING\\\"\"  \" HAVING \" \",,HAVING,,\" \"..HAVING..\" \"HAVING..\" \"//HAVING///\",34)\n" +
+				"ticker=take(`HAVING \"fdeDRHAVING\" \"韩的HAVING韩的\" \"寒冷-FTW-EM-HAVING/M/L\" \"-HAVING|\"\"-HAVING45\" \"!HAVING!\" \"@HAVING@\" \"#HAVING#\" \"$HAVING$\" \"%HAVING%\" \"^HAVING^\" \"&HAVING&\" \"*HAVING*\" \"(HAVING)\" \"[HAVING]\" \"{HAVING}\" \"=HAVING=\" \"+HAVING+\" \"-HAVING-\"\"_HAVING_\" \"|HAVING|\" \"、HAVING、\" \"\\\\HAVING\\\\\" \":HAVING:\" \"?HAVING?\" \"<HAVING>\" \";;HAVING;;\" \"\\\"HAVING\\\"\"  \" HAVING \" \",,HAVING,,\" \"..HAVING..\" \"HAVING..\" \"//HAVING///\" \"`HAVING\" \"\\\"HAVING\" '\\\"HAVING' '`HAVING',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -579,14 +579,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%HAVING%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_UPDATE_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`UPDATE \"fdeDRUPDATE\" \"韩的UPDATE韩的\" \"寒冷-FTW-EM-UPDATE/M/L\" \"-UPDATE|\"\"-UPDATE45\" \"!UPDATE!\" \"@UPDATE@\" \"#UPDATE#\" \"$UPDATE$\" \"%UPDATE%\" \"^UPDATE^\" \"&UPDATE&\" \"*UPDATE*\" \"(UPDATE)\" \"[UPDATE]\" \"{UPDATE}\" \"=UPDATE=\" \"+UPDATE+\" \"-UPDATE-\"\"_UPDATE_\" \"|UPDATE|\" \"、UPDATE、\" \"\\\\UPDATE\\\\\" \":UPDATE:\" \"?UPDATE?\" \"<UPDATE>\" \";;UPDATE;;\" \"\\\"UPDATE\\\"\"  \" UPDATE \" \",,UPDATE,,\" \"..UPDATE..\" \"UPDATE..\" \"//UPDATE///\",34)\n" +
+				"ticker=take(`UPDATE \"fdeDRUPDATE\" \"韩的UPDATE韩的\" \"寒冷-FTW-EM-UPDATE/M/L\" \"-UPDATE|\"\"-UPDATE45\" \"!UPDATE!\" \"@UPDATE@\" \"#UPDATE#\" \"$UPDATE$\" \"%UPDATE%\" \"^UPDATE^\" \"&UPDATE&\" \"*UPDATE*\" \"(UPDATE)\" \"[UPDATE]\" \"{UPDATE}\" \"=UPDATE=\" \"+UPDATE+\" \"-UPDATE-\"\"_UPDATE_\" \"|UPDATE|\" \"、UPDATE、\" \"\\\\UPDATE\\\\\" \":UPDATE:\" \"?UPDATE?\" \"<UPDATE>\" \";;UPDATE;;\" \"\\\"UPDATE\\\"\"  \" UPDATE \" \",,UPDATE,,\" \"..UPDATE..\" \"UPDATE..\" \"//UPDATE///\" \"`UPDATE\" \"\\\"UPDATE\" '\\\"UPDATE' '`UPDATE',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -595,14 +595,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%UPDATE%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_SET_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`SET \"fdeDRSET\" \"韩的SET韩的\" \"寒冷-FTW-EM-SET/M/L\" \"-SET|\"\"-SET45\" \"!SET!\" \"@SET@\" \"#SET#\" \"$SET$\" \"%SET%\" \"^SET^\" \"&SET&\" \"*SET*\" \"(SET)\" \"[SET]\" \"{SET}\" \"=SET=\" \"+SET+\" \"-SET-\"\"_SET_\" \"|SET|\" \"、SET、\" \"\\\\SET\\\\\" \":SET:\" \"?SET?\" \"<SET>\" \";;SET;;\" \"\\\"SET\\\"\"  \" SET \" \",,SET,,\" \"..SET..\" \"SET..\" \"//SET///\",34)\n" +
+				"ticker=take(`SET \"fdeDRSET\" \"韩的SET韩的\" \"寒冷-FTW-EM-SET/M/L\" \"-SET|\"\"-SET45\" \"!SET!\" \"@SET@\" \"#SET#\" \"$SET$\" \"%SET%\" \"^SET^\" \"&SET&\" \"*SET*\" \"(SET)\" \"[SET]\" \"{SET}\" \"=SET=\" \"+SET+\" \"-SET-\"\"_SET_\" \"|SET|\" \"、SET、\" \"\\\\SET\\\\\" \":SET:\" \"?SET?\" \"<SET>\" \";;SET;;\" \"\\\"SET\\\"\"  \" SET \" \",,SET,,\" \"..SET..\" \"SET..\" \"//SET///\" \"`SET\" \"\\\"SET\" '\\\"SET' '`SET',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -611,14 +611,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%SET%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_INSERT_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`INSERT \"fdeDRINSERT\" \"韩的INSERT韩的\" \"寒冷-FTW-EM-INSERT/M/L\" \"-INSERT|\"\"-INSERT45\" \"!INSERT!\" \"@INSERT@\" \"#INSERT#\" \"$INSERT$\" \"%INSERT%\" \"^INSERT^\" \"&INSERT&\" \"*INSERT*\" \"(INSERT)\" \"[INSERT]\" \"{INSERT}\" \"=INSERT=\" \"+INSERT+\" \"-INSERT-\"\"_INSERT_\" \"|INSERT|\" \"、INSERT、\" \"\\\\INSERT\\\\\" \":INSERT:\" \"?INSERT?\" \"<INSERT>\" \";;INSERT;;\" \"\\\"INSERT\\\"\"  \" INSERT \" \",,INSERT,,\" \"..INSERT..\" \"INSERT..\" \"//INSERT///\",34)\n" +
+				"ticker=take(`INSERT \"fdeDRINSERT\" \"韩的INSERT韩的\" \"寒冷-FTW-EM-INSERT/M/L\" \"-INSERT|\"\"-INSERT45\" \"!INSERT!\" \"@INSERT@\" \"#INSERT#\" \"$INSERT$\" \"%INSERT%\" \"^INSERT^\" \"&INSERT&\" \"*INSERT*\" \"(INSERT)\" \"[INSERT]\" \"{INSERT}\" \"=INSERT=\" \"+INSERT+\" \"-INSERT-\"\"_INSERT_\" \"|INSERT|\" \"、INSERT、\" \"\\\\INSERT\\\\\" \":INSERT:\" \"?INSERT?\" \"<INSERT>\" \";;INSERT;;\" \"\\\"INSERT\\\"\"  \" INSERT \" \",,INSERT,,\" \"..INSERT..\" \"INSERT..\" \"//INSERT///\" \"`INSERT\" \"\\\"INSERT\" '\\\"INSERT' '`INSERT',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -627,14 +627,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%INSERT%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_INTO_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`INTO \"fdeDRINTO\" \"韩的INTO韩的\" \"寒冷-FTW-EM-INTO/M/L\" \"-INTO|\"\"-INTO45\" \"!INTO!\" \"@INTO@\" \"#INTO#\" \"$INTO$\" \"%INTO%\" \"^INTO^\" \"&INTO&\" \"*INTO*\" \"(INTO)\" \"[INTO]\" \"{INTO}\" \"=INTO=\" \"+INTO+\" \"-INTO-\"\"_INTO_\" \"|INTO|\" \"、INTO、\" \"\\\\INTO\\\\\" \":INTO:\" \"?INTO?\" \"<INTO>\" \";;INTO;;\" \"\\\"INTO\\\"\"  \" INTO \" \",,INTO,,\" \"..INTO..\" \"INTO..\" \"//INTO///\",34)\n" +
+				"ticker=take(`INTO \"fdeDRINTO\" \"韩的INTO韩的\" \"寒冷-FTW-EM-INTO/M/L\" \"-INTO|\"\"-INTO45\" \"!INTO!\" \"@INTO@\" \"#INTO#\" \"$INTO$\" \"%INTO%\" \"^INTO^\" \"&INTO&\" \"*INTO*\" \"(INTO)\" \"[INTO]\" \"{INTO}\" \"=INTO=\" \"+INTO+\" \"-INTO-\"\"_INTO_\" \"|INTO|\" \"、INTO、\" \"\\\\INTO\\\\\" \":INTO:\" \"?INTO?\" \"<INTO>\" \";;INTO;;\" \"\\\"INTO\\\"\"  \" INTO \" \",,INTO,,\" \"..INTO..\" \"INTO..\" \"//INTO///\" \"`INTO\" \"\\\"INTO\" '\\\"INTO' '`INTO',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -643,14 +643,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%INTO%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_VALUES_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`VALUES \"fdeDRVALUES\" \"韩的VALUES韩的\" \"寒冷-FTW-EM-VALUES/M/L\" \"-VALUES|\"\"-VALUES45\" \"!VALUES!\" \"@VALUES@\" \"#VALUES#\" \"$VALUES$\" \"%VALUES%\" \"^VALUES^\" \"&VALUES&\" \"*VALUES*\" \"(VALUES)\" \"[VALUES]\" \"{VALUES}\" \"=VALUES=\" \"+VALUES+\" \"-VALUES-\"\"_VALUES_\" \"|VALUES|\" \"、VALUES、\" \"\\\\VALUES\\\\\" \":VALUES:\" \"?VALUES?\" \"<VALUES>\" \";;VALUES;;\" \"\\\"VALUES\\\"\"  \" VALUES \" \",,VALUES,,\" \"..VALUES..\" \"VALUES..\" \"//VALUES///\",34)\n" +
+				"ticker=take(`VALUES \"fdeDRVALUES\" \"韩的VALUES韩的\" \"寒冷-FTW-EM-VALUES/M/L\" \"-VALUES|\"\"-VALUES45\" \"!VALUES!\" \"@VALUES@\" \"#VALUES#\" \"$VALUES$\" \"%VALUES%\" \"^VALUES^\" \"&VALUES&\" \"*VALUES*\" \"(VALUES)\" \"[VALUES]\" \"{VALUES}\" \"=VALUES=\" \"+VALUES+\" \"-VALUES-\"\"_VALUES_\" \"|VALUES|\" \"、VALUES、\" \"\\\\VALUES\\\\\" \":VALUES:\" \"?VALUES?\" \"<VALUES>\" \";;VALUES;;\" \"\\\"VALUES\\\"\"  \" VALUES \" \",,VALUES,,\" \"..VALUES..\" \"VALUES..\" \"//VALUES///\" \"`VALUES\" \"\\\"VALUES\" '\\\"VALUES' '`VALUES',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -659,14 +659,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%VALUES%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_DELETE_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`DELETE \"fdeDRDELETE\" \"韩的DELETE韩的\" \"寒冷-FTW-EM-DELETE/M/L\" \"-DELETE|\"\"-DELETE45\" \"!DELETE!\" \"@DELETE@\" \"#DELETE#\" \"$DELETE$\" \"%DELETE%\" \"^DELETE^\" \"&DELETE&\" \"*DELETE*\" \"(DELETE)\" \"[DELETE]\" \"{DELETE}\" \"=DELETE=\" \"+DELETE+\" \"-DELETE-\"\"_DELETE_\" \"|DELETE|\" \"、DELETE、\" \"\\\\DELETE\\\\\" \":DELETE:\" \"?DELETE?\" \"<DELETE>\" \";;DELETE;;\" \"\\\"DELETE\\\"\"  \" DELETE \" \",,DELETE,,\" \"..DELETE..\" \"DELETE..\" \"//DELETE///\",34)\n" +
+				"ticker=take(`DELETE \"fdeDRDELETE\" \"韩的DELETE韩的\" \"寒冷-FTW-EM-DELETE/M/L\" \"-DELETE|\"\"-DELETE45\" \"!DELETE!\" \"@DELETE@\" \"#DELETE#\" \"$DELETE$\" \"%DELETE%\" \"^DELETE^\" \"&DELETE&\" \"*DELETE*\" \"(DELETE)\" \"[DELETE]\" \"{DELETE}\" \"=DELETE=\" \"+DELETE+\" \"-DELETE-\"\"_DELETE_\" \"|DELETE|\" \"、DELETE、\" \"\\\\DELETE\\\\\" \":DELETE:\" \"?DELETE?\" \"<DELETE>\" \";;DELETE;;\" \"\\\"DELETE\\\"\"  \" DELETE \" \",,DELETE,,\" \"..DELETE..\" \"DELETE..\" \"//DELETE///\" \"`DELETE\" \"\\\"DELETE\" '\\\"DELETE' '`DELETE',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -675,14 +675,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%DELETE%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_LIMIT_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`LIMIT \"fdeDRLIMIT\" \"韩的LIMIT韩的\" \"寒冷-FTW-EM-LIMIT/M/L\" \"-LIMIT|\"\"-LIMIT45\" \"!LIMIT!\" \"@LIMIT@\" \"#LIMIT#\" \"$LIMIT$\" \"%LIMIT%\" \"^LIMIT^\" \"&LIMIT&\" \"*LIMIT*\" \"(LIMIT)\" \"[LIMIT]\" \"{LIMIT}\" \"=LIMIT=\" \"+LIMIT+\" \"-LIMIT-\"\"_LIMIT_\" \"|LIMIT|\" \"、LIMIT、\" \"\\\\LIMIT\\\\\" \":LIMIT:\" \"?LIMIT?\" \"<LIMIT>\" \";;LIMIT;;\" \"\\\"LIMIT\\\"\"  \" LIMIT \" \",,LIMIT,,\" \"..LIMIT..\" \"LIMIT..\" \"//LIMIT///\",34)\n" +
+				"ticker=take(`LIMIT \"fdeDRLIMIT\" \"韩的LIMIT韩的\" \"寒冷-FTW-EM-LIMIT/M/L\" \"-LIMIT|\"\"-LIMIT45\" \"!LIMIT!\" \"@LIMIT@\" \"#LIMIT#\" \"$LIMIT$\" \"%LIMIT%\" \"^LIMIT^\" \"&LIMIT&\" \"*LIMIT*\" \"(LIMIT)\" \"[LIMIT]\" \"{LIMIT}\" \"=LIMIT=\" \"+LIMIT+\" \"-LIMIT-\"\"_LIMIT_\" \"|LIMIT|\" \"、LIMIT、\" \"\\\\LIMIT\\\\\" \":LIMIT:\" \"?LIMIT?\" \"<LIMIT>\" \";;LIMIT;;\" \"\\\"LIMIT\\\"\"  \" LIMIT \" \",,LIMIT,,\" \"..LIMIT..\" \"LIMIT..\" \"//LIMIT///\" \"`LIMIT\" \"\\\"LIMIT\" '\\\"LIMIT' '`LIMIT',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -691,13 +691,13 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%LIMIT%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 	@Test
 	public void Test_case_TOP_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`TOP \"fdeDRTOP\" \"韩的TOP韩的\" \"寒冷-FTW-EM-TOP/M/L\" \"-TOP|\"\"-TOP45\" \"!TOP!\" \"@TOP@\" \"#TOP#\" \"$TOP$\" \"%TOP%\" \"^TOP^\" \"&TOP&\" \"*TOP*\" \"(TOP)\" \"[TOP]\" \"{TOP}\" \"=TOP=\" \"+TOP+\" \"-TOP-\"\"_TOP_\" \"|TOP|\" \"、TOP、\" \"\\\\TOP\\\\\" \":TOP:\" \"?TOP?\" \"<TOP>\" \";;TOP;;\" \"\\\"TOP\\\"\"  \" TOP \" \",,TOP,,\" \"..TOP..\" \"TOP..\" \"//TOP///\",34)\n" +
+				"ticker=take(`TOP \"fdeDRTOP\" \"韩的TOP韩的\" \"寒冷-FTW-EM-TOP/M/L\" \"-TOP|\"\"-TOP45\" \"!TOP!\" \"@TOP@\" \"#TOP#\" \"$TOP$\" \"%TOP%\" \"^TOP^\" \"&TOP&\" \"*TOP*\" \"(TOP)\" \"[TOP]\" \"{TOP}\" \"=TOP=\" \"+TOP+\" \"-TOP-\"\"_TOP_\" \"|TOP|\" \"、TOP、\" \"\\\\TOP\\\\\" \":TOP:\" \"?TOP?\" \"<TOP>\" \";;TOP;;\" \"\\\"TOP\\\"\"  \" TOP \" \",,TOP,,\" \"..TOP..\" \"TOP..\" \"//TOP///\" \"`TOP\" \"\\\"TOP\" '\\\"TOP' '`TOP',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -706,14 +706,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%TOP%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_MAP_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`MAP \"fdeDRMAP\" \"韩的MAP韩的\" \"寒冷-FTW-EM-MAP/M/L\" \"-MAP|\"\"-MAP45\" \"!MAP!\" \"@MAP@\" \"#MAP#\" \"$MAP$\" \"%MAP%\" \"^MAP^\" \"&MAP&\" \"*MAP*\" \"(MAP)\" \"[MAP]\" \"{MAP}\" \"=MAP=\" \"+MAP+\" \"-MAP-\"\"_MAP_\" \"|MAP|\" \"、MAP、\" \"\\\\MAP\\\\\" \":MAP:\" \"?MAP?\" \"<MAP>\" \";;MAP;;\" \"\\\"MAP\\\"\"  \" MAP \" \",,MAP,,\" \"..MAP..\" \"MAP..\" \"//MAP///\",34)\n" +
+				"ticker=take(`MAP \"fdeDRMAP\" \"韩的MAP韩的\" \"寒冷-FTW-EM-MAP/M/L\" \"-MAP|\"\"-MAP45\" \"!MAP!\" \"@MAP@\" \"#MAP#\" \"$MAP$\" \"%MAP%\" \"^MAP^\" \"&MAP&\" \"*MAP*\" \"(MAP)\" \"[MAP]\" \"{MAP}\" \"=MAP=\" \"+MAP+\" \"-MAP-\"\"_MAP_\" \"|MAP|\" \"、MAP、\" \"\\\\MAP\\\\\" \":MAP:\" \"?MAP?\" \"<MAP>\" \";;MAP;;\" \"\\\"MAP\\\"\"  \" MAP \" \",,MAP,,\" \"..MAP..\" \"MAP..\" \"//MAP///\" \"`MAP\" \"\\\"MAP\" '\\\"MAP' '`MAP',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -722,14 +722,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%MAP%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_PIVOT_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`PIVOT \"fdeDRPIVOT\" \"韩的PIVOT韩的\" \"寒冷-FTW-EM-PIVOT/M/L\" \"-PIVOT|\"\"-PIVOT45\" \"!PIVOT!\" \"@PIVOT@\" \"#PIVOT#\" \"$PIVOT$\" \"%PIVOT%\" \"^PIVOT^\" \"&PIVOT&\" \"*PIVOT*\" \"(PIVOT)\" \"[PIVOT]\" \"{PIVOT}\" \"=PIVOT=\" \"+PIVOT+\" \"-PIVOT-\"\"_PIVOT_\" \"|PIVOT|\" \"、PIVOT、\" \"\\\\PIVOT\\\\\" \":PIVOT:\" \"?PIVOT?\" \"<PIVOT>\" \";;PIVOT;;\" \"\\\"PIVOT\\\"\"  \" PIVOT \" \",,PIVOT,,\" \"..PIVOT..\" \"PIVOT..\" \"//PIVOT///\",34)\n" +
+				"ticker=take(`PIVOT \"fdeDRPIVOT\" \"韩的PIVOT韩的\" \"寒冷-FTW-EM-PIVOT/M/L\" \"-PIVOT|\"\"-PIVOT45\" \"!PIVOT!\" \"@PIVOT@\" \"#PIVOT#\" \"$PIVOT$\" \"%PIVOT%\" \"^PIVOT^\" \"&PIVOT&\" \"*PIVOT*\" \"(PIVOT)\" \"[PIVOT]\" \"{PIVOT}\" \"=PIVOT=\" \"+PIVOT+\" \"-PIVOT-\"\"_PIVOT_\" \"|PIVOT|\" \"、PIVOT、\" \"\\\\PIVOT\\\\\" \":PIVOT:\" \"?PIVOT?\" \"<PIVOT>\" \";;PIVOT;;\" \"\\\"PIVOT\\\"\"  \" PIVOT \" \",,PIVOT,,\" \"..PIVOT..\" \"PIVOT..\" \"//PIVOT///\" \"`PIVOT\" \"\\\"PIVOT\" '\\\"PIVOT' '`PIVOT',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -738,14 +738,14 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%PIVOT%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 
 	@Test
 	public void Test_case_PARTITION_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`PARTITION \"fdeDRPARTITION\" \"韩的PARTITION韩的\" \"寒冷-FTW-EM-PARTITION/M/L\" \"-PARTITION|\"\"-PARTITION45\" \"!PARTITION!\" \"@PARTITION@\" \"#PARTITION#\" \"$PARTITION$\" \"%PARTITION%\" \"^PARTITION^\" \"&PARTITION&\" \"*PARTITION*\" \"(PARTITION)\" \"[PARTITION]\" \"{PARTITION}\" \"=PARTITION=\" \"+PARTITION+\" \"-PARTITION-\"\"_PARTITION_\" \"|PARTITION|\" \"、PARTITION、\" \"\\\\PARTITION\\\\\" \":PARTITION:\" \"?PARTITION?\" \"<PARTITION>\" \";;PARTITION;;\" \"\\\"PARTITION\\\"\"  \" PARTITION \" \",,PARTITION,,\" \"..PARTITION..\" \"PARTITION..\" \"//PARTITION///\",34)\n" +
+				"ticker=take(`PARTITION \"fdeDRPARTITION\" \"韩的PARTITION韩的\" \"寒冷-FTW-EM-PARTITION/M/L\" \"-PARTITION|\"\"-PARTITION45\" \"!PARTITION!\" \"@PARTITION@\" \"#PARTITION#\" \"$PARTITION$\" \"%PARTITION%\" \"^PARTITION^\" \"&PARTITION&\" \"*PARTITION*\" \"(PARTITION)\" \"[PARTITION]\" \"{PARTITION}\" \"=PARTITION=\" \"+PARTITION+\" \"-PARTITION-\"\"_PARTITION_\" \"|PARTITION|\" \"、PARTITION、\" \"\\\\PARTITION\\\\\" \":PARTITION:\" \"?PARTITION?\" \"<PARTITION>\" \";;PARTITION;;\" \"\\\"PARTITION\\\"\"  \" PARTITION \" \",,PARTITION,,\" \"..PARTITION..\" \"PARTITION..\" \"//PARTITION///\" \"`PARTITION\" \"\\\"PARTITION\" '\\\"PARTITION' '`PARTITION',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -754,13 +754,13 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%PARTITION%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 	@Test
 	public void Test_case_SAMPLE_not_keywords() throws Exception {
 		stm = conn.createStatement();
 		String sql = "login('admin','123456');\n " +
-				"ticker=take(`SAMPLE \"fdeDRSAMPLE\" \"韩的SAMPLE韩的\" \"寒冷-FTW-EM-SAMPLE/M/L\" \"-SAMPLE|\"\"-SAMPLE45\" \"!SAMPLE!\" \"@SAMPLE@\" \"#SAMPLE#\" \"$SAMPLE$\" \"%SAMPLE%\" \"^SAMPLE^\" \"&SAMPLE&\" \"*SAMPLE*\" \"(SAMPLE)\" \"[SAMPLE]\" \"{SAMPLE}\" \"=SAMPLE=\" \"+SAMPLE+\" \"-SAMPLE-\"\"_SAMPLE_\" \"|SAMPLE|\" \"、SAMPLE、\" \"\\\\SAMPLE\\\\\" \":SAMPLE:\" \"?SAMPLE?\" \"<SAMPLE>\" \";;SAMPLE;;\" \"\\\"SAMPLE\\\"\"  \" SAMPLE \" \",,SAMPLE,,\" \"..SAMPLE..\" \"SAMPLE..\" \"//SAMPLE///\",34)\n" +
+				"ticker=take(`SAMPLE \"fdeDRSAMPLE\" \"韩的SAMPLE韩的\" \"寒冷-FTW-EM-SAMPLE/M/L\" \"-SAMPLE|\"\"-SAMPLE45\" \"!SAMPLE!\" \"@SAMPLE@\" \"#SAMPLE#\" \"$SAMPLE$\" \"%SAMPLE%\" \"^SAMPLE^\" \"&SAMPLE&\" \"*SAMPLE*\" \"(SAMPLE)\" \"[SAMPLE]\" \"{SAMPLE}\" \"=SAMPLE=\" \"+SAMPLE+\" \"-SAMPLE-\"\"_SAMPLE_\" \"|SAMPLE|\" \"、SAMPLE、\" \"\\\\SAMPLE\\\\\" \":SAMPLE:\" \"?SAMPLE?\" \"<SAMPLE>\" \";;SAMPLE;;\" \"\\\"SAMPLE\\\"\"  \" SAMPLE \" \",,SAMPLE,,\" \"..SAMPLE..\" \"SAMPLE..\" \"//SAMPLE///\" \"`SAMPLE\" \"\\\"SAMPLE\" '\\\"SAMPLE' '`SAMPLE',38)\n" +
 				"t=table(ticker)" +
 				"share t as tt" ;
 		stm.execute(sql);
@@ -769,7 +769,7 @@ public class JDBCSQLSelectTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  count(*) from t where ticker like \"%SAMPLE%\" ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
-		Assert.assertEquals(34,((Scalar)rs1.getColumn(0).get(0)).getNumber());
+		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
 	@After
 	public void Destroy(){
