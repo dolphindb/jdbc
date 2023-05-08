@@ -269,9 +269,25 @@ public class Utils {
         createHashSet();
         StringBuilder sbSql=new StringBuilder();
         StringBuilder sbKey1=new StringBuilder();
-        char chr = 0;
+        char chr = 0, prevChr = 0;
+        char isInString = 0;
         for (int i = 0;i < sql.length();i++){
+            prevChr = chr;
             chr=sql.charAt(i);
+            if(isInString != 0) {// is in string
+                if(chr == isInString){// is end chr?
+                    if(prevChr != '\\')// \" or \'
+                        isInString=0;
+                }
+                sbSql.append(chr);
+                continue;
+            }else{//not in string
+                if(chr=='\''||chr=='"'){//start of string
+                    isInString=chr;
+                    sbSql.append(chr);
+                    continue;
+                }
+            }
             if ((chr >='a'&&chr <= 'z')||(chr >= 'A'&&chr <= 'Z')||(chr >= '0'&&chr <= '9')||(chr == '_')){
                 sbKey1.append(chr);
             }else {
