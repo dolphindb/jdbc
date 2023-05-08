@@ -1,6 +1,8 @@
 import com.dolphindb.jdbc.JDBCResultSet;
 import com.xxdb.DBConnection;
 import com.xxdb.data.BasicDate;
+import com.xxdb.data.BasicTable;
+import com.xxdb.data.Scalar;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -1631,7 +1633,28 @@ public class JDBCPrepareStatementTest {
             }
         }
     }
-
+    @Test
+    public void test_PreparedStatement_execute() throws ClassNotFoundException, SQLException {
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
+        Connection conn = null;
+        Statement stmt = null;
+        JDBCResultSet rs = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url);
+        Statement stm = conn.createStatement();
+        String sql = "login('admin','123456');\n " +
+                "t = table(1..100 as id, norm(1.0,0.1,100) as prc,take(`C`E,100) as ticker, take(2018.01.01..2018.10.18,100) as date, norm(15.0,0.1,100) as bid)" +
+                "share t as tt" ;
+        stm.execute(sql);
+        PreparedStatement  ps = conn.prepareStatement("select * from tt where  id = ?, date = ?, ticker = ?");
+        ps.setObject(1,1);
+        ps.setObject(2,new BasicDate(LocalDate.parse("2018-01-01")));
+        ps.setObject(3,"C");
+        ps.execute();
+        Assert.assertTrue(ps.getResultSet().next());
+        conn.close();
+    }
     @After
     public void Destroy(){
         LOGININFO = null;
