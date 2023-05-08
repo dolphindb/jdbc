@@ -262,6 +262,9 @@ public class Utils {
         cols.add(vector);
         return new BasicTable(colNames, cols);
     }
+    private static boolean isKeyChar(char chr){
+        return (chr >='a'&&chr <= 'z')||(chr >= 'A'&&chr <= 'Z')||(chr >= '0'&&chr <= '9')||(chr == '_');
+    }
 
     public static String changeCase(String sql){
         if (sql==null)
@@ -269,26 +272,38 @@ public class Utils {
         createHashSet();
         StringBuilder sbSql=new StringBuilder();
         StringBuilder sbKey1=new StringBuilder();
-        char chr = 0, prevChr = 0;
+        char chr = 0;
         char isInString = 0;
+        int continueSplashCount=0;
         for (int i = 0;i < sql.length();i++){
-            prevChr = chr;
             chr=sql.charAt(i);
+            int prevContinueSplashCount=continueSplashCount;
             if(isInString != 0) {// is in string
-                if(chr == isInString){// is end chr?
-                    if(prevChr != '\\')// \" or \'
+                if(isInString=='`'){//check ` end flag
+                    if(isKeyChar(chr)==false){//end with no key char
                         isInString=0;
+                    }
+                }else{// string
+                    if(chr=='\\')
+                        continueSplashCount++;
+                    else
+                        continueSplashCount=0;
+                    if(chr == isInString){// is end chr?
+                        if(prevContinueSplashCount%2==0)// check not \, like \" or \'
+                            isInString=0;
+                    }
                 }
                 sbSql.append(chr);
                 continue;
             }else{//not in string
-                if(chr=='\''||chr=='"'){//start of string
+                if(chr=='\''||chr=='"'||chr=='`'){//start of string
                     isInString=chr;
                     sbSql.append(chr);
+                    continueSplashCount=0;
                     continue;
                 }
             }
-            if ((chr >='a'&&chr <= 'z')||(chr >= 'A'&&chr <= 'Z')||(chr >= '0'&&chr <= '9')||(chr == '_')){
+            if (isKeyChar(chr)){
                 sbKey1.append(chr);
             }else {
                 if (sbKey1.length()>0){
