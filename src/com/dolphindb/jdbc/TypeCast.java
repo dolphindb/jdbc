@@ -395,6 +395,9 @@ public class TypeCast {
             case LOCAL_TIME:
                 temporal = (LocalTime)srcValue;
                 break;
+            case UDATE:
+                temporal=new Timestamp(((java.util.Date) srcValue).getTime()).toLocalDateTime();
+                break;
             case LOCAL_DATETIME:
                 temporal = (LocalDateTime)srcValue;
                 break;
@@ -430,6 +433,7 @@ public class TypeCast {
             case BASIC_NANOTIMESTAMP_VECTOR:
             case BASIC_ANY_VECTOR:
             case DATE:
+            case UDATE:
             case TIME:
             case TIMESTAMP:
             case YEAR_MONTH:
@@ -1376,6 +1380,10 @@ public class TypeCast {
             case BASIC_DATETIME:
             case BASIC_NANOTIMESTAMP:
                 return ((Scalar)value).getTemporal();
+            case UDATE:
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTime((java.util.Date) value);
+                return new BasicTimestamp(calendar).getTemporal();
             case DATE:
                 return new BasicDate(((Date) value).toLocalDate()).getTemporal();
             case TIME:
@@ -1399,6 +1407,10 @@ public class TypeCast {
         String srcTemporalClassName = srcValue.getClass().getName();
         Temporal srcTemporal = null;
         switch (srcTemporalClassName){
+            case UDATE:
+                srcTemporal = new Timestamp(((java.util.Date)srcValue).getTime()).toLocalDateTime();
+                srcTemporalClassName = srcTemporal.getClass().getName();
+                break;
             case DATE:
                 srcTemporal = ((Date)srcValue).toLocalDate();
                 srcTemporalClassName = srcTemporal.getClass().getName();
