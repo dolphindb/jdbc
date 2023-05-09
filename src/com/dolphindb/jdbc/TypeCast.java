@@ -232,7 +232,6 @@ public class TypeCast {
     public static String castDbString(Object o){
         String srcClassName = o.getClass().getName();
         switch (srcClassName){
-            case STRING:
             case BASIC_STRING:
                 return "\""+o+"\"";
             case CHAR:
@@ -251,6 +250,7 @@ public class TypeCast {
                 return new BasicNanoTime((LocalTime) o).toString();
             case LOCAL_DATETIME:
                 return new BasicNanoTimestamp((LocalDateTime) o).toString();
+            case STRING:
             case BOOLEAN:
             case BYTE:
             case SHORT:
