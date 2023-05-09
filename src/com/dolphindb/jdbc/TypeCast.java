@@ -101,6 +101,7 @@ public class TypeCast {
     public static final String FLOAT = "java.lang.Float";
     public static final String DOUBLE = "java.lang.Double";
     public static final String STRING = "java.lang.String";
+    public static final String UDATE = "java.util.Date";
 
 
     public static final String BOOLEANARR = "[Z";
@@ -232,6 +233,7 @@ public class TypeCast {
     public static String castDbString(Object o){
         String srcClassName = o.getClass().getName();
         switch (srcClassName){
+            case STRING:
             case BASIC_STRING:
                 return "\""+o+"\"";
             case CHAR:
@@ -240,6 +242,11 @@ public class TypeCast {
                 return new BasicDate(((Date) o).toLocalDate()).toString();
             case TIME:
                 return new BasicNanoTime(((Time) o).toLocalTime()).toString();
+            case UDATE: {
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTime((java.util.Date) o);
+                return new BasicTimestamp(calendar).toString();
+            }
             case TIMESTAMP:
                 return new BasicNanoTimestamp(((Timestamp) o).toLocalDateTime()).toString();
             case YEAR_MONTH:
@@ -250,7 +257,6 @@ public class TypeCast {
                 return new BasicNanoTime((LocalTime) o).toString();
             case LOCAL_DATETIME:
                 return new BasicNanoTimestamp((LocalDateTime) o).toString();
-            case STRING:
             case BOOLEAN:
             case BYTE:
             case SHORT:
