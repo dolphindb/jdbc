@@ -10,14 +10,10 @@ import com.xxdb.io.ProgressListener;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.Executor;
-import java.util.regex.Matcher;
 
 public class JDBCConnection implements Connection {
 	//private DBConnection controlConnection;
@@ -212,6 +208,21 @@ public class JDBCConnection implements Connection {
 			success = dbConnection.connect(hostName, port,"","",null,false,null,true);
 		}
 	}
+	private String loadTables(String dbName, List<String> tableNames){
+		StringBuilder sbInitScript = new StringBuilder();
+		for(String tableName:tableNames) {
+			StringBuilder builder = new StringBuilder();
+			builder.append("loadTable(\"").append(dbName).append("\", \"").append(tableName).append("\");");
+			try {
+				this.dbConnection.run(builder.toString());
+				sbInitScript.append(tableName).append("=").append("loadTable(\"").append(dbName).append("\", \"").append(tableName).append("\");\n");
+			} catch (Exception e) {
+				System.out.println("Load table "+dbName+"."+tableName+" failed "+e.getMessage());
+				tableNames.remove(tableName);
+			}
+		}
+		return sbInitScript.toString();
+	}
 
 	private void open(String hostname, int port, Properties prop) throws SQLException, IOException{
 		this.connect(hostname, port, prop,null);
@@ -227,39 +238,26 @@ public class JDBCConnection implements Connection {
 			if (valueName[0].trim().startsWith("dfs://")) {
 				//this.isDFS = true;
 				this.databases = valueName[0];
+				List<String> dbtables=new ArrayList<>();
 				// if set specific tableanme to load
 				if (StringUtils.isNotEmpty(prop.getProperty("tableName"))) {
 					String tablename = prop.getProperty("tableName");
 					tablename = tablename.trim();
 					String[] tableNames = tablename.split(",");
-					String[] finaltablenames = new String[tableNames.length];
 					for (int i = 0; i < tableNames.length; i++) {
-						finaltablenames[i] = tableNames[i];
+						if(tableNames[i].isEmpty()==false)
+							dbtables.add(tableNames[i]);
 					}
-					BasicStringVector basicStringVector = new BasicStringVector(finaltablenames);
-					this.tables = (Vector) basicStringVector;
 				} else {
 					// if not specific tableanme, load all tables; but need to authenticate every table.
-					List<String> tableNameList = new ArrayList<>();
-					StringBuilder loadTableSb = new StringBuilder();
 					Vector vector = (Vector) this.dbConnection.run("getTables(system_db)");
 					for (int i = 0; i < vector.rows(); i++) {
-						Entity tempTableEntity = vector.get(i);
-						String tempTable = tempTableEntity.getString();
-						StringBuilder builder = new StringBuilder();
-						builder.append("loadTable(\"").append(valueName[0]).append("\", \"").append(tempTable).append("\");");
-						try {
-							this.dbConnection.run(builder.toString());
-						} catch (Exception e) {
-							continue;
-						}
-						tableNameList.add(tempTable);
-						loadTableSb.append(tempTable).append(" = ").append(builder.toString()).append("\n");
+						dbtables.add(vector.getString(i));
 					}
-					BasicStringVector basicStringVector = new BasicStringVector(tableNameList);
-					this.tables = (Vector) basicStringVector;
-					sbInitScript.append(loadTableSb);
 				}
+				String script=loadTables(this.databases,dbtables);
+				sbInitScript.append(script);
+				this.tables = new BasicStringVector(dbtables);
 			}
 		}
 		String hasScripts = prop.getProperty("length");
