@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.dolphindb</groupId>
     <artifactId>jdbc</artifactId>
-    <version>1.30.21.3-SNAPSHOT</version>
+    <version>1.30.21.4-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
-        <dolphindb.version>1.30.21.3</dolphindb.version>
+        <dolphindb.version>1.30.21.4</dolphindb.version>
     </properties>
 
 
@@ -34,7 +34,7 @@
         <connection>scm:git:git@github.com:dolphindb/jdbc.git</connection>
         <developerConnection>scm:git:git@github.com:dolphindb/jdbc.git</developerConnection>
         <url>git@github.com:dolphindb/jdbc.git</url>
-      <tag>jdbc-1.30.21.3</tag>
+      <tag>jdbc-1.30.21.4</tag>
   </scm>
     <dependencies>
         <dependency>
