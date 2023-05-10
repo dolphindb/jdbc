@@ -504,18 +504,16 @@ public class JDBCResultSet implements ResultSet{
         }catch (Exception e){
             throw new SQLException(e.getCause());
         }
-        //return (T) getObject(columnIndex);
     }
 
     @SuppressWarnings("unchecked")
 	@Override
     public <T> T getObject(String columnLabel, Class<T> aClass) throws SQLException {
-        return (T) getObject(columnLabel);
+        return getObject(findColumn(columnLabel),aClass);
     }
 
     @Override
     public int findColumn(String columnLabel) throws SQLException {
-        int x = findColumnHashMap.get(columnLabel);
         return findColumnHashMap.get(columnLabel);
     }
 
