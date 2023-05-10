@@ -229,7 +229,7 @@ public class TypeCast {
 		}
 		return x;
     }
-
+    //java/ddb object to string
     public static String castDbString(Object o){
         String srcClassName = o.getClass().getName();
         switch (srcClassName){
@@ -303,7 +303,7 @@ public class TypeCast {
                 return null;
         }
     }
-
+    //java 2 ddb
     public static Entity java2db(Object srcValue, String targetEntityClassName) throws IOException {
         String srcValueClassName = srcValue.getClass().getName();
         Entity castEntity = null;
@@ -324,7 +324,7 @@ public class TypeCast {
         if(castEntity != null) return castEntity;
         throw new IOException("only support bool byte char short int long float double Object[] List Date Time Timestamp YearMoth LocalDate LocalTime LocalDateTime Scalar Vector");
     }
-
+    //java/ddb object/list/[] to ddb object/list/[]
     public static Entity dateTimeCast(Object srcValue, String targetEntityClassName) throws Exception{
         Entity castEntity;
         if(srcValue instanceof Scalar || srcValue instanceof Vector) {
@@ -345,7 +345,7 @@ public class TypeCast {
         }
         return null;
     }
-
+    //object to ddb
     public static Entity basicTypeCast(Object srcValue, String targetEntityClassName) throws IOException{
         Entity castEntity;
 
@@ -369,7 +369,7 @@ public class TypeCast {
         }
         return null;
     }
-
+    //datetime2ddb
     public static Entity dataTime_java2db(Object srcValue, String targetEntityClassName) throws IOException{
         if(srcValue instanceof Entity) return null;
 
@@ -547,7 +547,7 @@ public class TypeCast {
                 throw new IOException(srcEntityClassName + " can not cast " + targetEntityClassName);
         }
     }
-
+    //ddb->java
     public static Entity Temporal2dateTime(Temporal srcTemporal, String srcEntityClassName, String targetEntityClassName) throws IOException{
         switch (targetEntityClassName) {
             case BASIC_MONTH:
@@ -1095,7 +1095,7 @@ public class TypeCast {
         }
         return null;
     }
-
+    //java to ddb
     public static Entity basicType_java2db(Object srcValue, String targetEntityClassName) throws IOException{
         if(srcValue instanceof Entity) return null;
 
@@ -1367,7 +1367,7 @@ public class TypeCast {
                 return null;
         }
     }
-
+    // ddb/java datetime to java temporal
     public static Temporal getTemporal(Object value) throws Exception{
         switch (value.getClass().getName()){
             case BASIC_MONTH:
@@ -1402,7 +1402,296 @@ public class TypeCast {
                 return null;
         }
     }
+    public static Object entity2java(Entity entity,String targetTemporalClassName) throws Exception{
+        if(entity.getDataCategory()!=Entity.DATA_CATEGORY.TEMPORAL){
+            switch (targetTemporalClassName) {
+                case BOOLEAN:
+                    switch (entity.getClass().getName()) {
+                        case BASIC_BOOLEAN:
+                            return ((BasicBoolean)entity).getBoolean();
+                        case BASIC_BYTE:
+                            return ((BasicByte)entity).getByte()!=0;
+                        case BASIC_INT:
+                            return ((BasicInt)entity).getInt()!=0;
+                        case BASIC_SHORT:
+                            return ((BasicShort)entity).getShort()!=0;
+                        case BASIC_LONG:
+                            return ((BasicLong)entity).getLong()!=0;
+                        case BASIC_FLOAT:
+                            return ((BasicFloat)entity).getFloat()!=0;
+                        case BASIC_DOUBLE:
+                            return ((BasicDouble)entity).getDouble()!=0;
+                        case BASIC_STRING:
+                            return entity.getString().isEmpty()==false;
+                        default:
+                            throw new IOException(entity.getClass().getName() + " can not cast  " + targetTemporalClassName);
+                    }
+                case BYTE:
+                    switch (entity.getClass().getName()) {
+                        case BASIC_BOOLEAN:
+                            return ((BasicBoolean)entity).getBoolean();
+                        case BASIC_BYTE:
+                            return ((BasicByte)entity).getByte();
+                        case BASIC_INT:
+                            return ((BasicInt)entity).getInt();
+                        case BASIC_SHORT:
+                            return ((BasicShort)entity).getShort();
+                        case BASIC_LONG:
+                            return ((BasicLong)entity).getLong();
+                        case BASIC_FLOAT:
+                            return ((BasicFloat)entity).getFloat();
+                        case BASIC_DOUBLE:
+                            return ((BasicDouble)entity).getDouble();
+                        case BASIC_STRING:
+                            return Byte.valueOf(entity.getString());
+                        default:
+                            throw new IOException(entity.getClass().getName() + " can not cast  " + targetTemporalClassName);
+                    }
+                case CHAR:
+                    switch (entity.getClass().getName()) {
+                        case BASIC_BOOLEAN:
+                            return ((BasicBoolean)entity).getBoolean();
+                        case BASIC_BYTE:
+                            return ((BasicByte)entity).getByte();
+                        case BASIC_INT:
+                            return ((BasicInt)entity).getInt();
+                        case BASIC_SHORT:
+                            return ((BasicShort)entity).getShort();
+                        case BASIC_LONG:
+                            return ((BasicLong)entity).getLong();
+                        case BASIC_FLOAT:
+                            return ((BasicFloat)entity).getFloat();
+                        case BASIC_DOUBLE:
+                            return ((BasicDouble)entity).getDouble();
+                        case BASIC_STRING:
+                            return entity.getString().charAt(0);
+                        default:
+                            throw new IOException(entity.getClass().getName() + " can not cast  " + targetTemporalClassName);
+                    }
+                case INT:
+                    switch (entity.getClass().getName()) {
+                        case BASIC_BOOLEAN:
+                            return ((BasicBoolean)entity).getBoolean();
+                        case BASIC_BYTE:
+                            return ((BasicByte)entity).getByte();
+                        case BASIC_INT:
+                            return ((BasicInt)entity).getInt();
+                        case BASIC_SHORT:
+                            return ((BasicShort)entity).getShort();
+                        case BASIC_LONG:
+                            return ((BasicLong)entity).getLong();
+                        case BASIC_FLOAT:
+                            return ((BasicFloat)entity).getFloat();
+                        case BASIC_DOUBLE:
+                            return ((BasicDouble)entity).getDouble();
+                        case BASIC_STRING:
+                            return Integer.valueOf(entity.getString());
+                        default:
+                            throw new IOException(entity.getClass().getName() + " can not cast  " + targetTemporalClassName);
+                    }
+                case SHORT:
+                    switch (entity.getClass().getName()) {
+                        case BASIC_BOOLEAN:
+                            return ((BasicBoolean)entity).getBoolean();
+                        case BASIC_BYTE:
+                            return ((BasicByte)entity).getByte();
+                        case BASIC_INT:
+                            return ((BasicInt)entity).getInt();
+                        case BASIC_SHORT:
+                            return ((BasicShort)entity).getShort();
+                        case BASIC_LONG:
+                            return ((BasicLong)entity).getLong();
+                        case BASIC_FLOAT:
+                            return ((BasicFloat)entity).getFloat();
+                        case BASIC_DOUBLE:
+                            return ((BasicDouble)entity).getDouble();
+                        case BASIC_STRING:
+                            return Short.valueOf(entity.getString());
+                        default:
+                            throw new IOException(entity.getClass().getName() + " can not cast  " + targetTemporalClassName);
+                    }
+                case LONG:
+                    switch (entity.getClass().getName()) {
+                        case BASIC_BOOLEAN:
+                            return ((BasicBoolean)entity).getBoolean();
+                        case BASIC_BYTE:
+                            return ((BasicByte)entity).getByte();
+                        case BASIC_INT:
+                            return ((BasicInt)entity).getInt();
+                        case BASIC_SHORT:
+                            return ((BasicShort)entity).getShort();
+                        case BASIC_LONG:
+                            return ((BasicLong)entity).getLong();
+                        case BASIC_FLOAT:
+                            return ((BasicFloat)entity).getFloat();
+                        case BASIC_DOUBLE:
+                            return ((BasicDouble)entity).getDouble();
+                        case BASIC_STRING:
+                            return Long.valueOf(entity.getString());
+                        default:
+                            throw new IOException(entity.getClass().getName() + " can not cast  " + targetTemporalClassName);
+                    }
+                case FLOAT:
+                    switch (entity.getClass().getName()) {
+                        case BASIC_BOOLEAN:
+                            return ((BasicBoolean)entity).getBoolean();
+                        case BASIC_BYTE:
+                            return ((BasicByte)entity).getByte();
+                        case BASIC_INT:
+                            return ((BasicInt)entity).getInt();
+                        case BASIC_SHORT:
+                            return ((BasicShort)entity).getShort();
+                        case BASIC_LONG:
+                            return ((BasicLong)entity).getLong();
+                        case BASIC_FLOAT:
+                            return ((BasicFloat)entity).getFloat();
+                        case BASIC_DOUBLE:
+                            return ((BasicDouble)entity).getDouble();
+                        case BASIC_STRING:
+                            return Float.valueOf(entity.getString());
+                        default:
+                            throw new IOException(entity.getClass().getName() + " can not cast  " + targetTemporalClassName);
+                    }
+                case DOUBLE:
+                    switch (entity.getClass().getName()) {
+                        case BASIC_BOOLEAN:
+                            return ((BasicBoolean)entity).getBoolean();
+                        case BASIC_BYTE:
+                            return ((BasicByte)entity).getByte();
+                        case BASIC_INT:
+                            return ((BasicInt)entity).getInt();
+                        case BASIC_SHORT:
+                            return ((BasicShort)entity).getShort();
+                        case BASIC_LONG:
+                            return ((BasicLong)entity).getLong();
+                        case BASIC_FLOAT:
+                            return ((BasicFloat)entity).getFloat();
+                        case BASIC_DOUBLE:
+                            return ((BasicDouble)entity).getDouble();
+                        case BASIC_STRING:
+                            return Double.valueOf(entity.getString());
+                        default:
+                            throw new IOException(entity.getClass().getName() + " can not cast  " + targetTemporalClassName);
+                    }
+                case STRING:
+                    return entity.getString();
+                default:
+                    throw new IOException(entity.getClass().getName() + " can not cast  " + targetTemporalClassName);
+            }
+        }
+        Temporal srcTemporal=entity.getTemporal();
+        if(srcTemporal==null)
+            throw new SQLException("Unsupported temporal class "+entity.getClass().getName());
+        String srcTemporalClassName = srcTemporal.getClass().getName();
+        if(srcTemporalClassName.equals(targetTemporalClassName)){
+            return srcTemporal;
+        }
+        switch (targetTemporalClassName) {
+            case YEAR_MONTH:
+                switch (srcTemporalClassName) {
+                    case LOCAL_TIME:
+                        return YEARMONTH;
+                    case LOCAL_DATE:
+                        LocalDate localDate = (LocalDate) srcTemporal;
+                        return YearMonth.of(localDate.getYear(), localDate.getMonthValue());
+                    case LOCAL_DATETIME:
+                        LocalDateTime localDateTime = (LocalDateTime) srcTemporal;
+                        return YearMonth.of(localDateTime.getYear(), localDateTime.getMonthValue());
+                    default:
+                        throw new SQLException("Unsupported temporal class "+entity.getClass().getName());
+                }
+            case LOCAL_DATE:
+                switch (srcTemporalClassName) {
+                    case YEAR_MONTH:
+                        return ((YearMonth) srcTemporal).atEndOfMonth();
+                    case LOCAL_TIME:
+                        return LOCALDATE;
+                    case LOCAL_DATETIME:
+                        return ((LocalDateTime) srcTemporal).toLocalDate();
+                    default:
+                        throw new SQLException("Unsupported temporal class "+entity.getClass().getName());
+                }
+            case LOCAL_TIME:
+                switch (srcTemporalClassName) {
+                    case YEAR_MONTH:
+                        return LOCALTIME;
+                    case LOCAL_DATE:
+                        return LOCALTIME;
+                    case LOCAL_DATETIME:
+                        return ((LocalDateTime) srcTemporal).toLocalTime();
+                    default:
+                        throw new SQLException("Unsupported temporal class "+entity.getClass().getName());
+                }
+            case LOCAL_DATETIME:
+                switch (srcTemporalClassName) {
+                    case YEAR_MONTH:
+                        return ((YearMonth) srcTemporal).atEndOfMonth().atStartOfDay();
+                    case LOCAL_DATE:
+                        return ((LocalDate) srcTemporal).atStartOfDay();
+                    case LOCAL_TIME:
+                        LocalTime localTime = (LocalTime) srcTemporal;
+                        return LocalDateTime.of(YEAR, MONTH, DAY, localTime.getHour(), localTime.getMinute(), localTime.getSecond(), localTime.getNano());
+                    default:
+                        throw new SQLException("Unsupported temporal class "+entity.getClass().getName());
+                }
+            case TIMESTAMP: {
+                LocalDateTime localDateTime = null;
+                switch (srcTemporalClassName) {
+                    case YEAR_MONTH:
+                        localDateTime = ((YearMonth) srcTemporal).atEndOfMonth().atStartOfDay();
+                        break;
+                    case LOCAL_DATE:
+                        localDateTime = ((LocalDate) srcTemporal).atStartOfDay();
+                        break;
+                    case LOCAL_TIME:
+                        LocalTime localTime = (LocalTime) srcTemporal;
+                        localDateTime = LocalDateTime.of(YEAR, MONTH, DAY, localTime.getHour(), localTime.getMinute(), localTime.getSecond(), localTime.getNano());
+                        break;
+                    case LOCAL_DATETIME:
+                        localDateTime = (LocalDateTime) srcTemporal;
+                        break;
+                    default:
+                        throw new SQLException("Unsupported temporal class "+entity.getClass().getName());
+                }
+                return Timestamp.valueOf(localDateTime);
+            }
+            case UDATE:
+                switch (srcTemporalClassName){
+                    case YEAR_MONTH: {
+                        YearMonth value = (YearMonth) srcTemporal;
+                        Calendar calendar = Calendar.getInstance();
+                        calendar.set(value.getYear(), value.getMonthValue()-1, 0, 0, 0, 0);
+                        return calendar.getTime();
+                    }
+                    case LOCAL_DATE: {
+                        LocalDate value = (LocalDate) srcTemporal;
+                        Calendar calendar = Calendar.getInstance();
+                        calendar.set(value.getYear(), value.getMonthValue()-1, value.getDayOfMonth(), 0, 0, 0);
+                        return calendar.getTime();
+                    }
+                    case LOCAL_TIME: {
+                        LocalTime value = (LocalTime) srcTemporal;
+                        Calendar calendar = Calendar.getInstance();
+                        calendar.set(YEAR,MONTH-1,DAY,value.getHour(),value.getMinute(),value.getSecond());
+                        calendar.set(Calendar.MILLISECOND,(int)(value.getNano()*1E-6));
+                        return calendar.getTime();
+                    }
+                    case LOCAL_DATETIME: {
+                        LocalDateTime value = (LocalDateTime) srcTemporal;
+                        Calendar calendar = Calendar.getInstance();
+                        calendar.set(value.getYear(), value.getMonthValue()-1, value.getDayOfMonth(), value.getHour(),value.getMinute(),value.getSecond());
+                        calendar.set(Calendar.MILLISECOND,(int)(value.getNano()*1E-6));
+                        return calendar.getTime();
+                    }
+                    default:
+                        throw new SQLException("Unsupported temporal class "+entity.getClass().getName());
+                }
+            default:
+                throw new SQLException("Unsupported temporal class "+entity.getClass().getName());
+        }
+    }
 
+    //java datetime->localdatetime conversion, from date,time/timestamp->localdate/localtime/localdatetime
     public static Temporal castTemporal(Object srcValue,String targetTemporalClassName){
         String srcTemporalClassName = srcValue.getClass().getName();
         Temporal srcTemporal = null;
