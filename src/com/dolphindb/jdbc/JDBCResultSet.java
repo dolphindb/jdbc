@@ -499,7 +499,12 @@ public class JDBCResultSet implements ResultSet{
     @SuppressWarnings("unchecked")
 	@Override
     public <T> T getObject(int columnIndex, Class<T> aClass) throws SQLException {
-        return (T) getObject(columnIndex);
+        try {
+            return (T) TypeCast.entity2java((Entity) getObject(columnIndex), aClass.getName());
+        }catch (Exception e){
+            throw new SQLException(e.getCause());
+        }
+        //return (T) getObject(columnIndex);
     }
 
     @SuppressWarnings("unchecked")
