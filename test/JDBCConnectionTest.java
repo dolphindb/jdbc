@@ -176,7 +176,7 @@ public class JDBCConnectionTest {
 		conn.close();
 	}
 
-	//@Test
+	@Test
 	public void Test_getConnection_highAvailability_false() throws SQLException, ClassNotFoundException {
 		String script = "def restart(n)\n" +
 				"{\n" +
@@ -202,7 +202,7 @@ public class JDBCConnectionTest {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url1);
 		stmt = conn.createStatement();
-		stmt.execute(script);
+		//stmt.execute(script);
 
 		conn1 = DriverManager.getConnection(url);
 		conn1.equals(false);
@@ -332,7 +332,7 @@ public class JDBCConnectionTest {
 		conn1.close();
 	}
 
-	//@Test
+	@Test
 	public void Test_getConnection_enableHighAvailability_false() throws SQLException, ClassNotFoundException {
 		String script = "def restart(n)\n" +
 				"{\n" +

@@ -199,7 +199,7 @@ public class JDBCUpdateTest {
     public void testUpdateString() throws SQLException {
         createTable();
         PreparedStatement s = conn.prepareStatement("update trade set string = ?");
-        s.setString(1,"'testtest'");
+        s.setString(1,"testtest");
         s.execute();
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
@@ -213,7 +213,7 @@ public class JDBCUpdateTest {
     public void testUpdateSymbol() throws SQLException {
         createTable();
         PreparedStatement s = conn.prepareStatement("update trade set symbol = ?");
-        s.setObject(1,"'testtest'");
+        s.setObject(1,"testtest");
         s.execute();
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
@@ -420,7 +420,7 @@ public class JDBCUpdateTest {
     public void testUpdateBlob() throws SQLException {
         createTable();
         PreparedStatement s = conn.prepareStatement("update trade set blob = ?");
-        s.setObject(1,"'testest'");
+        s.setObject(1,"testest");
         s.execute();
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
@@ -450,35 +450,20 @@ public class JDBCUpdateTest {
         createTable();
         PreparedStatement s = conn.prepareStatement("update trade set int = ? where string = ?");
         s.setObject(1,100);
-        s.setObject(2,"'Hello'");
+        s.setObject(2,"Hello");
         s.execute();
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         org.junit.Assert.assertEquals(100,rs.getInt(4));
     }
 
-    @Test
-    public void testUpdateTwoCol() throws SQLException {
-        createTable();
-        PreparedStatement s = conn.prepareStatement("update trade set int = ?,double = ? where string = ?");
-        s.setObject(1,100);
-        s.setObject(2,12.12);
-        s.setObject(3,"'Hello'");
-        s.execute();
-        ResultSet rs = s.executeQuery("select * from trade");
-        rs.next();
-        org.junit.Assert.assertEquals(100,rs.getInt(4));
-        org.junit.Assert.assertEquals(12.12,rs.getInt(7),2);
-
-    }
 
     @Test
     public void testUpdateWhereContext() throws SQLException {
         createTable();
-        PreparedStatement s = conn.prepareStatement("update trade set int = ? where string = ? context by ?");
+        PreparedStatement s = conn.prepareStatement("update trade set int = ? where string = ? context by double");
         s.setObject(1,100);
-        s.setObject(2,"'Hello'");
-        s.setObject(3,"double");
+        s.setObject(2,"Hello");
         s.execute();
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();

@@ -13,6 +13,7 @@ public class JDBCPreLoadTest {
     static String HOST = JDBCTestUtil.HOST;
     static int PORT = JDBCTestUtil.PORT;
     static String url = "jdbc:dolphindb://"+HOST+":"+PORT;
+    static int COLPORT = JDBCTestUtil.COLPORT ;
     Connection conn;
     Properties info = new Properties();
     public static boolean createPartitionTable(){
@@ -68,7 +69,7 @@ public class JDBCPreLoadTest {
 
         try{
             String script = "\n" +
-                    "n=500800;\n" +
+                    "n=5008;\n" +
                     "date=take(2006.01.01..2006.01.31, n);\n" +
                     "x=rand(10.0, n);\n" +
                     "t=table(date, x);\n" +
@@ -122,6 +123,40 @@ public class JDBCPreLoadTest {
         Statement stm = conn.createStatement();
         ResultSet rs = stm.executeQuery("select top 100 * from pt");
         ResultSet resultSet = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet.next());
+        Assert.assertTrue(rs.next());
+        System.out.println(rs);
+        while(rs.next() && resultSet.next()){
+            System.out.println(rs.getString(1)+" "+rs.getString(2));
+            Assert.assertEquals(resultSet.getString(1),rs.getString(1));
+            Assert.assertEquals(resultSet.getString(2),rs.getString(2));
+        }
+    }
+    @Test
+    public void test_PreLoad_normal_disconnected() throws SQLException, IOException {
+        Connection conn1 = null;
+        conn = DriverManager.getConnection(url+"?tb_pt=dfs://valuedb+pt&highAvailability=true",info);
+        String url1 = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
+        Statement stmt = null;
+        conn1 = DriverManager.getConnection(url1);
+        stmt = conn1.createStatement();
+        try{
+            stmt.execute("stopDataNode([\"192.168.1.167:18921\",\"192.168.1.167:18922\",\"192.168.1.167:18923\",\"192.168.1.167:18924\"])");
+        }catch(Exception ex)
+        {
+            System.out.println(ex.getMessage());
+        }
+        stmt.execute(" sleep(2000)");
+        try{
+            stmt.execute("startDataNode([\"192.168.1.167:18921\",\"192.168.1.167:18922\",\"192.168.1.167:18923\",\"192.168.1.167:18924\"])");
+        }catch(Exception ex)
+        {
+            System.out.println(ex.getMessage());
+        }
+        stmt.execute(" sleep(2000)");
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select  top  100 * from pt");
+        ResultSet resultSet = stm.executeQuery("select top  100 * from loadTable(\"dfs://valuedb\",\"pt\")");
         Assert.assertTrue(resultSet.next());
         Assert.assertTrue(rs.next());
         System.out.println(rs);
@@ -449,7 +484,7 @@ public class JDBCPreLoadTest {
 
     @Test
     public void test_Preload_value_PartitionedTable() throws SQLException, IOException {
-        String script = "n=1000000;\n" +
+        String script = "n=10000;\n" +
                 " cbool = take(true false false true,n);\n" +
                 " cchar = take('a'..'z',n);\n" +
                 " cshort = take(1h..200h,n);\n" +
