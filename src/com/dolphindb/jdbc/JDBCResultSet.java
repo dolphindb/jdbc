@@ -502,7 +502,7 @@ public class JDBCResultSet implements ResultSet{
         try {
             return (T) TypeCast.entity2java((Entity) getObject(columnIndex), aClass.getName());
         }catch (Exception e){
-            throw new SQLException(e.getCause());
+            throw new SQLException(e);
         }
     }
 
