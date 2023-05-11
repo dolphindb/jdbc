@@ -1,21 +1,14 @@
-import com.xxdb.data.BasicBoolean;
-import com.xxdb.data.BasicBooleanVector;
-import com.xxdb.data.Entity;
 //import jdk.internal.dynalink.beans.StaticClass;
 import junit.framework.TestCase;
 import org.junit.*;
 
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.StringReader;
-import java.lang.reflect.Type;
 import java.sql.*;
-import java.time.DateTimeException;
-import java.time.LocalTime;
-import java.time.Month;
-import java.util.Properties;
-import java.util.logging.Logger;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.xxdb.DBConnection;
 import org.junit.Test;
@@ -70,7 +63,53 @@ public class JDBCResultSetTest {
 			return success;
 		}
 	}
-
+	public static boolean CreateDfsTable(String host, Integer port) {
+		boolean success = false;
+		DBConnection db = new DBConnection();
+		try {
+			String script = "n=4;\n" +
+					" id = take(1 2 3 4,n);\n" +
+					" cbool = take(true NULL false false,n);\n" +
+					" cchar = take('a' '0' 'z' NULL,n);\n" +
+					" cshort = take(-1h 200h 0 NULL,n);\n" +
+					" cint = take(-1 1000 0 NULL,n);\n" +
+					" clong = take(200l 2000l 0 NULL,n)\n" +
+					" cdate = take(1969.08.16 1970.01.01 2022.09.30 NULL,n)\n" +
+					" cmonth = take(1969.01M 1970.01M  2022.10M NULL,n)\n" +
+					" ctime = take(00:00:00.001 00:00:00.001 23:59:59.999  NULL,n)\n" +
+					" cminute = take(00:01m 00:01m 23:59m NULL,n)\n" +
+					" csecond = take(00:00:01 12:00:01  23:59:59 NULL,n)\n" +
+					" cdatetime = take(1969.01.01 00:00:01  1970.01.01 00:00:01 2022.09.30 23:59:59 NULL,n)\n" +
+					" ctimestamp = take(1969.09.30 00:00:00.001 1970.09.30 00:00:00.001 2022.09.30 23:59:59.999 NULL,n)\n" +
+					" cnanotime = take(23:59:58.000000001 00:00:00.000000001 23:59:58.000007016 NULL,n)\n" +
+					" cnanotimestamp = take(1969.09.30 23:59:58.000000001 1970.01.01 23:59:58.000000001 2022.09.30 23:59:58.000001112 NULL,n)\n" +
+					" cfloat = take(300.0f 0 -2.0f NULL,n)\n" +
+					" cdouble = take(230.0 0 -230.0 NULL,n)\n" +
+					" cstring = take(\"123\" \"0\" \"-123\" NULL,n)\n" +
+					" cstring1 = take(\"hello\" \"\" \"!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:ZXCVBNM<>?1234567890-=\\][poikjhhgfdsazxcvbnm,./\" NULL,n)\n" +
+					" cdatehour = datehour(take(1969.01.01 01:00:00 1970.01.01 01:00:00 2024.01.01 01:00:00  NULL,n))\n" +
+					" cdecimal32 = decimal32(take(-1 0 2022.9999 NULL,n),4)\n" +
+					" cdecimal64 = decimal64(take(-2022 0 4044.00008 NULL,n),4)\n" +
+					" t = table(id,cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cnanotime,cnanotimestamp,cfloat,cdouble,cstring,cstring1,cdatehour,cdecimal32,cdecimal64)\n" +
+					" if(existsDatabase(\"dfs://testResult\")){\n" +
+					"     dropDatabase(\"dfs://testResult\")\n" +
+					" }\n" +
+					" db = database(\"dfs://testResult\",HASH,[INT, 2])\n" +
+					" pt = db.createPartitionedTable(t,`pt,`id)\n" +
+					" pt.append!(t)";
+			db.connect(HOST,PORT,"admin","123456");
+			db.run(script);
+			success = true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			success = false;
+		} finally {
+			if (db != null) {
+				db.close();
+			}
+			return success;
+		}
+	}
 
 	Connection conn = null;
 	Statement stmt = null;
@@ -816,6 +855,1671 @@ public class JDBCResultSetTest {
 		rs.next();
 		int a = rs.getInt("id");
 		TestCase.assertEquals(true, rs.getInt("id"));
+	}
+	@Test
+	public void Test_ResultSet_getObject_mouth() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		List<YearMonth> res = new ArrayList<>();
+		java.time.YearMonth YearMonth1 = java.time.YearMonth.of(1969, 1 );
+		java.time.YearMonth YearMonth2 = java.time.YearMonth.of(1970, 1 );
+		java.time.YearMonth YearMonth3 = java.time.YearMonth.of(2022, 10);
+		java.time.YearMonth YearMonth4 = null;
+		res.add(YearMonth1);
+		res.add(YearMonth2);
+		res.add(YearMonth3);
+		res.add(YearMonth4);
+		System.out.println(res);
+
+		List<LocalDate> res1 = new ArrayList<>();
+		LocalDate localDate1 = java.time.LocalDate.of(1969, 1, 1);
+		LocalDate localDate2 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate3 = java.time.LocalDate.of(2022, 10, 1);
+		LocalDate localDate4 = null;
+		res1.add(localDate1);
+		res1.add(localDate2);
+		res1.add(localDate3);
+		res1.add(localDate4);
+		System.out.println(res1);
+
+		List<LocalTime> res2 = new ArrayList<>();
+		LocalTime LocalTime1 = java.time.LocalTime.of(0, 0, 0);
+		LocalTime LocalTime2 = java.time.LocalTime.of(0, 0, 0);
+		LocalTime LocalTime3 = java.time.LocalTime.of(0, 0, 0);
+		LocalTime LocalTime4 = null;
+		res2.add(LocalTime1);
+		res2.add(LocalTime2);
+		res2.add(LocalTime3);
+		res2.add(LocalTime4);
+		System.out.println(res2);
+
+		List<LocalDateTime> res3 = new ArrayList<>();
+		LocalDateTime LocalDateTime1 = java.time.LocalDateTime.of(1969, 1, 1,0, 0, 0);
+		LocalDateTime LocalDateTime2 = java.time.LocalDateTime.of(1970, 1, 1,0, 0, 0);
+		LocalDateTime LocalDateTime3 = java.time.LocalDateTime.of(2022, 10, 1,0, 0, 0);
+		LocalDateTime LocalDateTime4 = null;
+		res3.add(LocalDateTime1);
+		res3.add(LocalDateTime2);
+		res3.add(LocalDateTime3);
+		res3.add(LocalDateTime4);
+		System.out.println(res3);
+
+		List<java.util.Date> res4 = new ArrayList<>();
+		List<java.util.Date> res6 = new ArrayList<>();
+
+		java.util.Date Date1 = Date.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date2 = Date.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date3 = Date.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date4 = null;
+		res4.add(Date1);
+		res4.add(Date2);
+		res4.add(Date3);
+		res4.add(Date4);
+		System.out.println(res4);
+
+		List<Timestamp> res5 = new ArrayList<>();
+		Timestamp Timestamp1 = Timestamp.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp2 = Timestamp.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp3 = Timestamp.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp4 = null;
+		res5.add(Timestamp1);
+		res5.add(Timestamp2);
+		res5.add(Timestamp3);
+		res5.add(Timestamp4);
+		System.out.println(res5);
+
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select cmonth from pt order by id");
+		int i=0;
+		while (rs.next()) {
+			TestCase.assertEquals((res.get(i)), rs.getObject(1, YearMonth.class));
+			TestCase.assertEquals((res1.get(i)), rs.getObject(1, LocalDate.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject(1, LocalTime.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject(1, LocalDateTime.class));
+			//TestCase.assertEquals((res4.get(i)), rs.getObject(1, java.util.Date.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject(1, Timestamp.class));
+
+			Object value= rs.getObject(1, java.time.LocalDate.class);
+			System.out.println("--------");
+			System.out.println(value);
+			Object value2= rs.getObject(1, java.time.LocalTime.class);
+			System.out.println(value2);
+			Object value3= rs.getObject(1, java.time.LocalDateTime.class);
+			System.out.println(value3);
+			Object value4= rs.getObject(1, java.util.Date.class);
+			System.out.println(value4);
+			res6.add((java.util.Date) value4);
+			Object value5= rs.getObject(1, Timestamp.class);
+			System.out.println(value5);
+			i++;
+		}
+		System.out.println(res6);
+		TestCase.assertEquals(res6.toString(), res4.toString());
+	}
+	@Test
+	public void Test_ResultSet_getObject_date() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		List<YearMonth> res = new ArrayList<>();
+		java.time.YearMonth YearMonth1 = java.time.YearMonth.of(1969, 8 );
+		java.time.YearMonth YearMonth2 = java.time.YearMonth.of(1970, 1 );
+		java.time.YearMonth YearMonth3 = java.time.YearMonth.of(2022, 9);
+		java.time.YearMonth YearMonth4 = null;
+		res.add(YearMonth1);
+		res.add(YearMonth2);
+		res.add(YearMonth3);
+		res.add(YearMonth4);
+		System.out.println(res);
+
+		List<LocalDate> res1 = new ArrayList<>();
+		LocalDate localDate1 = java.time.LocalDate.of(1969, 8, 16);
+		LocalDate localDate2 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate3 = java.time.LocalDate.of(2022, 9, 30);
+		LocalDate localDate4 = null;
+		res1.add(localDate1);
+		res1.add(localDate2);
+		res1.add(localDate3);
+		res1.add(localDate4);
+		System.out.println(res1);
+
+		List<LocalTime> res2 = new ArrayList<>();
+		LocalTime LocalTime1 = java.time.LocalTime.of(0, 0, 0);
+		LocalTime LocalTime2 = java.time.LocalTime.of(0, 0, 0);
+		LocalTime LocalTime3 = java.time.LocalTime.of(0, 0, 0);
+		LocalTime LocalTime4 = null;
+		res2.add(LocalTime1);
+		res2.add(LocalTime2);
+		res2.add(LocalTime3);
+		res2.add(LocalTime4);
+		System.out.println(res2);
+
+		List<LocalDateTime> res3 = new ArrayList<>();
+		LocalDateTime LocalDateTime1 = java.time.LocalDateTime.of(1969, 8, 16,0, 0, 0);
+		LocalDateTime LocalDateTime2 = java.time.LocalDateTime.of(1970, 1, 1,0, 0, 0);
+		LocalDateTime LocalDateTime3 = java.time.LocalDateTime.of(2022, 9, 30,0, 0, 0);
+		LocalDateTime LocalDateTime4 = null;
+		res3.add(LocalDateTime1);
+		res3.add(LocalDateTime2);
+		res3.add(LocalDateTime3);
+		res3.add(LocalDateTime4);
+		System.out.println(res3);
+
+		List<java.util.Date> res4 = new ArrayList<>();
+		List<java.util.Date> res6 = new ArrayList<>();
+
+		java.util.Date Date1 = Date.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date2 = Date.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date3 = Date.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date4 = null;
+		res4.add(Date1);
+		res4.add(Date2);
+		res4.add(Date3);
+		res4.add(Date4);
+		System.out.println(res4);
+
+		List<Timestamp> res5 = new ArrayList<>();
+		Timestamp Timestamp1 = Timestamp.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp2 = Timestamp.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp3 = Timestamp.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp4 = null;
+		res5.add(Timestamp1);
+		res5.add(Timestamp2);
+		res5.add(Timestamp3);
+		res5.add(Timestamp4);
+		System.out.println(res5);
+
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select cdate from pt order by id");
+		int i=0;
+		while (rs.next()) {
+			TestCase.assertEquals((res.get(i)), rs.getObject(1, YearMonth.class));
+			TestCase.assertEquals((res1.get(i)), rs.getObject(1, LocalDate.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject(1, LocalTime.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject(1, LocalDateTime.class));
+			//TestCase.assertEquals((res4.get(i)), rs.getObject(1, java.util.Date.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject(1, Timestamp.class));
+			Object value4= rs.getObject(1, java.util.Date.class);
+			res6.add((java.util.Date) value4);
+			i++;
+		}
+		System.out.println(res6);
+		TestCase.assertEquals(res6.toString(), res4.toString());
+	}
+	@Test
+	public void Test_ResultSet_getObject_time() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		List<YearMonth> res = new ArrayList<>();
+		java.time.YearMonth YearMonth1 = java.time.YearMonth.of(1970, 1 );
+		java.time.YearMonth YearMonth2 = java.time.YearMonth.of(1970, 1 );
+		java.time.YearMonth YearMonth3 = java.time.YearMonth.of(1970, 1);
+		java.time.YearMonth YearMonth4 = null;
+		res.add(YearMonth1);
+		res.add(YearMonth2);
+		res.add(YearMonth3);
+		res.add(YearMonth4);
+		System.out.println(res);
+
+		List<LocalDate> res1 = new ArrayList<>();
+		LocalDate localDate1 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate2 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate3 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate4 = null;
+		res1.add(localDate1);
+		res1.add(localDate2);
+		res1.add(localDate3);
+		res1.add(localDate4);
+		System.out.println(res1);
+
+		List<LocalTime> res2 = new ArrayList<>();
+		LocalTime LocalTime1 = java.time.LocalTime.of(0, 0, 0,1000000);
+		LocalTime LocalTime2 = java.time.LocalTime.of(0, 0, 0,1000000);
+		LocalTime LocalTime3 = java.time.LocalTime.of(23, 59, 59,999000000);
+		LocalTime LocalTime4 = null;
+		res2.add(LocalTime1);
+		res2.add(LocalTime2);
+		res2.add(LocalTime3);
+		res2.add(LocalTime4);
+		System.out.println(res2);
+
+		List<LocalDateTime> res3 = new ArrayList<>();
+		LocalDateTime LocalDateTime1 = java.time.LocalDateTime.of(1970, 1, 1,0, 0, 0,1000000);
+		LocalDateTime LocalDateTime2 = java.time.LocalDateTime.of(1970, 1, 1,0, 0, 0,1000000);
+		LocalDateTime LocalDateTime3 = java.time.LocalDateTime.of(1970, 1, 1,23, 59, 59,999000000);
+		LocalDateTime LocalDateTime4 = null;
+		res3.add(LocalDateTime1);
+		res3.add(LocalDateTime2);
+		res3.add(LocalDateTime3);
+		res3.add(LocalDateTime4);
+		System.out.println(res3);
+
+		List<java.util.Date> res4 = new ArrayList<>();
+		List<java.util.Date> res6 = new ArrayList<>();
+
+		java.util.Date Date1 = Date.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date2 = Date.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date3 = Date.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date4 = null;
+		res4.add(Date1);
+		res4.add(Date2);
+		res4.add(Date3);
+		res4.add(Date4);
+		System.out.println(res4);
+
+		List<Timestamp> res5 = new ArrayList<>();
+		Timestamp Timestamp1 = Timestamp.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp2 = Timestamp.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp3 = Timestamp.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp4 = null;
+		res5.add(Timestamp1);
+		res5.add(Timestamp2);
+		res5.add(Timestamp3);
+		res5.add(Timestamp4);
+		System.out.println(res5);
+
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select ctime from pt order by id");
+		int i=0;
+		while (rs.next()) {
+			TestCase.assertEquals((res.get(i)), rs.getObject(1, YearMonth.class));
+			TestCase.assertEquals((res1.get(i)), rs.getObject(1, LocalDate.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject(1, LocalTime.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject(1, LocalDateTime.class));
+			//TestCase.assertEquals((res4.get(i)), rs.getObject(1, java.util.Date.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject(1, Timestamp.class));
+			Object value= rs.getObject(1, java.time.LocalDate.class);
+			System.out.println("--------");
+			System.out.println(value);
+			Object value2= rs.getObject(1, java.time.LocalTime.class);
+			System.out.println(value2);
+			Object value3= rs.getObject(1, java.time.LocalDateTime.class);
+			System.out.println(value3);
+			Object value4= rs.getObject(1, java.util.Date.class);
+			System.out.println(value4);
+			res6.add((java.util.Date) value4);
+			Object value5= rs.getObject(1, Timestamp.class);
+			System.out.println(value5);
+			i++;
+		}
+		System.out.println(res6);
+		TestCase.assertEquals(res6.toString(), res4.toString());
+	}
+	@Test
+	public void Test_ResultSet_getObject_minute() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		List<YearMonth> res = new ArrayList<>();
+		java.time.YearMonth YearMonth1 = java.time.YearMonth.of(1970, 1 );
+		java.time.YearMonth YearMonth2 = java.time.YearMonth.of(1970, 1 );
+		java.time.YearMonth YearMonth3 = java.time.YearMonth.of(1970, 1);
+		java.time.YearMonth YearMonth4 = null;
+		res.add(YearMonth1);
+		res.add(YearMonth2);
+		res.add(YearMonth3);
+		res.add(YearMonth4);
+		System.out.println(res);
+
+		List<LocalDate> res1 = new ArrayList<>();
+		LocalDate localDate1 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate2 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate3 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate4 = null;
+		res1.add(localDate1);
+		res1.add(localDate2);
+		res1.add(localDate3);
+		res1.add(localDate4);
+		System.out.println(res1);
+
+		List<LocalTime> res2 = new ArrayList<>();
+		LocalTime LocalTime1 = java.time.LocalTime.of(0, 1, 0,0);
+		LocalTime LocalTime2 = java.time.LocalTime.of(0, 1, 0,0);
+		LocalTime LocalTime3 = java.time.LocalTime.of(23, 59, 0,0);
+		LocalTime LocalTime4 = null;
+		res2.add(LocalTime1);
+		res2.add(LocalTime2);
+		res2.add(LocalTime3);
+		res2.add(LocalTime4);
+		System.out.println(res2);
+
+		List<LocalDateTime> res3 = new ArrayList<>();
+		LocalDateTime LocalDateTime1 = java.time.LocalDateTime.of(1970, 1, 1,0, 1, 0,0);
+		LocalDateTime LocalDateTime2 = java.time.LocalDateTime.of(1970, 1, 1,0, 1, 0,0);
+		LocalDateTime LocalDateTime3 = java.time.LocalDateTime.of(1970, 1, 1,23, 59, 0,0);
+		LocalDateTime LocalDateTime4 = null;
+		res3.add(LocalDateTime1);
+		res3.add(LocalDateTime2);
+		res3.add(LocalDateTime3);
+		res3.add(LocalDateTime4);
+		System.out.println(res3);
+
+		List<java.util.Date> res4 = new ArrayList<>();
+		List<java.util.Date> res6 = new ArrayList<>();
+
+		java.util.Date Date1 = Date.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date2 = Date.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date3 = Date.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date4 = null;
+		res4.add(Date1);
+		res4.add(Date2);
+		res4.add(Date3);
+		res4.add(Date4);
+		System.out.println(res4);
+
+		List<Timestamp> res5 = new ArrayList<>();
+		Timestamp Timestamp1 = Timestamp.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp2 = Timestamp.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp3 = Timestamp.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp4 = null;
+		res5.add(Timestamp1);
+		res5.add(Timestamp2);
+		res5.add(Timestamp3);
+		res5.add(Timestamp4);
+		System.out.println(res5);
+
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select cminute from pt order by id");
+		int i=0;
+		while (rs.next()) {
+			TestCase.assertEquals((res.get(i)), rs.getObject(1, YearMonth.class));
+			TestCase.assertEquals((res1.get(i)), rs.getObject(1, LocalDate.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject(1, LocalTime.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject(1, LocalDateTime.class));
+			//TestCase.assertEquals((res4.get(i)), rs.getObject(1, java.util.Date.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject(1, Timestamp.class));
+
+			Object value= rs.getObject(1, java.time.LocalDate.class);
+			System.out.println("--------");
+			System.out.println(value);
+			Object value2= rs.getObject(1, java.time.LocalTime.class);
+			System.out.println(value2);
+			Object value3= rs.getObject(1, java.time.LocalDateTime.class);
+			System.out.println(value3);
+			Object value4= rs.getObject(1, java.util.Date.class);
+			System.out.println(value4);
+			res6.add((java.util.Date) value4);
+			Object value5= rs.getObject(1, Timestamp.class);
+			System.out.println(value5);
+			i++;
+		}
+		System.out.println(res6);
+		TestCase.assertEquals(res6.toString(), res4.toString());
+	}
+	@Test
+	public void Test_ResultSet_getObject_second() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		List<YearMonth> res = new ArrayList<>();
+		java.time.YearMonth YearMonth1 = java.time.YearMonth.of(1970, 1 );
+		java.time.YearMonth YearMonth2 = java.time.YearMonth.of(1970, 1 );
+		java.time.YearMonth YearMonth3 = java.time.YearMonth.of(1970, 1);
+		java.time.YearMonth YearMonth4 = null;
+		res.add(YearMonth1);
+		res.add(YearMonth2);
+		res.add(YearMonth3);
+		res.add(YearMonth4);
+		System.out.println(res);
+
+		List<LocalDate> res1 = new ArrayList<>();
+		LocalDate localDate1 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate2 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate3 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate4 = null;
+		res1.add(localDate1);
+		res1.add(localDate2);
+		res1.add(localDate3);
+		res1.add(localDate4);
+		System.out.println(res1);
+
+		List<LocalTime> res2 = new ArrayList<>();
+		LocalTime LocalTime1 = java.time.LocalTime.of(0, 0, 1,0);
+		LocalTime LocalTime2 = java.time.LocalTime.of(12, 0, 1,0);
+		LocalTime LocalTime3 = java.time.LocalTime.of(23, 59, 59,0);
+		LocalTime LocalTime4 = null;
+		res2.add(LocalTime1);
+		res2.add(LocalTime2);
+		res2.add(LocalTime3);
+		res2.add(LocalTime4);
+		System.out.println(res2);
+
+		List<LocalDateTime> res3 = new ArrayList<>();
+		LocalDateTime LocalDateTime1 = java.time.LocalDateTime.of(1970, 1, 1,0, 0, 1,0);
+		LocalDateTime LocalDateTime2 = java.time.LocalDateTime.of(1970, 1, 1,12, 0, 1,0);
+		LocalDateTime LocalDateTime3 = java.time.LocalDateTime.of(1970, 1, 1,23, 59, 59,0);
+		LocalDateTime LocalDateTime4 = null;
+		res3.add(LocalDateTime1);
+		res3.add(LocalDateTime2);
+		res3.add(LocalDateTime3);
+		res3.add(LocalDateTime4);
+		System.out.println(res3);
+
+		List<java.util.Date> res4 = new ArrayList<>();
+		List<java.util.Date> res6 = new ArrayList<>();
+
+		java.util.Date Date1 = Date.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date2 = Date.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date3 = Date.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date4 = null;
+		res4.add(Date1);
+		res4.add(Date2);
+		res4.add(Date3);
+		res4.add(Date4);
+		System.out.println(res4);
+
+		List<Timestamp> res5 = new ArrayList<>();
+		Timestamp Timestamp1 = Timestamp.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp2 = Timestamp.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp3 = Timestamp.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp4 = null;
+		res5.add(Timestamp1);
+		res5.add(Timestamp2);
+		res5.add(Timestamp3);
+		res5.add(Timestamp4);
+		System.out.println(res5);
+
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select csecond from pt order by id");
+		int i=0;
+		while (rs.next()) {
+			TestCase.assertEquals((res.get(i)), rs.getObject(1, YearMonth.class));
+			TestCase.assertEquals((res1.get(i)), rs.getObject(1, LocalDate.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject(1, LocalTime.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject(1, LocalDateTime.class));
+			//TestCase.assertEquals((res4.get(i)), rs.getObject(1, java.util.Date.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject(1, Timestamp.class));
+
+			Object value= rs.getObject(1, java.time.LocalDate.class);
+			System.out.println("--------");
+			System.out.println(value);
+			Object value2= rs.getObject(1, java.time.LocalTime.class);
+			System.out.println(value2);
+			Object value3= rs.getObject(1, java.time.LocalDateTime.class);
+			System.out.println(value3);
+			Object value4= rs.getObject(1, java.util.Date.class);
+			System.out.println(value4);
+			res6.add((java.util.Date) value4);
+			Object value5= rs.getObject(1, Timestamp.class);
+			System.out.println(value5);
+			i++;
+		}
+		System.out.println(res6);
+		TestCase.assertEquals(res6.toString(), res4.toString());
+	}
+	@Test
+	public void Test_ResultSet_getObject_datetime() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		List<YearMonth> res = new ArrayList<>();
+		java.time.YearMonth YearMonth1 = java.time.YearMonth.of(1969, 1 );
+		java.time.YearMonth YearMonth2 = java.time.YearMonth.of(1970, 1 );
+		java.time.YearMonth YearMonth3 = java.time.YearMonth.of(2022, 9);
+		java.time.YearMonth YearMonth4 = null;
+		res.add(YearMonth1);
+		res.add(YearMonth2);
+		res.add(YearMonth3);
+		res.add(YearMonth4);
+		System.out.println(res);
+
+		List<LocalDate> res1 = new ArrayList<>();
+		LocalDate localDate1 = java.time.LocalDate.of(1969, 1, 1);
+		LocalDate localDate2 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate3 = java.time.LocalDate.of(2022, 9, 30);
+		LocalDate localDate4 = null;
+		res1.add(localDate1);
+		res1.add(localDate2);
+		res1.add(localDate3);
+		res1.add(localDate4);
+		System.out.println(res1);
+
+		List<LocalTime> res2 = new ArrayList<>();
+		LocalTime LocalTime1 = java.time.LocalTime.of(0, 0, 1,0);
+		LocalTime LocalTime2 = java.time.LocalTime.of(0, 0, 1,0);
+		LocalTime LocalTime3 = java.time.LocalTime.of(23, 59, 59,0);
+		LocalTime LocalTime4 = null;
+		res2.add(LocalTime1);
+		res2.add(LocalTime2);
+		res2.add(LocalTime3);
+		res2.add(LocalTime4);
+		System.out.println(res2);
+
+		List<LocalDateTime> res3 = new ArrayList<>();
+		LocalDateTime LocalDateTime1 = java.time.LocalDateTime.of(1969, 1, 1,0, 0, 1,0);
+		LocalDateTime LocalDateTime2 = java.time.LocalDateTime.of(1970, 1, 1,0, 0, 1,0);
+		LocalDateTime LocalDateTime3 = java.time.LocalDateTime.of(2022, 9, 30,23, 59, 59,0);
+		LocalDateTime LocalDateTime4 = null;
+		res3.add(LocalDateTime1);
+		res3.add(LocalDateTime2);
+		res3.add(LocalDateTime3);
+		res3.add(LocalDateTime4);
+		System.out.println(res3);
+
+		List<java.util.Date> res4 = new ArrayList<>();
+		List<java.util.Date> res6 = new ArrayList<>();
+
+		java.util.Date Date1 = Date.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date2 = Date.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date3 = Date.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date4 = null;
+		res4.add(Date1);
+		res4.add(Date2);
+		res4.add(Date3);
+		res4.add(Date4);
+		System.out.println(res4);
+
+		List<Timestamp> res5 = new ArrayList<>();
+		Timestamp Timestamp1 = Timestamp.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp2 = Timestamp.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp3 = Timestamp.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp4 = null;
+		res5.add(Timestamp1);
+		res5.add(Timestamp2);
+		res5.add(Timestamp3);
+		res5.add(Timestamp4);
+		System.out.println(res5);
+
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select cdatetime from pt order by id");
+		int i=0;
+		while (rs.next()) {
+			TestCase.assertEquals((res.get(i)), rs.getObject(1, YearMonth.class));
+			TestCase.assertEquals((res1.get(i)), rs.getObject(1, LocalDate.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject(1, LocalTime.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject(1, LocalDateTime.class));
+			//TestCase.assertEquals((res4.get(i)), rs.getObject(1, java.util.Date.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject(1, Timestamp.class));
+
+			Object value= rs.getObject(1, java.time.LocalDate.class);
+			System.out.println("--------");
+			System.out.println(value);
+			Object value2= rs.getObject(1, java.time.LocalTime.class);
+			System.out.println(value2);
+			Object value3= rs.getObject(1, java.time.LocalDateTime.class);
+			System.out.println(value3);
+			Object value4= rs.getObject(1, java.util.Date.class);
+			System.out.println(value4);
+			res6.add((java.util.Date) value4);
+			Object value5= rs.getObject(1, Timestamp.class);
+			System.out.println(value5);
+			i++;
+		}
+		System.out.println(res6);
+		TestCase.assertEquals(res6.toString(), res4.toString());
+	}
+	@Test
+	public void Test_ResultSet_getObject_ctimestamp() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		List<YearMonth> res = new ArrayList<>();
+		java.time.YearMonth YearMonth1 = java.time.YearMonth.of(1969, 9 );
+		java.time.YearMonth YearMonth2 = java.time.YearMonth.of(1970, 9 );
+		java.time.YearMonth YearMonth3 = java.time.YearMonth.of(2022, 9);
+		java.time.YearMonth YearMonth4 = null;
+		res.add(YearMonth1);
+		res.add(YearMonth2);
+		res.add(YearMonth3);
+		res.add(YearMonth4);
+		System.out.println(res);
+
+		List<LocalDate> res1 = new ArrayList<>();
+		LocalDate localDate1 = java.time.LocalDate.of(1969, 9, 30);
+		LocalDate localDate2 = java.time.LocalDate.of(1970, 9, 30);
+		LocalDate localDate3 = java.time.LocalDate.of(2022, 9, 30);
+		LocalDate localDate4 = null;
+		res1.add(localDate1);
+		res1.add(localDate2);
+		res1.add(localDate3);
+		res1.add(localDate4);
+		System.out.println(res1);
+
+		List<LocalTime> res2 = new ArrayList<>();
+		LocalTime LocalTime1 = java.time.LocalTime.of(0, 0, 0,1000000);
+		LocalTime LocalTime2 = java.time.LocalTime.of(0, 0, 0,1000000);
+		LocalTime LocalTime3 = java.time.LocalTime.of(23, 59, 59,999000000);
+		LocalTime LocalTime4 = null;
+		res2.add(LocalTime1);
+		res2.add(LocalTime2);
+		res2.add(LocalTime3);
+		res2.add(LocalTime4);
+		System.out.println(res2);
+
+		List<LocalDateTime> res3 = new ArrayList<>();
+		LocalDateTime LocalDateTime1 = java.time.LocalDateTime.of(1969, 9, 30,0, 0, 0,1000000);
+		LocalDateTime LocalDateTime2 = java.time.LocalDateTime.of(1970, 9, 30,0, 0, 0,1000000);
+		LocalDateTime LocalDateTime3 = java.time.LocalDateTime.of(2022, 9, 30, 23, 59, 59,999000000);
+		LocalDateTime LocalDateTime4 = null;
+		res3.add(LocalDateTime1);
+		res3.add(LocalDateTime2);
+		res3.add(LocalDateTime3);
+		res3.add(LocalDateTime4);
+		System.out.println(res3);
+
+		List<java.util.Date> res4 = new ArrayList<>();
+		List<java.util.Date> res6 = new ArrayList<>();
+
+		java.util.Date Date1 = Date.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date2 = Date.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date3 = Date.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date4 = null;
+		res4.add(Date1);
+		res4.add(Date2);
+		res4.add(Date3);
+		res4.add(Date4);
+		System.out.println(res4);
+
+		List<Timestamp> res5 = new ArrayList<>();
+		Timestamp Timestamp1 = Timestamp.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp2 = Timestamp.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp3 = Timestamp.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp4 = null;
+		res5.add(Timestamp1);
+		res5.add(Timestamp2);
+		res5.add(Timestamp3);
+		res5.add(Timestamp4);
+		System.out.println(res5);
+
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select ctimestamp from pt order by id");
+		int i=0;
+		while (rs.next()) {
+			TestCase.assertEquals((res.get(i)), rs.getObject(1, YearMonth.class));
+			TestCase.assertEquals((res1.get(i)), rs.getObject(1, LocalDate.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject(1, LocalTime.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject(1, LocalDateTime.class));
+			//TestCase.assertEquals((res4.get(i)), rs.getObject(1, java.util.Date.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject(1, Timestamp.class));
+
+			Object value= rs.getObject(1, java.time.LocalDate.class);
+			System.out.println("--------");
+			System.out.println(value);
+			Object value2= rs.getObject(1, java.time.LocalTime.class);
+			System.out.println(value2);
+			Object value3= rs.getObject(1, java.time.LocalDateTime.class);
+			System.out.println(value3);
+			Object value4= rs.getObject(1, java.util.Date.class);
+			System.out.println(value4);
+			res6.add((java.util.Date) value4);
+			Object value5= rs.getObject(1, Timestamp.class);
+			System.out.println(value5);
+			i++;
+		}
+		System.out.println(res6);
+		TestCase.assertEquals(res6.toString(), res4.toString());
+	}
+	@Test
+	public void Test_ResultSet_getObject_cnanotime() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		List<YearMonth> res = new ArrayList<>();
+		java.time.YearMonth YearMonth1 = java.time.YearMonth.of(1970, 1 );
+		java.time.YearMonth YearMonth2 = java.time.YearMonth.of(1970, 1 );
+		java.time.YearMonth YearMonth3 = java.time.YearMonth.of(1970, 1);
+		java.time.YearMonth YearMonth4 = null;
+		res.add(YearMonth1);
+		res.add(YearMonth2);
+		res.add(YearMonth3);
+		res.add(YearMonth4);
+		System.out.println(res);
+
+		List<LocalDate> res1 = new ArrayList<>();
+		LocalDate localDate1 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate2 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate3 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate4 = null;
+		res1.add(localDate1);
+		res1.add(localDate2);
+		res1.add(localDate3);
+		res1.add(localDate4);
+		System.out.println(res1);
+
+		List<LocalTime> res2 = new ArrayList<>();
+		LocalTime LocalTime1 = java.time.LocalTime.of(23, 59, 58,1);
+		LocalTime LocalTime2 = java.time.LocalTime.of(0, 0, 0,1);
+		LocalTime LocalTime3 = java.time.LocalTime.of(23, 59, 58,7016);
+		LocalTime LocalTime4 = null;
+		res2.add(LocalTime1);
+		res2.add(LocalTime2);
+		res2.add(LocalTime3);
+		res2.add(LocalTime4);
+		System.out.println(res2);
+
+		List<LocalDateTime> res3 = new ArrayList<>();
+		LocalDateTime LocalDateTime1 = java.time.LocalDateTime.of(1970, 1, 1,23, 59, 58,1);
+		LocalDateTime LocalDateTime2 = java.time.LocalDateTime.of(1970, 1, 1,0, 0, 0,1);
+		LocalDateTime LocalDateTime3 = java.time.LocalDateTime.of(1970, 1, 1, 23, 59, 58,7016);
+		LocalDateTime LocalDateTime4 = null;
+		res3.add(LocalDateTime1);
+		res3.add(LocalDateTime2);
+		res3.add(LocalDateTime3);
+		res3.add(LocalDateTime4);
+		System.out.println(res3);
+
+		List<java.util.Date> res4 = new ArrayList<>();
+		List<java.util.Date> res6 = new ArrayList<>();
+
+		java.util.Date Date1 = Date.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date2 = Date.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date3 = Date.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date4 = null;
+		res4.add(Date1);
+		res4.add(Date2);
+		res4.add(Date3);
+		res4.add(Date4);
+		System.out.println(res4);
+
+		List<Timestamp> res5 = new ArrayList<>();
+		Timestamp Timestamp1 = Timestamp.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp2 = Timestamp.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp3 = Timestamp.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp4 = null;
+		res5.add(Timestamp1);
+		res5.add(Timestamp2);
+		res5.add(Timestamp3);
+		res5.add(Timestamp4);
+		System.out.println(res5);
+
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select cnanotime from pt order by id");
+		int i=0;
+		while (rs.next()) {
+			TestCase.assertEquals((res.get(i)), rs.getObject(1, YearMonth.class));
+			TestCase.assertEquals((res1.get(i)), rs.getObject(1, LocalDate.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject(1, LocalTime.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject(1, LocalDateTime.class));
+			//TestCase.assertEquals((res4.get(i)), rs.getObject(1, java.util.Date.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject(1, Timestamp.class));
+
+			Object value= rs.getObject(1, java.time.LocalDate.class);
+			System.out.println("--------");
+			System.out.println(value);
+			Object value2= rs.getObject(1, java.time.LocalTime.class);
+			System.out.println(value2);
+			Object value3= rs.getObject(1, java.time.LocalDateTime.class);
+			System.out.println(value3);
+			Object value4= rs.getObject(1, java.util.Date.class);
+			System.out.println(value4);
+			res6.add((java.util.Date) value4);
+			Object value5= rs.getObject(1, Timestamp.class);
+			System.out.println(value5);
+			i++;
+		}
+		System.out.println(res6);
+		TestCase.assertEquals(res6.toString(), res4.toString());
+	}
+	@Test
+	public void Test_ResultSet_getObject_cnanotimestamp() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		List<YearMonth> res = new ArrayList<>();
+		java.time.YearMonth YearMonth1 = java.time.YearMonth.of(1969, 9);
+		java.time.YearMonth YearMonth2 = java.time.YearMonth.of(1970, 1);
+		java.time.YearMonth YearMonth3 = java.time.YearMonth.of(2022, 9);
+		java.time.YearMonth YearMonth4 = null;
+		res.add(YearMonth1);
+		res.add(YearMonth2);
+		res.add(YearMonth3);
+		res.add(YearMonth4);
+		System.out.println(res);
+
+		List<LocalDate> res1 = new ArrayList<>();
+		LocalDate localDate1 = java.time.LocalDate.of(1969, 9, 30);
+		LocalDate localDate2 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate3 = java.time.LocalDate.of(2022, 9, 30);
+		LocalDate localDate4 = null;
+		res1.add(localDate1);
+		res1.add(localDate2);
+		res1.add(localDate3);
+		res1.add(localDate4);
+		System.out.println(res1);
+
+		List<LocalTime> res2 = new ArrayList<>();
+		LocalTime LocalTime1 = java.time.LocalTime.of(23, 59, 58,1);
+		LocalTime LocalTime2 = java.time.LocalTime.of(23, 59, 58,1);
+		LocalTime LocalTime3 = java.time.LocalTime.of(23, 59, 58,1112);
+		LocalTime LocalTime4 = null;
+		res2.add(LocalTime1);
+		res2.add(LocalTime2);
+		res2.add(LocalTime3);
+		res2.add(LocalTime4);
+		System.out.println(res2);
+
+		List<LocalDateTime> res3 = new ArrayList<>();
+		LocalDateTime LocalDateTime1 = java.time.LocalDateTime.of(1969, 9, 30,23, 59, 58,1);
+		LocalDateTime LocalDateTime2 = java.time.LocalDateTime.of(1970, 1, 1,23, 59, 58,1);
+		LocalDateTime LocalDateTime3 = java.time.LocalDateTime.of(2022, 9, 30, 23, 59, 58,1112);
+		LocalDateTime LocalDateTime4 = null;
+		res3.add(LocalDateTime1);
+		res3.add(LocalDateTime2);
+		res3.add(LocalDateTime3);
+		res3.add(LocalDateTime4);
+		System.out.println(res3);
+
+		List<java.util.Date> res4 = new ArrayList<>();
+		List<java.util.Date> res6 = new ArrayList<>();
+
+		java.util.Date Date1 = Date.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date2 = Date.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date3 = Date.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date4 = null;
+		res4.add(Date1);
+		res4.add(Date2);
+		res4.add(Date3);
+		res4.add(Date4);
+		System.out.println(res4);
+
+		List<Timestamp> res5 = new ArrayList<>();
+		Timestamp Timestamp1 = Timestamp.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp2 = Timestamp.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp3 = Timestamp.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp4 = null;
+		res5.add(Timestamp1);
+		res5.add(Timestamp2);
+		res5.add(Timestamp3);
+		res5.add(Timestamp4);
+		System.out.println(res5);
+
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select cnanotimestamp from pt order by id");
+		int i=0;
+		while (rs.next()) {
+			TestCase.assertEquals((res.get(i)), rs.getObject(1, YearMonth.class));
+			TestCase.assertEquals((res1.get(i)), rs.getObject(1, LocalDate.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject(1, LocalTime.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject(1, LocalDateTime.class));
+			//TestCase.assertEquals((res4.get(i)), rs.getObject(1, java.util.Date.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject(1, Timestamp.class));
+
+			Object value= rs.getObject(1, java.time.LocalDate.class);
+			System.out.println("--------");
+			System.out.println(value);
+			Object value2= rs.getObject(1, java.time.LocalTime.class);
+			System.out.println(value2);
+			Object value3= rs.getObject(1, java.time.LocalDateTime.class);
+			System.out.println(value3);
+			Object value4= rs.getObject(1, java.util.Date.class);
+			System.out.println(value4);
+			res6.add((java.util.Date) value4);
+			Object value5= rs.getObject(1, Timestamp.class);
+			System.out.println(value5);
+			i++;
+		}
+		System.out.println(res6);
+		TestCase.assertEquals(res6.toString(), res4.toString());
+	}
+	@Test
+	public void Test_ResultSet_getObject_cdatehour() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		List<YearMonth> res = new ArrayList<>();
+		java.time.YearMonth YearMonth1 = java.time.YearMonth.of(1969, 1);
+		java.time.YearMonth YearMonth2 = java.time.YearMonth.of(1970, 1);
+		java.time.YearMonth YearMonth3 = java.time.YearMonth.of(2024, 1);
+		java.time.YearMonth YearMonth4 = null;
+		res.add(YearMonth1);
+		res.add(YearMonth2);
+		res.add(YearMonth3);
+		res.add(YearMonth4);
+		System.out.println(res);
+
+		List<LocalDate> res1 = new ArrayList<>();
+		LocalDate localDate1 = java.time.LocalDate.of(1969, 1, 1);
+		LocalDate localDate2 = java.time.LocalDate.of(1970, 1, 1);
+		LocalDate localDate3 = java.time.LocalDate.of(2024, 1, 1);
+		LocalDate localDate4 = null;
+		res1.add(localDate1);
+		res1.add(localDate2);
+		res1.add(localDate3);
+		res1.add(localDate4);
+		System.out.println(res1);
+
+		List<LocalTime> res2 = new ArrayList<>();
+		LocalTime LocalTime1 = java.time.LocalTime.of(1, 0, 0);
+		LocalTime LocalTime2 = java.time.LocalTime.of(1, 0, 0);
+		LocalTime LocalTime3 = java.time.LocalTime.of(1, 0, 0);
+		LocalTime LocalTime4 = null;
+		res2.add(LocalTime1);
+		res2.add(LocalTime2);
+		res2.add(LocalTime3);
+		res2.add(LocalTime4);
+		System.out.println(res2);
+
+		List<LocalDateTime> res3 = new ArrayList<>();
+		LocalDateTime LocalDateTime1 = java.time.LocalDateTime.of(1969, 1, 1,1, 0, 0);
+		LocalDateTime LocalDateTime2 = java.time.LocalDateTime.of(1970, 1, 1,1, 0, 0);
+		LocalDateTime LocalDateTime3 = java.time.LocalDateTime.of(2024, 1, 1,1, 0, 0);
+		LocalDateTime LocalDateTime4 = null;
+		res3.add(LocalDateTime1);
+		res3.add(LocalDateTime2);
+		res3.add(LocalDateTime3);
+		res3.add(LocalDateTime4);
+		System.out.println(res3);
+
+		List<java.util.Date> res4 = new ArrayList<>();
+		List<java.util.Date> res6 = new ArrayList<>();
+
+		java.util.Date Date1 = Date.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date2 = Date.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date3 = Date.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		java.util.Date Date4 = null;
+		res4.add(Date1);
+		res4.add(Date2);
+		res4.add(Date3);
+		res4.add(Date4);
+		System.out.println(res4);
+
+		List<Timestamp> res5 = new ArrayList<>();
+		Timestamp Timestamp1 = Timestamp.from(LocalDateTime1.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp2 = Timestamp.from(LocalDateTime2.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp3 = Timestamp.from(LocalDateTime3.atZone(ZoneId.systemDefault()).toInstant());
+		Timestamp Timestamp4 = null;
+		res5.add(Timestamp1);
+		res5.add(Timestamp2);
+		res5.add(Timestamp3);
+		res5.add(Timestamp4);
+		System.out.println(res5);
+
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select cdatehour from pt order by id");
+		int i=0;
+		while (rs.next()) {
+			TestCase.assertEquals((res.get(i)), rs.getObject(1, YearMonth.class));
+			TestCase.assertEquals((res1.get(i)), rs.getObject(1, LocalDate.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject(1, LocalTime.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject(1, LocalDateTime.class));
+			//TestCase.assertEquals((res4.get(i)), rs.getObject(1, java.util.Date.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject(1, Timestamp.class));
+
+			Object value= rs.getObject(1, java.time.LocalDate.class);
+			System.out.println("--------");
+			System.out.println(value);
+			Object value2= rs.getObject(1, java.time.LocalTime.class);
+			System.out.println(value2);
+			Object value3= rs.getObject(1, java.time.LocalDateTime.class);
+			System.out.println(value3);
+			Object value4= rs.getObject(1, java.util.Date.class);
+			System.out.println(value4);
+			res6.add((java.util.Date) value4);
+			Object value5= rs.getObject(1, Timestamp.class);
+			System.out.println(value5);
+			i++;
+		}
+		System.out.println(res6);
+		TestCase.assertEquals(res6.toString(), res4.toString());
+	}
+	@Test
+	public void Test_ResultSet_getObject_Boolean() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select * from pt order by id");
+		int i=0;
+		List<Boolean> res1 = new ArrayList<>();
+		res1.add(true);
+		res1.add(null);
+		res1.add(false);
+		res1.add(false);
+
+		List<Boolean> res2 = new ArrayList<>();
+		res2.add(true);
+		res2.add(true);
+		res2.add(true);
+		res2.add(null);
+
+		List<Boolean> res3 = new ArrayList<>();
+		res3.add(true);
+		res3.add(true);
+		res3.add(false);
+		res3.add(null);
+
+		List<Boolean> res4 = new ArrayList<>();
+		res4.add(true);
+		res4.add(true);
+		res4.add(false);
+		res4.add(null);
+
+		List<Boolean> res5 = new ArrayList<>();
+		res5.add(true);
+		res5.add(true);
+		res5.add(false);
+		res5.add(null);
+
+		List<Boolean> res6 = new ArrayList<>();
+		res6.add(true);
+		res6.add(false);
+		res6.add(true);
+		res6.add(null);
+
+		List<Boolean> res7 = new ArrayList<>();
+		res7.add(true);
+		res7.add(false);
+		res7.add(true);
+		res7.add(null);
+
+		List<Boolean> res8 = new ArrayList<>();
+		res8.add(true);
+		res8.add(false);
+		res8.add(true);
+		res8.add(null);
+		while (rs.next()) {
+			TestCase.assertEquals((res1.get(i)), rs.getObject("cbool", java.lang.Boolean.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject("cchar", java.lang.Boolean.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject("cshort", java.lang.Boolean.class));
+			TestCase.assertEquals((res4.get(i)), rs.getObject("cint", java.lang.Boolean.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject("clong", java.lang.Boolean.class));
+			TestCase.assertEquals((res6.get(i)), rs.getObject("cfloat", java.lang.Boolean.class));
+			TestCase.assertEquals((res7.get(i)), rs.getObject("cdouble", java.lang.Boolean.class));
+			TestCase.assertEquals((res8.get(i)), rs.getObject("cstring", java.lang.Boolean.class));
+			try{
+				Object value9 = rs.getObject("cdecimal32", java.lang.Boolean.class);
+			}catch(Exception E){
+				TestCase.assertEquals("java.io.IOException: com.xxdb.data.BasicDecimal32 can not cast  java.lang.Boolean",E.getMessage());
+			}
+			i++;
+		}
+	}
+	@Test
+	public void Test_ResultSet_getObject_Integer() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select * from pt order by id");
+		int i=0;
+		List<Boolean> res1 = new ArrayList<>();
+		res1.add(true);
+		res1.add(null);
+		res1.add(false);
+		res1.add(false);
+
+		List<Byte> res2 = new ArrayList<>();
+		res2.add(new Byte("97"));
+		res2.add(new Byte("48"));
+		res2.add(new Byte("122"));
+		res2.add(null);
+
+		List<Integer> res3 = new ArrayList<>();
+		res3.add(-1);
+		res3.add(200);
+		res3.add(0);
+		res3.add(null);
+
+		List<Integer> res4 = new ArrayList<>();
+		res4.add(-1);
+		res4.add(1000);
+		res4.add(0);
+		res4.add(null);
+
+		List<Long> res5 = new ArrayList<>();
+		res5.add(200L);
+		res5.add(2000L);
+		res5.add(0L);
+		res5.add(null);
+
+		List<Float> res6 = new ArrayList<>();
+		res6.add(300.0F);
+		res6.add(0.0F);
+		res6.add((float) -2.0);
+		res6.add(null);
+
+		List<Double> res7 = new ArrayList<>();
+		res7.add(230.0);
+		res7.add(0.0);
+		res7.add(-230.0);
+		res7.add(null);
+
+		List<Integer> res8 = new ArrayList<>();
+		res8.add(123);
+		res8.add(0);
+		res8.add(-123);
+		res8.add(null);
+		while (rs.next()) {
+			TestCase.assertEquals((res1.get(i)), rs.getObject("cbool", java.lang.Integer.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject("cchar", java.lang.Integer.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject("cshort", java.lang.Integer.class));
+			TestCase.assertEquals((res4.get(i)), rs.getObject("cint", java.lang.Integer.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject("clong", java.lang.Integer.class));
+			TestCase.assertEquals((res6.get(i)), rs.getObject("cfloat", java.lang.Integer.class));
+			TestCase.assertEquals((res7.get(i)), rs.getObject("cdouble", java.lang.Integer.class));
+			TestCase.assertEquals((res8.get(i)), rs.getObject("cstring", java.lang.Integer.class));
+			try{
+				Object value9 = rs.getObject("cdecimal32", java.lang.Integer.class);
+			}catch(Exception E){
+				TestCase.assertEquals("java.io.IOException: com.xxdb.data.BasicDecimal32 can not cast  java.lang.Integer",E.getMessage());
+			}
+			i++;
+		}
+	}
+	@Test
+	public void Test_ResultSet_getObject_Byte() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select * from pt order by id");
+		int i=0;
+		List<Boolean> res1 = new ArrayList<>();
+		res1.add(true);
+		res1.add(null);
+		res1.add(false);
+		res1.add(false);
+
+		List<Byte> res2 = new ArrayList<>();
+		res2.add(new Byte("97"));
+		res2.add(new Byte("48"));
+		res2.add(new Byte("122"));
+		res2.add(null);
+
+		List<Integer> res3 = new ArrayList<>();
+		res3.add(-1);
+		res3.add(200);
+		res3.add(0);
+		res3.add(null);
+
+		List<Integer> res4 = new ArrayList<>();
+		res4.add(-1);
+		res4.add(1000);
+		res4.add(0);
+		res4.add(null);
+
+		List<Long> res5 = new ArrayList<>();
+		res5.add(200L);
+		res5.add(2000L);
+		res5.add(0L);
+		res5.add(null);
+
+		List<Float> res6 = new ArrayList<>();
+		res6.add(300.0F);
+		res6.add(0.0F);
+		res6.add((float) -2.0);
+		res6.add(null);
+
+		List<Double> res7 = new ArrayList<>();
+		res7.add(230.0);
+		res7.add(0.0);
+		res7.add(-230.0);
+		res7.add(null);
+
+		List<Byte> res8 = new ArrayList<>();
+		res8.add((byte) 123);
+		res8.add((byte) 0);
+		res8.add((byte) -123);
+		res8.add(null);
+		while (rs.next()) {
+			TestCase.assertEquals((res1.get(i)), rs.getObject("cbool", java.lang.Byte.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject("cchar", java.lang.Byte.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject("cshort", java.lang.Byte.class));
+			TestCase.assertEquals((res4.get(i)), rs.getObject("cint", java.lang.Byte.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject("clong", java.lang.Byte.class));
+			TestCase.assertEquals((res6.get(i)), rs.getObject("cfloat", java.lang.Byte.class));
+			TestCase.assertEquals((res7.get(i)), rs.getObject("cdouble", java.lang.Byte.class));
+			TestCase.assertEquals((res8.get(i)), rs.getObject("cstring", java.lang.Byte.class));
+			try{
+				Object value9 = rs.getObject("cdecimal32", java.lang.Byte.class);
+			}catch(Exception E){
+				TestCase.assertEquals("java.io.IOException: com.xxdb.data.BasicDecimal32 can not cast  java.lang.Byte",E.getMessage());
+			}
+			i++;
+		}
+	}
+	@Test
+	public void Test_ResultSet_getObject_Character() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select * from pt order by id");
+		int i=0;
+		List<Boolean> res1 = new ArrayList<>();
+		res1.add(true);
+		res1.add(null);
+		res1.add(false);
+		res1.add(false);
+
+		List<Byte> res2 = new ArrayList<>();
+		res2.add(new Byte("97"));
+		res2.add(new Byte("48"));
+		res2.add(new Byte("122"));
+		res2.add(null);
+
+		List<Integer> res3 = new ArrayList<>();
+		res3.add(-1);
+		res3.add(200);
+		res3.add(0);
+		res3.add(null);
+
+		List<Integer> res4 = new ArrayList<>();
+		res4.add(-1);
+		res4.add(1000);
+		res4.add(0);
+		res4.add(null);
+
+		List<Long> res5 = new ArrayList<>();
+		res5.add(200L);
+		res5.add(2000L);
+		res5.add(0L);
+		res5.add(null);
+
+		List<Float> res6 = new ArrayList<>();
+		res6.add(300.0F);
+		res6.add(0.0F);
+		res6.add((float) -2.0);
+		res6.add(null);
+
+		List<Double> res7 = new ArrayList<>();
+		res7.add(230.0);
+		res7.add(0.0);
+		res7.add(-230.0);
+		res7.add(null);
+
+		List<Byte> res8 = new ArrayList<>();
+		res8.add((byte) 123);
+		res8.add((byte) 0);
+		res8.add((byte) -123);
+		res8.add(null);
+		while (rs.next()) {
+			TestCase.assertEquals((res1.get(i)), rs.getObject("cbool", java.lang.Character.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject("cchar", java.lang.Character.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject("cshort", java.lang.Character.class));
+			TestCase.assertEquals((res4.get(i)), rs.getObject("cint", java.lang.Character.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject("clong", java.lang.Character.class));
+			TestCase.assertEquals((res6.get(i)), rs.getObject("cfloat", java.lang.Character.class));
+			TestCase.assertEquals((res7.get(i)), rs.getObject("cdouble", java.lang.Character.class));
+			try{
+				Object value = rs.getObject("cstring", java.lang.Character.class);
+			}catch(Exception E){
+				TestCase.assertEquals("java.io.IOException: com.xxdb.data.BasicString can not cast  java.lang.Character",E.getMessage());
+			}
+			try{
+				Object value = rs.getObject("cdecimal32", java.lang.Character.class);
+			}catch(Exception E){
+				TestCase.assertEquals("java.io.IOException: com.xxdb.data.BasicDecimal32 can not cast  java.lang.Character",E.getMessage());
+			}
+			i++;
+		}
+	}
+	@Test
+	public void Test_ResultSet_getObject_Short() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select * from pt order by id");
+		int i=0;
+		List<Boolean> res1 = new ArrayList<>();
+		res1.add(true);
+		res1.add(null);
+		res1.add(false);
+		res1.add(false);
+
+		List<Byte> res2 = new ArrayList<>();
+		res2.add(new Byte("97"));
+		res2.add(new Byte("48"));
+		res2.add(new Byte("122"));
+		res2.add(null);
+
+		List<Integer> res3 = new ArrayList<>();
+		res3.add(-1);
+		res3.add(200);
+		res3.add(0);
+		res3.add(null);
+
+		List<Integer> res4 = new ArrayList<>();
+		res4.add(-1);
+		res4.add(1000);
+		res4.add(0);
+		res4.add(null);
+
+		List<Long> res5 = new ArrayList<>();
+		res5.add(200L);
+		res5.add(2000L);
+		res5.add(0L);
+		res5.add(null);
+
+		List<Float> res6 = new ArrayList<>();
+		res6.add(300.0F);
+		res6.add(0.0F);
+		res6.add((float) -2.0);
+		res6.add(null);
+
+		List<Double> res7 = new ArrayList<>();
+		res7.add(230.0);
+		res7.add(0.0);
+		res7.add(-230.0);
+		res7.add(null);
+
+		List<Short> res8 = new ArrayList<>();
+		res8.add((short) 123);
+		res8.add((short) 0);
+		res8.add((short) -123);
+		res8.add(null);
+		while (rs.next()) {
+			TestCase.assertEquals((res1.get(i)), rs.getObject("cbool", java.lang.Short.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject("cchar", java.lang.Short.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject("cshort", java.lang.Short.class));
+			TestCase.assertEquals((res4.get(i)), rs.getObject("cint", java.lang.Short.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject("clong", java.lang.Short.class));
+			TestCase.assertEquals((res6.get(i)), rs.getObject("cfloat", java.lang.Short.class));
+			TestCase.assertEquals((res7.get(i)), rs.getObject("cdouble", java.lang.Short.class));
+			TestCase.assertEquals((res8.get(i)), rs.getObject("cstring", java.lang.Short.class));
+
+			try{
+				Object value = rs.getObject("cdecimal32", java.lang.Short.class);
+			}catch(Exception E){
+				TestCase.assertEquals("java.io.IOException: com.xxdb.data.BasicDecimal32 can not cast  java.lang.Short",E.getMessage());
+			}
+			i++;
+		}
+	}
+	@Test
+	public void Test_ResultSet_getObject_Long() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select * from pt order by id");
+		int i=0;
+		List<Boolean> res1 = new ArrayList<>();
+		res1.add(true);
+		res1.add(null);
+		res1.add(false);
+		res1.add(false);
+
+		List<Byte> res2 = new ArrayList<>();
+		res2.add(new Byte("97"));
+		res2.add(new Byte("48"));
+		res2.add(new Byte("122"));
+		res2.add(null);
+
+		List<Integer> res3 = new ArrayList<>();
+		res3.add(-1);
+		res3.add(200);
+		res3.add(0);
+		res3.add(null);
+
+		List<Integer> res4 = new ArrayList<>();
+		res4.add(-1);
+		res4.add(1000);
+		res4.add(0);
+		res4.add(null);
+
+		List<Long> res5 = new ArrayList<>();
+		res5.add(200L);
+		res5.add(2000L);
+		res5.add(0L);
+		res5.add(null);
+
+		List<Float> res6 = new ArrayList<>();
+		res6.add(300.0F);
+		res6.add(0.0F);
+		res6.add((float) -2.0);
+		res6.add(null);
+
+		List<Double> res7 = new ArrayList<>();
+		res7.add(230.0);
+		res7.add(0.0);
+		res7.add(-230.0);
+		res7.add(null);
+
+		List<Long> res8 = new ArrayList<>();
+		res8.add((long) 123);
+		res8.add((long) 0);
+		res8.add((long) -123);
+		res8.add(null);
+		while (rs.next()) {
+			TestCase.assertEquals((res1.get(i)), rs.getObject("cbool", java.lang.Long.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject("cchar", java.lang.Long.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject("cshort", java.lang.Long.class));
+			TestCase.assertEquals((res4.get(i)), rs.getObject("cint", java.lang.Long.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject("clong", java.lang.Long.class));
+			TestCase.assertEquals((res6.get(i)), rs.getObject("cfloat", java.lang.Long.class));
+			TestCase.assertEquals((res7.get(i)), rs.getObject("cdouble", java.lang.Long.class));
+			TestCase.assertEquals((res8.get(i)), rs.getObject("cstring", java.lang.Long.class));
+			try{
+				Object value = rs.getObject("cdecimal32", java.lang.Long.class);
+			}catch(Exception E){
+				TestCase.assertEquals("java.io.IOException: com.xxdb.data.BasicDecimal32 can not cast  java.lang.Long",E.getMessage());
+			}
+			i++;
+		}
+	}
+	@Test
+	public void Test_ResultSet_getObject_Float() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select * from pt order by id");
+		int i=0;
+		List<Boolean> res1 = new ArrayList<>();
+		res1.add(true);
+		res1.add(null);
+		res1.add(false);
+		res1.add(false);
+
+		List<Byte> res2 = new ArrayList<>();
+		res2.add(new Byte("97"));
+		res2.add(new Byte("48"));
+		res2.add(new Byte("122"));
+		res2.add(null);
+
+		List<Integer> res3 = new ArrayList<>();
+		res3.add(-1);
+		res3.add(200);
+		res3.add(0);
+		res3.add(null);
+
+		List<Integer> res4 = new ArrayList<>();
+		res4.add(-1);
+		res4.add(1000);
+		res4.add(0);
+		res4.add(null);
+
+		List<Long> res5 = new ArrayList<>();
+		res5.add(200L);
+		res5.add(2000L);
+		res5.add(0L);
+		res5.add(null);
+
+		List<Float> res6 = new ArrayList<>();
+		res6.add(300.0F);
+		res6.add(0.0F);
+		res6.add((float) -2.0);
+		res6.add(null);
+
+		List<Double> res7 = new ArrayList<>();
+		res7.add(230.0);
+		res7.add(0.0);
+		res7.add(-230.0);
+		res7.add(null);
+
+		List<Float> res8 = new ArrayList<>();
+		res8.add((float) 123);
+		res8.add((float) 0);
+		res8.add((float) -123);
+		res8.add(null);
+		while (rs.next()) {
+			TestCase.assertEquals((res1.get(i)), rs.getObject("cbool", java.lang.Float.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject("cchar", java.lang.Float.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject("cshort", java.lang.Float.class));
+			TestCase.assertEquals((res4.get(i)), rs.getObject("cint", java.lang.Float.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject("clong", java.lang.Float.class));
+			TestCase.assertEquals((res6.get(i)), rs.getObject("cfloat", java.lang.Float.class));
+			TestCase.assertEquals((res7.get(i)), rs.getObject("cdouble", java.lang.Float.class));
+			TestCase.assertEquals((res8.get(i)), rs.getObject("cstring", java.lang.Float.class));
+			try{
+				Object value = rs.getObject("cdecimal32", java.lang.Float.class);
+			}catch(Exception E){
+				TestCase.assertEquals("java.io.IOException: com.xxdb.data.BasicDecimal32 can not cast  java.lang.Float",E.getMessage());
+			}
+			i++;
+		}
+	}
+	@Test
+	public void Test_ResultSet_getObject_Double() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select * from pt order by id");
+		int i=0;
+		List<Boolean> res1 = new ArrayList<>();
+		res1.add(true);
+		res1.add(null);
+		res1.add(false);
+		res1.add(false);
+
+		List<Byte> res2 = new ArrayList<>();
+		res2.add(new Byte("97"));
+		res2.add(new Byte("48"));
+		res2.add(new Byte("122"));
+		res2.add(null);
+
+		List<Integer> res3 = new ArrayList<>();
+		res3.add(-1);
+		res3.add(200);
+		res3.add(0);
+		res3.add(null);
+
+		List<Integer> res4 = new ArrayList<>();
+		res4.add(-1);
+		res4.add(1000);
+		res4.add(0);
+		res4.add(null);
+
+		List<Long> res5 = new ArrayList<>();
+		res5.add(200L);
+		res5.add(2000L);
+		res5.add(0L);
+		res5.add(null);
+
+		List<Float> res6 = new ArrayList<>();
+		res6.add(300.0F);
+		res6.add(0.0F);
+		res6.add((float) -2.0);
+		res6.add(null);
+
+		List<Double> res7 = new ArrayList<>();
+		res7.add(230.0);
+		res7.add(0.0);
+		res7.add(-230.0);
+		res7.add(null);
+
+		List<Double> res8 = new ArrayList<>();
+		res8.add((double) 123);
+		res8.add((double) 0);
+		res8.add((double) -123);
+		res8.add(null);
+		while (rs.next()) {
+			TestCase.assertEquals((res1.get(i)), rs.getObject("cbool", java.lang.Double.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject("cchar", java.lang.Double.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject("cshort", java.lang.Double.class));
+			TestCase.assertEquals((res4.get(i)), rs.getObject("cint", java.lang.Double.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject("clong", java.lang.Double.class));
+			TestCase.assertEquals((res6.get(i)), rs.getObject("cfloat", java.lang.Double.class));
+			TestCase.assertEquals((res7.get(i)), rs.getObject("cdouble", java.lang.Double.class));
+			TestCase.assertEquals((res8.get(i)), rs.getObject("cstring", java.lang.Double.class));
+			try{
+				Object value = rs.getObject("cdecimal32", java.lang.Double.class);
+			}catch(Exception E){
+				TestCase.assertEquals("java.io.IOException: com.xxdb.data.BasicDecimal32 can not cast java.lang.Double",E.getMessage());
+			}
+			i++;
+		}
+	}
+	@Test
+	public void Test_ResultSet_getObject_String() throws Exception {
+		CreateDfsTable(HOST,PORT);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable(\"dfs://testResult\", 'pt')");
+		rs = stmt.executeQuery("select * from pt order by id");
+		int i=0;
+		List<String> res1 = new ArrayList<>();
+		res1.add("true");
+		res1.add(null);
+		res1.add("false");
+		res1.add("false");
+
+		List<String> res2 = new ArrayList<>();
+		res2.add("'a'");
+		res2.add("'0'");
+		res2.add("'z'");
+		res2.add(null);
+
+		List<String> res3 = new ArrayList<>();
+		res3.add("-1");
+		res3.add("200");
+		res3.add("0");
+		res3.add(null);
+
+		List<String> res4 = new ArrayList<>();
+		res4.add("-1");
+		res4.add("1000");
+		res4.add("0");
+		res4.add(null);
+
+		List<String> res5 = new ArrayList<>();
+		res5.add("200");
+		res5.add("2000");
+		res5.add("0");
+		res5.add(null);
+
+		List<String> res6 = new ArrayList<>();
+		res6.add("300");
+		res6.add("0");
+		res6.add("-2");
+		res6.add(null);
+
+		List<String> res7 = new ArrayList<>();
+		res7.add("230");
+		res7.add("0");
+		res7.add("-230");
+		res7.add(null);
+
+		List<String> res8 = new ArrayList<>();
+		res8.add("123");
+		res8.add("0");
+		res8.add("-123");
+		res8.add(null);
+		while (rs.next()) {
+			TestCase.assertEquals((res1.get(i)), rs.getObject("cbool", java.lang.String.class));
+			TestCase.assertEquals((res2.get(i)), rs.getObject("cchar", java.lang.String.class));
+			TestCase.assertEquals((res3.get(i)), rs.getObject("cshort", java.lang.String.class));
+			TestCase.assertEquals((res4.get(i)), rs.getObject("cint", java.lang.String.class));
+			TestCase.assertEquals((res5.get(i)), rs.getObject("clong", java.lang.String.class));
+			TestCase.assertEquals((res6.get(i)), rs.getObject("cfloat", java.lang.String.class));
+			TestCase.assertEquals((res7.get(i)), rs.getObject("cdouble", java.lang.String.class));
+			TestCase.assertEquals((res8.get(i)), rs.getObject("cstring", java.lang.String.class));
+			i++;
+		}
 	}
 }
 

@@ -1,6 +1,7 @@
 import com.dolphindb.jdbc.JDBCResultSet;
 import com.xxdb.DBConnection;
 import com.xxdb.data.BasicDate;
+//import java.util.Date;
 import com.xxdb.data.BasicTable;
 import com.xxdb.data.Scalar;
 import org.junit.After;
@@ -1653,6 +1654,95 @@ public class JDBCPrepareStatementTest {
         ps.setObject(3,"C");
         ps.execute();
         Assert.assertTrue(ps.getResultSet().next());
+        conn.close();
+    }
+
+    @Test
+    public void test_PreparedStatement_setObject() throws ClassNotFoundException, SQLException {
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
+        Connection conn = null;
+        Statement stmt = null;
+        JDBCResultSet rs = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url);
+        Statement stm = conn.createStatement();
+        String sql = "login('admin','123456');\n " +
+                "t = table(1..100 as id, norm(1.0,0.1,100) as prc,take(`C`E,100) as ticker, take(2018.01.01..2018.10.18,100) as date, norm(15.0,0.1,100) as bid)" +
+                "share t as tt" ;
+        stm.execute(sql);
+        PreparedStatement  ps = conn.prepareStatement("select * from tt where  id = ?, date = ?, ticker = ?");
+        ps.setObject(1,1);
+        ps.setObject(2,new BasicDate(LocalDate.parse("2018-01-01")));
+        ps.setObject(3,new Thread());
+        try{
+            ps.execute();
+        }catch(Exception e){
+            System.out.println(e.getMessage());
+            Assert.assertEquals("Unsupported type for parameter 3 class java.lang.Thread",e.getMessage());
+        }
+        conn.close();
+    }
+
+    @Test
+    public void test_PreparedStatement_setObject_Date() throws ClassNotFoundException, SQLException {
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
+        Connection conn = null;
+        Statement stmt = null;
+        JDBCResultSet rs = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url);
+        Statement stm = conn.createStatement();
+        String sql = "login('admin','123456');\n " +
+                "t = table(1..100 as id, norm(1.0,0.1,100) as prc,take(`C`E,100) as ticker, take(2012.06.13T13:30:10.008..2012.06.13T13:30:10.108,100) as date, norm(15.0,0.1,100) as bid)" +
+                "share t as tt" ;
+        stm.execute(sql);
+        PreparedStatement  ps = conn.prepareStatement("select * from tt where  id = ?, date = ?");
+        ps.setObject(1,1);
+        ps.setObject(2,new java.util.Date(1));
+        ps.execute();
+        Assert.assertFalse(ps.getResultSet().next());
+        PreparedStatement  ps1 = conn.prepareStatement(" update tt set date = ? where  id = ?");
+        ps1.setObject(2,1);
+        java.util.Date t = new java.util.Date();
+        System.out.println(t);
+        ps1.setObject(1,t);
+        ps1.execute();
+        PreparedStatement  ps2 = conn.prepareStatement("select   * from tt where  id = ?, date = ?");
+        ps2.setObject(1,1);
+        ps2.setObject(2,t);
+        ps2.execute();
+        Assert.assertTrue(ps2.getResultSet().next());
+        conn.close();
+    }
+    @Test
+    public void test_PreparedStatement_setObject_Date2() throws ClassNotFoundException, SQLException {
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
+        Connection conn = null;
+        Statement stmt = null;
+        JDBCResultSet rs = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url);
+        Statement stm = conn.createStatement();
+        String sql = "login('admin','123456');\n " +
+                "t = table(1..100 as id, norm(1.0,0.1,100) as prc,take(`C`E,100) as ticker, take(2013.06.13..2013.06.23,100) as date, norm(15.0,0.1,100) as bid)" +
+                "share t as tt" ;
+        stm.execute(sql);
+        PreparedStatement  ps = conn.prepareStatement("select * from tt where  id = ?, date = ?");
+        ps.setObject(1,1);
+        ps.setObject(2,new java.util.Date(1));
+        ps.execute();
+        Assert.assertFalse(ps.getResultSet().next());
+        PreparedStatement  ps1 = conn.prepareStatement("update tt set date = ? where  id = ?");
+        ps1.setObject(2,1);
+        ps1.setObject(1,new java.util.Date(1));
+        ps1.execute();
+        PreparedStatement  ps2 = conn.prepareStatement("select * from tt where  id = ?, date = 1970.01.01");
+        ps2.setObject(1,1);
+        ps2.execute();
+        Assert.assertTrue(ps2.getResultSet().next());
         conn.close();
     }
     @After
