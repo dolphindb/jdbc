@@ -1469,7 +1469,6 @@ public class TypeCast {
                         case BASIC_DOUBLE:
                             return ((BasicDouble)entity).getDouble();
                         case BASIC_STRING:
-                            return entity.getString().charAt(0);
                         default:
                             throw new IOException(entity.getClass().getName() + " can not cast  " + targetTemporalClassName);
                     }
