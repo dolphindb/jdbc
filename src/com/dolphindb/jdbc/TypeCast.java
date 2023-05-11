@@ -1576,12 +1576,12 @@ public class TypeCast {
                         case BASIC_STRING:
                             return Double.valueOf(entity.getString());
                         default:
-                            throw new IOException(entity.getClass().getName() + " can not cast  " + targetTemporalClassName);
+                            throw new IOException(entity.getClass().getName() + " can not cast " + targetTemporalClassName);
                     }
                 case STRING:
                     return entity.getString();
                 default:
-                    throw new IOException(entity.getClass().getName() + " can not cast  " + targetTemporalClassName);
+                    throw new IOException(entity.getClass().getName() + " can not cast " + targetTemporalClassName);
             }
         }
         Temporal srcTemporal=((Scalar)entity).getTemporal();
@@ -1692,7 +1692,7 @@ public class TypeCast {
                         throw new SQLException("Unsupported temporal class "+entity.getClass().getName());
                 }
             default:
-                throw new SQLException("Unsupported temporal class "+entity.getClass().getName());
+                throw new SQLException(entity.getClass().getName()+" can't cast "+targetTemporalClassName);
         }
     }
 
