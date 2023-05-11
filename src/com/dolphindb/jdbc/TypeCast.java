@@ -1605,7 +1605,7 @@ public class TypeCast {
             case LOCAL_DATE:
                 switch (srcTemporalClassName) {
                     case YEAR_MONTH:
-                        return ((YearMonth) srcTemporal).atEndOfMonth();
+                        return ((YearMonth) srcTemporal).atDay(1);
                     case LOCAL_TIME:
                         return LOCALDATE;
                     case LOCAL_DATETIME:
@@ -1627,7 +1627,7 @@ public class TypeCast {
             case LOCAL_DATETIME:
                 switch (srcTemporalClassName) {
                     case YEAR_MONTH:
-                        return ((YearMonth) srcTemporal).atEndOfMonth().atStartOfDay();
+                        return ((YearMonth) srcTemporal).atDay(1).atStartOfDay();
                     case LOCAL_DATE:
                         return ((LocalDate) srcTemporal).atStartOfDay();
                     case LOCAL_TIME:
@@ -1640,7 +1640,7 @@ public class TypeCast {
                 LocalDateTime localDateTime = null;
                 switch (srcTemporalClassName) {
                     case YEAR_MONTH:
-                        localDateTime = ((YearMonth) srcTemporal).atEndOfMonth().atStartOfDay();
+                        localDateTime = ((YearMonth) srcTemporal).atDay(1).atStartOfDay();
                         break;
                     case LOCAL_DATE:
                         localDateTime = ((LocalDate) srcTemporal).atStartOfDay();
@@ -1662,7 +1662,7 @@ public class TypeCast {
                     case YEAR_MONTH: {
                         YearMonth value = (YearMonth) srcTemporal;
                         Calendar calendar = Calendar.getInstance();
-                        calendar.set(value.getYear(), value.getMonthValue()-1, 0, 0, 0, 0);
+                        calendar.set(value.getYear(), value.getMonthValue()-1, 1, 0, 0, 0);
                         return calendar.getTime();
                     }
                     case LOCAL_DATE: {
