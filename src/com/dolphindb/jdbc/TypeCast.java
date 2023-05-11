@@ -1403,8 +1403,11 @@ public class TypeCast {
         }
     }
     public static Object entity2java(Entity entity,String targetTemporalClassName) throws Exception{
-        if(entity==null)
+        if(entity==null||entity.isNull())
             return null;
+        if(entity.isScalar()==false){
+            throw new IOException(entity.getClass().getName() + " must be scalar");
+        }
         if(entity.getDataCategory()!=Entity.DATA_CATEGORY.TEMPORAL){
             switch (targetTemporalClassName) {
                 case BOOLEAN:
@@ -1581,7 +1584,7 @@ public class TypeCast {
                     throw new IOException(entity.getClass().getName() + " can not cast  " + targetTemporalClassName);
             }
         }
-        Temporal srcTemporal=entity.getTemporal();
+        Temporal srcTemporal=((Scalar)entity).getTemporal();
         if(srcTemporal==null)
             return null;
         String srcTemporalClassName = srcTemporal.getClass().getName();
