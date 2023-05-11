@@ -1403,6 +1403,8 @@ public class TypeCast {
         }
     }
     public static Object entity2java(Entity entity,String targetTemporalClassName) throws Exception{
+        if(entity==null)
+            return null;
         if(entity.getDataCategory()!=Entity.DATA_CATEGORY.TEMPORAL){
             switch (targetTemporalClassName) {
                 case BOOLEAN:
@@ -1581,7 +1583,7 @@ public class TypeCast {
         }
         Temporal srcTemporal=entity.getTemporal();
         if(srcTemporal==null)
-            throw new SQLException("Unsupported temporal class "+entity.getClass().getName());
+            return null;
         String srcTemporalClassName = srcTemporal.getClass().getName();
         if(srcTemporalClassName.equals(targetTemporalClassName)){
             return srcTemporal;
