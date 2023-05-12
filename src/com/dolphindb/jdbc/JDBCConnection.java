@@ -208,7 +208,7 @@ public class JDBCConnection implements Connection {
 			success = dbConnection.connect(hostName, port,"","",null,false,null,true);
 		}
 	}
-	private String loadTables(String dbName, List<String> tableNames){
+	private String loadTables(String dbName, List<String> tableNames, boolean ignoreError){
 		StringBuilder sbInitScript = new StringBuilder();
 		for(String tableName:tableNames) {
 			StringBuilder builder = new StringBuilder();
@@ -217,8 +217,12 @@ public class JDBCConnection implements Connection {
 				this.dbConnection.run(builder.toString());
 				sbInitScript.append(tableName).append("=").append("loadTable(\"").append(dbName).append("\", \"").append(tableName).append("\");\n");
 			} catch (Exception e) {
-				System.out.println("Load table "+dbName+"."+tableName+" failed "+e.getMessage());
-				tableNames.remove(tableName);
+				if(ignoreError) {
+					System.out.println("Load table " + dbName + "." + tableName + " failed " + e.getMessage());
+					tableNames.remove(tableName);
+				}else{
+					throw new RuntimeException(e.getMessage());
+				}
 			}
 		}
 		return sbInitScript.toString();
@@ -248,15 +252,17 @@ public class JDBCConnection implements Connection {
 						if(tableNames[i].isEmpty()==false)
 							dbtables.add(tableNames[i]);
 					}
+					String script=loadTables(this.databases,dbtables,false);
+					sbInitScript.append(script);
 				} else {
 					// if not specific tableanme, load all tables; but need to authenticate every table.
 					Vector vector = (Vector) this.dbConnection.run("getTables(system_db)");
 					for (int i = 0; i < vector.rows(); i++) {
 						dbtables.add(vector.getString(i));
 					}
+					String script=loadTables(this.databases,dbtables,true);
+					sbInitScript.append(script);
 				}
-				String script=loadTables(this.databases,dbtables);
-				sbInitScript.append(script);
 				this.tables = new BasicStringVector(dbtables);
 			}
 		}
