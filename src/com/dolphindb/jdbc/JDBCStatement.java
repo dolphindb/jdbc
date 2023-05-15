@@ -113,6 +113,7 @@ public class JDBCStatement implements Statement {
                 throw new SQLException("the given SQL statement produces anything other than a single ResultSet object");
             case Utils.DML_SELECT:
             case Utils.DML_EXEC:
+            case Utils.DML_OTHER:
                 try {
                     if(this.fetchSize != 0) {
                         if(fetchSize < 8192) {
