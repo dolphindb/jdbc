@@ -4,6 +4,7 @@
 package com.dolphindb.jdbc;
 
 import com.xxdb.DBConnection;
+import com.xxdb.comm.SqlStdEnum;
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
 import com.xxdb.io.ProgressListener;
@@ -35,7 +36,13 @@ public class JDBCConnection implements Connection {
 
 	public JDBCConnection(String url, Properties prop) throws SQLException {
 		this.url = url;
-		dbConnection = new DBConnection();
+		String sqlStdProp = prop.getProperty("sqlStd");
+		SqlStdEnum sqlStd = SqlStdEnum.getByName(sqlStdProp);
+		if (Objects.nonNull(sqlStd)) {
+			dbConnection = new DBConnection(sqlStd);
+		} else {
+			dbConnection = new DBConnection();
+		}
 		hostName = prop.getProperty("hostName");
 		port = Integer.parseInt(prop.getProperty("port"));
 		//controlHost = null;

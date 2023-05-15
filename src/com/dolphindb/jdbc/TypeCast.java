@@ -1403,9 +1403,9 @@ public class TypeCast {
         }
     }
     public static Object entity2java(Entity entity,String targetTemporalClassName) throws Exception{
-        if(entity==null||entity.isNull())
+        if(entity == null || ((Scalar) entity).isNull())
             return null;
-        if(entity.isScalar()==false){
+        if (!entity.isScalar()) {
             throw new IOException(entity.getClass().getName() + " must be scalar");
         }
         if(entity.getDataCategory()!=Entity.DATA_CATEGORY.TEMPORAL){
