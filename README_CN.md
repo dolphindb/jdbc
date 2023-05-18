@@ -1,4 +1,4 @@
-#  DolphinDB JDBC API
+# DolphinDB JDBC API
 
 DolphinDB 提供 JDBC 的接口的实现，可以让支持 JDBC 接口的客户端程序直接接入 DolphinDB。DolphinDB 的 JDBC 接口基于 DolphinDB Java API 实现，所以 JDBC 包内置了 DolphinDB Java API 的包。
 
@@ -73,6 +73,7 @@ public static boolean CreateTable(String database, String tableName, String host
     }
 }
 ```
+
 ### 1.1. 内存表新增记录
 
 通过 JDBC 接口对内存表的操作主要是通过 prepareStatement 预置 sql 模板，并通过 set 写入参数，最后通过 `executeUpdate` 函数填充参数并执行语句。
@@ -242,6 +243,7 @@ public static boolean CreateValueTable(String database, String tableName, String
     }
 }
 ```
+
 ### 2.2. 分区表内容的增加和查询
 
 ```java
@@ -281,21 +283,24 @@ public static void DFSAddTest(String database, String tableName) {
 
 ## 3 参考及附录
 
- * 在 JDBC 接口中，可以使用 `execute` 方法执行所有的 DolphinDB SQL 语句，具体语法参考 [DolphinDB SQL 语法](https://www.dolphindb.cn/cn/help/SQLStatements/index.html)。
- * JDBC 中 executeUpdate(sql) 返回 SQL 语句更新的记录数，而在 DolphinDB JDBC API 中 executeUpdate(sql) 不支持返回 delete, update 和调用 append 的语句所影响的记录数。
- * 由于 DolphinDB 不支持更高精度的 BigDecimal 类型，故 DolphinDB JDBC API 将 BigDecimal 类型转换为 DOUBLE 类型。
- * [下载](sample.txt) 示例所有代码。
+* 在 JDBC 接口中，可以使用 `execute` 方法执行所有的 DolphinDB SQL 语句，具体语法参考 [DolphinDB SQL 语法](https://www.dolphindb.cn/cn/help/SQLStatements/index.html)。
+* JDBC 中 executeUpdate(sql) 返回 SQL 语句更新的记录数，而在 DolphinDB JDBC API 中 executeUpdate(sql) 不支持返回 delete, update 和调用 append 的语句所影响的记录数。
+* 由于 DolphinDB 不支持更高精度的 BigDecimal 类型，故 DolphinDB JDBC API 将 BigDecimal 类型转换为 DOUBLE 类型。
+* [下载](sample.txt) 示例所有代码。
 
 ## 4 如何在支持 JDBC 的软件中配置 JDBC 连接 DolphinDB
 
   在支持 JDBC 连接的应用中，需要配置如下 JDBC 信息：
-  * Driver Class Name: 驱动名称
+
+* Driver Class Name: 驱动名称
     DolphinDB JDBC 驱动名称是： `com.dolphindb.jdbc.Driver`
-  * JDBC Url: 连接字符串
+* JDBC Url: 连接字符串
     连接字符串提供连接数据库的一些关键信息，通常为一个 DolphinDB JDBC Url，示例如下：
+
     ```URL
     jdbc:dolphindb://localhost:8848?user=admin&password=123456
     ```
+
     URL 支持的参数如下：
 
     |参数|作用|
@@ -304,7 +309,12 @@ public static void DFSAddTest(String database, String tableName) {
     |password|用户密码（用于连接数据库）|
     |waitingTime|测试连接的超时时间，单位为秒，默认值为3。|
     |initialScript|传入函数定义脚本|
-    |allowMultiQueries|	在一条语句中，允许使用“;”来分隔多条查询（布尔类型，默认为 false）。|
+    |allowMultiQueries|在一条语句中，允许使用“;”来分隔多条查询（布尔类型，默认为 false）。|
     |databasePath|分布式数据库路径。指定该参数可以在初始化时将分布式表加载到内存。|
+    |tableName|分布式表的表名。指定该参数可以加载指定的分布式表。|
+    |enableHighAvailability|高可用参数，布尔类型，默认为 true。指定该参数可以开启或关闭高可用模式。|
+    |enableHighAvailability \| highAvailability |高可用参数，布尔类型，默认为 true。指定该参数可以开启或关闭高可用模式。|
+
+    **注：** 自1.30.21.1版本起，JDBC 支持高可用参数 *enableHighAvailability*，其作用与 *highAvailability* 相同。使用时只需设置其中一个参数即可（推荐使用 *enableHighAvailability*），若配置冲突则会报错。
 
     若需要创建 JDBCCallableStatement 对象，则连接字符串须指定 allowMultiQueries=true。

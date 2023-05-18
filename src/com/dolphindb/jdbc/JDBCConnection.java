@@ -4,21 +4,17 @@
 package com.dolphindb.jdbc;
 
 import com.xxdb.DBConnection;
+import com.xxdb.comm.SqlStdEnum;
 import com.xxdb.data.*;
+import com.xxdb.data.Vector;
 import com.xxdb.io.ProgressListener;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
 import java.sql.*;
 import java.text.MessageFormat;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.Executor;
-import java.util.regex.Matcher;
 
 public class JDBCConnection implements Connection {
 	//private DBConnection controlConnection;
@@ -40,7 +36,13 @@ public class JDBCConnection implements Connection {
 
 	public JDBCConnection(String url, Properties prop) throws SQLException {
 		this.url = url;
-		dbConnection = new DBConnection();
+		String sqlStdProp = prop.getProperty("sqlStd");
+		SqlStdEnum sqlStd = SqlStdEnum.getByName(sqlStdProp);
+		if (Objects.nonNull(sqlStd)) {
+			dbConnection = new DBConnection(sqlStd);
+		} else {
+			dbConnection = new DBConnection();
+		}
 		hostName = prop.getProperty("hostName");
 		port = Integer.parseInt(prop.getProperty("port"));
 		//controlHost = null;
@@ -170,7 +172,7 @@ public class JDBCConnection implements Connection {
 	 * @throws IOException
 	 * @throws SQLException
 	 */
-	private void connect(String hostname, int port, Properties prop, String appendInitScript) throws IOException {
+	private void connect(String hostname, int port, Properties prop, String appendInitScript) throws IOException, SQLException {
 		String userId = prop.getProperty("user");
 		String password = prop.getProperty("password");
 		String initialScript = prop.getProperty("initialScript");
@@ -183,7 +185,20 @@ public class JDBCConnection implements Connection {
 			else
 				initialScript = appendInitScript;
 		}
-		Boolean highAvailability = Boolean.valueOf(prop.getProperty("highAvailability"));
+		String highAvailabilityStr = prop.getProperty("highAvailability");
+		String enableHighAvailabilityStr = prop.getProperty("enableHighAvailability");
+		Boolean highAvailability = false;
+		if(highAvailabilityStr == null){
+			highAvailability = Boolean.valueOf(enableHighAvailabilityStr);
+		}else if(enableHighAvailabilityStr == null){
+			highAvailability = Boolean.valueOf(highAvailabilityStr);
+		}else{
+			Boolean param1 = Boolean.valueOf(highAvailabilityStr);
+			Boolean param2 = Boolean.valueOf(enableHighAvailabilityStr);
+			if(param1 != param2)
+				throw new SQLException("The values of the \"highAvailability\" and \"enableHighAvailability\" parameters in the URL must be the same if both are configured. ");
+			highAvailability = param1;
+		}
 		String rowHighAvailabilitySites = prop.getProperty("highAvailabilitySites");
 		String[] highAvailabilitySites = null;
 		if (rowHighAvailabilitySites != null) {
@@ -193,13 +208,32 @@ public class JDBCConnection implements Connection {
 			if (highAvailability){
 				success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
 			}else {
-				success = dbConnection.connect(hostname, port, userId, password,null,false,null,true);
+				success = dbConnection.connect(hostname, port, userId, password, initialScript,false,null,true);
 			}
 		}else if(initialScript != null && highAvailabilitySites != null){
 			success = dbConnection.connect(hostname, port, initialScript, highAvailabilitySites);
 		}else {
 			success = dbConnection.connect(hostName, port,"","",null,false,null,true);
 		}
+	}
+	private String loadTables(String dbName, List<String> tableNames, boolean ignoreError){
+		StringBuilder sbInitScript = new StringBuilder();
+		for(String tableName:tableNames) {
+			StringBuilder builder = new StringBuilder();
+			builder.append("loadTable(\"").append(dbName).append("\", \"").append(tableName).append("\");");
+			try {
+				this.dbConnection.run(builder.toString());
+				sbInitScript.append(tableName).append("=").append("loadTable(\"").append(dbName).append("\", \"").append(tableName).append("\");\n");
+			} catch (Exception e) {
+				if(ignoreError) {
+					System.out.println("Load table " + dbName + "." + tableName + " failed " + e.getMessage());
+					tableNames.remove(tableName);
+				}else{
+					throw new RuntimeException(e.getMessage());
+				}
+			}
+		}
+		return sbInitScript.toString();
 	}
 
 	private void open(String hostname, int port, Properties prop) throws SQLException, IOException{
@@ -213,22 +247,31 @@ public class JDBCConnection implements Connection {
 		if (valueName[0] != null && valueName[0].length() > 0) {
 			StringBuilder sb = (new StringBuilder("system_db")).append(" = database(\"").append(valueName[0]).append("\");\n");
 			this.dbConnection.run(sb.toString());
-			sbInitScript.append(sb);
 			if (valueName[0].trim().startsWith("dfs://")) {
 				//this.isDFS = true;
 				this.databases = valueName[0];
-				this.tables = (Vector) this.dbConnection.run("getTables(system_db)");
-				StringBuilder loadTableSb = new StringBuilder();
-				int i = 0;
-
-				for (int len = this.tables.rows(); i < len; ++i) {
-					String name = this.tables.get(i).getString();
-					loadTableSb.append(name).append(" = ").append("loadTable(").append("system_db").append(",`").append(name).append(");\n");
+				List<String> dbtables=new ArrayList<>();
+				// if set specific tableanme to load
+				if (StringUtils.isNotEmpty(prop.getProperty("tableName"))) {
+					String tablename = prop.getProperty("tableName");
+					tablename = tablename.trim();
+					String[] tableNames = tablename.split(",");
+					for (int i = 0; i < tableNames.length; i++) {
+						if(tableNames[i].isEmpty()==false)
+							dbtables.add(tableNames[i]);
+					}
+					String script=loadTables(this.databases,dbtables,false);
+					sbInitScript.append(script);
+				} else {
+					// if not specific tableanme, load all tables; but need to authenticate every table.
+					Vector vector = (Vector) this.dbConnection.run("getTables(system_db)");
+					for (int i = 0; i < vector.rows(); i++) {
+						dbtables.add(vector.getString(i));
+					}
+					String script=loadTables(this.databases,dbtables,true);
+					sbInitScript.append(script);
 				}
-
-				sbInitScript.append(loadTableSb);
-				//String sql = loadTableSb.toString();
-				//this.dbConnection.run(sql);
+				this.tables = new BasicStringVector(dbtables);
 			}
 		}
 		String hasScripts = prop.getProperty("length");
@@ -241,7 +284,7 @@ public class JDBCConnection implements Connection {
 			}
 		}
 		if(sbInitScript.length()>0)
-			this.connect(hostname, port, prop,sbInitScript.toString());
+			this.connect(hostname, port, prop, sbInitScript.toString());
 	}
 
 	@Override

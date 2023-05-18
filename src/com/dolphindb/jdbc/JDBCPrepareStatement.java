@@ -750,8 +750,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				throw new SQLException("No value specified for parameter " + i);
 			}
 			String s = TypeCast.castDbString(values[i]);
-			if (s == null)
-				return null;
+			if (s == null) {
+				throw new SQLException("Unsupported type for parameter " + i + " "+values[i].getClass());
+			}
 			sb.append(sqlSplit[i - 1]).append(s);
 		}
 		sb.append(sqlSplit[sqlSplit.length - 1]);

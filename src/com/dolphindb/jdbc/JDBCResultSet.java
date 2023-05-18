@@ -499,18 +499,21 @@ public class JDBCResultSet implements ResultSet{
     @SuppressWarnings("unchecked")
 	@Override
     public <T> T getObject(int columnIndex, Class<T> aClass) throws SQLException {
-        return (T) getObject(columnIndex);
+        try {
+            return (T) TypeCast.entity2java((Entity) getObject(columnIndex), aClass.getName());
+        }catch (Exception e){
+            throw new SQLException(e);
+        }
     }
 
     @SuppressWarnings("unchecked")
 	@Override
     public <T> T getObject(String columnLabel, Class<T> aClass) throws SQLException {
-        return (T) getObject(columnLabel);
+        return getObject(findColumn(columnLabel),aClass);
     }
 
     @Override
     public int findColumn(String columnLabel) throws SQLException {
-        int x = findColumnHashMap.get(columnLabel);
         return findColumnHashMap.get(columnLabel);
     }
 
