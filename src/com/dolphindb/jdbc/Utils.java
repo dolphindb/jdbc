@@ -262,6 +262,12 @@ public class Utils {
         cols.add(vector);
         return new BasicTable(colNames, cols);
     }
+    private static boolean isKeyChar(char chr){
+        return (chr >='a'&&chr <= 'z')||(chr >= 'A'&&chr <= 'Z')||(chr >= '0'&&chr <= '9')||(chr == '_');
+    }
+    private static boolean isStringChar(char chr){
+        return chr=='\''||chr=='"'||chr=='`';
+    }
 
     public static String changeCase(String sql){
         if (sql==null)
@@ -270,9 +276,41 @@ public class Utils {
         StringBuilder sbSql=new StringBuilder();
         StringBuilder sbKey1=new StringBuilder();
         char chr = 0;
+        char isInString = 0;
+        int continueSplashCount=0;
         for (int i = 0;i < sql.length();i++){
             chr=sql.charAt(i);
-            if ((chr >='a'&&chr <= 'z')||(chr >= 'A'&&chr <= 'Z')||(chr >= '0'&&chr <= '9')||(chr == '_')){
+            int prevContinueSplashCount=continueSplashCount;
+            if(isInString != 0) {// is in string
+                if(isInString=='`'){//check ` end flag
+                    if(isKeyChar(chr)==false){//end with no key char
+                        isInString=0;
+                        continueSplashCount=0;
+                        if(isStringChar(chr)){
+                            isInString=chr;
+                        }
+                    }
+                }else{// string
+                    if(chr=='\\')
+                        continueSplashCount++;
+                    else
+                        continueSplashCount=0;
+                    if(chr == isInString){// is end chr?
+                        if(prevContinueSplashCount%2==0)// check not \, like \" or \'
+                            isInString=0;
+                    }
+                }
+                sbSql.append(chr);
+                continue;
+            }else{//not in string
+                if(isStringChar(chr)){//start of string
+                    isInString=chr;
+                    sbSql.append(chr);
+                    continueSplashCount=0;
+                    continue;
+                }
+            }
+            if (isKeyChar(chr)){
                 sbKey1.append(chr);
             }else {
                 if (sbKey1.length()>0){
