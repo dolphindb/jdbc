@@ -1,6 +1,6 @@
 # DolphinDB JDBC API
 
-DolphinDB 提供 JDBC 的接口的实现，可以让支持 JDBC 接口的客户端程序直接接入 DolphinDB。DolphinDB 的 JDBC 接口基于 DolphinDB Java API 实现，所以 JDBC 包内置了 DolphinDB Java API 的包。
+DolphinDB 提供 JDBC 的接口的实现，可以让支持 JDBC 接口的客户端程序直接接入 DolphinDB。DolphinDB 的 JDBC 接口基于 DolphinDB Java API 的包实现。
 
 JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallableStatement` 提供直接执行和预编译执行三种方式的接口。
 
@@ -8,7 +8,7 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
 |----|-------|
 |JDBCStatement|可以正常访问数据库，适用于运行静态 SQL 语句。 Statement 接口不接受参数。|
 |JDBCPrepareStatement|继承了 JDBCStatement。可多次使用 SQL 语句， PreparedStatement 接口运行时接受输入的参数。|
-|JDBCCallableStatement|继承了 JDBCPrepareStatement（不调用存储过程）。支持通过分号（;）分隔多个 SQL 语句。|
+|JDBCCallableStatement|继承了 JDBCPrepareStatement。支持通过分号（;）分隔多个 SQL 语句，执行时不使用存储过程。|
 
 <!-- 待讨论包含方法不发是否需要放上去
 |接口|介绍|包含方法|
@@ -20,7 +20,7 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
 
 下面通过几个示例程序来展示以上三个对象的使用方法。
 
-使用前，可以通过 maven 引入 JDBC：以 1.30.17.1 为例
+使用前，可以通过 maven 引入 JDBC：以 1.30.17.1 版本为例：
 
 ```xml
 <dependency>
@@ -30,7 +30,38 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
 </dependency>
 ```
 
-## 1. 内存表的增删改查
+## 1. 连接 DolphinDB
+
+  在支持 JDBC 连接的应用中，需要配置如下 JDBC 信息：
+
+* **Driver Class Name**: 驱动名称
+    DolphinDB JDBC 驱动名称是： `com.dolphindb.jdbc.Driver`。
+* **url**: 连接字符串
+    连接字符串提供连接数据库的一些关键信息。一个 DolphinDB JDBC url 示例如下：
+
+    ```URL
+    jdbc:dolphindb://localhost:8848?user=admin&password=123456
+    ```
+
+    URL 支持的参数如下：
+
+    |参数|作用|
+    |------|----------|
+    |user|数据库用户名。用于连接数据库。|
+    |password|用户密码。用于连接数据库。|
+    |waitingTime|测试连接的超时时间，单位为秒，默认值为3。|
+    |initialScript|传入函数定义脚本。|
+    |allowMultiQueries|是否支持多条语句查询。布尔类型，默认为 false。在一条语句中，允许使用“;”来分隔多条查询。|
+    |databasePath|分布式数据库路径。指定该参数可以在初始化时将分布式表加载到内存。|
+    |tableName|分布式表的表名。指定该参数可以加载指定的分布式表。|
+    |enableHighAvailability \| highAvailability |高可用参数，布尔类型，默认为 true。指定该参数可以开启或关闭高可用模式。|
+
+    **注：**
+
+  * 自1.30.21.1版本起，JDBC 支持高可用参数 *enableHighAvailability*，其作用与 *highAvailability* 相同。使用时只需设置其中一个参数即可（推荐使用 *enableHighAvailability*），若配置冲突则会报错。
+  * 若需要创建 JDBCCallableStatement 对象，则连接字符串须指定 `allowMultiQueries=true`。
+
+## 2. 内存表的增删改查
 
 使用 Java API 将 demo 需要的模板表保存到磁盘。在 demo 中通过 loadTable 可以快速创建内存表。请注意，变量名及表名不可与 DolphinDB 的关键字同名。脚本代码如下：
 
@@ -74,7 +105,7 @@ public static boolean CreateTable(String database, String tableName, String host
 }
 ```
 
-### 1.1. 内存表新增记录
+### 2.1 内存表新增记录
 
 通过 JDBC 接口对内存表的操作主要是通过 prepareStatement 预置 sql 模板，并通过 set 写入参数，最后通过 `executeUpdate` 函数填充参数并执行语句。
 
@@ -128,7 +159,7 @@ public static void InMemmoryAddTest(String database, String tableName) {
 }
 ```
 
-### 1.2. 删除内存表中数据
+### 2.2 删除内存表中数据
 
 需要删除内存表中数据，需在以下脚本的 "?" 处填相应的的删除条件。
 
@@ -165,7 +196,7 @@ public static void InMemoryDeleteTest(String database, String tableName){
 }
 ```
 
-### 1.3. 内存表的更改
+### 2.3 内存表的更改
 
 ```java
 public static void InMemoryUpdateTest(String database, String tableName){
@@ -199,19 +230,19 @@ public static void InMemoryUpdateTest(String database, String tableName){
 }
 ```
 
-## 2. 分布式表的新增和查询
+## 3. 分布式表的新增和查询
 
-DolphinDB 支持分布式数据表。本例子演示通过 JDBC 来进行分布式表的新增和查询。要操作分布式表，连接的时候需在 URL 中加入 databasePath。`getConnection()` 时会预先加载分区表的元数据。
+DolphinDB 支持分布式数据表。本例子演示通过 JDBC 来进行分布式表的新增和查询。要操作分布式表，连接的时候需在 URL 中加入 *databasePath*。`getConnection()` 时会预先加载分区表的元数据。
 
-#### Example
+示例如下：
 
 ```URL
 jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb
 ```
 
-### 2.1. 创建分区表
+### 3.1 创建分区表
 
-使用 Java API 执行创建分区表的语句，以创建示例所需的分区数据库。示例中使用了 VALUE 方式进行数据分区。需要了解其他分区方式，请点击 [DolphinDB 数据库分区教程](https://github.com/dolphindb/Tutorials_CN/blob/master/database.md)
+使用 Java API 执行创建分区表的语句，以创建示例所需的分区数据库。示例中使用了 VALUE 方式进行数据分区。需要了解其他分区方式，请点击 [DolphinDB 数据库分区教程](https://github.com/dolphindb/Tutorials_CN/blob/master/database.md)。
 
 ```java
 public static boolean CreateValueTable(String database, String tableName, String host, String port) {
@@ -244,7 +275,7 @@ public static boolean CreateValueTable(String database, String tableName, String
 }
 ```
 
-### 2.2. 分区表内容的增加和查询
+### 3.2 分区表内容的增加和查询
 
 ```java
 public static void DFSAddTest(String database, String tableName) {
@@ -281,40 +312,9 @@ public static void DFSAddTest(String database, String tableName) {
 }
 ```
 
-## 3 参考及附录
+## 参考及附录
 
 * 在 JDBC 接口中，可以使用 `execute` 方法执行所有的 DolphinDB SQL 语句，具体语法参考 [DolphinDB SQL 语法](https://www.dolphindb.cn/cn/help/SQLStatements/index.html)。
-* JDBC 中 executeUpdate(sql) 返回 SQL 语句更新的记录数，而在 DolphinDB JDBC API 中 executeUpdate(sql) 不支持返回 delete, update 和调用 append 的语句所影响的记录数。
+* JDBC 中 `executeUpdate(sql)` 返回 SQL 语句更新的记录数，而在 DolphinDB JDBC API 中 `executeUpdate(sql)` 不支持返回 delete, update 和调用 append 的语句所影响的记录数。
 * 由于 DolphinDB 不支持更高精度的 BigDecimal 类型，故 DolphinDB JDBC API 将 BigDecimal 类型转换为 DOUBLE 类型。
 * [下载](sample.txt) 示例所有代码。
-
-## 4 如何在支持 JDBC 的软件中配置 JDBC 连接 DolphinDB
-
-  在支持 JDBC 连接的应用中，需要配置如下 JDBC 信息：
-
-* Driver Class Name: 驱动名称
-    DolphinDB JDBC 驱动名称是： `com.dolphindb.jdbc.Driver`
-* JDBC Url: 连接字符串
-    连接字符串提供连接数据库的一些关键信息，通常为一个 DolphinDB JDBC Url，示例如下：
-
-    ```URL
-    jdbc:dolphindb://localhost:8848?user=admin&password=123456
-    ```
-
-    URL 支持的参数如下：
-
-    |参数|作用|
-    |------|----------|
-    |user|数据库用户名（用于连接数据库）|
-    |password|用户密码（用于连接数据库）|
-    |waitingTime|测试连接的超时时间，单位为秒，默认值为3。|
-    |initialScript|传入函数定义脚本|
-    |allowMultiQueries|在一条语句中，允许使用“;”来分隔多条查询（布尔类型，默认为 false）。|
-    |databasePath|分布式数据库路径。指定该参数可以在初始化时将分布式表加载到内存。|
-    |tableName|分布式表的表名。指定该参数可以加载指定的分布式表。|
-    |enableHighAvailability|高可用参数，布尔类型，默认为 true。指定该参数可以开启或关闭高可用模式。|
-    |enableHighAvailability \| highAvailability |高可用参数，布尔类型，默认为 true。指定该参数可以开启或关闭高可用模式。|
-
-    **注：** 自1.30.21.1版本起，JDBC 支持高可用参数 *enableHighAvailability*，其作用与 *highAvailability* 相同。使用时只需设置其中一个参数即可（推荐使用 *enableHighAvailability*），若配置冲突则会报错。
-
-    若需要创建 JDBCCallableStatement 对象，则连接字符串须指定 allowMultiQueries=true。
