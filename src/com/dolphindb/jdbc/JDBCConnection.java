@@ -37,8 +37,8 @@ public class JDBCConnection implements Connection {
 	public JDBCConnection(String url, Properties prop) throws SQLException {
 		this.url = url;
 		String sqlStdProp = prop.getProperty("sqlStd");
-		SqlStdEnum sqlStd = SqlStdEnum.getByName(sqlStdProp);
-		if (Objects.nonNull(sqlStd)) {
+		if (Objects.nonNull(sqlStdProp)) {
+			SqlStdEnum sqlStd = SqlStdEnum.getByName(sqlStdProp);
 			dbConnection = new DBConnection(sqlStd);
 		} else {
 			dbConnection = new DBConnection();
