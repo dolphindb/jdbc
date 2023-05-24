@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -19,12 +20,16 @@ import java.util.*;
 import com.dolphindb.jdbc.JDBCConnection;
 import com.dolphindb.jdbc.JDBCResultSet;
 import com.xxdb.DBConnection;
+import com.xxdb.comm.SqlStdEnum;
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class JDBCConnectionTest {
 	static String HOST = JDBCTestUtil.HOST;
@@ -38,11 +43,13 @@ public class JDBCConnectionTest {
 	private String url = null;
 	Properties prop = new Properties();
 	Connection conn;
+	Statement stm ;
 
 	@Before
 	public void SetUp() throws SQLException {
 		prop.setProperty("hostName",HOST);
 		prop.setProperty("port",String.valueOf(PORT));
+		//prop.setProperty("sqlStd", String.valueOf(SqlStdEnum.Oracle));
 		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
 		conn = new JDBCConnection(url,prop);
 	}
@@ -487,12 +494,137 @@ public class JDBCConnectionTest {
 		//conn1.equals(true);
 		conn1.close();
 	}
-	@Test(expected = SQLException.class)
+	@Test(expected = RuntimeException.class)
 	public void Test_getConnection_enableHighAvailability_highAvailability_not_same() throws SQLException, ClassNotFoundException {
 		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
 		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456&enableHighAvailability=true&highAvailability=false";
 		Connection conn = null;
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
+	}
+	@Test()
+	public void Test_JDBCConnection_in_case_when() throws SQLException, ClassNotFoundException {
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("sqlStd", String.valueOf(SqlStdEnum.Oracle));
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		conn = new JDBCConnection(url,prop);
+		stm = conn.createStatement();
+		String sql = "t1 = table(1 2 3 as id, 2012.12.01 2012.12.02 2012.12.02 as date, 'BOND' 'BOND' 'BOND' as grp);\n " +
+				"t2 = table(1 2 3 as id,true false false as flag);\n" +
+				"dbName = \"dfs://test\";\n" +
+				"if(existsDatabase(dbName)){dropDatabase(dbName)};\n" +
+				"db=database(\"dfs://test\", VALUE, 1..3)\n;\n" +
+				"pt1 = db.createPartitionedTable(t1, `pt1, `id);;\n" +
+				"pt1.append!(t1);\n" +
+				"pt2 = db.createPartitionedTable(t2, `pt2, `id);\n" +
+				"pt2.append!(t2);" ;
+		stm.execute(sql);
+		Statement s = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select *  from loadTable(\"dfs://test\",`pt1) as m1 cross join loadTable(\"dfs://test\",`pt2) as  m2 where m1.date in (exec case when to_date(\"2022-10-01\",'YYYY-MM-DD') >  max(date) then max(date) else to_date(\"2022-10-01\",\"YYYY-MM-DD\")-1 end as D from loadTable(\"dfs://test\",`pt1)); ");
+		BasicTable rs1 = (BasicTable) rs.getResult();
+		System.out.println(rs1.rows());
+		Assert.assertEquals(9,rs1.rows());
+	}
+	@Test()
+	public void Test_JDBCConnection_SqlStdEnum_DolphinDB() throws SQLException, ClassNotFoundException {
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("sqlStd", String.valueOf(SqlStdEnum.DolphinDB));
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		conn = new JDBCConnection(url,prop);
+		Statement s = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("cumavg(1 2 3); ");
+		BasicDoubleVector rs1 = (BasicDoubleVector) rs.getResult();
+		assertEquals("[1,1.5,2]", rs1.getString());
+		String e = null;
+		try{
+			Statement s1 = conn.createStatement();
+			JDBCResultSet rs2 = (JDBCResultSet) s1.executeQuery("SYSDATE();");
+		}catch(Exception E){
+			e = E.getMessage();
+			System.out.println(e);
+
+		}
+		assertNotNull(e);
+		conn.close();
+	}
+	@Test()
+	public void Test_JDBCConnection_SqlStdEnum_default() throws SQLException, ClassNotFoundException {
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+//		prop.setProperty("sqlStd", String.valueOf(SqlStdEnum.DolphinDB));
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		conn = new JDBCConnection(url,prop);
+		Statement s = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("cumavg(1 2 3); ");
+		BasicDoubleVector rs1 = (BasicDoubleVector) rs.getResult();
+		assertEquals("[1,1.5,2]", rs1.getString());
+		String e = null;
+		try{
+			Statement s1 = conn.createStatement();
+			JDBCResultSet rs2 = (JDBCResultSet) s1.executeQuery("SYSDATE();");
+		}catch(Exception E){
+			e = E.getMessage();
+			System.out.println(e);
+		}
+		assertNotNull(e);
+		conn.close();
+	}
+	@Test()
+	public void Test_JDBCConnection_SqlStdEnum_Oracle() throws SQLException, ClassNotFoundException {
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("sqlStd", String.valueOf(SqlStdEnum.Oracle));
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		conn = new JDBCConnection(url,prop);
+		Statement s = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("cumavg(1 2 3); ");
+		BasicDoubleVector rs1 = (BasicDoubleVector) rs.getResult();
+		assertEquals("[1,1.5,2]", rs1.getString());
+
+		Statement s1 = conn.createStatement();
+		JDBCResultSet rs2 = (JDBCResultSet) s1.executeQuery("SYSDATE(); ");
+		BasicDate rs3 = (BasicDate) rs2.getResult();
+		Date currentTime = new Date();
+		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+		String currentTime1 = formatter.format(currentTime);
+		assertEquals(currentTime1.replace("-",""), rs3.toString().replace(".",""));
+
+		Statement s3 = conn.createStatement();
+		JDBCResultSet rs4 = (JDBCResultSet) s3.executeQuery("concat(string(1 2 3), string(4 5 6));");
+		BasicStringVector rs5 = (BasicStringVector) rs4.getResult();
+		assertEquals("[14,25,36]", rs5.getString());
+		conn.close();
+	}
+	@Test()
+	public void Test_JDBCConnection_SqlStdEnum_MySQL() throws SQLException, ClassNotFoundException {
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("sqlStd", String.valueOf(SqlStdEnum.MySQL));
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		conn = new JDBCConnection(url,prop);
+		Statement s = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("cumavg(1 2 3); ");
+		BasicDoubleVector rs1 = (BasicDoubleVector) rs.getResult();
+		assertEquals("[1,1.5,2]", rs1.getString());
+
+		Statement s1 = conn.createStatement();
+		JDBCResultSet rs2 = (JDBCResultSet) s1.executeQuery("SYSDATE(); ");
+		BasicDate rs3 = (BasicDate) rs2.getResult();
+		Date currentTime = new Date();
+		SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+		String currentTime1 = formatter.format(currentTime);
+		assertEquals(currentTime1.replace("-",""), rs3.toString().replace(".",""));
+
+		String e = null;
+		try{
+			Statement s3 = conn.createStatement();
+			JDBCResultSet rs4 = (JDBCResultSet) s3.executeQuery("concat(string(1 2 3), string(4 5 6));");
+		}catch(Exception E){
+			e = E.getMessage();
+		}
+		assertNotNull(e);
+		conn.close();
 	}
 }
