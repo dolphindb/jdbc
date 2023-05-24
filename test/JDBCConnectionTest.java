@@ -38,6 +38,7 @@ public class JDBCConnectionTest {
 	private String url = null;
 	Properties prop = new Properties();
 	Connection conn;
+
 	@Before
 	public void SetUp() throws SQLException {
 		prop.setProperty("hostName",HOST);
