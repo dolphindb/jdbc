@@ -477,7 +477,6 @@ public class JDBCPreLoadTest {
         int index = 0;
         do{
             System.out.println((index++)+":"+rs.getString(1)+" "+rs.getString(2));
-
         }while(rs.next());
         Assert.assertEquals(100,index);
     }
