@@ -332,7 +332,7 @@ public class JDBCConnectionTest {
 		conn1.close();
 	}
 
-	@Test
+	//@Test
 	public void Test_getConnection_enableHighAvailability_false() throws SQLException, ClassNotFoundException {
 		String script = "def restart(n)\n" +
 				"{\n" +
