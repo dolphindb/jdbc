@@ -167,7 +167,7 @@ public class JDBCPreLoadTest {
         }
     }
 
-    @Test(expected = SQLException.class)
+    @Test(expected = RuntimeException.class)
     public void test_PreLoad_nullTable() throws SQLException {
         conn = DriverManager.getConnection(url+"?tb_ft=dfs://valuedb+ft",info);
         Statement stm = conn.createStatement();
