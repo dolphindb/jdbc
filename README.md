@@ -1,22 +1,29 @@
 #  DolphinDB JDBC API
 
+The DolphinDB JDBC interface enables compatible clients to connect to DolphinDB. The JDBC interface is implemented based on DolphinDB Java API package.
+
 - [DolphinDB JDBC API](#dolphindb-jdbc-api)
-  - [1. Operations on In-Memory Tables](#1-operations-on-in-memory-tables)
-    - [1.1. Append Records](#11-append-records)
-    - [1.2. Delete Records](#12-delete-records)
-    - [1.3. Update Records](#13-update-records)
-  - [2. Operations on DFS Tables](#2-operations-on-dfs-tables)
-    - [2.1. Create a DFS Table](#21-create-a-dfs-table)
-    - [2.2. Query and Insert Records](#22-query-and-insert-records)
-  - [3 References](#3-references)
+  - [1. Configure JDBC Connection to DolphinDB](#1-configure-jdbc-connection-to-dolphindb)
+  - [2. Operations on In-Memory Tables](#2-operations-on-in-memory-tables)
+    - [2.1 Create a Template Table](#21-create-a-template-table)
+    - [2.2 Append Data](#22-append-data)
+    - [2.3 Delete Data](#23-delete-data)
+    - [2.4 Update Data](#24-update-data)
+  - [3. Operations on DFS Tables](#3-operations-on-dfs-tables)
+    - [3.1. Create a DFS Table](#31-create-a-dfs-table)
+    - [3.2 Query and Insert Data](#32-query-and-insert-data)
+  - [References](#references)
 
 
-DolphinDB provides an implementation of the JDBC interface, allowing client programs that support the JDBC interface to directly access DolphinDB.
-DolphinDB's JDBC interface is based on the implementation of DolphinDB Java API, so the JDBC package has a built-in DolphinDB Java API package.
+DolphinDB JDBC interface mainly provides three types of interfaces for direct execution and precompiled execution through `JDBCStatement`, `JDBCPrepareStatement` and `JDBCCallableStatement`.
 
-The JDBC interface mainly provides the two interfaces of direct execution and pre-compilation through the two objects `JDBCStatement` and `JDBCPrepareStatement`, respectively.
+| Interface 	| Description 	|
+|:---	|:---	|
+| JDBCStatement 	| Can access databases and execute static SQL statements;<br>Does not take parameters. 	|
+| JDBCPrepareStatement 	| Inherits from `JDBCStatement`;<br>Can execute SQL statements for multiple times and take runtime parameters. 	|
+| JDBCCallableStatement 	| Inherits from `JDBCPrepareStatement`;<br>Can execute multiple SQL statements separated by semicolons(;), which does not use the stored procedures. 	|
 
-To use the JDBC, you can use the following Maven dependency:
+You can use the following Maven dependency to import JDBC. For example:
 
 ```xml
 <dependency>
@@ -26,9 +33,44 @@ To use the JDBC, you can use the following Maven dependency:
 </dependency>
 ```
 
-## 1. Operations on In-Memory Tables
+The following sections demonstrate the usage of the three interfaces.
 
-First, use the following code to create a template table and save it to disk through DolphinDB Java API.
+## 1. Configure JDBC Connection to DolphinDB
+
+You can set up a JDBC connection to DolphinDB with the following parameters:
+
+- Driver Class Name: The driver name. The DolphinDB JDBC driver name is `com.dolphindb.jdbc.Driver`.
+
+- JDBC URL: The connection string. Normally it is a DolphinDB JDBC URL like: 
+
+```url
+jdbc:dolphindb://localhost:8848?user=admin&password=123456
+```
+
+It supports the following properties:
+
+| Property 	| Description 	|
+|:---	|:---	|
+| user 	| The username for connecting to the database. 	|
+| password 	| The password for connecting to the database.  	|
+| waitingTime 	| The timeout (in seconds) for testing the connection. The default value is 3. 	|
+| initialScript 	| The script that pre-defines functions.  	|
+| allowMultiQueries 	| A Boolean value that specifies whether to allow multiple queries separated by ";" in a single statement. The default value is false.  	|
+| databasePath 	| The path to a DFS database. Specifying this parameter to load the specified database during connection.  	|
+| tableName 	| The name of a DFS table. Specifying this parameter to load the specified table during connection.  	|
+| enableHighAvailability \| highAvailability 	| A Boolean value that specifies whether to enable or disable high availability. The default value is true. 	|
+
+**Note**:
+
+- Starting from version 1.30.21.1, DolphinDB JDBC API supports *enableHighAvailability* property for connection strings, and the original *highAvailability* can be used as an alias. Configuration conflicts are reported if inconsistencies occur.
+
+- To create a `JDBCCallableStatement` object, you must specify the property *allowMultiQueries*=true for the connection strings.
+
+## 2. Operations on In-Memory Tables
+
+### 2.1 Create a Template Table
+
+Use the following code to create a template table and save it to disk through DolphinDB Java API. You can use `loadTable` later to create an in-memory table quickly. Note that the variable names cannot be the same as DolphinDB keywords. 
 
 ```java
 public static boolean CreateTable(String database, String tableName, String host, int port) {
@@ -70,10 +112,9 @@ public static boolean CreateTable(String database, String tableName, String host
 }
 ```
 
-### 1.1. Append Records
+### 2.2 Append Data
 
-The operation of in-memory table through the JDBC interface is to first preset the SQL template through the `prepareStatement` method, 
-then write the parameters through the `set` method, and finally specify the parameters and execute the statement through the `executeUpdate` function.
+The append operation on in-memory tables through the JDBC interface is to first preset the SQL template through `JDBCPrepareStatement`, then write the parameters through the `set` method, and finally specify the parameters and execute the statement through the `executeUpdate` function.
 
 ```java
 public static void InMemmoryAddTest(String database, String tableName) {
@@ -83,7 +124,7 @@ public static void InMemmoryAddTest(String database, String tableName) {
 
         JDBCStatement stm = (JDBCStatement) conn.createStatement();
         stm.execute("memTable = loadTable('" + database + "',\"" + tableName + "\")");
-        //SQL insert statement
+        // SQL insert statement
         stmt = conn.prepareStatement("insert into memTable values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         stmt.setBoolean(1, true);
         stmt.setByte(2, (byte) 98);
@@ -104,7 +145,7 @@ public static void InMemmoryAddTest(String database, String tableName) {
         stmt.setObject(17, LocalDateTime.of(2012, 06, 13, 13, 30, 10, 8007006));
         stmt.executeUpdate();
 
-        //load table
+        // load table
         ResultSet rs = stmt.executeQuery("select * from memTable");
         printData(rs);
     } catch (Exception e) {
@@ -125,9 +166,9 @@ public static void InMemmoryAddTest(String database, String tableName) {
 }
 ```
 
-### 1.2. Delete Records
+### 2.3 Delete Data
 
-To delete records from an in-memory table, fill in the corresponding deletion conditions at "?". 
+To delete data from an in-memory table, fill in the corresponding conditions at "?".
 
 ```java
 public static void InMemoryDeleteTest(String database, String tableName){
@@ -162,7 +203,7 @@ public static void InMemoryDeleteTest(String database, String tableName){
 }
 ```
 
-### 1.3. Update Records
+### 2.4 Update Data
 
 ```java
 public static void InMemoryUpdateTest(String database, String tableName){
@@ -196,10 +237,9 @@ public static void InMemoryUpdateTest(String database, String tableName){
 }
 ```
 
-## 2. Operations on DFS Tables
+## 3. Operations on DFS Tables
 
-The example below demonstrates querying of and appending to a DFS table through JDBC. In order to connect to a DFS table, 
-you can add path and corresponding content to the URL when connecting, so that `getConnection()` will preload the metadata of the table.
+The code examples below demonstrate querying of and appending to a DFS table through JDBC. In order to connect to a DFS table, you can specify path and corresponding content for databasePath to the URL when connecting, so that `getConnection()` will preload the metadata of the table.
 
 **Example**
 
@@ -207,9 +247,9 @@ you can add path and corresponding content to the URL when connecting, so that `
 jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb&partitionType=VALUE&partitionScheme=2000.01M..2019.05M
 ```
 
-### 2.1. Create a DFS Table
+### 3.1. Create a DFS Table
 
-Use Java API to create the DFS table.
+Use the following code to create a DFS database with VALUE-based partitions through DolphinDB Java API. 
 
 ```java
 public static boolean CreateValueTable(String database, String tableName, String host, String port)
@@ -242,7 +282,7 @@ public static boolean CreateValueTable(String database, String tableName, String
     }
 }
 ```
-### 2.2. Query and Insert Records
+### 3.2 Query and Insert Data
 
 ```java
 public static void DFSAddTest(Properties info, String database, String tableName)
@@ -280,9 +320,12 @@ public static void DFSAddTest(Properties info, String database, String tableName
 }	
 ```
 
-## 3 References
+## References
 
- * In the JDBC interface, you can use the `execute` method to execute all DolphinDB SQL statements. For details, see [DolphinDB SQL](https://www.dolphindb.com/help/SQLStatements/index.html) 
+- You can use the `execute` method to execute all DolphinDB SQL statements with JDBC interface. For details, see [DolphinDB SQL](https://www.dolphindb.com/help/SQLStatements/index.html).
 
- * [Download](sample.txt) sample code
+- The method `executeUpdate(sql)` returns the number of records updated by the SQL statements in JDBC, while with DolphinDB JDBC API, `executeUpdate(sql)` does not return the number of records involved in delete, update or append statements.
 
+- Since DolphinDB does not support BigDecimal type, the JDBC API converts the BigDecimal data to the DOUBLE type.
+
+- Download [sample code](sample.txt).
