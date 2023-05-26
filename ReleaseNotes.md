@@ -12,7 +12,7 @@
 
 ## Issues Fixed
 
-- Reconnection may result in incorrect queried data if the parameters database and tableName were specified for connection. (**1.30.21.4**)
+- Reconnection may result in incorrect query results if the parameters database and tableName were specified for connection. (**1.30.21.4**)
 - Error occurred when using `setString` of JDBC `PrepareStatement` for string conversion. (**1.30.21.4**)
 - When executing SQL statements, the uppercase strings that matched SQL keywords were converted to lowercase. (**1.30.21.3**)
 - When using JDBC plugin to connect the server, if the specified *databasePath* contained tables that cannot be accessed, an error was reported and the connection failed.(**1.30.21.1**)
