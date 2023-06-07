@@ -125,7 +125,7 @@ public class TypeCast {
             new BasicComplex(0.0, 0.0), new BasicDuration(Entity.DURATION.NS, 1), new BasicInt128((long) 1,(long) 1),
             new BasicIPAddr((long)1, (long)1), new BasicPoint(1.0, 1.0), new BasicUuid((long)1, (long)1), new BasicMonth(2020, Month.JANUARY),
             new BasicSecond(LocalTime.of(0,0,0)), new BasicMinute(LocalTime.of(0,0,0)),
-            new BasicDateTime(LocalDateTime.of(2020,1,1,0,0,0)),new BasicDecimal32(0,0),new BasicDecimal64(0,0)};
+            new BasicDateTime(LocalDateTime.of(2020,1,1,0,0,0)),new BasicDecimal32(0,0),new BasicDecimal64(0,0),new BasicDecimal128(0,0)};
 
     static {
         String[] arr = new String[]{
@@ -225,6 +225,7 @@ public class TypeCast {
             case DT_DATETIME: x = NULL[24]; break;
             case DT_DECIMAL32: x = NULL[25]; break;
             case DT_DECIMAL64: x = NULL[26]; break;
+            case DT_DECIMAL128: x = NULL[27]; break;
 		    default: throw new SQLException("Unsupported type");
 		}
 		return x;
