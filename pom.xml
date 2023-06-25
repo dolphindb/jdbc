@@ -45,9 +45,7 @@
         <dependency>
             <groupId>com.dolphindb</groupId>
             <artifactId>dolphindb-javaapi</artifactId>
-            <scope>system</scope>
-            <version>1.30.21.3</version>
-            <systemPath>${project.basedir}/lib/dolphindb-javaapi-1.30.22.1-TEST-0527-01.jar</systemPath>
+            <version>1.30.22.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
