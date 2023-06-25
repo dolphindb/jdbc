@@ -205,26 +205,26 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					Entity.DATA_TYPE dataType = colTypes_.get(i);
 					List<Entity> values = unNameTable.get(colNames.get(i));
 					Vector col;
-					if(types[i+1] != -1 && types[i+1] == 37){
-						col = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.DT_DECIMAL32, 1);
+					if((types[i+1] == -1 && dataType == Entity.DATA_TYPE.DT_DECIMAL32)
+							|| types[i+1] == Entity.DATA_TYPE.DT_DECIMAL32.getValue()){
+						col = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.DT_DECIMAL32, 1, sizes[i+1]);
 						if(sizes[i+1]<0 || sizes[i+1] > 9){
 							throw new SQLException("The size of the Decimal32 type should be in the range 0-9");
 						}
-						((BasicDecimal32Vector)col).setScale(sizes[i+1]);
-					}else if(types[i+1] != -1 && types[i+1] == 38){
-						col = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.DT_DECIMAL64, 1);
+					}else if((types[i+1] == -1 && dataType == Entity.DATA_TYPE.DT_DECIMAL64)
+							|| types[i+1] == Entity.DATA_TYPE.DT_DECIMAL64.getValue()){
+						col = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.DT_DECIMAL64, 1, sizes[i+1]);
 						if(sizes[i+1]<0 || sizes[i+1] > 18){
 							throw new SQLException("The size of the Decimal64 type should be in the range 0-18");
 						}
-						((BasicDecimal64Vector)col).setScale(sizes[i+1]);
 					} else if(types[i+1] != -1 && types[i+1] == 39) {
-						col = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.DT_DECIMAL128, 1);
+						col = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.DT_DECIMAL128, 1, sizes[i+1]);
 						if(sizes[i+1]<0 || sizes[i+1] > 18){
 							throw new SQLException("The size of the Decimal128 type should be in the range 0-18");
 						}
 						((BasicDecimal128Vector)col).setScale(sizes[i+1]);
 					} else{
-						col = BasicEntityFactory.instance().createVectorWithDefaultValue(dataType, 1);
+						col = BasicEntityFactory.instance().createVectorWithDefaultValue(dataType, 1, -1);
 					}
 					col.set(0, (Scalar) values.get(tableRows));
 					cols.add(col);
