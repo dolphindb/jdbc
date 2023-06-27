@@ -167,7 +167,7 @@ public class JDBCPreLoadTest {
         }
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expected = SQLException.class)
     public void test_PreLoad_nullTable() throws SQLException {
         conn = DriverManager.getConnection(url+"?tb_ft=dfs://valuedb+ft",info);
         Statement stm = conn.createStatement();
@@ -327,7 +327,8 @@ public class JDBCPreLoadTest {
                 " cdatehour = datehour(take(2011.01.01 01:00:00..2022.09.30 23:59:59,n))\n" +
                 " cdecimal32 = decimal32(take(1..2022,n),2)\n" +
                 " cdecimal64 = decimal64(take(2022..4044,n),2)\n" +
-                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour)\n" +
+                " cdecimal128 = decimal128(take(4044..8088,n),2)\n" +
+                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour,cdecimal32,cdecimal64,cdecimal128)\n" +
                 " if(existsDatabase(\"dfs://testPreload\")){\n" +
                 "     dropDatabase(\"dfs://testPreload\")\n" +
                 " }\n" +
@@ -371,7 +372,8 @@ public class JDBCPreLoadTest {
                 " cdatehour = datehour(take(2011.01.01 01:00:00..2022.09.30 23:59:59,n))\n" +
                 " cdecimal32 = decimal32(take(1..2022,n),2)\n" +
                 " cdecimal64 = decimal64(take(2022..4044,n),2)\n" +
-                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour)\n" +
+                " cdecimal128 = decimal128(take(4044..8088,n),2)\n" +
+                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour,cdecimal32,cdecimal64,cdecimal128)\n" +
                 " if(existsDatabase(\"dfs://testPreload\")){\n" +
                 "     dropDatabase(\"dfs://testPreload\")\n" +
                 " }\n" +
@@ -414,7 +416,8 @@ public class JDBCPreLoadTest {
                 " cdatehour = datehour(take(2011.01.01 01:00:00..2022.09.30 23:59:59,n))\n" +
                 " cdecimal32 = decimal32(take(1..2022,n),2)\n" +
                 " cdecimal64 = decimal64(take(2022..4044,n),2)\n" +
-                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour)\n" +
+                " cdecimal128 = decimal128(take(4044..8088,n),2)\n" +
+                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour,cdecimal32,cdecimal64,cdecimal128)\n" +
                 " if(existsDatabase(\"dfs://testPreload\")){\n" +
                 "     dropDatabase(\"dfs://testPreload\")\n" +
                 " }\n" +
@@ -457,7 +460,8 @@ public class JDBCPreLoadTest {
                 " cdatehour = datehour(take(2011.01.01 01:00:00..2022.09.30 23:59:59,n))\n" +
                 " cdecimal32 = decimal32(take(1..2022,n),2)\n" +
                 " cdecimal64 = decimal64(take(2022..4044,n),2)\n" +
-                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour)\n" +
+                " cdecimal128 = decimal128(take(4044..8088,n),2)\n" +
+                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour,cdecimal32,cdecimal64,cdecimal128)\n" +
                 " if(existsDatabase(\"dfs://testPreload\")){\n" +
                 "     dropDatabase(\"dfs://testPreload\")\n" +
                 " }\n" +
@@ -502,7 +506,8 @@ public class JDBCPreLoadTest {
                 " cdatehour = datehour(take(2011.01.01 01:00:00..2022.09.30 23:59:59,n))\n" +
                 " cdecimal32 = decimal32(take(1..2022,n),2)\n" +
                 " cdecimal64 = decimal64(take(2022..4044,n),2)\n" +
-                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour)\n" +
+                " cdecimal128 = decimal128(take(4044..8088,n),2)\n" +
+                " t = table(cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cfloat,cdouble,cstring,cdatehour,cdecimal32,cdecimal64,cdecimal128)\n" +
                 " if(existsDatabase(\"dfs://testPreload\")){\n" +
                 "     dropDatabase(\"dfs://testPreload\")\n" +
                 " }\n" +

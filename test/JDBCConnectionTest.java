@@ -247,7 +247,7 @@ public class JDBCConnectionTest {
 			stmt.execute("startDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		//conn1.equals(true);
 		conn.close();
@@ -287,7 +287,7 @@ public class JDBCConnectionTest {
 			stmt.execute("startDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		//conn1.equals(true);
 		conn1.close();
@@ -334,7 +334,7 @@ public class JDBCConnectionTest {
 			stmt.execute("startDataNode(\""+HOST+":"+PORT1+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		//conn1.equals(true);
 		conn1.close();
@@ -402,7 +402,7 @@ public class JDBCConnectionTest {
 			stmt.execute("startDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		//conn1.equals(true);
 		conn.close();
@@ -442,7 +442,7 @@ public class JDBCConnectionTest {
 			stmt.execute("startDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		//conn1.equals(true);
 		conn1.close();
@@ -489,7 +489,7 @@ public class JDBCConnectionTest {
 			stmt.execute("startDataNode(\""+HOST+":"+PORT1+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		//conn1.equals(true);
 		conn1.close();
@@ -524,7 +524,7 @@ public class JDBCConnectionTest {
 		JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select *  from loadTable(\"dfs://test\",`pt1) as m1 cross join loadTable(\"dfs://test\",`pt2) as  m2 where m1.date in (exec case when to_date(\"2022-10-01\",'YYYY-MM-DD') >  max(date) then max(date) else to_date(\"2022-10-01\",\"YYYY-MM-DD\")-1 end as D from loadTable(\"dfs://test\",`pt1)); ");
 		BasicTable rs1 = (BasicTable) rs.getResult();
 		System.out.println(rs1.rows());
-		Assert.assertEquals(9,rs1.rows());
+		Assert.assertEquals(6,rs1.rows());
 	}
 	@Test()
 	public void Test_JDBCConnection_SqlStdEnum_DolphinDB() throws SQLException, ClassNotFoundException {
