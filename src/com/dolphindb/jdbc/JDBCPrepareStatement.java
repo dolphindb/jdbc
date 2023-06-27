@@ -201,29 +201,29 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			int insertRows = 0;
 			List<Vector> cols = new ArrayList<>(unNameTable.size());
 			try {
-				for (int i = 0; i < colNames.size(); i++){
+				for (int i = 0; i < colNames.size(); i++) {
 					Entity.DATA_TYPE dataType = colTypes_.get(i);
 					List<Entity> values = unNameTable.get(colNames.get(i));
 					Vector col;
-					if((types[i+1] == -1 && dataType == Entity.DATA_TYPE.DT_DECIMAL32)
-							|| types[i+1] == Entity.DATA_TYPE.DT_DECIMAL32.getValue()){
+					if ((types[i+1] == -1 && dataType == Entity.DATA_TYPE.DT_DECIMAL32)
+							|| types[i+1] == Entity.DATA_TYPE.DT_DECIMAL32.getValue()) {
 						col = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.DT_DECIMAL32, 1, sizes[i+1]);
-						if(sizes[i+1]<0 || sizes[i+1] > 9){
+						if (sizes[i+1]<0 || sizes[i+1] > 9) {
 							throw new SQLException("The size of the Decimal32 type should be in the range 0-9");
 						}
-					}else if((types[i+1] == -1 && dataType == Entity.DATA_TYPE.DT_DECIMAL64)
-							|| types[i+1] == Entity.DATA_TYPE.DT_DECIMAL64.getValue()){
+					} else if ((types[i+1] == -1 && dataType == Entity.DATA_TYPE.DT_DECIMAL64)
+							|| types[i+1] == Entity.DATA_TYPE.DT_DECIMAL64.getValue()) {
 						col = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.DT_DECIMAL64, 1, sizes[i+1]);
-						if(sizes[i+1]<0 || sizes[i+1] > 18){
+						if (sizes[i+1]<0 || sizes[i+1] > 18) {
 							throw new SQLException("The size of the Decimal64 type should be in the range 0-18");
 						}
-					} else if(types[i+1] != -1 && types[i+1] == 39) {
+					} else if ((types[i+1] == -1 && dataType == Entity.DATA_TYPE.DT_DECIMAL128)
+							|| types[i+1] == Entity.DATA_TYPE.DT_DECIMAL128.getValue()) {
 						col = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.DT_DECIMAL128, 1, sizes[i+1]);
-						if(sizes[i+1]<0 || sizes[i+1] > 18){
-							throw new SQLException("The size of the Decimal128 type should be in the range 0-18");
+						if (sizes[i+1]<0 || sizes[i+1] > 38) {
+							throw new SQLException("The size of the Decimal128 type should be in the range 0-38");
 						}
-						((BasicDecimal128Vector)col).setScale(sizes[i+1]);
-					} else{
+					} else {
 						col = BasicEntityFactory.instance().createVectorWithDefaultValue(dataType, 1, -1);
 					}
 					col.set(0, (Scalar) values.get(tableRows));
