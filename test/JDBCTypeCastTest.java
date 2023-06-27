@@ -55,7 +55,8 @@ public class JDBCTypeCastTest {
                     "col_point = [point(1,2),point(3,4),point(5,6),point(7,8)]\n"+
                     "col_decimal32 = decimal32([1.321,4231,-1.321,0],4)\n"+
                     "col_decimal64 = decimal64([1.321,4231,-1.321,0],8)\n"+
-                    "tb = table(col_sym,col_date,col_time,col_month,col_dt,col_str,col_char,col_float,col_doub,col_int,col_nanotime,col_nanotimestamp,col_bool,col_short,col_long,col_minute,col_second,col_datetime,col_timestamp,col_uuid,col_ipaddr,col_int128,col_blob,col_complex,col_point,col_decimal32,col_decimal64)";
+                    "col_decimal128 = decimal128([1.321,4231,-1.321,0],16)\n"+
+                    "tb = table(col_sym,col_date,col_time,col_month,col_dt,col_str,col_char,col_float,col_doub,col_int,col_nanotime,col_nanotimestamp,col_bool,col_short,col_long,col_minute,col_second,col_datetime,col_timestamp,col_uuid,col_ipaddr,col_int128,col_blob,col_complex,col_point,col_decimal32,col_decimal64,col_decimal128)";
             System.out.println(sqlDDL);
             stm.executeUpdate(sqlDDL);
             //读取内存表到RecordSet
@@ -90,6 +91,7 @@ public class JDBCTypeCastTest {
                     BasicPoint points = (BasicPoint) rs.getObject(25);
                     BasicDecimal32 decimal32 = (BasicDecimal32) rs.getObject(26);
                     BasicDecimal64 decimal64 = (BasicDecimal64) rs.getObject(27);
+                    BasicDecimal128 decimal128 = (BasicDecimal128) rs.getObject(28);
                 }catch(Exception ex){
                     Assert.fail(ex.getMessage());
                 }

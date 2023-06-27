@@ -88,7 +88,8 @@ public class JDBCUpdateTest {
             sb.append("point= [point(1,2),point(2,3)];\n");
             sb.append("decimal32= decimal32([213.432,1.12],4);\n");
             sb.append("decimal64= decimal64([13.43241,231.54323],8);\n");
-            sb.append("t1= table(bool,char,short,int,long,float,double,string,symbol,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp,datehour,uuid,ipaddr,int128,blob,complex,point,decimal32,decimal64);\n");
+            sb.append("decimal128= decimal128([13.43241,231.54323],16);\n");
+            sb.append("t1= table(bool,char,short,int,long,float,double,string,symbol,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp,datehour,uuid,ipaddr,int128,blob,complex,point,decimal32,decimal64,decimal128);\n");
             sb.append("share t1 as trade;");
             db = new DBConnection();
             db.connect(HOST,PORT);
@@ -118,7 +119,7 @@ public class JDBCUpdateTest {
     }
 
     @Test
-    public void testUpdateChar() throws SQLException {
+    public void testUpdateChar() throws SQLException, ClassNotFoundException {
         createTable();
         PreparedStatement s = conn.prepareStatement("update trade set char = ?");
         s.setObject(1,'z');
@@ -545,6 +546,50 @@ public class JDBCUpdateTest {
         rs.next();
         org.junit.Assert.assertEquals("21.23220000",rs.getObject(2).toString());
     }
-
-
+    @Test
+    public void testUpdateDecimal128() throws SQLException {
+        createTable();
+        PreparedStatement s = conn.prepareStatement("update trade set decimal128 = ?");
+        s.setObject(1,276541.23221,39,16);
+        s.execute();
+        ResultSet rs = s.executeQuery("select * from trade");
+        rs.next();
+        org.junit.Assert.assertEquals("276541.2322100000063488",rs.getObject(28).toString());
+        rs.next();
+        org.junit.Assert.assertEquals("276541.2322100000063488",rs.getObject(28).toString());
+    }
+    @Test
+    public void testUpdateDecimal128_in_partition_table() throws SQLException {
+        createPartitionTable("DECIMAL128(18)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        for(int i = 0;i<100;i++){
+            ps.setInt(1, i);
+            ps.setObject(2, i*10, 39, 18);
+            ps.executeUpdate();
+        }
+        PreparedStatement s = conn.prepareStatement("update pt set dataType = ?");
+        s.setObject(1,21.232200000000010000,39,18);
+        s.execute();
+        ResultSet rs = s.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("21.232200000000008192",rs.getObject(2).toString());
+    }
+    @Test
+    public void testUpdateDecimal128_in_partition_table_1() throws SQLException {
+        createPartitionTable("DECIMAL128(37)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        for(int i = 0;i<100;i++){
+            ps.setInt(1, i);
+            ps.setObject(2, i*10, 39, 37);
+            ps.executeUpdate();
+        }
+        PreparedStatement s = conn.prepareStatement("update pt set dataType = ?");
+        s.setObject(1,9.2322000000000100009999999999999999999,39,37);
+        s.execute();
+        ResultSet rs = s.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals("9.2322000000000100009999999999999999999",rs.getObject(2).toString());
+    }
 }
