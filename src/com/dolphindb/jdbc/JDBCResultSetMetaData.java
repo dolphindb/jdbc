@@ -47,24 +47,7 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
 
     @Override
     public int getColumnType(int columnIndex) throws SQLException {
-        Entity.DATA_TYPE x = table.getColumn(adjustColumnIndex(columnIndex)).getDataType();
-        switch (x){
-            case DT_BOOL: return Types.BOOLEAN;
-            case DT_BYTE: return Types.CHAR;
-            case DT_SHORT: return Types.TINYINT;
-            case DT_INT: return Types.INTEGER;
-            case DT_LONG: return Types.BIGINT;
-            case DT_DATE: return Types.DATE;
-            case DT_TIME: return Types.TIME;
-            case DT_DATETIME:
-            case DT_TIMESTAMP: return Types.TIMESTAMP;
-            case DT_FLOAT: return Types.FLOAT;
-            case DT_DOUBLE: return Types.DOUBLE;
-            case DT_STRING: return Types.VARCHAR;
-            case DT_BLOB: return Types.VARCHAR;
-            default: return Types.VARCHAR;
-        }
-
+        return table.getColumn(adjustColumnIndex(columnIndex)).getDataType().ordinal();
     }
 
     @Override
