@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 
+import static com.dolphindb.jdbc.Main.printData;
+
 public class JDBCAppendNewTest {
     static String HOST = JDBCTestUtil.HOST;
     static int PORT = JDBCTestUtil.PORT;
@@ -963,7 +965,6 @@ public class JDBCAppendNewTest {
         ResultSet rs = ps.executeQuery("select * from pt");
         org.junit.Assert.assertEquals(0,rs.getRow());
     }
-
     @Test
     public void testAppendTypeDecimal64_scale_invalue() throws SQLException {
         createPartitionTable("DECIMAL64(8)");
@@ -1133,6 +1134,35 @@ public class JDBCAppendNewTest {
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
         org.junit.Assert.assertEquals("1.000100000",rs.getObject("dataType").toString());
+    }
+    @Test
+    public void testAppendTypeDecimal128_memory_table_scale_37() throws SQLException {
+        stm.execute("t = table(10:0,`id`dataType,[INT,DECIMAL128(37)]) ");
+        PreparedStatement ps = conn.prepareStatement("insert into t values(?,?)");
+        Statement stmt = null;
+        stmt = conn.createStatement();
+        ps.setInt(1,1000);
+        ps.setObject(2,"1.9999999999",39,37);
+        ps.executeUpdate();
+        ResultSet rs = stmt.executeQuery("select * from t");
+        //printData(rs);
+        rs.next();
+        org.junit.Assert.assertEquals("1.9999999999000000000000000000000000000",rs.getObject(2).toString());
+    }
+    @Test
+    public void testAppendTypeDecimal128_DFS_table_scale_37() throws SQLException {
+        createPartitionTable("DECIMAL128(37)");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        Statement stmt = null;
+        stmt = conn.createStatement();
+        ps.setInt(1,1000);
+        ps.setObject(2,"1.9999999999",39,37);
+        ps.executeUpdate();
+        ResultSet rs = stmt.executeQuery("select * from pt");
+        //printData(rs);
+        rs.next();
+        org.junit.Assert.assertEquals("1.9999999999000000000000000000000000000",rs.getObject(2).toString());
     }
     @Test
     public void testAppendTypeDecimal128_table_overflow() throws SQLException {
