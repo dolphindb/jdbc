@@ -2,6 +2,8 @@
 
 ## 新功能
 
+* 新增支持 DECIMAL128 数据类型。（**1.30.22.1**）
+* 新增支持连接属性 sqlStd，用于指定解析 SQL 语句的语法。（**1.30.22.1**）
 * 方法 getObject 新增支持日期时间类型 LocalDate, LocalTime, LocalDateTime, java.util.Date, Timestamp。（**1.30.21.4**）
 * 新增连接属性 tableName，可以加载指定的表。（**1.30.21.1**）
 * 新增高可用配置参数 *enableHighAvailability*，与 *highAvailability* 功能相同。使用时只需设置其中一个参数即可（推荐使用 *enableHighAvailability*），若配置冲突则会报错。（**1.30.21.1**）
