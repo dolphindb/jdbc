@@ -55,11 +55,33 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
     |databasePath|分布式数据库路径。指定该参数可以在初始化时将分布式表加载到内存。|
     |tableName|分布式表的表名。指定该参数可以加载指定的分布式表。|
     |enableHighAvailability \| highAvailability |高可用参数，布尔类型，默认为 true。指定该参数可以开启或关闭高可用模式。|
+    |sqlStd|枚举类型，用于指定传入 SQL 脚本的解析语法。支持三种解析语法：DolphinDB、Oracle、MySQL，其中默认为 DolphinDB 解析。|
 
     **注：**
 
   * 自1.30.21.1版本起，JDBC 支持高可用参数 *enableHighAvailability*，其作用与 *highAvailability* 相同。使用时只需设置其中一个参数即可（推荐使用 *enableHighAvailability*），若配置冲突则会报错。
   * 若需要创建 JDBCCallableStatement 对象，则连接字符串须指定 `allowMultiQueries=true`。
+  * 自1.30.22.1版本起，JDBC 支持参数 *sqlStd*。用户可通过 url 直接传参，见示例1；也可通过 JDBCConnection 构造方法的 *Properties* 进行传参，见示例2。
+
+  **示例1**
+  通过 url 直接传参。
+  ```java
+  Properties prop = new Properties();
+  prop.setProperty("user","admin");
+  prop.setProperty("password","123456");
+  String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "sqlStd:" + SqlStdEnum.MySQL.getName();
+  conn = new JDBCConnection(url,prop);
+  ```
+  **示例2**
+  JDBCConnection 构造方法的 *Properties* 参数支持 sqlStd 属性。用户通过 *Properties* 设置属性 key 为 sqlStd，值为字符串 SqlStdEnum，进而指定传入 SQL 脚本的解析语法。
+  ```java
+  Properties prop = new Properties();
+  prop.setProperty("user","admin");
+  prop.setProperty("password","123456");
+  prop.setProperty("sqlStd", SqlStdEnum.DolphinDB.getName());
+  String url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+  conn = new JDBCConnection(url,prop);
+  ```
 
 ## 2. 内存表的增删改查
 
