@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 public class JDBCConnection implements Connection {
@@ -185,6 +186,7 @@ public class JDBCConnection implements Connection {
 			else
 				initialScript = appendInitScript;
 		}
+
 		String highAvailabilityStr = prop.getProperty("highAvailability");
 		String enableHighAvailabilityStr = prop.getProperty("enableHighAvailability");
 		Boolean highAvailability = false;
@@ -199,11 +201,24 @@ public class JDBCConnection implements Connection {
 				throw new SQLException("The values of the \"highAvailability\" and \"enableHighAvailability\" parameters in the URL must be the same if both are configured. ");
 			highAvailability = param1;
 		}
+
 		String rowHighAvailabilitySites = prop.getProperty("highAvailabilitySites");
 		String[] highAvailabilitySites = null;
 		if (rowHighAvailabilitySites != null) {
-			highAvailabilitySites = rowHighAvailabilitySites.split(" ");
+			if (rowHighAvailabilitySites.contains(",")) {
+				highAvailabilitySites = rowHighAvailabilitySites.split(",");
+				highAvailabilitySites = Arrays.stream(highAvailabilitySites).map(String::trim).toArray(String[]::new);
+			} else {
+				highAvailabilitySites = rowHighAvailabilitySites.split(" ");
+			}
 		}
+
+		String tableAliasValue = prop.getProperty("tableAlias");
+		if (StringUtils.isNotEmpty(tableAliasValue)) {
+			String tableAliasScript = parseTableAliasPropToScript(tableAliasValue);
+			initialScript = initialScript + "\n" + tableAliasScript;
+		}
+
 		if(userId != null && password != null){
 			if (highAvailability){
 				success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
@@ -216,6 +231,57 @@ public class JDBCConnection implements Connection {
 			success = dbConnection.connect(hostName, port,"","",null,false,null,true);
 		}
 	}
+
+	public static String parseTableAliasPropToScript(String tableAliasValue) {
+//		String eg = "dfs://db1/tb1," +
+//				"tb2=dfs://db1/tb2," +
+//				"tb3=dfs://db2/tb1";
+		Set<String> aliasSet = new HashSet<>();
+		Map<String, String> map = new HashMap<>();
+		StringBuilder stringBuilder = new StringBuilder();
+
+		try {
+			String[] strs = tableAliasValue.split(",");
+			for (String str : strs) {
+				str = str.trim();
+				if (str.contains("=")) {
+					String[] split = str.split("=");
+					String alias = split[0]; // tb2
+					if (aliasSet.contains(alias)) {
+						throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
+					}
+					aliasSet.add(alias);
+
+					String path = split[1]; // dfs://db1/tb2
+					if (StringUtils.isEmpty(path)) {
+						throw new RuntimeException("");
+					}
+					String[] pathSplit = path.split("(?<!/)/(?!/)");
+					String dbPath = pathSplit[0];
+					String tbName = pathSplit[1];
+					String finalStr = alias + "=loadTable(\"" + dbPath + "\"," + "\"" + tbName + "\");\n";
+					stringBuilder.append(finalStr);
+				} else {
+					// no contain '='
+					// dfs://db1/tb1
+					String[] pathSplit = str.split("(?<!/)/(?!/)");
+					String alias = pathSplit[1];
+					String dbPath = pathSplit[0];
+					if (aliasSet.contains(alias)) {
+						throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
+					}
+					aliasSet.add(alias);
+					String finalStr = alias + "=loadTable(\"" + dbPath + "\",\"" + alias + "\");\n";
+					stringBuilder.append(finalStr);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return stringBuilder.toString();
+	}
+
 	private String loadTables(String dbName, List<String> tableNames, boolean ignoreError){
 		StringBuilder sbInitScript = new StringBuilder();
 		for(String tableName:tableNames) {
