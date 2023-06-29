@@ -64,6 +64,7 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
   * 自1.30.22.1版本起，JDBC 支持参数 *sqlStd*。用户可通过 url 直接传参，见示例1；也可通过 JDBCConnection 构造方法的 *Properties* 进行传参，见示例2。
 
   **示例1**
+
   通过 url 直接传参。
   ```java
   Properties prop = new Properties();
@@ -73,6 +74,7 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
   conn = new JDBCConnection(url,prop);
   ```
   **示例2**
+  
   JDBCConnection 构造方法的 *Properties* 参数支持 sqlStd 属性。用户通过 *Properties* 设置属性 key 为 sqlStd，值为字符串 SqlStdEnum，进而指定传入 SQL 脚本的解析语法。
   ```java
   Properties prop = new Properties();
