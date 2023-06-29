@@ -75,7 +75,8 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
   ```
   **示例2**
   
-  JDBCConnection 构造方法的 *Properties* 参数支持 sqlStd 属性。用户通过 *Properties* 设置属性 key 为 sqlStd，值为字符串 SqlStdEnum，进而指定传入 SQL 脚本的解析语法。
+  JDBCConnection 构造方法的 *Properties* 参数支持 sqlStd 属性。用户通过 *Properties* 设置属性 key 为 sqlStd，值为字符串，即用户通过 SqlStdEnum 指定传入 SQL 脚本的解析语法。使用示例如下：
+
   ```java
   Properties prop = new Properties();
   prop.setProperty("user","admin");
