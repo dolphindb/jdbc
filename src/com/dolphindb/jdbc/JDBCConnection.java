@@ -344,7 +344,7 @@ public class JDBCConnection implements Connection {
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			throw new RuntimeException("parse tableAlias error!");
 		}
 
 		return stringBuilder.toString();
