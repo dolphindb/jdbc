@@ -93,7 +93,7 @@ public class JDBCStatement implements Statement {
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
-        sql = Utils.changeCase(sql);
+        sql = Utils.changeCase(sql, connection);
         sql = sql.trim();
         while (sql.endsWith(";"))
         	sql = sql.substring(0, sql.length() - 1);
