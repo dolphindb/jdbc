@@ -217,7 +217,11 @@ public class JDBCConnection implements Connection {
 		String tableAliasValue = prop.getProperty("tableAlias");
 		if (StringUtils.isNotEmpty(tableAliasValue)) {
 			String tableAliasScript = parseTableAliasPropToScript(tableAliasValue);
-			initialScript = initialScript + "\n" + tableAliasScript;
+			if (Objects.nonNull(initialScript)) {
+				initialScript = initialScript + "\n" + tableAliasScript;
+			} else {
+				initialScript = tableAliasScript;
+			}
 		}
 
 		if(userId != null && password != null){
