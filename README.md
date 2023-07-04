@@ -59,12 +59,38 @@ It supports the following properties:
 | databasePath 	| The path to a DFS database. Specifying this parameter to load the specified database during connection.  	|
 | tableName 	| The name of a DFS table. Specifying this parameter to load the specified table during connection.  	|
 | enableHighAvailability \| highAvailability 	| A Boolean value that specifies whether to enable or disable high availability. The default value is true. 	|
+| sqlStd 	| An enumeration type, specifying the syntax to parse input SQL scripts. Three parsing syntaxes are supported: DolphinDB (default), Oracle, and MySQL. 	|
 
 **Note**:
+
+- Starting from version 1.30.22.1, JDBC supports parameter *sqlStd*. You can pass it through url (see example 1), or specify the connection property for the constructor JDBCConnection (see example 2).
 
 - Starting from version 1.30.21.1, DolphinDB JDBC API supports *enableHighAvailability* property for connection strings, and the original *highAvailability* can be used as an alias. Configuration conflicts are reported if inconsistencies occur.
 
 - To create a `JDBCCallableStatement` object, you must specify the property *allowMultiQueries*=true for the connection strings.
+
+Example 1. Pass sqlStd through url:
+
+```java
+Properties prop = new Properties();
+prop.setProperty("user","admin");
+prop.setProperty("password","123456");
+String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "sqlStd:" + SqlStdEnum.MySQL.getName();
+conn = new JDBCConnection(url,prop);
+```
+
+Alternatively, you can set the attribute key as "sqlStd" and the value as a string (which specifies the parsing syntax through SqlStdEnum) for the _Properties_ of `JDBCConnection`.
+
+Example 2.
+
+```java
+Properties prop = new Properties();
+prop.setProperty("user","admin");
+prop.setProperty("password","123456");
+prop.setProperty("sqlStd", SqlStdEnum.DolphinDB.getName());
+String url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+conn = new JDBCConnection(url,prop);
+```
 
 ## 2. Operations on In-Memory Tables
 
