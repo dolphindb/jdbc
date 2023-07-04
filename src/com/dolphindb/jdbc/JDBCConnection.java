@@ -251,10 +251,10 @@ public class JDBCConnection implements Connection {
 			String[] strs = tableAliasValue.split(",");
 			for (String str : strs) {
 				str = str.trim();
-				if (str.contains("dfs")) {
+				// 按 ':' 分割，而不是按 '://' 分割
+				String[] split = str.split("(?<!:)[:](?!/)");
+				if (str.contains("dfs") && !split[0].contains("dfs")) {
 					// 1、dfs 表
-					// 按 : 分割，而不是按 :// 分割
-					String[] split = str.split("(?<!:)[:](?!/)");
 					if (split.length == 1) {
 						// 1）不含别名的 dfs://db1/tb1
 						String[] pathSplit = str.split("(?<!/)/(?!/)");
@@ -285,13 +285,11 @@ public class JDBCConnection implements Connection {
 						String finalStr = alias + "=loadTable(\"" + dbPath + "\"," + "\"" + tbName + "\");\n";
 						stringBuilder.append(finalStr);
 					}
-				} else if (str.contains("mvcc")) {
+				} else if (str.contains("mvcc") && !split[0].contains("mvcc")) {
 					// 2、mvcc 表
 					// "tb4:mvcc:///data/mvccfolder/tb1"
 					// "tb5:mvcc://mvccfolder/tb2"
 
-					// 按 : 分割，而不是按 :// 分割
-					String[] split = str.split("(?<!:)[:](?!/)");
 					if (split.length == 1) {
 						// 无别名
 						List<String> mvccPathSplit = parseMvccPath(split[0]); // split[0] mvcc:///data/mvccfolder/tb1
@@ -333,7 +331,7 @@ public class JDBCConnection implements Connection {
 					}
 				} else {
 					// 3、内存表
-					String[] split = str.split(":");
+					split = str.split(":");
 					String alias = split[0];
 					String memTableName = split[1];
 					if (aliasSet.contains(alias)) {
