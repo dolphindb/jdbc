@@ -2,6 +2,8 @@
 
 ## New Features
 
+- Added support for DECIMAL128 data type. (**1.30.22.1**)
+- Added connection property *sqlStd* for SQL parsing. (**1.30.22.1**)
 - The method `getObject` now supports temporal types including LocalDate, LocalTime, LocalDateTime, java.util.Date, and Timestamp. (**1.30.21.4**)
 - Added connection property *tableName* to load the specified table during connection. (**1.30.21.1**)
 - Added connection property *enableHighAvailability* for connection strings, and the original *highAvailability* can be used as an alias. Configuration conflicts are reported if inconsistencies occur. (**1.30.21.1**)
