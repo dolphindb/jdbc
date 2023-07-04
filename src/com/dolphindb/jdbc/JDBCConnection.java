@@ -300,8 +300,20 @@ public class JDBCConnection implements Connection {
 					// 2、mvcc 表
 					// "tb4:mvcc:///data/mvccfolder/tb1"
 					// "tb5:mvcc://mvccfolder/tb2"
+					if (str.startsWith("mvcc") && Pattern.matches(".*[a-zA-Z]:\\\\.*", str)) {
+						// win 模式下的无别名
+						String[] path = str.split("://");
+						int lastDoubleSlashIndex = path[1].lastIndexOf("\\");
+						String dropTableName = path[1].substring(0, lastDoubleSlashIndex);
+						String tbNameAndAlias = path[1].substring(lastDoubleSlashIndex + 1);
+						if (aliasSet.contains(tbNameAndAlias)) {
+							throw new RuntimeException("Duplicate table alias found in property tableAlias: " + tbNameAndAlias);
+						}
+						aliasSet.add(tbNameAndAlias);
 
-					if (split.length == 1) {
+						String finalStr = tbNameAndAlias + "=loadMvccTable(\"" + dropTableName + "\",\"" + tbNameAndAlias + "\");\n";
+						stringBuilder.append(finalStr);
+					} else if (split.length == 1) {
 						// 无别名
 						String finalStr;
 						List<String> mvccPathSplit = parseMvccPath(split[0]); // split[0] mvcc:///data/mvccfolder/tb1
@@ -328,19 +340,39 @@ public class JDBCConnection implements Connection {
 						} else {
 							// 有别名
 							String alias= split[0]; // tb4
-							List<String> mvccPathSplit = parseMvccPath(split[1]); // split[1] mvcc:///data/mvccfolder/tb1
-							String mvccPath = mvccPathSplit.get(1);
-							if (aliasSet.contains(alias)) {
-								throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
-							}
-							aliasSet.add(alias);
-							// tb4=loadMvccTable(“/data/mvccfolder“,”tb1”)
-							String[] pathSplit = mvccPath.split("/");// /data/mvccfolder/tb1
-							String mvccFilePath = mvccPath.substring(0, mvccPath.lastIndexOf("/"));
-							if (mvccPath.startsWith("/")) {
-								finalStr = alias + "=loadMvccTable(\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+							if (str.contains("\\\\")) {
+								// 如果是 'win \\' 写法
+								String[] tempSplit = split[1].split("://"); // mvcc://C
+
+								if (aliasSet.contains(alias)) {
+									throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
+								}
+								aliasSet.add(alias);
+
+								int lastDoubleSlashIndex = split[2].lastIndexOf("\\\\");
+								String dropTableName = split[2].substring(0, lastDoubleSlashIndex);
+								String tbName = split[2].substring(lastDoubleSlashIndex + 2);
+
+								finalStr = alias + "=loadMvccTable(\"" + tempSplit[1] + ":" + dropTableName + "\",\"" + tbName + "\");\n";
 							} else {
-								finalStr = alias + "=loadMvccTable(" + "\"/" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+								List<String> mvccPathSplit = parseMvccPath(split[1]); // split[1] mvcc:///data/mvccfolder/tb1
+								String mvccPath = mvccPathSplit.get(1);
+								if (aliasSet.contains(alias)) {
+									throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
+								}
+								aliasSet.add(alias);
+								// tb4=loadMvccTable(“/data/mvccfolder“,”tb1”)
+								String[] pathSplit = mvccPath.split("/");// /data/mvccfolder/tb1
+								String mvccFilePath = mvccPath.substring(0, mvccPath.lastIndexOf("/"));
+								if (mvccPath.startsWith("/")) {
+									finalStr = alias + "=loadMvccTable(\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+								} else {
+									if (Pattern.matches("^[A-Za-z]:.*$", mvccFilePath)) {
+										finalStr = alias + "=loadMvccTable(" + "\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+									} else {
+										finalStr = alias + "=loadMvccTable(" + "\"/" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+									}
+								}
 							}
 						}
 
