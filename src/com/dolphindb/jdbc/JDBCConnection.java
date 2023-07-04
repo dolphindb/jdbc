@@ -257,10 +257,11 @@ public class JDBCConnection implements Connection {
 				str = str.trim();
 				// 按 ':' 分割，而不是按 '://' 分割
 				String[] split = str.split("(?<!:)[:](?!/)");
-				if (str.contains("dfs") && !split[0].contains("dfs")) {
+				if (str.contains("dfs")) {
 					// 1、dfs 表
 					if (split.length == 1) {
 						// 1）不含别名的 dfs://db1/tb1
+						String finalStr;
 						String[] pathSplit = str.split("(?<!/)/(?!/)");
 						String alias = pathSplit[1];
 						String dbPath = pathSplit[0];
@@ -269,33 +270,40 @@ public class JDBCConnection implements Connection {
 						}
 						aliasSet.add(alias);
 
-						String finalStr = alias + "=loadTable(\"" + dbPath + "\",\"" + alias + "\");\n";
+						finalStr = alias + "=loadTable(\"" + dbPath + "\",\"" + alias + "\");\n";
 						stringBuilder.append(finalStr);
 					} else if (split.length == 2) {
-						// 2）含别名的 tb2:dfs://db1/tb2
-						String alias = split[0].replaceAll(":", "");
-						String path = split[1]; // dfs://db1/tb2
-						if (aliasSet.contains(alias)) {
-							throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
-						}
-						aliasSet.add(alias);
-						if (StringUtils.isEmpty(path)) {
-							throw new RuntimeException("");
+						String finalStr;
+						if (split[0].contains("dfs")) {
+							finalStr = parseOtherParh(str, str.split(":"), aliasSet);
+						} else {
+							// 2）含别名的 tb2:dfs://db1/tb2
+							String alias = split[0].replaceAll(":", "");
+							String path = split[1]; // dfs://db1/tb2
+							if (aliasSet.contains(alias)) {
+								throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
+							}
+							aliasSet.add(alias);
+							if (StringUtils.isEmpty(path)) {
+								throw new RuntimeException("");
+							}
+
+							String[] pathSplit = path.split("(?<!/)/(?!/)");
+							String dbPath = pathSplit[0];
+							String tbName = pathSplit[1];
+							finalStr = alias + "=loadTable(\"" + dbPath + "\"," + "\"" + tbName + "\");\n";
 						}
 
-						String[] pathSplit = path.split("(?<!/)/(?!/)");
-						String dbPath = pathSplit[0];
-						String tbName = pathSplit[1];
-						String finalStr = alias + "=loadTable(\"" + dbPath + "\"," + "\"" + tbName + "\");\n";
 						stringBuilder.append(finalStr);
 					}
-				} else if (str.contains("mvcc") && !split[0].contains("mvcc")) {
+				} else if (str.contains("mvcc")) {
 					// 2、mvcc 表
 					// "tb4:mvcc:///data/mvccfolder/tb1"
 					// "tb5:mvcc://mvccfolder/tb2"
 
 					if (split.length == 1) {
 						// 无别名
+						String finalStr;
 						List<String> mvccPathSplit = parseMvccPath(split[0]); // split[0] mvcc:///data/mvccfolder/tb1
 						// tb4=loadMvccTable(“/data/mvccfolder“,”tb1”)
 						String mvccPath = mvccPathSplit.get(1);
@@ -305,43 +313,50 @@ public class JDBCConnection implements Connection {
 							throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
 						}
 						aliasSet.add(alias);
-						String finalStr;
 						String mvccFilePath = mvccPath.substring(0, mvccPath.lastIndexOf("/"));
 						if (mvccPath.startsWith("/")) {
 							finalStr = alias + "=loadMvccTable(\"" + mvccFilePath + "\",\"" + alias + "\");\n";
 						} else {
-							finalStr = alias + "=loadMvccTable(getHomeDir()" + "+\"/" + mvccFilePath + "\",\"" + alias + "\");\n";
+							finalStr = alias + "=loadMvccTable(" + "\"/" + mvccFilePath + "\",\"" + alias + "\");\n";
 						}
+
 						stringBuilder.append(finalStr);
 					} else {
-						// 有别名
-						String alias= split[0]; // tb4
-						List<String> mvccPathSplit = parseMvccPath(split[1]); // split[1] mvcc:///data/mvccfolder/tb1
-						String mvccPath = mvccPathSplit.get(1);
-						if (aliasSet.contains(alias)) {
-							throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
-						}
-						aliasSet.add(alias);
-						// tb4=loadMvccTable(“/data/mvccfolder“,”tb1”)
-						String[] pathSplit = mvccPath.split("/");// /data/mvccfolder/tb1
 						String finalStr;
-						String mvccFilePath = mvccPath.substring(0, mvccPath.lastIndexOf("/"));
-						if (mvccPath.startsWith("/")) {
-							finalStr = alias + "=loadMvccTable(\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+						if (split[0].contains("mvcc")) {
+							finalStr = parseOtherParh(str, str.split(":"), aliasSet);
 						} else {
-							finalStr = alias + "=loadMvccTable(getHomeDir()" + "+\"/" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+							// 有别名
+							String alias= split[0]; // tb4
+							List<String> mvccPathSplit = parseMvccPath(split[1]); // split[1] mvcc:///data/mvccfolder/tb1
+							String mvccPath = mvccPathSplit.get(1);
+							if (aliasSet.contains(alias)) {
+								throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
+							}
+							aliasSet.add(alias);
+							// tb4=loadMvccTable(“/data/mvccfolder“,”tb1”)
+							String[] pathSplit = mvccPath.split("/");// /data/mvccfolder/tb1
+							String mvccFilePath = mvccPath.substring(0, mvccPath.lastIndexOf("/"));
+							if (mvccPath.startsWith("/")) {
+								finalStr = alias + "=loadMvccTable(\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+							} else {
+								finalStr = alias + "=loadMvccTable(" + "\"/" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+							}
 						}
+
 						stringBuilder.append(finalStr);
 					}
 				} else {
-					// 3、内存表
-					split = str.split(":");
-					String alias = split[0];
-					String memTableName = split[1];
-					if (aliasSet.contains(alias)) {
-						throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
-					}
-					String finalStr = alias + "=" + memTableName + ";\n";
+					// 3、other
+					String finalStr = parseOtherParh(str, str.split(":"), aliasSet);
+//					split = str.split(":");
+//					String alias = split[0];
+//					String memTableName = split[1];
+//					if (aliasSet.contains(alias)) {
+//						throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
+//					}
+//					aliasSet.add(alias);
+//					String finalStr = alias + "=" + memTableName + ";\n";
 					stringBuilder.append(finalStr);
 				}
 			}
@@ -350,6 +365,20 @@ public class JDBCConnection implements Connection {
 		}
 
 		return stringBuilder.toString();
+	}
+
+	private static String parseOtherParh(String str, String[] split, Set<String> aliasSet) {
+		// 3、内存表
+		split = str.split(":");
+		String alias = split[0];
+		String memTableName = split[1];
+		if (aliasSet.contains(alias)) {
+			throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
+		}
+		aliasSet.add(alias);
+		String finalStr = alias + "=" + memTableName + ";\n";
+
+		return finalStr;
 	}
 
 	public static List<String> parseMvccPath(String str) {
