@@ -274,7 +274,7 @@ public class JDBCConnection implements Connection {
 						stringBuilder.append(finalStr);
 					} else if (split.length == 2) {
 						String finalStr;
-						if (split[0].contains("dfs")) {
+						if (split[0].contains("dfs") && !split[1].contains("dfs")) {
 							finalStr = parseOtherParh(str, str.split(":"), aliasSet);
 						} else {
 							// 2）含别名的 tb2:dfs://db1/tb2
