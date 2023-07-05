@@ -54,7 +54,7 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
     |allowMultiQueries|是否支持多条语句查询。布尔类型，默认为 false。在一条语句中，允许使用“;”来分隔多条查询。|
     |databasePath|分布式数据库路径。指定该参数可以在初始化时将分布式表加载到内存。|
     |tableName|分布式表的表名。指定该参数可以加载指定的分布式表。|
-    |enableHighAvailability \| highAvailability |高可用参数，布尔类型，默认为 true。指定该参数可以开启或关闭高可用模式。|
+    |enableHighAvailability 或 highAvailability |高可用参数，布尔类型，默认为 true。指定该参数可以开启或关闭高可用模式。|
     |sqlStd|枚举类型，用于指定传入 SQL 脚本的解析语法。支持三种解析语法：DolphinDB、Oracle、MySQL，其中默认为 DolphinDB 解析。|
 
     **注：**
