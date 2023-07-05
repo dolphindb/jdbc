@@ -61,7 +61,7 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
 
   * 自1.30.21.1版本起，JDBC 支持高可用参数 *enableHighAvailability*，其作用与 *highAvailability* 相同。使用时只需设置其中一个参数即可（推荐使用 *enableHighAvailability*），若配置冲突则会报错。
   * 若需要创建 JDBCCallableStatement 对象，则连接字符串须指定 `allowMultiQueries=true`。
-  * 自1.30.22.1版本起，JDBC 支持参数 *sqlStd*。用户可通过 url 直接传参，见示例1；也可通过 JDBCConnection 构造方法的 *Properties* 进行传参，见示例2。
+  * 自1.30.22.1版本起，JDBC 支持参数 *sqlStd*。用户可通过 url 直接传参，见示例1；也可通过 JDBCConnection 构造方法的 *Properties* 进行传参，见示例2。注意：须使用2.00.10版本以上的 DolphinDB。
 
   **示例1**
 
