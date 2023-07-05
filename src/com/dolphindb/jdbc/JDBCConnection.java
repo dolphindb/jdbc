@@ -396,7 +396,8 @@ public class JDBCConnection implements Connection {
 				}
 			}
 		} catch (RuntimeException e) {
-			e.printStackTrace();
+			// e.printStackTrace();
+			throw e;
 		} catch (Exception e) {
 			throw new RuntimeException("parse tableAlias error!");
 		}
