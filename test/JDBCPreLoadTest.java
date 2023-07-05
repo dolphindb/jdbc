@@ -1,3 +1,4 @@
+import com.dolphindb.jdbc.JDBCResultSet;
 import com.xxdb.DBConnection;
 import com.xxdb.data.BasicTable;
 import org.junit.After;
@@ -40,13 +41,13 @@ public class JDBCPreLoadTest {
             String script2 = "n = 5000\n" +
                     "date = take(2006.01.01..2006.01.31,n);\n" +
                     "de = rand(30.0,n)\n" +
-                    "t3 = table(date,de)\n" +
+                    "t4 = table(date,de)\n" +
                     "if(existsDatabase(\"dfs://testValue\")){\n" +
                     "    dropDatabase(\"dfs://testValue\")\n" +
                     "}\n" +
                     "db2 = database(\"dfs://testValue\",VALUE,2006.01.01..2006.01.31)\n" +
-                    "nt = db2.createPartitionedTable(t3,`nt,`date);\n" +
-                    "nt.append!(t3);";
+                    "nt = db2.createPartitionedTable(t4,`nt,`date);\n" +
+                    "nt.append!(t4);";
             db = new DBConnection();
             db.connect(HOST, PORT,"admin","123456");
             db.run(script);
@@ -92,6 +93,8 @@ public class JDBCPreLoadTest {
                     "    dropDatabase(\"dfs://testValue\")\n" +
                     "}\n" +
                     "db2 = database(\"dfs://testValue\",VALUE,2006.01.01..2006.01.31)\n" +
+                    "pt = db2.createPartitionedTable(t3,`pt,`date);\n" +
+                    "pt.append!(t3);\n" +
                     "nt = db2.createPartitionedTable(t3,`nt,`date);\n" +
                     "nt.append!(t3);";
             db = new DBConnection();
@@ -527,5 +530,494 @@ public class JDBCPreLoadTest {
             System.out.println((index++)+":"+rs.getString(1)+" "+rs.getString(2));
         }
         Assert.assertEquals(100,index);
+    }
+    @Test
+    public void test_PreLoad_tableAlias_dfs_table_default() throws SQLException, IOException {
+        conn = DriverManager.getConnection(url+"?tableAlias=dfs://valuedb/pt",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select top 100 * from pt");
+        ResultSet resultSet = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet.next());
+        Assert.assertTrue(rs.next());
+        System.out.println(rs);
+        while(rs.next() && resultSet.next()){
+            System.out.println(rs.getString(1)+" "+rs.getString(2));
+            Assert.assertEquals(resultSet.getString(1),rs.getString(1));
+            Assert.assertEquals(resultSet.getString(2),rs.getString(2));
+        }
+    }
+    @Test
+    public void test_PreLoad_tableAlias_dfs_table_alias_1() throws SQLException, IOException {
+        conn = DriverManager.getConnection(url+"?tableAlias=ttt:dfs://valuedb/pt",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select top 100 * from ttt");
+        ResultSet resultSet = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet.next());
+        Assert.assertTrue(rs.next());
+        System.out.println(rs);
+        while(rs.next() && resultSet.next()){
+            System.out.println(rs.getString(1)+" "+rs.getString(2));
+            Assert.assertEquals(resultSet.getString(1),rs.getString(1));
+            Assert.assertEquals(resultSet.getString(2),rs.getString(2));
+        }
+    }
+    @Test
+    public void test_PreLoad_tableAlias_dfs_table_alias_2() throws SQLException, IOException {
+        conn = DriverManager.getConnection(url+"?tableAlias=t1212:dfs://valuedb/pt",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select top 100 * from t1212");
+        ResultSet resultSet = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet.next());
+        Assert.assertTrue(rs.next());
+        System.out.println(rs);
+        while(rs.next() && resultSet.next()){
+            System.out.println(rs.getString(1)+" "+rs.getString(2));
+            Assert.assertEquals(resultSet.getString(1),rs.getString(1));
+            Assert.assertEquals(resultSet.getString(2),rs.getString(2));
+        }
+    }
+    @Test
+    public void test_PreLoad_tableAlias_dfs_table_alias_3() throws SQLException, IOException {
+        conn = DriverManager.getConnection(url+"?tableAlias=col_中文1212:dfs://valuedb/pt",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select top 100 * from col_中文1212");
+        ResultSet resultSet = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet.next());
+        Assert.assertTrue(rs.next());
+        System.out.println(rs);
+        while(rs.next() && resultSet.next()){
+            System.out.println(rs.getString(1)+" "+rs.getString(2));
+            Assert.assertEquals(resultSet.getString(1),rs.getString(1));
+            Assert.assertEquals(resultSet.getString(2),rs.getString(2));
+        }
+    }
+    @Test
+    public void test_PreLoad_tableAlias_dfs_table_alias_4() throws SQLException, IOException {
+        conn = DriverManager.getConnection(url+"?tableAlias=中文中问帆帆帆帆dfs:dfs://valuedb/pt,col1:dfs://valuedb/pt,w__v_1aluedbpt:dfs://valuedb/pt,dfs:dfs://valuedb/pt,dfs://valuedb/pt",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select top 100 * from 中文中问帆帆帆帆dfs");
+        ResultSet resultSet = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet.next());
+        Assert.assertTrue(rs.next());
+        System.out.println(rs);
+        while(rs.next() && resultSet.next()){
+            System.out.println(rs.getString(1)+" "+rs.getString(2));
+            Assert.assertEquals(resultSet.getString(1),rs.getString(1));
+            Assert.assertEquals(resultSet.getString(2),rs.getString(2));
+        }
+        ResultSet rs1 = stm.executeQuery("select top 100 * from col1");
+        ResultSet resultSet1 = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet1.next());
+        Assert.assertTrue(rs1.next());
+        System.out.println(rs1);
+        while(rs1.next() && resultSet1.next()){
+            System.out.println(rs1.getString(1)+" "+rs1.getString(2));
+            Assert.assertEquals(resultSet1.getString(1),rs1.getString(1));
+            Assert.assertEquals(resultSet1.getString(2),rs1.getString(2));
+        }
+        ResultSet rs2 = stm.executeQuery("select top 100 * from w__v_1aluedbpt");
+        ResultSet resultSet2 = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet2.next());
+        Assert.assertTrue(rs2.next());
+        System.out.println(rs2);
+        while(rs2.next() && resultSet2.next()){
+            System.out.println(rs2.getString(1)+" "+rs2.getString(2));
+            Assert.assertEquals(resultSet2.getString(1),rs2.getString(1));
+            Assert.assertEquals(resultSet2.getString(2),rs2.getString(2));
+        }
+        ResultSet rs3 = stm.executeQuery("select top 100 * from dfs");
+        ResultSet resultSet3 = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet3.next());
+        Assert.assertTrue(rs3.next());
+        System.out.println(rs3);
+        while(rs3.next() && resultSet3.next()){
+            System.out.println(rs3.getString(1)+" "+rs3.getString(2));
+            Assert.assertEquals(resultSet3.getString(1),rs3.getString(1));
+            Assert.assertEquals(resultSet3.getString(2),rs3.getString(2));
+        }
+        ResultSet rs4 = stm.executeQuery("select top 100 * from pt");
+        ResultSet resultSet4 = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet4.next());
+        Assert.assertTrue(rs4.next());
+        System.out.println(rs4);
+        while(rs4.next() && resultSet4.next()){
+            System.out.println(rs4.getString(1)+" "+rs4.getString(2));
+            Assert.assertEquals(resultSet4.getString(1),rs4.getString(1));
+            Assert.assertEquals(resultSet4.getString(2),rs4.getString(2));
+        }
+    }
+    @Test
+    public void test_PreLoad_tableAlias_dfs_table_alias_5() throws SQLException, IOException {
+        info.put("tableAlias","中文中问帆帆帆帆dfs:dfs://valuedb/pt,col1:dfs://valuedb/pt,w__v_1aluedbpt:dfs://valuedb/pt,dfs:dfs://valuedb/pt,dfs://valuedb/pt");
+        conn = DriverManager.getConnection(url,info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select top 100 * from 中文中问帆帆帆帆dfs");
+        ResultSet resultSet = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet.next());
+        Assert.assertTrue(rs.next());
+        System.out.println(rs);
+        while(rs.next() && resultSet.next()){
+            System.out.println(rs.getString(1)+" "+rs.getString(2));
+            Assert.assertEquals(resultSet.getString(1),rs.getString(1));
+            Assert.assertEquals(resultSet.getString(2),rs.getString(2));
+        }
+        ResultSet rs1 = stm.executeQuery("select top 100 * from col1");
+        ResultSet resultSet1 = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet1.next());
+        Assert.assertTrue(rs1.next());
+        System.out.println(rs1);
+        while(rs1.next() && resultSet1.next()){
+            System.out.println(rs1.getString(1)+" "+rs1.getString(2));
+            Assert.assertEquals(resultSet1.getString(1),rs1.getString(1));
+            Assert.assertEquals(resultSet1.getString(2),rs1.getString(2));
+        }
+        ResultSet rs2 = stm.executeQuery("select top 100 * from w__v_1aluedbpt");
+        ResultSet resultSet2 = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet2.next());
+        Assert.assertTrue(rs2.next());
+        System.out.println(rs2);
+        while(rs2.next() && resultSet2.next()){
+            System.out.println(rs2.getString(1)+" "+rs2.getString(2));
+            Assert.assertEquals(resultSet2.getString(1),rs2.getString(1));
+            Assert.assertEquals(resultSet2.getString(2),rs2.getString(2));
+        }
+        ResultSet rs3 = stm.executeQuery("select top 100 * from dfs");
+        ResultSet resultSet3 = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet3.next());
+        Assert.assertTrue(rs3.next());
+        System.out.println(rs3);
+        while(rs3.next() && resultSet3.next()){
+            System.out.println(rs3.getString(1)+" "+rs3.getString(2));
+            Assert.assertEquals(resultSet3.getString(1),rs3.getString(1));
+            Assert.assertEquals(resultSet3.getString(2),rs3.getString(2));
+        }
+        ResultSet rs4 = stm.executeQuery("select top 100 * from pt");
+        ResultSet resultSet4 = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet4.next());
+        Assert.assertTrue(rs4.next());
+        System.out.println(rs4);
+        while(rs4.next() && resultSet4.next()){
+            System.out.println(rs4.getString(1)+" "+rs4.getString(2));
+            Assert.assertEquals(resultSet4.getString(1),rs4.getString(1));
+            Assert.assertEquals(resultSet4.getString(2),rs4.getString(2));
+        }
+    }
+
+    @Test
+    public void test_PreLoad_tableAlias_dfs_table_alias_6() throws SQLException, IOException {
+        conn = DriverManager.getConnection(url+"?tableAlias=dfs://valuedb/pt,dfs://valuedb/dt,dfs://valuedb/Order_tmp,dfs://testValue/nt",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select top 100 * from pt");
+        ResultSet resultSet = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        Assert.assertTrue(resultSet.next());
+        Assert.assertTrue(rs.next());
+        System.out.println(rs);
+        while(rs.next() && resultSet.next()){
+            System.out.println(rs.getString(1)+" "+rs.getString(2));
+            Assert.assertEquals(resultSet.getString(1),rs.getString(1));
+            Assert.assertEquals(resultSet.getString(2),rs.getString(2));
+        }
+        ResultSet rs1 = stm.executeQuery("select top 100 * from dt");
+        ResultSet resultSet1 = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"dt\")");
+        Assert.assertTrue(resultSet1.next());
+        Assert.assertTrue(rs1.next());
+        System.out.println(rs1);
+        while(rs1.next() && resultSet1.next()){
+            System.out.println(rs1.getString(1)+" "+rs1.getString(2));
+            Assert.assertEquals(resultSet1.getString(1),rs1.getString(1));
+            Assert.assertEquals(resultSet1.getString(2),rs1.getString(2));
+        }
+        ResultSet rs2 = stm.executeQuery("select top 100 * from Order_tmp");
+        ResultSet resultSet2 = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"Order_tmp\")");
+        Assert.assertTrue(resultSet2.next());
+        Assert.assertTrue(rs2.next());
+        System.out.println(rs2);
+        while(rs2.next() && resultSet2.next()){
+            System.out.println(rs2.getString(1)+" "+rs2.getString(2));
+            Assert.assertEquals(resultSet2.getString(1),rs2.getString(1));
+            Assert.assertEquals(resultSet2.getString(2),rs2.getString(2));
+        }
+        ResultSet rs3 = stm.executeQuery("select top 100 * from nt");
+        ResultSet resultSet3 = stm.executeQuery("select top 100 * from loadTable(\"dfs://testValue\",\"nt\")");
+        Assert.assertTrue(resultSet3.next());
+        Assert.assertTrue(rs3.next());
+        System.out.println(rs3);
+        while(rs3.next() && resultSet3.next()){
+            System.out.println(rs3.getString(1)+" "+rs3.getString(2));
+            Assert.assertEquals(resultSet3.getString(1),rs3.getString(1));
+            Assert.assertEquals(resultSet3.getString(2),rs3.getString(2));
+        }
+    }
+    @Test
+    public void test_PreLoad_tableAlias_dfs_table_alias_7() throws SQLException, IOException {
+        String e = null;
+        try{
+            conn = DriverManager.getConnection(url+"?tableAlias=dfs://valuedb/ppt",info);
+
+        }catch(Exception ex){
+            e = ex.getMessage().toString();
+        }
+        Assert.assertNotNull(e);
+        Assert.assertTrue(e.contains("path does not exist"));
+    }
+    @Test
+    public void test_PreLoad_tableAlias_dfs_table_alias_8() throws SQLException, IOException {
+        String e = null;
+        try{
+            conn = DriverManager.getConnection(url+"?tableAlias=dfs://valuedb/pt,dfs://testValue/pt",info);
+        }catch(Exception ex){
+            e = ex.getMessage().toString();
+        }
+        Assert.assertNotNull(e);
+        Assert.assertTrue(e.contains("Duplicate table alias found in property tableAlias"));
+
+    }
+    @Test
+    public void test_PreLoad_tableAlias_table_alias_1() throws SQLException, IOException {
+        conn = DriverManager.getConnection(url+"?tableAlias=dfs://valuedb/pt,ppt:pt,pppt:ppt",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select top 100 * from pt");
+        ResultSet resultSet = stm.executeQuery("select top 100 * from loadTable(\"dfs://valuedb\",\"pt\")");
+        ResultSet rs1 = stm.executeQuery("select top 100 * from ppt");
+        ResultSet rs2 = stm.executeQuery("select top 100 * from pppt");
+        Assert.assertTrue(resultSet.next());
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue(rs1.next());
+        Assert.assertTrue(rs2.next());
+        System.out.println(rs);
+        while(rs.next() && resultSet.next()){
+            System.out.println(rs.getString(1)+" "+rs.getString(2));
+            Assert.assertEquals(resultSet.getString(1),rs.getString(1));
+            Assert.assertEquals(resultSet.getString(2),rs.getString(2));
+            Assert.assertEquals(resultSet.getString(1),rs1.getString(1));
+            Assert.assertEquals(resultSet.getString(1),rs1.getString(1));
+            Assert.assertEquals(resultSet.getString(1),rs2.getString(1));
+            Assert.assertEquals(resultSet.getString(1),rs2.getString(1));
+        }
+    }
+    @Test
+    public void test_PreLoad_tableAlias_memory_table_alias_1() throws SQLException, IOException {
+        DBConnection connection = new DBConnection();
+        connection.connect(HOST,PORT,"admin","123456");
+        String script = "\n" +
+                "n=500;\n" +
+                "date=take(2006.01.01..2006.01.31, n);\n" +
+                "x=rand(10.0, n);\n" +
+                "id = rand(20.0,n);\n" +
+                "share table(date) as t1;\n" +
+                "share  table(date,id) as t2;\n" +
+                "share table(date,id,x) as t3\n" ;
+        connection.run(script);
+        conn = DriverManager.getConnection(url+"?tableAlias=t1:t1,t2:t2,t3:t3",info);
+        Statement stm = conn.createStatement();
+        JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select  * from t1");
+        JDBCResultSet rs1 = (JDBCResultSet)stm.executeQuery("select  * from t2");
+        JDBCResultSet rs2 = (JDBCResultSet)stm.executeQuery("select  * from t3");
+        BasicTable rss = (BasicTable) rs.getResult();
+        BasicTable rss1 = (BasicTable) rs1.getResult();
+        BasicTable rss2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals(500, rss.rows());
+        Assert.assertEquals(500, rss1.rows());
+        Assert.assertEquals(500, rss2.rows());
+        Assert.assertEquals(1, rss.columns());
+        Assert.assertEquals(2, rss1.columns());
+        Assert.assertEquals(3, rss2.columns());
+    }
+    @Test
+    public void test_PreLoad_tableAlias_memory_table_alias_2() throws SQLException, IOException {
+        DBConnection connection = new DBConnection();
+        connection.connect(HOST,PORT,"admin","123456");
+        String script = "\n" +
+                "n=500;\n" +
+                "date=take(2006.01.01..2006.01.31, n);\n" +
+                "x=rand(10.0, n);\n" +
+                "id = rand(20.0,n);\n" +
+                "share table(date) as t1;\n" +
+                "share  table(date,id) as t2;\n" +
+                "share table(date,id,x) as t3\n" ;
+        connection.run(script);
+        String e = null;
+        try{
+            conn = DriverManager.getConnection(url+"?tableAlias=t1:t1,t1:t2,t1:t3",info);
+        }catch(Exception ex){
+            e = ex.getMessage().toString();
+        }
+        Assert.assertNotNull(e);
+        Assert.assertTrue(e.contains("Duplicate table alias found in property tableAlias"));
+
+    }
+    @Test
+    public void test_PreLoad_tableAlias_memory_table_alias_3() throws SQLException, IOException {
+        DBConnection connection = new DBConnection();
+        connection.connect(HOST,PORT,"admin","123456");
+        String script = "\n" +
+                "n=500;\n" +
+                "date=take(2006.01.01..2006.01.31, n);\n" +
+                "x=rand(10.0, n);\n" +
+                "id = rand(20.0,n);\n" +
+                "share table(date) as t1;\n" +
+                "share  table(date,id) as t2;\n" +
+                "share table(date,id,x) as t3\n" ;
+        connection.run(script);
+        conn = DriverManager.getConnection(url+"?tableAlias=t1:t1,t2:t2,t3:t3,测试测试测试别名的呃呃呃:t1,w__dfd知道是的:t2,dfsdfsQAZWSXEDCRFVTGBYHNNNNNNNeeDFS___中国dfs:t3,mvcc123mvcc:t1,count:t2,COUNT:t3,",info);
+        //conn = DriverManager.getConnection(url+"?tableAlias=count1:t2,COUNT:t3,",info);
+
+        Statement stm = conn.createStatement();
+        JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select  * from 测试测试测试别名的呃呃呃");
+        JDBCResultSet rs1 = (JDBCResultSet)stm.executeQuery("select  * from w__dfd知道是的");
+        JDBCResultSet rs2 = (JDBCResultSet)stm.executeQuery("select  * from dfsdfsQAZWSXEDCRFVTGBYHNNNNNNNeeDFS___中国dfs");
+        JDBCResultSet rs3 = (JDBCResultSet)stm.executeQuery("select  * from mvcc123mvcc");
+        JDBCResultSet rs4 = (JDBCResultSet)stm.executeQuery("select  * from count");
+        JDBCResultSet rs5 = (JDBCResultSet)stm.executeQuery("select  * from COUNT");
+        BasicTable rss = (BasicTable) rs.getResult();
+        BasicTable rss1 = (BasicTable) rs1.getResult();
+        BasicTable rss2 = (BasicTable) rs2.getResult();
+        BasicTable rss3 = (BasicTable) rs3.getResult();
+        BasicTable rss4 = (BasicTable) rs4.getResult();
+        BasicTable rss5 = (BasicTable) rs5.getResult();
+        Assert.assertEquals(500, rss.rows());
+        Assert.assertEquals(500, rss1.rows());
+        Assert.assertEquals(500, rss2.rows());
+        Assert.assertEquals(1, rss.columns());
+        Assert.assertEquals(2, rss1.columns());
+        Assert.assertEquals(3, rss2.columns());
+        Assert.assertEquals(500, rss3.rows());
+        Assert.assertEquals(500, rss4.rows());
+        Assert.assertEquals(500, rss5.rows());
+        Assert.assertEquals(1, rss3.columns());
+        Assert.assertEquals(2, rss4.columns());
+        Assert.assertEquals(3, rss5.columns());
+    }
+    @Test
+    public void test_PreLoad_tableAlias_mvcc_table_alias_1() throws SQLException, IOException {
+        DBConnection connection = new DBConnection();
+        connection.connect(HOST,PORT,"admin","123456");
+        String script = "\n" +
+                "n=500;\n" +
+                "date=take(13:30:10.008..13:30:10.108, n);\n" +
+                "x=rand(10.0, n);\n" +
+                "id = rand(20,n);\n" +
+                "t2=table(date,id);\n" +
+                "t3=table(date,id,x);\n" +
+                "share mvccTable(date) as mvcc1;\n" +
+                "mvcc12=mvccTable(500:0,`date`id,[TIME,INT],\"/home/wsun/Adolphindb/2.00.6/server/work_dir\",\"mvcc12\");\n" +
+                "mvcc12.append!(t2);\n" +
+                "mvcc13=mvccTable(500:0,`date`id`x,[TIME,INT,DOUBLE],\"work_dir\",`mvcc13);\n" +
+                "mvcc13.append!(t3);\n" ;
+        //connection.run(script);
+        conn = DriverManager.getConnection(url+"?tableAlias=mvcc2:mvcc:///home/wsun/Adolphindb/2.00.6/server/work_dir/mvcc12,mvcc1:mvcc1,mvcc3:mvcc://work_dir/mvcc13",info);
+        Statement stm = conn.createStatement();
+        JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select  * from mvcc1");
+        JDBCResultSet rs1 = (JDBCResultSet)stm.executeQuery("select  * from mvcc2");
+        JDBCResultSet rs2 = (JDBCResultSet)stm.executeQuery("select  * from mvcc3");
+        BasicTable rss = (BasicTable) rs.getResult();
+        BasicTable rss1 = (BasicTable) rs1.getResult();
+        BasicTable rss2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals(500, rss.rows());
+        Assert.assertEquals(500, rss1.rows());
+        Assert.assertEquals(500, rss2.rows());
+        Assert.assertEquals(1, rss.columns());
+        Assert.assertEquals(2, rss1.columns());
+        Assert.assertEquals(3, rss2.columns());
+    }
+    @Test//linux
+    public void test_PreLoad_tableAlias_mvcc_table_alias_2() throws SQLException, IOException {
+        DBConnection connection = new DBConnection();
+        connection.connect(HOST,PORT,"admin","123456");
+        String script = "\n" +
+                "n=500;\n" +
+                "date=take(13:30:10.008..13:30:10.108, n);\n" +
+                "x=rand(10.0, n);\n" +
+                "x1=rand(10.0, n);\n" +
+                "id = rand(20,n);\n" +
+                "t4=table(date,id,x,x1);\n" +
+                "mvcc14=mvccTable(500:0,`date`id`x`x1,[TIME,INT,DOUBLE,DOUBLE],\"C://DolphinDB/Data1/db12/\",\"mvcc14\");\n" +
+                "mvcc14.append!(t4);\n" ;
+       // connection.run(script);
+        conn = DriverManager.getConnection(url+"?tableAlias=mvcc14:mvcc://C://DolphinDB/Data1/db12/mvcc14",info);
+        Statement stm = conn.createStatement();
+        JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select  * from mvcc14");
+        BasicTable rss = (BasicTable) rs.getResult();
+        Assert.assertEquals(500, rss.rows());
+        Assert.assertEquals(4, rss.columns());
+    }
+
+    @Test//win
+    public void test_PreLoad_tableAlias_mvcc_table_alias_3() throws SQLException, IOException {
+        String url1 = "jdbc:dolphindb://192.168.0.9:8849";
+        DBConnection connection = new DBConnection();
+        connection.connect("192.168.0.9",8849,"admin","123456");
+        String script = "\n" +
+                "n=500;\n" +
+                "date=take(13:30:10.008..13:30:10.108, n);\n" +
+                "x=rand(10.0, n);\n" +
+                "id = rand(20,n);\n" +
+                "t2=table(date,id);\n" +
+                "t3=table(date,id,x);\n" +
+                "share mvccTable(date) as mvcc1;\n" +
+                "mvcc12=mvccTable(500:0,`date`id,[TIME,INT],\"/home/wsun/Adolphindb/2.00.6/server/work_dir\",\"mvcc12\");\n" +
+                "mvcc12.append!(t2);\n" +
+                "mvcc13=mvccTable(500:0,`date`id`x,[TIME,INT,DOUBLE],\"work_dir\",`mvcc13);\n" +
+                "mvcc13.append!(t3);\n" ;
+        //connection.run(script);
+        conn = DriverManager.getConnection(url1+"?tableAlias=mvcc2:mvcc:///home/wsun/Adolphindb/2.00.6/server/work_dir/mvcc12,mvcc1:mvcc1,mvcc3:mvcc://work_dir/mvcc13",info);
+        Statement stm = conn.createStatement();
+        JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select  * from mvcc1");
+        JDBCResultSet rs1 = (JDBCResultSet)stm.executeQuery("select  * from mvcc2");
+        JDBCResultSet rs2 = (JDBCResultSet)stm.executeQuery("select  * from mvcc3");
+        BasicTable rss = (BasicTable) rs.getResult();
+        BasicTable rss1 = (BasicTable) rs1.getResult();
+        BasicTable rss2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals(500, rss.rows());
+        Assert.assertEquals(500, rss1.rows());
+        Assert.assertEquals(500, rss2.rows());
+        Assert.assertEquals(1, rss.columns());
+        Assert.assertEquals(2, rss1.columns());
+        Assert.assertEquals(3, rss2.columns());
+    }
+    @Test//win
+    public void test_PreLoad_tableAlias_mvcc_table_alias_4() throws SQLException, IOException {
+        String url1 = "jdbc:dolphindb://192.168.0.9:8849";
+        DBConnection connection = new DBConnection();
+        connection.connect("192.168.0.9",8849,"admin","123456");
+        String script = "\n" +
+                "n=500;\n" +
+                "date=take(13:30:10.008..13:30:10.108, n);\n" +
+                "x=rand(10.0, n);\n" +
+                "x1=rand(10.0, n);\n" +
+                "id = rand(20,n);\n" +
+                "t4=table(date,id,x,x1);\n" +
+                "mvcc14=mvccTable(500:0,`date`id`x`x1,[TIME,INT,DOUBLE,DOUBLE],\"C://DolphinDB/Data1/db12/\",\"mvcc14\");\n" +
+                "mvcc14.append!(t4);\n" ;
+        // connection.run(script);
+        conn = DriverManager.getConnection(url1+"?tableAlias=mvcc14:mvcc://C://DolphinDB/Data1/db12/mvcc14",info);
+        Statement stm = conn.createStatement();
+        JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select  * from mvcc14");
+        BasicTable rss = (BasicTable) rs.getResult();
+        Assert.assertEquals(500, rss.rows());
+        Assert.assertEquals(4, rss.columns());
+    }
+    @Test//win
+    public void test_PreLoad_tableAlias_mvcc_table_alias_5() throws SQLException, IOException {
+        String url1 = "jdbc:dolphindb://192.168.0.9:8849";
+        DBConnection connection = new DBConnection();
+        connection.connect("192.168.0.9",8849,"admin","123456");
+        String script = "\n" +
+                "n=500;\n" +
+                "date=take(13:30:10.008..13:30:10.108, n);\n" +
+                "x=rand(10.0, n);\n" +
+                "x1=rand(10.0, n);\n" +
+                "x2=rand(10.0, n);\n" +
+                "id = rand(20,n);\n" +
+                "t5=table(date,id,x,x1);\n" +
+                "mvcc15=mvccTable(500:0,`date`id`x`x1`x2,[TIME,INT,DOUBLE,DOUBLE,DOUBLE],\"C:\\\\DolphinDB\\\\Data1\\\\db12\",\"mvcc15\");\n" +
+                "mvcc15.append!(t5);\n" ;
+        // connection.run(script);
+        conn = DriverManager.getConnection(url1+"?tableAlias=mvcc14:mvcc://C:\\\\DolphinDB\\\\Data1\\\\db12\\\\mvcc15",info);
+        Statement stm = conn.createStatement();
+        JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select  * from mvcc15");
+        BasicTable rss = (BasicTable) rs.getResult();
+        Assert.assertEquals(500, rss.rows());
+        Assert.assertEquals(5, rss.columns());
     }
 }
