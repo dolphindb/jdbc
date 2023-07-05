@@ -395,7 +395,11 @@ public class Utils {
                         if (StringUtils.isNotEmpty(tableAliasValue) && !tableAliasValue.contains(key)) {
                             sbSql.append(lowerKey);
                         } else {
-                            sbSql.append(key);
+                            if (StringUtils.isEmpty(tableAliasValue)) {
+                                sbSql.append(lowerKey);
+                            } else {
+                                sbSql.append(key);
+                            }
                         }
                     }
                     else{
