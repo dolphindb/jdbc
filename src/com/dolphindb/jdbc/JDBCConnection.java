@@ -370,7 +370,7 @@ public class JDBCConnection implements Connection {
 									if (Pattern.matches("^[A-Za-z]:.*$", mvccFilePath)) {
 										finalStr = alias + "=loadMvccTable(" + "\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
 									} else {
-										finalStr = alias + "=loadMvccTable(" + "\"/" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+										finalStr = alias + "=loadMvccTable(" + "\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
 									}
 								}
 							}
