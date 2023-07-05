@@ -335,7 +335,9 @@ public class JDBCConnection implements Connection {
 						stringBuilder.append(finalStr);
 					} else {
 						String finalStr;
-						if (split[0].contains("mvcc") && !split[1].contains("mvcc")) {
+//						if (split[0].contains("mvcc") && ((split[1].contains("mvcc") && !split[1].matches("^mvcc$") || !split[1].contains("mvcc")))) {
+//						if (split[0].contains("mvcc") && ((!split[1].contains("mvcc") || !split[1].matches("^mvcc$")))) {
+						if (split[0].contains("mvcc") && ((!split[1].contains("mvcc") || !split[1].contains("mvcc:")))) {
 							finalStr = parseOtherParh(str, str.split(":"), aliasSet);
 						} else {
 							// 有别名
