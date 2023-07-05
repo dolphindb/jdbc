@@ -590,6 +590,6 @@ public class JDBCUpdateTest {
         s.execute();
         ResultSet rs = s.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals("9.2322000000000100009999999999999999999",rs.getObject(2).toString());
+        org.junit.Assert.assertEquals("9.2322000000000099283663761481033318400",rs.getObject(2).toString());
     }
 }

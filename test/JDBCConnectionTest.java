@@ -38,8 +38,9 @@ public class JDBCConnectionTest {
 	static int COLPORT = JDBCTestUtil.COLPORT ;
 
 	static String SITE1 = JDBCTestUtil.SITE1 ;
-
 	static String SITES = JDBCTestUtil.SITES ;
+
+	static String SITE2 = JDBCTestUtil.SITE2 ;
 	private String url = null;
 	Properties prop = new Properties();
 	Connection conn;
@@ -626,5 +627,83 @@ public class JDBCConnectionTest {
 		}
 		assertNotNull(e);
 		conn.close();
+	}
+	@Test
+	public void Test_getConnection_highAvailabilitySites_comma() throws SQLException, ClassNotFoundException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		Properties info = new Properties();
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("highAvailability", "true");
+		info.put("highAvailabilitySites", SITE2);
+
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456&enableHighAvailability=true&highAvailabilitySites="+SITE2;
+		String url1 = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn = null;
+		Connection conn1 = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url1);
+		stmt = conn.createStatement();
+		try{
+			stmt.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
+		}catch(Exception ex)
+		{}
+		stmt.execute(" sleep(500)");
+		conn1 = DriverManager.getConnection(url);
+		conn1.equals(true);
+		Statement s = conn1.createStatement();
+		s.execute("trade=table(`XOM`GS`AAPL as id, 102.1 33.4 73.6 as x);");
+		ResultSet rs1 =s.executeQuery("SElect * fROM trade ;");
+		Assert.assertTrue(rs1.next());
+		stmt = conn.createStatement();
+		try{
+			stmt.execute("startDataNode(\""+HOST+":"+PORT+"\")");
+		}catch(Exception ex)
+		{}
+		stmt.execute(" sleep(5000)");
+		conn1 = DriverManager.getConnection(url);
+		//conn1.equals(true);
+		conn1.close();
+	}
+	@Test
+	public void Test_getConnection_highAvailabilitySites_comma_1() throws SQLException, ClassNotFoundException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		Properties info = new Properties();
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("highAvailability", "true");
+		info.put("highAvailabilitySites", SITE2);
+
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT;
+		String url1 = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn = null;
+		Connection conn1 = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url1);
+		stmt = conn.createStatement();
+		try{
+			stmt.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
+		}catch(Exception ex)
+		{}
+		stmt.execute(" sleep(500)");
+		conn1 = DriverManager.getConnection(url,info);
+		conn1.equals(true);
+		Statement s = conn1.createStatement();
+		s.execute("trade=table(`XOM`GS`AAPL as id, 102.1 33.4 73.6 as x);");
+		ResultSet rs1 =s.executeQuery("SElect * fROM trade ;");
+		Assert.assertTrue(rs1.next());
+		stmt = conn.createStatement();
+		try{
+			stmt.execute("startDataNode(\""+HOST+":"+PORT+"\")");
+		}catch(Exception ex)
+		{}
+		stmt.execute(" sleep(5000)");
+		conn1 = DriverManager.getConnection(url);
+		//conn1.equals(true);
+		conn1.close();
 	}
 }
