@@ -391,10 +391,13 @@ public class Utils {
                 if (sbKey1.length()>0){
                     String key = sbKey1.toString();
                     String lowerKey=key.toLowerCase();
-                    if (sqlWareHouse.contains(lowerKey))
+                    if (sqlWareHouse.contains(lowerKey)) {
                         if (StringUtils.isNotEmpty(tableAliasValue) && !tableAliasValue.contains(key)) {
                             sbSql.append(lowerKey);
+                        } else {
+                            sbSql.append(key);
                         }
+                    }
                     else{
                         sbSql.append(key);
                     }
@@ -405,11 +408,13 @@ public class Utils {
             if (i==sql.length()-1&&sbKey1.length()>0){
                 String key = sbKey1.toString();
                 String lowerKey=key.toLowerCase();
-                if (sqlWareHouse.contains(lowerKey))
+                if (sqlWareHouse.contains(lowerKey) && (!sqlWareHouse.contains(key))) {
                     if (StringUtils.isNotEmpty(tableAliasValue) && !tableAliasValue.contains(key)) {
                         sbSql.append(lowerKey);
+                    } else {
+                        sbSql.append(key);
                     }
-                else{
+                } else{
                     sbSql.append(key);
                 }
             }
