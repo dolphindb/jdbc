@@ -304,7 +304,7 @@ public class JDBCConnection implements Connection {
 						// win 模式下的无别名
 						String[] path = str.split("://");
 						int lastDoubleSlashIndex = path[1].lastIndexOf("\\");
-						String dropTableName = path[1].substring(0, lastDoubleSlashIndex);
+						String dropTableName = path[1].substring(0, lastDoubleSlashIndex - 1);
 						String tbNameAndAlias = path[1].substring(lastDoubleSlashIndex + 1);
 						if (aliasSet.contains(tbNameAndAlias)) {
 							throw new RuntimeException("Duplicate table alias found in property tableAlias: " + tbNameAndAlias);
@@ -367,11 +367,12 @@ public class JDBCConnection implements Connection {
 								if (mvccPath.startsWith("/")) {
 									finalStr = alias + "=loadMvccTable(\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
 								} else {
-									if (Pattern.matches("^[A-Za-z]:.*$", mvccFilePath)) {
-										finalStr = alias + "=loadMvccTable(" + "\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
-									} else {
-										finalStr = alias + "=loadMvccTable(" + "\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
-									}
+									finalStr = alias + "=loadMvccTable(" + "\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+//									if (Pattern.matches("^[A-Za-z]:.*$", mvccFilePath)) {
+//										finalStr = alias + "=loadMvccTable(" + "\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+//									} else {
+//										finalStr = alias + "=loadMvccTable(" + "\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+//									}
 								}
 							}
 						}
