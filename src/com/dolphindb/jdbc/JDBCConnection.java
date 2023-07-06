@@ -316,7 +316,7 @@ public class JDBCConnection implements Connection {
 						if (mvccPath.startsWith("/")) {
 							finalStr = alias + "=loadMvccTable(\"" + mvccFilePath + "\",\"" + alias + "\");\n";
 						} else {
-							finalStr = alias + "=loadMvccTable(" + "\"/" + mvccFilePath + "\",\"" + alias + "\");\n";
+							finalStr = alias + "=loadMvccTable(" + "\"" + mvccFilePath + "\",\"" + alias + "\");\n";
 						}
 
 						stringBuilder.append(finalStr);
