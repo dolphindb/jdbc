@@ -2,6 +2,8 @@
 
 ## New Features
 
+- Added configuration parameter _tableAlias_ to access tables via aliases. (**1.30.22.2**)
+- The configuration parameter _highAvailablitySites_ now supports input values separated by comma (",") delimiters. (**1.30.22.2**)
 - Added support for DECIMAL128 data type. (**1.30.22.1**)
 - Added connection property *sqlStd* for SQL parsing. (**1.30.22.1**)
 - The method `getObject` now supports temporal types including LocalDate, LocalTime, LocalDateTime, java.util.Date, and Timestamp. (**1.30.21.4**)
