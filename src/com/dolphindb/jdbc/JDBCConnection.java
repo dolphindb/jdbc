@@ -247,6 +247,9 @@ public class JDBCConnection implements Connection {
 				str = str.trim();
 				// split by ':', not '://'
 				String[] split = str.split("(?<!:)[:](?!/)");
+				if (StringUtils.isEmpty(str)) {
+					throw new RuntimeException("tableAlias's value cannot be null!");
+				}
 				if (str.contains("dfs")) {
 					// 1、dfs table
 					if (split.length == 1) {
