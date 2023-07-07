@@ -372,8 +372,6 @@ public class JDBCConnection implements Connection {
 				}
 			}
 		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
 			throw new RuntimeException("Failed to parse tableAlias: "+ e.getMessage());
 		}
 
