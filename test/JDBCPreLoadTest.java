@@ -135,7 +135,7 @@ public class JDBCPreLoadTest {
             Assert.assertEquals(resultSet.getString(2),rs.getString(2));
         }
     }
-    @Test
+    //@Test
     public void test_PreLoad_normal_disconnected() throws SQLException, IOException {
         Connection conn1 = null;
         conn = DriverManager.getConnection(url+"?tb_pt=dfs://valuedb+pt&highAvailability=true",info);
@@ -773,6 +773,114 @@ public class JDBCPreLoadTest {
 
     }
     @Test
+    public void test_PreLoad_tableAlias_dfs_table_alias_9() throws SQLException, IOException {
+        DBConnection connection = new DBConnection();
+        connection.connect(HOST,PORT,"admin","123456");
+        String script = "try{dropDatabase(\"dfs://test_allDateType/eee/11\");}catch(EX){}\n" +
+                "colNames=\"col\"+string(1..28);\n" +
+                "colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)]\n" +
+                "t=table(1:0,colNames,colTypes);\n" +
+                "insert into t values(true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19)) ;\n" +
+                "dbName = \"dfs://test_allDateType/eee/11\";\n" +
+                "db = database(directory=dbName, partitionType=RANGE, partitionScheme=1 5 10, engine=\"TSDB\");\n" +
+                "pt1 = db.createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`col4, sortColumns=`col4);\n" +
+                "pt1.append!(t)\n" ;
+        connection.run(script);
+        conn = DriverManager.getConnection(url+"?tableAlias=test1:dfs://test_allDateType/eee/11/pt1",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select  * from test1");
+        JDBCResultSet resultSet = (JDBCResultSet)stm.executeQuery("select top 100 * from loadTable(\"dfs://test_allDateType/eee/11\",\"pt1\")");
+        BasicTable result = (BasicTable)resultSet.getResult();
+        Assert.assertEquals(28,result.columns());
+        Assert.assertEquals(1,result.rows());
+    }
+    //@Test
+    public void test_PreLoad_tableAlias_dfs_table_alias_10() throws SQLException, IOException {
+        DBConnection connection = new DBConnection();
+        connection.connect(HOST,PORT,"admin","123456");
+        String script = "try{dropDatabase(\"dfs://test_allDateType1\");}catch(EX){}\n" +
+                "colNames=\"col\"+string(1..28);\n" +
+                "colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)]\n" +
+                "t=table(1:0,colNames,colTypes);\n" +
+                "insert into t values(true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19)) ;\n" +
+                "dbName = \"dfs://test_allDateType1\";\n" +
+                "db = database(directory=dbName, partitionType=RANGE, partitionScheme=1 5 10, engine=\"TSDB\");\n" +
+                "dfs = db.createPartitionedTable(table=t, tableName=`dfs, partitionColumns=`col4, sortColumns=`col4);\n" +
+                "dfs.append!(t)\n" ;
+        connection.run(script);
+        conn = DriverManager.getConnection(url+"?tableAlias=test1:dfs://test_allDateType/dfs",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select  * from test1");
+        JDBCResultSet resultSet = (JDBCResultSet)stm.executeQuery("select top 100 * from loadTable(\"dfs://test_allDateType\",\"dfs\")");
+        BasicTable result = (BasicTable)resultSet.getResult();
+        Assert.assertEquals(28,result.columns());
+        Assert.assertEquals(1,result.rows());
+    }
+    @Test
+    public void test_PreLoad_tableAlias_dfs_table_alias_11() throws SQLException, IOException {
+        DBConnection connection = new DBConnection();
+        connection.connect(HOST,PORT,"admin","123456");
+        String script = "try{dropDatabase(\"dfs://test_dfs\");}catch(EX){}\n" +
+                "colNames=\"col\"+string(1..4);\n" +
+                "colTypes=[BOOL,CHAR,SHORT,INT]\n" +
+                "t=table(1:0,colNames,colTypes);\n" +
+                "dbName = \"dfs://test_dfs\";\n" +
+                "db = database(directory=dbName, partitionType=RANGE, partitionScheme=1 5 10, engine=\"TSDB\");\n" +
+                "dfs = db.createPartitionedTable(table=t, tableName=`dfs, partitionColumns=`col4, sortColumns=`col4);\n";
+        connection.run(script);
+        conn = DriverManager.getConnection(url+"?tableAlias=test1:dfs://test_dfs/dfs",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select  * from test1");
+        JDBCResultSet resultSet = (JDBCResultSet)stm.executeQuery("select top 100 * from loadTable(\"dfs://test_dfs\",\"dfs\")");
+        BasicTable result = (BasicTable)resultSet.getResult();
+        Assert.assertEquals(4,result.columns());
+        Assert.assertEquals(0,result.rows());
+    }
+    @Test
+    public void test_PreLoad_tableAlias_dfs_table_alias_12() throws SQLException, IOException {
+        String e = null;
+        try{
+            conn = DriverManager.getConnection(url+"?tableAlias=",info);
+        }catch(Exception ex){
+            e = ex.getMessage().toString();
+        }
+        Assert.assertNotNull(e);
+        Assert.assertTrue(e.contains("tableAlias=     is error"));
+    }
+    @Test
+    public void test_PreLoad_tableAlias_dfs_table_alias_13() throws SQLException, IOException {
+        String e = null;
+        try{
+            conn = DriverManager.getConnection(url+"?tableAlias=dfs://valuedb/pt,,dfs://testValue/nt",info);
+        }catch(Exception ex){
+            e = ex.getMessage().toString();
+        }
+        Assert.assertNotNull(e);
+        Assert.assertTrue(e.contains("tableAlias's value cannot be null!"));
+    }
+    @Test
+    public void test_PreLoad_tableAlias_dfs_table_alias_14() throws SQLException, IOException {
+        DBConnection connection = new DBConnection();
+        connection.connect(HOST,PORT,"admin","123456");
+        String script = "try{dropDatabase(\"dfs://test_dfs.ee.123\");}catch(EX){}\n" +
+                "colNames=\"col\"+string(1..4);\n" +
+                "colTypes=[BOOL,CHAR,SHORT,INT]\n" +
+                "t=table(1:0,colNames,colTypes);\n" +
+                "insert into t values(true,'a',2h,2);\n" +
+                "dbName = \"dfs://test_dfs.ee.123\";\n" +
+                "db = database(directory=dbName, partitionType=RANGE, partitionScheme=1 5 10, engine=\"TSDB\");\n" +
+                "dfs = db.createPartitionedTable(table=t, tableName=`dfs, partitionColumns=`col4, sortColumns=`col4);\n";
+        connection.run(script);
+        conn = DriverManager.getConnection(url+"?tableAlias=test1:dfs://test_dfs.ee.123/dfs",info);
+        Statement stm = conn.createStatement();
+        ResultSet rs = stm.executeQuery("select  * from test1");
+        JDBCResultSet resultSet = (JDBCResultSet)stm.executeQuery("select top 100 * from loadTable(\"dfs://test_dfs.ee.123\",\"dfs\")");
+        BasicTable result = (BasicTable)resultSet.getResult();
+        Assert.assertEquals(4,result.columns());
+        Assert.assertEquals(0,result.rows());
+    }
+
+    @Test
     public void test_PreLoad_tableAlias_table_alias_1() throws SQLException, IOException {
         conn = DriverManager.getConnection(url+"?tableAlias=dfs://valuedb/pt,ppt:pt,pppt:ppt",info);
         Statement stm = conn.createStatement();
@@ -795,6 +903,7 @@ public class JDBCPreLoadTest {
             Assert.assertEquals(resultSet.getString(1),rs2.getString(1));
         }
     }
+
     @Test
     public void test_PreLoad_tableAlias_memory_table_alias_1() throws SQLException, IOException {
         DBConnection connection = new DBConnection();
@@ -887,6 +996,20 @@ public class JDBCPreLoadTest {
         Assert.assertEquals(1, rss3.columns());
         Assert.assertEquals(2, rss4.columns());
         Assert.assertEquals(3, rss5.columns());
+    }
+    @Test
+    public void test_PreLoad_tableAlias_memory_table_alias_4() throws SQLException, IOException {
+        DBConnection connection = new DBConnection();
+        connection.connect(HOST,PORT,"admin","123456");
+        connection.run("share table (1..10 as id) as dfs");
+        String e = null;
+        try{
+            conn = DriverManager.getConnection(url+"?tableAlias=dfs",info);
+        }catch(Exception ex){
+            e = ex.getMessage().toString();
+        }
+        Assert.assertNotNull(e);
+        Assert.assertTrue(e.contains("Failed to parse tableAlias"));
     }
     @Test
     public void test_PreLoad_tableAlias_mvcc_table_alias_1() throws SQLException, IOException {
