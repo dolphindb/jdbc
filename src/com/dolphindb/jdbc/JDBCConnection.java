@@ -21,12 +21,12 @@ import java.util.regex.Pattern;
 public class JDBCConnection implements Connection {
 	//private DBConnection controlConnection;
 	private DBConnection dbConnection;
-	private String hostName;
-	private int port;
+	private final String hostName;
+	private final int port;
 	private boolean success;
 	private String databases;
 	private Vector tables;
-	private String url;
+	private final String url;
 	private DatabaseMetaData metaData;
 	//private List<String> hostName_ports;
 	//private boolean isDFS;
@@ -266,6 +266,7 @@ public class JDBCConnection implements Connection {
 						String finalStr;
 						if (split[0].contains("dfs") && !split[1].contains("dfs")) {
 							finalStr = parseOtherPath(str, aliasSet);
+							stringBuilder.append(finalStr);
 						} else {
 							// 2）contain alias:
 							String alias = split[0].replaceAll(":", "");
@@ -282,7 +283,6 @@ public class JDBCConnection implements Connection {
 							if (lastIndex != -1) {
 								String dbPath = path.substring(0, lastIndex);
 								String tbName = path.substring(lastIndex + 1);
-
 								finalStr = alias + "=loadTable(\"" + dbPath + "\"," + "\"" + tbName + "\");\n";
 								stringBuilder.append(finalStr);
 							}
@@ -432,8 +432,7 @@ public class JDBCConnection implements Connection {
 		String[] key = new String[]{"databasePath"};
 		String[] valueName = Utils.getProperties(prop, key);
 		if (valueName[0] != null && valueName[0].length() > 0) {
-			StringBuilder sb = (new StringBuilder("system_db")).append(" = database(\"").append(valueName[0]).append("\");\n");
-			this.dbConnection.run(sb.toString());
+			this.dbConnection.run("system_db" + " = database(\"" + valueName[0] + "\");\n");
 			if (valueName[0].trim().startsWith("dfs://")) {
 				//this.isDFS = true;
 				this.databases = valueName[0];
@@ -444,7 +443,7 @@ public class JDBCConnection implements Connection {
 					tablename = tablename.trim();
 					String[] tableNames = tablename.split(",");
 					for (int i = 0; i < tableNames.length; i++) {
-						if(tableNames[i].isEmpty()==false)
+						if(!tableNames[i].isEmpty())
 							dbtables.add(tableNames[i]);
 					}
 					String script=loadTables(this.databases,dbtables,false);
@@ -576,7 +575,6 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public void setTransactionIsolation(int level) throws SQLException {
-		return;
 	}
 
 	@Override
@@ -593,7 +591,6 @@ public class JDBCConnection implements Connection {
 	@Override
 	public void clearWarnings() throws SQLException {
 //		Driver.unused("clearWarnings not implemented");
-		return;
 	}
 
 	@Override
@@ -620,12 +617,10 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
-		return;
 	}
 
 	@Override
 	public void setHoldability(int holdability) throws SQLException {
-		return;
 	}
 
 	@Override
@@ -736,7 +731,7 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public String getClientInfo(String name) throws SQLException {
-		return (String) clientInfo.getProperty(name);
+		return clientInfo.getProperty(name);
 	}
 
 	@Override
