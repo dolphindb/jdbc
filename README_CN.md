@@ -88,7 +88,7 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
      conn = new JDBCConnection(url,prop);
      ```
 
-    * 自1.30.22.2版本起，JDBC 支持参数 *tableAlias*。用户可通过 url 直接传参，见示例3-示例5；也可通过 JDBCConnection 构造方法的 *Properties* 进行传参，见示例6。
+* 自1.30.22.2版本起，JDBC 支持参数 *tableAlias*。用户可通过 url 直接传参，见示例3-示例5；也可通过 JDBCConnection 构造方法的 *Properties* 进行传参，见示例6。
 
     **示例3 DFS 表使用别名**
 
@@ -159,7 +159,7 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
     info.put("tableAlias","t1:dfs://valuedb/pt");
     ```
 
-    * 自1.30.22.2版本起，JDBC 的高可用参数 *highAvailabilitySites* 支持通过逗号“,”分隔输入值。
+* 自1.30.22.2版本起，JDBC 的高可用参数 *highAvailabilitySites* 支持通过逗号“,”分隔输入值。
 
     **示例6 多个值之间通过逗号“,”分割**（推荐写法）
 
