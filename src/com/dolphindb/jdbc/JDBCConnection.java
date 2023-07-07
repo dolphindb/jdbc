@@ -278,13 +278,15 @@ public class JDBCConnection implements Connection {
 								throw new RuntimeException("The dfs path is empty!");
 							}
 
-							String[] pathSplit = path.split("(?<!/)/(?!/)");
-							String dbPath = pathSplit[0];
-							String tbName = pathSplit[1];
-							finalStr = alias + "=loadTable(\"" + dbPath + "\"," + "\"" + tbName + "\");\n";
-						}
+							int lastIndex = path.lastIndexOf('/');
+							if (lastIndex != -1) {
+								String dbPath = path.substring(0, lastIndex);
+								String tbName = path.substring(lastIndex + 1);
 
-						stringBuilder.append(finalStr);
+								finalStr = alias + "=loadTable(\"" + dbPath + "\"," + "\"" + tbName + "\");\n";
+								stringBuilder.append(finalStr);
+							}
+						}
 					}
 				} else if (str.contains("mvcc")) {
 					// 2、mvcc table
