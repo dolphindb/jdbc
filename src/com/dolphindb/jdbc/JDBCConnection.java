@@ -265,7 +265,7 @@ public class JDBCConnection implements Connection {
 					} else if (split.length == 2) {
 						String finalStr;
 						if (split[0].contains("dfs") && !split[1].contains("dfs")) {
-							finalStr = parseOtherParh(str, str.split(":"), aliasSet);
+							finalStr = parseOtherPath(str, aliasSet);
 						} else {
 							// 2）contain alias:
 							String alias = split[0].replaceAll(":", "");
@@ -275,7 +275,7 @@ public class JDBCConnection implements Connection {
 							}
 							aliasSet.add(alias);
 							if (StringUtils.isEmpty(path)) {
-								throw new RuntimeException("");
+								throw new RuntimeException("The dfs path is empty!");
 							}
 
 							String[] pathSplit = path.split("(?<!/)/(?!/)");
@@ -316,14 +316,14 @@ public class JDBCConnection implements Connection {
 						if (mvccPath.startsWith("/")) {
 							finalStr = alias + "=loadMvccTable(\"" + mvccFilePath + "\",\"" + alias + "\");\n";
 						} else {
-							finalStr = alias + "=loadMvccTable(" + "\"/" + mvccFilePath + "\",\"" + alias + "\");\n";
+							finalStr = alias + "=loadMvccTable(" + "\"" + mvccFilePath + "\",\"" + alias + "\");\n";
 						}
 
 						stringBuilder.append(finalStr);
 					} else {
 						String finalStr;
-						if (split[0].contains("mvcc") && ((!split[1].contains("mvcc") || !split[1].contains("mvcc:")))) {
-							finalStr = parseOtherParh(str, str.split(":"), aliasSet);
+						if (split[0].contains("mvcc") && (!split[1].contains("mvcc:"))) {
+							finalStr = parseOtherPath(str, aliasSet);
 						} else {
 							// contain alias:
 							String alias= split[0];
@@ -362,21 +362,21 @@ public class JDBCConnection implements Connection {
 					}
 				} else {
 					// 3、other
-					String finalStr = parseOtherParh(str, str.split(":"), aliasSet);
+					String finalStr = parseOtherPath(str, aliasSet);
 					stringBuilder.append(finalStr);
 				}
 			}
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
-			throw new RuntimeException("parse tableAlias error!");
+			throw new RuntimeException("Failed to parse tableAlias: "+ e.getMessage());
 		}
 
 		return stringBuilder.toString();
 	}
 
-	public String parseOtherParh(String str, String[] split, Set<String> aliasSet) {
-		split = str.split(":");
+	public static String parseOtherPath(String str, Set<String> aliasSet) {
+		String[] split = str.split(":");
 		String alias = split[0];
 		String memTableName = split[1];
 		if (aliasSet.contains(alias)) {
