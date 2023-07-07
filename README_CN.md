@@ -57,6 +57,7 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
     |enableHighAvailability 或 highAvailability |高可用参数，布尔类型，默认为 true。指定该参数可以开启或关闭高可用模式。|
     |sqlStd|枚举类型，用于指定传入 SQL 脚本的解析语法。支持三种解析语法：DolphinDB、Oracle、MySQL，其中默认为 DolphinDB 解析。|
     |tableAlias|数据库表别名，用于在建立连接时传入一个或多个别名与数据库的组合。用户可通过别名访问数据库表。|
+    
     **注：**
 
   * 自1.30.21.1版本起，JDBC 支持高可用参数 *enableHighAvailability*，其作用与 *highAvailability* 相同。使用时只需设置其中一个参数即可（推荐使用 *enableHighAvailability*），若配置冲突则会报错。
