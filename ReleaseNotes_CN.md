@@ -2,6 +2,8 @@
 
 ## 新功能
 
+* 新功能：新增配置参数 *tableAlias*，支持通过别名访问数据库表。（**1.30.22.2**）
+* 新功能：配置参数 *highAvailablitySites* 新增支持通过逗号“,”分隔输入值。（**1.30.22.2**）
 * 新增支持 DECIMAL128 数据类型。（**1.30.22.1**）
 * 新增支持连接属性 sqlStd，用于指定解析 SQL 语句的语法。（**1.30.22.1**）
 * 方法 getObject 新增支持日期时间类型 LocalDate, LocalTime, LocalDateTime, java.util.Date, Timestamp。（**1.30.21.4**）
