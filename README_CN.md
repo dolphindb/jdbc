@@ -56,35 +56,121 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
     |tableName|分布式表的表名。指定该参数可以加载指定的分布式表。|
     |enableHighAvailability 或 highAvailability |高可用参数，布尔类型，默认为 true。指定该参数可以开启或关闭高可用模式。|
     |sqlStd|枚举类型，用于指定传入 SQL 脚本的解析语法。支持三种解析语法：DolphinDB、Oracle、MySQL，其中默认为 DolphinDB 解析。|
-
+    |tableAlias|数据库表别名，用于在建立连接时传入一个或多个别名与数据库的组合。用户可通过别名访问数据库表。|
     **注：**
 
   * 自1.30.21.1版本起，JDBC 支持高可用参数 *enableHighAvailability*，其作用与 *highAvailability* 相同。使用时只需设置其中一个参数即可（推荐使用 *enableHighAvailability*），若配置冲突则会报错。
   * 若需要创建 JDBCCallableStatement 对象，则连接字符串须指定 `allowMultiQueries=true`。
   * 自1.30.22.1版本起，JDBC 支持参数 *sqlStd*。用户可通过 url 直接传参，见示例1；也可通过 JDBCConnection 构造方法的 *Properties* 进行传参，见示例2。注意：须使用2.00.10版本以上的 DolphinDB。
 
-  **示例1**
+    **示例1**
 
-  通过 url 直接传参。
-  ```java
-  Properties prop = new Properties();
-  prop.setProperty("user","admin");
-  prop.setProperty("password","123456");
-  String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "sqlStd:" + SqlStdEnum.MySQL.getName();
-  conn = new JDBCConnection(url,prop);
-  ```
-  **示例2**
-  
-  JDBCConnection 构造方法的 *Properties* 参数支持 sqlStd 属性。用户通过 *Properties* 设置属性 key 为 sqlStd，值为字符串，即用户通过 SqlStdEnum 指定传入 SQL 脚本的解析语法。使用示例如下：
+    通过 url 直接传参。
+    ```java
+    Properties prop = new Properties();
+    prop.setProperty("user","admin");
+     prop.setProperty("password","123456");
+    String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "sqlStd:" + SqlStdEnum.MySQL.getName();
+    conn = new JDBCConnection(url,prop);
+     ```
 
-  ```java
-  Properties prop = new Properties();
-  prop.setProperty("user","admin");
-  prop.setProperty("password","123456");
-  prop.setProperty("sqlStd", SqlStdEnum.DolphinDB.getName());
-  String url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
-  conn = new JDBCConnection(url,prop);
-  ```
+     **示例2**
+
+    JDBCConnection 构造方法的 *Properties* 参数支持 sqlStd 属性。用户通过 *Properties* 设置属性 key 为 sqlStd，值为字符串，即用户通过 SqlStdEnum 指定传入 SQL 脚本的解析语法。使用示例如下：
+
+    ```java
+     Properties prop = new Properties();
+     prop.setProperty("user","admin");
+    prop.setProperty("password","123456");
+    prop.setProperty("sqlStd", SqlStdEnum.DolphinDB.getName());
+    String url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+     conn = new JDBCConnection(url,prop);
+     ```
+
+    * 自1.30.22.2版本起，JDBC 支持参数 *tableAlias*。用户可通过 url 直接传参，见示例3-示例5；也可通过 JDBCConnection 构造方法的 *Properties* 进行传参，见示例6。
+
+    **示例3 DFS 表使用别名**
+
+    1. 使用默认别名。下例中以表名 pt 做为别名。
+
+    ```java
+    tableAlias=dfs://valuedb/pt
+    ```
+
+    2. 指定别名。别名写在开头，别名与库表路径之间用冒号连接。下例中表的别名为 `ttt`。
+
+    ```java
+    tableAlias=ttt:dfs://valuedb/pt
+    ```   
+
+    3. 同时设置多个库表的别名。值与值之间通过逗号“,”进行分隔。
+
+    ```java
+    tableAlias=t1:dfs://valuedb/pt,dfs://valuedb/dt,dfs://valuedb/Order_tmp,dfs://testValue/nt
+    ```
+
+    **示例4 MVCC 表使用别名**
+
+    1. 使用默认别名。下例中以 MVCC 表的名字 `mvcc13` 做为别名。
+
+    ```java
+    tableAlias=mvcc://work_dir/mvcc13
+    ```
+
+    2. 指定别名。下例中以 `mvcc13` 做为别名。
+
+    ```java
+    tableAlias=mvcc3:mvcc://work_dir/mvcc13
+    ```
+
+    3. linux server 中使用绝对路径指定别名。下例中使用 “/// ”表示绝对路径，表的别名为 `mvcc2`。
+
+    ```java
+    tableAlias=mvcc2:mvcc:///home/username/Adolphindb/2.00.6/server/work_dir/mvcc12；
+    ```
+
+    4. linux server 中使用相对路径指定别名。下例中使用“//” 表示相对路径，表的别名为 `mvcc3`。
+
+    ```java
+    tableAlias=mvcc3:mvcc://work_dir/mvcc13
+    ```
+
+    5. windows server 中指定别名。下例中表的别名为 `mvcc14`。
+
+    ```java
+    tableAlias=dfs://valuedb/pt
+    ```
+
+    **示例5 共享内存表使用别名**
+
+    指定别名。下例中以 `tb8` 做为表的别名。
+
+    ```java
+    tableAlias=tb8:memTb2
+    ```
+
+    **示例6 通过 Properties 指定别名**
+
+    下例中指定表的别名为 `t1`。
+
+    ```java
+    Properties info = new Properties();
+    info.put("tableAlias","t1:dfs://valuedb/pt");
+    ```
+
+    * 自1.30.22.2版本起，JDBC 的高可用参数 *highAvailabilitySites* 支持通过逗号“,”分隔输入值。
+
+    **示例6 多个值之间通过逗号“,”分割**（推荐写法）
+
+    ```java
+    highAvailabilitySites=192.168.1.111:8841,192.168.1.111:8842,192.168.1.111:8843,192.168.1.111:8844
+    ```
+
+    **示例7 多个值之间通过空格分割**（不推荐）
+
+    ```java
+    highAvailabilitySites=192.168.1.111:8841 192.168.1.111:8842 192.168.1.111:8843 192.168.1.111:8844
+    ```
 
 ## 2. 内存表的增删改查
 
