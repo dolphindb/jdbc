@@ -89,8 +89,8 @@ public class JDBCUpdateTest {
             sb.append("decimal32= decimal32([213.432,1.12],4);\n");
             sb.append("decimal64= decimal64([13.43241,231.54323],8);\n");
             sb.append("decimal128= decimal128([13.43241,231.54323],16);\n");
-            sb.append("t1= table(bool,char,short,int,long,float,double,string,symbol,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp,datehour,uuid,ipaddr,int128,blob,complex,point,decimal32,decimal64,decimal128);\n");
-            sb.append("share t1 as trade;");
+            sb.append("TT1= table(bool,char,short,int,long,float,double,string,symbol,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp,datehour,uuid,ipaddr,int128,blob,complex,point,decimal32,decimal64,decimal128);\n");
+            sb.append("share TT1 as trade;");
             db = new DBConnection();
             db.connect(HOST,PORT);
             db.run(sb.toString());
