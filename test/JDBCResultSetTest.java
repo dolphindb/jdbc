@@ -497,7 +497,7 @@ public class JDBCResultSetTest {
 		stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 		rs = stmt.executeQuery("select * from pt ");
 
-		int[] ColumnType = {1, 2, 3, 4, 5, 15, 16, 18, 6, 8, 12, 7, 11, 14, 9, 10, 13};
+		int[] ColumnType = {16, 1, -6, 4, -5, 6, 8, 12, 91, 92, 93, 12, 93, 12, 12, 12, 12};
 		String[] ColumnTypeName = {"DT_BOOL", "DT_BYTE", "DT_SHORT", "DT_INT", "DT_LONG", "DT_FLOAT", "DT_DOUBLE", "DT_STRING", "DT_DATE", "DT_TIME", "DT_TIMESTAMP", "DT_MONTH", "DT_DATETIME", "DT_NANOTIMESTAMP", "DT_MINUTE", "DT_SECOND", "DT_NANOTIME"};
 		String[] ColName = new String[18];
 		String [] CatalogName={"LOGICAL","INTEGRAL","INTEGRAL","INTEGRAL","INTEGRAL","FLOATING","FLOATING","LITERAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL"};
@@ -511,6 +511,7 @@ public class JDBCResultSetTest {
 			TestCase.assertEquals(ColName[j], rsmd.getColumnName(j + 1));
 			TestCase.assertEquals(ColName[j], rsmd.getColumnLabel(j + 1));
 			TestCase.assertEquals(ColumnType[j], rsmd.getColumnType(j + 1));
+			System.out.println( rsmd.getColumnType(j + 1));
 			TestCase.assertEquals(ColumnTypeName[j], rsmd.getColumnTypeName(j + 1));
 			TestCase.assertEquals(CatalogName[j], rsmd.getCatalogName(j + 1));
 			TestCase.assertEquals(ColName[j], rsmd.getTableName(j + 1));
