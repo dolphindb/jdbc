@@ -46,9 +46,6 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
 
 
     @Override
-//    public int getColumnType(int columnIndex) throws SQLException {
-//        return table.getColumn(adjustColumnIndex(columnIndex)).getDataType().ordinal();
-//    }
     public int getColumnType(int columnIndex) throws SQLException {
         Entity.DATA_TYPE x = table.getColumn(adjustColumnIndex(columnIndex)).getDataType();
         switch (x){
