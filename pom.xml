@@ -42,17 +42,10 @@
             <artifactId>junit</artifactId>
             <version>4.12</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>com.dolphindb</groupId>-->
-<!--            <artifactId>dolphindb-javaapi</artifactId>-->
-<!--            <version>1.30.22.1</version>-->
-<!--        </dependency>-->
         <dependency>
             <groupId>com.dolphindb</groupId>
             <artifactId>dolphindb-javaapi</artifactId>
-            <scope>system</scope>
-            <version>1.30.21.3</version>
-            <systemPath>${project.basedir}/lib/dolphindb-javaapi-1.30.22.2-SNAPSHOT.jar</systemPath>
+            <version>1.30.22.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
