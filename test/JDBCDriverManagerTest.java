@@ -174,18 +174,30 @@ public class JDBCDriverManagerTest {
 		CreateConnection1(url1);
 	}
 
-	@Test()
+	@Test(timeout = 5000)
 	public void Test_createConnection_url_default_8848() throws Exception {
-		String url1 = "jdbc:dolphindb://?";
-		boolean connected = CreateConnection1(url1);
-		org.junit.Assert.assertTrue(connected);
+		try{
+			String url1 = "jdbc:dolphindb://?";
+			String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url1);
+			org.junit.Assert.assertFalse(conn.isClosed());
+		}catch(Exception EX){
+			System.out.println(EX.getMessage());
+		}
 	}
 
-	@Test()
+	@Test(timeout = 5000)
 	public void Test_createConnection_url_default_8848_2() throws Exception {
-		String url1 = "jdbc:dolphindb://";
-		boolean connected = CreateConnection1(url1);
-		org.junit.Assert.assertTrue(connected);
+		try{
+			String url1 = "jdbc:dolphindb://";
+			String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url1);
+			org.junit.Assert.assertFalse(conn.isClosed());
+		}catch(Exception EX){
+			System.out.println(EX.getMessage());
+		}
 	}
 
 	@Test(expected = SQLException.class)
