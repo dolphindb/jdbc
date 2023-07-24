@@ -8,7 +8,6 @@ import com.xxdb.comm.SqlStdEnum;
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
 import com.xxdb.io.ProgressListener;
-import org.apache.commons.lang3.StringUtils;
 import java.io.IOException;
 import java.sql.*;
 import java.text.MessageFormat;
@@ -215,7 +214,7 @@ public class JDBCConnection implements Connection {
 		}
 
 		String tableAliasValue = prop.getProperty("tableAlias");
-		if (StringUtils.isNotEmpty(tableAliasValue)) {
+		if (Utils.isNotEmpty(tableAliasValue)) {
 			String tableAliasScript = parseTableAliasPropToScript(tableAliasValue);
 			if (Objects.nonNull(initialScript)) {
 				initialScript = initialScript + "\n" + tableAliasScript;
@@ -247,7 +246,7 @@ public class JDBCConnection implements Connection {
 				str = str.trim();
 				// split by ':', not '://'
 				String[] split = str.split("(?<!:)[:](?!/)");
-				if (StringUtils.isEmpty(str)) {
+				if (Utils.isEmpty(str)) {
 					throw new RuntimeException("tableAlias's value cannot be null!");
 				}
 				if (str.contains("dfs")) {
@@ -278,7 +277,7 @@ public class JDBCConnection implements Connection {
 								throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
 							}
 							aliasSet.add(alias);
-							if (StringUtils.isEmpty(path)) {
+							if (Utils.isEmpty(path)) {
 								throw new RuntimeException("The dfs path is empty!");
 							}
 
@@ -439,7 +438,7 @@ public class JDBCConnection implements Connection {
 				this.databases = valueName[0];
 				List<String> dbtables=new ArrayList<>();
 				// if set specific tableanme to load
-				if (StringUtils.isNotEmpty(prop.getProperty("tableName"))) {
+				if (Utils.isNotEmpty(prop.getProperty("tableName"))) {
 					String tablename = prop.getProperty("tableName");
 					tablename = tablename.trim();
 					String[] tableNames = tablename.split(",");
