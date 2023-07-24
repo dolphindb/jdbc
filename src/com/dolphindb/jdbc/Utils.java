@@ -2,7 +2,6 @@ package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
-import org.apache.commons.lang3.StringUtils;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -169,7 +168,7 @@ public class Utils {
         return substr.compareToIgnoreCase(key)==0;
     }
     public static int getDml(String sql){
-        String sqlBackup = new String(sql);
+        String sqlBackup = sql;
         if(startsWith(sqlBackup,"select")){
             return DML_SELECT;
         }else if(sqlBackup.startsWith("insert") || sqlBackup.startsWith("tableInsert")){
@@ -283,7 +282,7 @@ public class Utils {
             int prevContinueSplashCount=continueSplashCount;
             if(isInString != 0) {// is in string
                 if(isInString=='`'){//check ` end flag
-                    if(isKeyChar(chr)==false){//end with no key char
+                    if(!isKeyChar(chr)){//end with no key char
                         isInString=0;
                         continueSplashCount=0;
                         if(isStringChar(chr)){
@@ -358,7 +357,7 @@ public class Utils {
             int prevContinueSplashCount=continueSplashCount;
             if(isInString != 0) {// is in string
                 if(isInString=='`'){//check ` end flag
-                    if(isKeyChar(chr)==false){//end with no key char
+                    if(!isKeyChar(chr)){//end with no key char
                         isInString=0;
                         continueSplashCount=0;
                         if(isStringChar(chr)){
@@ -392,10 +391,10 @@ public class Utils {
                     String key = sbKey1.toString();
                     String lowerKey=key.toLowerCase();
                     if (sqlWareHouse.contains(lowerKey)) {
-                        if (StringUtils.isNotEmpty(tableAliasValue) && !tableAliasValue.contains(key)) {
+                        if (Utils.isNotEmpty(tableAliasValue) && !tableAliasValue.contains(key)) {
                             sbSql.append(lowerKey);
                         } else {
-                            if (StringUtils.isEmpty(tableAliasValue)) {
+                            if (Utils.isEmpty(tableAliasValue)) {
                                 sbSql.append(lowerKey);
                             } else {
                                 sbSql.append(key);
@@ -413,7 +412,7 @@ public class Utils {
                 String key = sbKey1.toString();
                 String lowerKey=key.toLowerCase();
                 if (sqlWareHouse.contains(lowerKey) && (!sqlWareHouse.contains(key))) {
-                    if (StringUtils.isNotEmpty(tableAliasValue) && !tableAliasValue.contains(key)) {
+                    if (Utils.isNotEmpty(tableAliasValue) && !tableAliasValue.contains(key)) {
                         sbSql.append(lowerKey);
                     } else {
                         sbSql.append(key);
@@ -434,7 +433,7 @@ public class Utils {
     public static String VectorToString(Entity entity){
         String result = "";
         if(entity instanceof AbstractVector){
-            int length = ((Vector) entity).rows();
+            int length = entity.rows();
             for(int i = 0;i < length; i++){
                 String s = String.valueOf(((Vector) entity).get(i));
                 result = result + s + " ";
@@ -468,6 +467,14 @@ public class Utils {
             sql = sql.replaceAll("replace\\s*\\(","strReplace(");
         }
         return sql;
+    }
+
+    public static boolean isEmpty(CharSequence cs) {
+        return cs == null || cs.length() == 0;
+    }
+
+    public static boolean isNotEmpty(CharSequence cs) {
+        return !isEmpty(cs);
     }
 
 }
