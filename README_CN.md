@@ -139,7 +139,9 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
     5. windows server 中指定别名。下例中表的别名为 `mvcc14`。
 
     ```java
-    tableAlias=dfs://valuedb/pt
+    tableAlias=mvcc14:mvcc://C://DolphinDB/Data1/db12/mvcc14
+
+    tableAlias=mvcc14:mvcc://C:\\DolphinDB\\Data1\\db12\\mvcc14；
     ```
 
     **示例5 共享内存表使用别名**
@@ -161,13 +163,13 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
 
 * 自1.30.22.2版本起，JDBC 的高可用参数 *highAvailabilitySites* 支持通过逗号“,”分隔输入值。
 
-    **示例6 多个值之间通过逗号“,”分割**（推荐写法）
+    **示例7 多个值之间通过逗号“,”分割**（推荐写法）
 
     ```java
     highAvailabilitySites=192.168.1.111:8841,192.168.1.111:8842,192.168.1.111:8843,192.168.1.111:8844
     ```
 
-    **示例7 多个值之间通过空格分割**（不推荐）
+    **示例8 多个值之间通过空格分割**（不推荐）
 
     ```java
     highAvailabilitySites=192.168.1.111:8841 192.168.1.111:8842 192.168.1.111:8843 192.168.1.111:8844

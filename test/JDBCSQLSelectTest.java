@@ -16,6 +16,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import com.dolphindb.jdbc.JDBCResultSet;
+import com.dolphindb.jdbc.JDBCStatement;
 import com.xxdb.DBConnection;
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
@@ -23,6 +24,9 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import javax.sql.rowset.CachedRowSet;
+import javax.sql.rowset.RowSetProvider;
 
 public class JDBCSQLSelectTest {
 	static String HOST = JDBCTestUtil.HOST;
@@ -771,6 +775,36 @@ public class JDBCSQLSelectTest {
 		System.out.println(((Scalar)rs1.getColumn(0).get(0)).getNumber());
 		Assert.assertEquals(38,((Scalar)rs1.getColumn(0).get(0)).getNumber());
 	}
+	private static ResultSet run(Statement stmt, String sql) {
+		try {
+			ResultSet rs = stmt.executeQuery(sql);
+			Assert.assertTrue(rs.next());
+			while(rs.next()) {
+				System.out.println(rs.getObject(1));
+			}
+			return rs;
+		} catch(SQLException e) {
+			System.err.println("Error running:" + sql + "\nError was:" + e.toString());
+		}
+		return null;
+	}
+	@Test
+	public void Test_CachedRowSet() throws ClassNotFoundException, SQLException  {
+		stm = conn.createStatement();
+		String sql = "login('admin','123456');\n " +
+				"timestamp = [09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12]\n" +
+				"sym = `C`MS`MS`MS`IBM`IBM`C`C`C;\n" +
+				"price= 49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29;\n" +
+				"qty = 2200 1900 2100 3200 6800 5400 1300 2500 8800;\n" +
+				"t = table(timestamp, sym, qty, price);\n" ;
+		stm.execute(sql);
+		Statement s = conn.createStatement();
+		//ResultSet rs = s.executeQuery("select * from t");
+		CachedRowSet crs = RowSetProvider.newFactory().createCachedRowSet();
+		Statement stmt = (JDBCStatement)conn.createStatement();
+		crs.populate(run(stmt, "select * from t"));
+	}
+
 	@After
 	public void Destroy(){
 		try{
