@@ -17,8 +17,8 @@ import java.util.*;
 
 
 public class JDBCResultSet implements ResultSet{
-    private JDBCConnection conn;
-    private JDBCStatement statement;
+    private final JDBCConnection conn;
+    private final JDBCStatement statement;
     private BasicTable table;
     private int row = -1;
     private int rows;
@@ -177,91 +177,158 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Object getObject(int columnIndex) throws SQLException {
-        o = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
-        return o;
-
+        Vector column = table.getColumn(adjustColumnIndex(columnIndex));
+        Entity entity = column.get(row);
+        Entity.DATA_TYPE x = column.getDataType();
+        switch (x){
+            case DT_BOOL:
+                try {
+                    return ((BasicBoolean) entity).booleanValue();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            case DT_BYTE:
+                return ((BasicByte) entity).byteValue();
+            case DT_SHORT:
+                try {
+                    return ((BasicShort) entity).shortValue();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            case DT_INT:
+                try {
+                    return ((BasicInt) entity).intValue();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            case DT_LONG:
+                try {
+                    return ((BasicLong) entity).longValue();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            case DT_DATE:
+                return java.sql.Date.valueOf(((BasicDate) entity).getDate());
+            case DT_TIME:
+                return java.sql.Time.valueOf(((BasicTime) entity).getTime());
+            case DT_DATETIME:
+                return ((BasicDateTime) entity).getDateTime();
+            case DT_TIMESTAMP:
+                return ((BasicTimestamp) entity).getTimestamp();
+            case DT_FLOAT:
+                try {
+                    return ((BasicFloat) entity).floatValue();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            case DT_DOUBLE:
+                try {
+                    return ((BasicDouble) entity).doubleValue();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            case DT_STRING:
+            case DT_BLOB:
+            case DT_IPADDR:
+            case DT_INT128:
+            case DT_COMPLEX:
+            case DT_POINT:
+                return entity.getString();
+            case DT_MONTH:
+                return ((BasicMonth) entity).getMonth();
+            case DT_MINUTE:
+                return ((BasicMinute) entity).getMinute();
+            case DT_SECOND:
+                return ((BasicSecond) entity).getSecond();
+            case DT_NANOTIME:
+                return ((BasicNanoTime) entity).getNanoTime();
+            case DT_NANOTIMESTAMP:
+                return ((BasicNanoTimestamp) entity).getNanoTimestamp();
+            case DT_SYMBOL:
+                return entity.getString();
+            case DT_UUID:
+                return UUID.fromString(entity.getString());
+            case DT_DATEHOUR:
+                return ((BasicDateHour) entity).getDateHour();
+            case DT_DECIMAL32:
+            case DT_DECIMAL64:
+            case DT_DECIMAL128:
+                try {
+                    return new BigDecimal(entity.getString());
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            default:
+                return entity;
+        }
     }
 
     @Override
     public String getString(int columnIndex) throws SQLException{
-        return ((Entity) getObject(columnIndex)).getString();
+        return (String) getObject(columnIndex);
     }
 
     @Override
     public boolean getBoolean(int columnIndex) throws SQLException{
-    	Scalar x = (Scalar) getObject(columnIndex);
-    	if (x.isNull()) return false;
-    	try {
-			return x.getNumber().byteValue() == 0 ? false : true;
-		} catch (Exception e) {
-			throw new SQLException(e);
-		}
+        Boolean x = (Boolean) getObject(columnIndex);
+        if (Objects.isNull(x))
+            return false;
+        else
+            return x;
     }
 
     @Override
     public byte getByte(int columnIndex) throws SQLException{
-    	Scalar x = (Scalar) getObject(columnIndex);
-        if (x.isNull()) return 0;
-    	try {
-			return x.getNumber().byteValue();
-		} catch (Exception e) {
-			throw new SQLException(e);
-		}
+        Byte x = (Byte) getObject(columnIndex);
+        if (Objects.isNull(x))
+            return 0;
+        else
+            return x;
     }
 
     @Override
     public short getShort(int columnIndex) throws SQLException {
-    	Scalar x = (Scalar) getObject(columnIndex);
-        if (x.isNull()) return 0;
-    	try {
-			return x.getNumber().shortValue();
-		} catch (Exception e) {
-			throw new SQLException(e);
-		}
+        Short x = (Short) getObject(columnIndex);
+        if (Objects.isNull(x))
+            return 0;
+        else
+            return x;
     }
 
     @Override
     public int getInt(int columnIndex) throws SQLException {
-    	Scalar x = (Scalar) getObject(columnIndex);
-        if (x.isNull()) return 0;
-    	try {
-			return x.getNumber().intValue();
-		} catch (Exception e) {
-			throw new SQLException(e);
-		}
+        Integer x = (Integer) getObject(columnIndex);
+        if (Objects.isNull(x))
+            return 0;
+        else
+			return x;
     }
 
     @Override
     public long getLong(int columnIndex) throws SQLException {
-    	Scalar x = (Scalar) getObject(columnIndex);
-        if (x.isNull()) return 0;
-    	try {
-			return x.getNumber().longValue();
-		} catch (Exception e) {
-			throw new SQLException(e);
-		}
+        Long x = (Long) getObject(columnIndex);
+        if (Objects.isNull(x))
+            return 0;
+        else
+			return x;
     }
 
     @Override
     public float getFloat(int columnIndex) throws SQLException {
-    	Scalar x = (Scalar) getObject(columnIndex);
-        if (x.isNull()) return 0;
-    	try {
-			return x.getNumber().floatValue();
-		} catch (Exception e) {
-			throw new SQLException(e);
-		}
+        Float x = (Float) getObject(columnIndex);
+        if (Objects.isNull(x))
+            return 0;
+        else
+            return x;
     }
 
     @Override
     public double getDouble(int columnIndex) throws SQLException {
-    	Scalar x = (Scalar) getObject(columnIndex);
-        if (x.isNull()) return 0;
-    	try {
-			return x.getNumber().doubleValue();
-		} catch (Exception e) {
-			throw new SQLException(e);
-		}
+        Double x = (Double) getObject(columnIndex);
+        if (Objects.isNull(x))
+            return 0;
+        else
+            return x;
     }
 
     @Override
@@ -283,20 +350,18 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Date getDate(int columnIndex) throws SQLException {
-        Scalar x = (Scalar) getObject(columnIndex);
+        Object x = getObject(columnIndex);
         LocalDate localdate = null;
-        if (x instanceof BasicDate) {
-            localdate = ((BasicDate) x).getDate();
+        if (x instanceof Date) {
+            return (Date) x;
         }
         else if (x instanceof BasicMonth) {
             YearMonth dt = ((BasicMonth) x).getMonth();
             if (dt != null)
                 localdate = LocalDate.of(dt.getYear(), dt.getMonth(),1);
         }
-        else if (x instanceof BasicDateTime) {
-        	LocalDateTime dt = ((BasicDateTime) x).getDateTime();
-            if (dt != null)
-                localdate = LocalDate.of(dt.getYear(), dt.getMonth(), dt.getDayOfMonth());
+        else if (x instanceof LocalDateTime) {
+            localdate = LocalDate.of(((LocalDateTime)x).getYear(), ((LocalDateTime)x).getMonth(), ((LocalDateTime)x).getDayOfMonth());
         }
         else if (x instanceof BasicTimestamp) {
         	LocalDateTime dt = ((BasicTimestamp) x).getTimestamp();
@@ -314,7 +379,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Time getTime(int columnIndex) throws SQLException {
-        Scalar x = (Scalar) getObject(columnIndex);
+        Object x = getObject(columnIndex);
         LocalTime time = null;
         if (x instanceof BasicMinute){
             time = ((BasicMinute) x).getMinute();
@@ -322,21 +387,14 @@ public class JDBCResultSet implements ResultSet{
         else if (x instanceof BasicSecond){
             time = ((BasicSecond) x).getSecond();
         }
-        else if (x instanceof BasicTime) {
-            time = ((BasicTime) x).getTime();
+        else if (x instanceof Time) {
+            return (Time) x;
         }
-        else if (x instanceof BasicDateTime) {
-        	LocalDateTime dt = ((BasicDateTime) x).getDateTime();
-            if (dt != null)
-                time = LocalTime.of(dt.getHour(), dt.getMinute(), dt.getSecond());
+        else if (x instanceof LocalDateTime) {
+            time = LocalTime.of(((LocalDateTime) x).getHour(), ((LocalDateTime) x).getMinute(), ((LocalDateTime) x).getSecond());
         }
         else if (x instanceof BasicNanoTime){
             time = ((BasicNanoTime) x).getNanoTime();
-        }
-        else if (x instanceof BasicTimestamp) {
-        	LocalDateTime dt = ((BasicTimestamp) x).getTimestamp();
-            if (dt != null)
-                time = LocalTime.of(dt.getHour(), dt.getMinute(), dt.getSecond());
         }
         else if (x instanceof BasicNanoTimestamp) {
         	LocalDateTime dt = ((BasicNanoTimestamp) x).getNanoTimestamp();
@@ -344,21 +402,22 @@ public class JDBCResultSet implements ResultSet{
         		time = LocalTime.of(dt.getHour(), dt.getMinute(), dt.getSecond(), dt.getNano());
         }
         if (time == null) return null;
+
         return java.sql.Time.valueOf(time);
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        Scalar scalar = (Scalar) getObject(columnIndex);
+        Object x = getObject(columnIndex);
         LocalDateTime dateTime = null;
-        if (scalar instanceof BasicDateTime){
-            dateTime = ((BasicDateTime) scalar).getDateTime();
+        if (x instanceof LocalDateTime){
+            dateTime = (LocalDateTime) x;
         }
-        else if (scalar instanceof BasicTimestamp){
-            dateTime = ((BasicTimestamp) scalar).getTimestamp();
+        else if (x instanceof BasicTimestamp){
+            dateTime = ((BasicTimestamp) x).getTimestamp();
         }
-        else if (scalar instanceof BasicNanoTimestamp){
-            dateTime = ((BasicNanoTimestamp) scalar).getNanoTimestamp();
+        else if (x instanceof BasicNanoTimestamp){
+            dateTime = ((BasicNanoTimestamp) x).getNanoTimestamp();
         }
         if (dateTime == null) return null;
         return java.sql.Timestamp.valueOf(dateTime);
@@ -473,7 +532,6 @@ public class JDBCResultSet implements ResultSet{
     @Override
     public void clearWarnings() throws SQLException {
     	// TODO: implement warnings
-        return;
     }
 
     @Override
@@ -603,7 +661,6 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void setFetchDirection(int direction) throws SQLException {
-        return;
     }
 
     @Override
@@ -613,7 +670,6 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void setFetchSize(int rows) throws SQLException {
-        return;
     }
 
     @Override
@@ -656,7 +712,6 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void updateNull(int columnIndex) throws SQLException {
-        return;
     }
 
     @Override
@@ -696,7 +751,6 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void updateBigDecimal(int columnIndex, BigDecimal bigDecimal) throws SQLException {
-        return;
     }
 
     @Override
@@ -1012,12 +1066,10 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void updateRef(int columnIndex, Ref ref) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateRef(String columnLabel, Ref ref) throws SQLException {
-    	return;
     }
 
     @Override
@@ -1032,22 +1084,18 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void updateClob(int columnIndex, Clob clob) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateClob(String columnLabel, Clob clob) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateArray(int columnIndex, Array array) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateArray(String columnLabel, Array array) throws SQLException {
-    	return;
     }
 
     @Override
@@ -1062,12 +1110,10 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void updateRowId(int columnIndex, RowId rowId) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateRowId(String columnLabel, RowId rowId) throws SQLException {
-    	return;
     }
 
     @Override
@@ -1082,22 +1128,18 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void updateNString(int columnIndex, String columnLabel) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateNString(String columnLabel, String columnLabel1) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateNClob(int columnIndex, NClob nClob) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateNClob(String columnLabel, NClob nClob) throws SQLException {
-    	return;
     }
 
     @Override
@@ -1122,12 +1164,10 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void updateSQLXML(int columnIndex, SQLXML sqlxml) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateSQLXML(String columnLabel, SQLXML sqlxml) throws SQLException {
-    	return;
     }
 
     @Override
@@ -1152,142 +1192,114 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void updateNCharacterStream(int columnIndex, Reader reader, long l) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateNCharacterStream(String columnLabel, Reader reader, long l) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateAsciiStream(int columnIndex, InputStream inputStream, long l) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateBinaryStream(int columnIndex, InputStream inputStream, long l) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateCharacterStream(int columnIndex, Reader reader, long l) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateAsciiStream(String columnLabel, InputStream inputStream, long l) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateBinaryStream(String columnLabel, InputStream inputStream, long l) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateCharacterStream(String columnLabel, Reader reader, long l) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateBlob(int columnIndex, InputStream inputStream, long l) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateBlob(String columnLabel, InputStream inputStream, long l) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateClob(int columnIndex, Reader reader, long l) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateClob(String columnLabel, Reader reader, long l) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateNClob(int columnIndex, Reader reader, long l) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateNClob(String columnLabel, Reader reader, long l) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateNCharacterStream(int columnIndex, Reader reader) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateNCharacterStream(String columnLabel, Reader reader) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateAsciiStream(int columnIndex, InputStream inputStream) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateBinaryStream(int columnIndex, InputStream inputStream) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateCharacterStream(int columnIndex, Reader reader) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateAsciiStream(String columnLabel, InputStream inputStream) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateBinaryStream(String columnLabel, InputStream inputStream) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateClob(int columnIndex, Reader reader) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateClob(String columnLabel, Reader reader) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateNClob(int columnIndex, Reader reader) throws SQLException {
-    	return;
     }
 
     @Override
     public void updateNClob(String columnLabel, Reader reader) throws SQLException {
-    	return;
     }
 
     @Override
