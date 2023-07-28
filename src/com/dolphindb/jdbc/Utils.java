@@ -477,4 +477,171 @@ public class Utils {
         return !isEmpty(cs);
     }
 
+    public static String parseTableAliasPropToScript(String tableAliasValue) {
+        Set<String> aliasSet = new HashSet<>();
+        StringBuilder stringBuilder = new StringBuilder();
+
+        try {
+            String[] strs = tableAliasValue.split(",");
+            for (String str : strs) {
+                str = str.trim();
+                // split by ':', not '://'
+                String[] split = str.split("(?<!:)[:](?!/)");
+                if (Utils.isEmpty(str)) {
+                    throw new RuntimeException("tableAlias's value cannot be null!");
+                }
+                if (str.contains("dfs")) {
+                    // 1、dfs table
+                    if (split.length == 1) {
+                        // 1）no contain alias:
+                        String finalStr;
+                        String[] pathSplit = str.split("(?<!/)/(?!/)");
+                        String alias = pathSplit[1];
+                        String dbPath = pathSplit[0];
+                        if (aliasSet.contains(alias)) {
+                            throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
+                        }
+                        aliasSet.add(alias);
+
+                        finalStr = alias + "=loadTable(\"" + dbPath + "\",\"" + alias + "\");\n";
+                        stringBuilder.append(finalStr);
+                    } else if (split.length == 2) {
+                        String finalStr;
+                        if (split[0].contains("dfs") && !split[1].contains("dfs")) {
+                            finalStr = parseOtherPath(str, aliasSet);
+                            stringBuilder.append(finalStr);
+                        } else {
+                            // 2）contain alias:
+                            String alias = split[0].replaceAll(":", "");
+                            String path = split[1];
+                            if (aliasSet.contains(alias)) {
+                                throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
+                            }
+                            aliasSet.add(alias);
+                            if (Utils.isEmpty(path)) {
+                                throw new RuntimeException("The dfs path is empty!");
+                            }
+
+                            int lastIndex = path.lastIndexOf('/');
+                            if (lastIndex != -1) {
+                                String dbPath = path.substring(0, lastIndex);
+                                String tbName = path.substring(lastIndex + 1);
+                                finalStr = alias + "=loadTable(\"" + dbPath + "\"," + "\"" + tbName + "\");\n";
+                                stringBuilder.append(finalStr);
+                            }
+                        }
+                    }
+                } else if (str.contains("mvcc")) {
+                    // 2、mvcc table
+                    if (str.startsWith("mvcc") && Pattern.matches(".*[a-zA-Z]:\\\\.*", str)) {
+                        // win: no alias
+                        String[] path = str.split("://");
+                        int lastDoubleSlashIndex = path[1].lastIndexOf("\\");
+                        String dropTableName = path[1].substring(0, lastDoubleSlashIndex - 1);
+                        String tbNameAndAlias = path[1].substring(lastDoubleSlashIndex + 1);
+                        if (aliasSet.contains(tbNameAndAlias)) {
+                            throw new RuntimeException("Duplicate table alias found in property tableAlias: " + tbNameAndAlias);
+                        }
+                        aliasSet.add(tbNameAndAlias);
+
+                        String finalStr = tbNameAndAlias + "=loadMvccTable(\"" + dropTableName + "\",\"" + tbNameAndAlias + "\");\n";
+                        stringBuilder.append(finalStr);
+                    } else if (split.length == 1) {
+                        // no alias:
+                        String finalStr;
+                        List<String> mvccPathSplit = parseMvccPath(split[0]);
+                        String mvccPath = mvccPathSplit.get(1);
+                        String[] pathSplit = mvccPath.split("/");
+                        String alias = pathSplit[pathSplit.length - 1];
+                        if (aliasSet.contains(alias)) {
+                            throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
+                        }
+                        aliasSet.add(alias);
+                        String mvccFilePath = mvccPath.substring(0, mvccPath.lastIndexOf("/"));
+                        if (mvccPath.startsWith("/")) {
+                            finalStr = alias + "=loadMvccTable(\"" + mvccFilePath + "\",\"" + alias + "\");\n";
+                        } else {
+                            finalStr = alias + "=loadMvccTable(" + "\"" + mvccFilePath + "\",\"" + alias + "\");\n";
+                        }
+
+                        stringBuilder.append(finalStr);
+                    } else {
+                        String finalStr;
+                        if (split[0].contains("mvcc") && (!split[1].contains("mvcc:"))) {
+                            finalStr = parseOtherPath(str, aliasSet);
+                        } else {
+                            // contain alias:
+                            String alias= split[0];
+                            if (str.contains("\\\\")) {
+                                // if: 'win \\'
+                                String[] tempSplit = split[1].split("://"); // mvcc://C
+
+                                if (aliasSet.contains(alias)) {
+                                    throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
+                                }
+                                aliasSet.add(alias);
+
+                                int lastDoubleSlashIndex = split[2].lastIndexOf("\\\\");
+                                String dropTableName = split[2].substring(0, lastDoubleSlashIndex);
+                                String tbName = split[2].substring(lastDoubleSlashIndex + 2);
+
+                                finalStr = alias + "=loadMvccTable(\"" + tempSplit[1] + ":" + dropTableName + "\",\"" + tbName + "\");\n";
+                            } else {
+                                List<String> mvccPathSplit = parseMvccPath(split[1]);
+                                String mvccPath = mvccPathSplit.get(1);
+                                if (aliasSet.contains(alias)) {
+                                    throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
+                                }
+                                aliasSet.add(alias);
+                                String[] pathSplit = mvccPath.split("/");
+                                String mvccFilePath = mvccPath.substring(0, mvccPath.lastIndexOf("/"));
+                                if (mvccPath.startsWith("/")) {
+                                    finalStr = alias + "=loadMvccTable(\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+                                } else {
+                                    finalStr = alias + "=loadMvccTable(" + "\"" + mvccFilePath + "\",\"" + pathSplit[pathSplit.length - 1] + "\");\n";
+                                }
+                            }
+                        }
+
+                        stringBuilder.append(finalStr);
+                    }
+                } else {
+                    // 3、other
+                    String finalStr = parseOtherPath(str, aliasSet);
+                    stringBuilder.append(finalStr);
+                }
+            }
+        } catch (RuntimeException e) {
+            throw new RuntimeException("Failed to parse tableAlias: "+ e.getMessage());
+        }
+
+        return stringBuilder.toString();
+    }
+
+    public static String parseOtherPath(String str, Set<String> aliasSet) {
+        String[] split = str.split(":");
+        String alias = split[0];
+        String memTableName = split[1];
+        if (aliasSet.contains(alias)) {
+            throw new RuntimeException("Duplicate table alias found in property tableAlias: " + alias);
+        }
+        aliasSet.add(alias);
+        String finalStr = alias + "=" + memTableName + ";\n";
+
+        return finalStr;
+    }
+
+    public static List<String> parseMvccPath(String str) {
+        Pattern pattern = Pattern.compile("^(.*?://)(.*)");
+        Matcher matcher = pattern.matcher(str);
+        List<String> result = new ArrayList<>();
+
+        if (matcher.find()) {
+            result.add(matcher.group(1));
+            result.add(matcher.group(2));
+        }
+
+        return result;
+    }
+
 }
