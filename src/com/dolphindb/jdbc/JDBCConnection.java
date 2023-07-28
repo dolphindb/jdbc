@@ -12,13 +12,9 @@ import java.io.IOException;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.util.*;
-import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class JDBCConnection implements Connection {
-	//private DBConnection controlConnection;
 	private DBConnection dbConnection;
 	private final String hostName;
 	private final int port;
@@ -27,11 +23,6 @@ public class JDBCConnection implements Connection {
 	private Vector tables;
 	private final String url;
 	private DatabaseMetaData metaData;
-	//private List<String> hostName_ports;
-	//private boolean isDFS;
-	//private StringBuilder sqlSb;
-	//private  String controlHost;
-	//private  int controlPort;
 	private String user;
 	private String password;
 
@@ -46,8 +37,6 @@ public class JDBCConnection implements Connection {
 		}
 		hostName = prop.getProperty("hostName");
 		port = Integer.parseInt(prop.getProperty("port"));
-		//controlHost = null;
-		//controlPort = -1;
 		setUser(null);
 		setPassword(null);
         clientInfo = prop;
@@ -73,96 +62,6 @@ public class JDBCConnection implements Connection {
 	public void setDBConnection(DBConnection dbConnection) {
 		this.dbConnection = dbConnection;
 	}
-
-	/**
-	 * Connect to other node
-	 * 
-	 * @param hostname
-	 * @param FuncationPort
-	 * @param prop:
-	 *            get controllerNode from prop, if prop does not contain
-	 *            controllerNode key, then the default controllerNode is 8920
-	 * @throws IOException
-	 * @throws SQLException
-	 */
-	/*
-	private boolean tryOtherNode(String hostname, int FuncationPort, Properties prop) throws IOException, SQLException {
-		controlConnection = new DBConnection();
-	    if(controlHost != null && controlPort > 0){
-	            controlConnection.connect(controlHost,controlPort);
-	            BasicTable table = (BasicTable) controlConnection.run("getClusterChunkNodesStatus()");
-	            Vector siteVector = table.getColumn("site");
-
-	            LinkedList<String> other_ports = new LinkedList<>();
-	    		for (int i = 0, len = siteVector.rows(); i < len; i++) {
-	    			other_ports.add(siteVector.get(i).getString());
-	    		}
-
-	    		// try to connect node, which does not contain the broken one.
-	    		int size = other_ports.size();
-	    		for (int index = 0; index < size; ++index) {
-	    			String[] hostName_port = other_ports.get(index).split(":");
-	    			if (!hostName_port[1].equals(String.valueOf(FuncationPort))) {
-	    				System.out.println("connecting " + hostname + ":" + hostName_port[1]);
-	    				if (!reachable(hostname, Integer.parseInt(hostName_port[1]), prop)) {
-	    					System.out.println("Cannot connect " + hostname + ":" + hostName_port[1]);
-	    					continue;
-	    				}
-	    				checklogin(hostname, Integer.parseInt(hostName_port[1]),prop);
-	    				port = Integer.parseInt(hostName_port[1]);
-	    				break;
-	    			}
-	    		}
-	        }
-	    return false;
-	}
-	*/
-	/**
-	 * Whether the node is reachable
-	 * 
-	 * @param hostname
-	 * @param port
-	 * @param prop
-	 *            get waitingTime from prop, if prop does not contain waitingTime
-	 *            key, then the default controllerNode is 3
-	 * @return
-	 */
-	/*private boolean reachable(String hostname, int port, Properties prop) {
-		Socket s = new Socket();
-		SocketAddress add = new InetSocketAddress(hostname, port);
-		int waitingTime = 3;
-		if (prop.containsKey("waitingTime")) {
-			waitingTime = Integer.parseInt(prop.getProperty("waitingTime"));
-		}
-		try {
-			s.connect(add, waitingTime * 1000);
-		} catch (IOException e) {
-			System.out.println("cannot reach" + hostname + ":" + port);
-			return false;
-		} finally {
-			try {
-				s.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		return true;
-	}*/
-
-	/*private void checklogin(String hostname, int port, Properties prop) {
-		try {
-			if(prop.containsKey("user") && prop.containsKey("password")) {
-				success = dbConnection.connect(hostname, port,prop.getProperty("user"),prop.getProperty("password"));	
-				setUser(prop.getProperty("user"));
-				setPassword(prop.getProperty("password"));
-			}else {
-				success = dbConnection.connect(hostname, port);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-	}*/
 
 	/**
 	 * build connect to port
@@ -628,143 +527,16 @@ public class JDBCConnection implements Connection {
 
 	// Automatic switching node
 	public Entity run(String function, List<Entity> arguments) throws IOException {
-		//if (!isDFS) {
 		return this.dbConnection.run(function, arguments);
-		/*}
-
-		//int size = hostName_ports.size();
-		Entity entity = null;
-		entity = this.dbConnection.run(function, arguments);
-		return entity;
-		try {
-			entity = this.dbConnection.run(function, arguments);
-			return entity;
-		} catch (IOException e) {
-			for (int index = 0; index < size; ++index) {
-				String[] hostName_port = hostName_ports.get(index).split(":");
-				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
-					continue;
-				}
-				this.dbConnection = new DBConnection();
-				try {
-					boolean succeeded;
-					if(getUser()!=null && getPassword()!=null){
-						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]), getUser(), getPassword());
-					}
-					else{
-						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]));
-					}
-					if (succeeded) {
-						this.dbConnection.run(sqlSb.toString());
-						entity = this.dbConnection.run(function, arguments);
-						return entity;
-					}
-				} catch (IOException e1) {
-					return entity;
-				}
-				
-//				this.dbConnection.close();
-//				this.dbConnection = new DBConnection();
-//				try {
-//					if (this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]))) {
-//						System.out.println("Connect " + this.dbConnection.getHostName() + ":" + this.dbConnection.getPort());
-//						this.dbConnection.run(sqlSb.toString());
-//						entity = this.dbConnection.run(function, arguments);
-//						return entity;
-//					}
-//				} catch (IOException e1) {
-//					message = e1.getMessage();
-//				}
-			}
-			throw new IOException("All dataNodes were dead");
-		}*/
 	}
 
 	// Automatic switching node
 	public Entity run(String script) throws IOException {
-		//if (!isDFS) {
 		return this.dbConnection.run(script);
-		/*}
-		script = script.trim();
-		Matcher matcher = Utils.ASSIGN_PATTERN.matcher(script);
-		if (matcher.find()) {
-			sqlSb.append(script).append(";\n");
-		}
-
-		int size = hostName_ports.size();
-		Entity entity = null;
-		try {
-			entity = this.dbConnection.run(script);
-			return entity;
-		} catch (IOException e) {
-			for (int index = 0; index < size; ++index) {
-				String[] hostName_port = hostName_ports.get(index).split(":");
-				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
-					continue;
-				}
-				this.dbConnection = new DBConnection();
-				try {
-					boolean succeeded;
-					if(getUser()!=null && getPassword()!=null){
-						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]), getUser(), getPassword());
-					}
-					else{
-						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]));
-					}
-					if (succeeded) {
-						this.dbConnection.run(sqlSb.toString());
-						entity = this.dbConnection.run(script);
-						return entity;
-					}
-				} catch (IOException e1) {
-					return entity;
-				}
-			}		
-			throw new IOException("All dataNodes were dead");
-		}*/
 	}
 
 	public Entity run(String script, int fetchSize) throws IOException {
-		//if (!isDFS) {
 		return this.dbConnection.run(script, (ProgressListener) null, 4, 2, fetchSize);
-		/*}
-		script = script.trim();
-		Matcher matcher = Utils.ASSIGN_PATTERN.matcher(script);
-		if (matcher.find()) {
-			sqlSb.append(script).append(";\n");
-		}
-
-		int size = hostName_ports.size();
-		Entity entity = null;
-		try {
-			entity = this.dbConnection.run(script);
-			return entity;
-		} catch (IOException e) {
-			for (int index = 0; index < size; ++index) {
-				String[] hostName_port = hostName_ports.get(index).split(":");
-				if (hostName_port[0] == hostName && Integer.parseInt(hostName_port[1]) == port ){
-					continue;
-				}
-				this.dbConnection = new DBConnection();
-				try {
-					boolean succeeded;
-					if(getUser()!=null && getPassword()!=null){
-						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]), getUser(), getPassword());
-					}
-					else{
-						succeeded = this.dbConnection.connect(hostName_port[0], Integer.parseInt(hostName_port[1]));
-					}
-					if (succeeded) {
-						this.dbConnection.run(sqlSb.toString());
-						entity = this.dbConnection.run(script, (ProgressListener) null, 4, 2, fetchSize);
-						return entity;
-					}
-				} catch (IOException e1) {
-					return entity;
-				}
-			}
-			throw new IOException("All dataNodes were dead");
-		}*/
 	}
 
 	public String getUrl() {
