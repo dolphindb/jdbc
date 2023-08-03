@@ -2,7 +2,6 @@ package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
-
 import javax.sql.rowset.serial.SerialBlob;
 import java.io.*;
 import java.math.BigDecimal;
@@ -247,7 +246,12 @@ public class JDBCResultSet implements ResultSet{
             case DT_SYMBOL:
                 return entity.getString();
             case DT_UUID:
-                return UUID.fromString(entity.getString());
+                String string = entity.getString();
+                if (string.isEmpty()) {
+                    return null;
+                } else {
+                    return UUID.fromString(string);
+                }
             case DT_DATEHOUR:
                 return ((BasicDateHour) entity).getDateHour();
             case DT_DECIMAL32:
