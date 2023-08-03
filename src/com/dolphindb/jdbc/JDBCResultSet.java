@@ -269,7 +269,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public String getString(int columnIndex) throws SQLException{
-        return (String) getObject(columnIndex);
+        return getObject(columnIndex).toString();
     }
 
     @Override
