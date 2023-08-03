@@ -6,11 +6,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
+import java.util.UUID;
 
 import static com.dolphindb.jdbc.Main.printData;
 
@@ -287,7 +289,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(tmp_month,rs.getObject("dataType"));
+        org.junit.Assert.assertEquals(YearMonth.of(2021, 1),rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -327,7 +329,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(tmp_minute,rs.getObject("dataType"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1),rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -347,7 +349,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(tmp_second,rs.getObject("dataType"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1),rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -367,7 +369,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(tmp_datetime,rs.getObject("dataType"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -387,7 +389,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(tmp_timestamp,rs.getObject("dataType"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,001),rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -407,7 +409,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(tmp_nanotime,rs.getObject("dataType"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1,1),rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -427,7 +429,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(tmp_nanotimestamp,rs.getObject("dataType"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -447,7 +449,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(tmp_datehour,rs.getObject("dataType"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,0),rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -467,7 +469,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(uuids,rs.getObject("dataType"));
+        org.junit.Assert.assertEquals(UUID.fromString("00000000-0000-0001-0000-000000000002"),rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -487,7 +489,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(ipaddrs,rs.getObject("dataType"));
+        org.junit.Assert.assertEquals("0::1:0:0:0:2",rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -507,7 +509,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(int128,rs.getObject("dataType"));
+        org.junit.Assert.assertEquals("00000000000000010000000000000002",rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -547,7 +549,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(complexs,rs.getObject("dataType"));
+        org.junit.Assert.assertEquals("1.0+2.0i",rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -567,7 +569,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(points,rs.getObject("dataType"));
+        org.junit.Assert.assertEquals("(0.0, 0.0)",rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -719,7 +721,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals("class com.xxdb.data.BasicDecimal32",rs.getObject("dataType").getClass().toString());
+        org.junit.Assert.assertEquals("class java.math.BigDecimal",rs.getObject("dataType").getClass().toString());
     }
 
     @Test
@@ -912,7 +914,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals("class com.xxdb.data.BasicDecimal64",rs.getObject("dataType").getClass().toString());
+        org.junit.Assert.assertEquals("class java.math.BigDecimal",rs.getObject("dataType").getClass().toString());
     }
 
     @Test
@@ -1060,7 +1062,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        BasicDecimal128 dataType = (BasicDecimal128) rs.getObject("dataType");
+        BigDecimal dataType = (BigDecimal) rs.getObject("dataType");
         org.junit.Assert.assertEquals("26411.00000000",rs.getObject("dataType").toString());
     }
     @Test
@@ -1097,7 +1099,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals("class com.xxdb.data.BasicDecimal128",rs.getObject("dataType").getClass().toString());
+        org.junit.Assert.assertEquals("class java.math.BigDecimal",rs.getObject("dataType").getClass().toString());
     }
     @Test
     public void testAppendTypeDecimal128_scale_diff() throws SQLException {
