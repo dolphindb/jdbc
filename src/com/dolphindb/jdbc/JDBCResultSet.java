@@ -171,13 +171,18 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public boolean wasNull() throws SQLException {
-    	return ((Scalar) o).isNull();
+        if (Objects.nonNull(o)) {
+            return ((Scalar) o).isNull();
+        } else {
+            return true;
+        }
     }
 
     @Override
     public Object getObject(int columnIndex) throws SQLException {
         Vector column = table.getColumn(adjustColumnIndex(columnIndex));
         Entity entity = column.get(row);
+        o = entity;
         Entity.DATA_TYPE x = column.getDataType();
         switch (x){
             case DT_BOOL:
