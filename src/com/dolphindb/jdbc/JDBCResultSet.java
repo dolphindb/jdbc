@@ -399,6 +399,9 @@ public class JDBCResultSet implements ResultSet{
         else if (x instanceof Time) {
             return (Time) x;
         }
+        else if (x instanceof LocalTime){
+            time = (LocalTime) x;
+        }
         else if (x instanceof LocalDateTime) {
             time = LocalTime.of(((LocalDateTime) x).getHour(), ((LocalDateTime) x).getMinute(), ((LocalDateTime) x).getSecond());
         }
