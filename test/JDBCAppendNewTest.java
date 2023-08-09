@@ -836,7 +836,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals("0.00000000",rs.getObject("dataType").toString());
+        org.junit.Assert.assertEquals("0.00000000",((BigDecimal)rs.getObject("dataType")).toString());
     }
 
     @Test
