@@ -171,17 +171,17 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb");
         rs.next();
-        LocalDate  date1 = (LocalDate)rs.getObject(2);
-        assertEquals(LocalDate.of(2017,12,01), date1);
+        Date  date1 = (Date)rs.getObject(2);
+        assertEquals(java.sql.Date.valueOf(LocalDate.of(2017,12,01)), date1);
         rs.next();
-        LocalDate date2 = (LocalDate)rs.getObject(2);
-        assertEquals(LocalDate.of(1954,12,03), date2);
+        Date date2 = (Date)rs.getObject(2);
+        assertEquals(java.sql.Date.valueOf(LocalDate.of(1954,12,03)), date2);
         rs.next();
-        LocalDate date3 = (LocalDate)rs.getObject(2);
-        assertEquals(LocalDate.of(2099,12,04), date3);
+        Date date3 = (Date)rs.getObject(2);
+        assertEquals(java.sql.Date.valueOf(LocalDate.of(2099,12,04)), date3);
         rs.next();
-        LocalDate date4 = (LocalDate)rs.getObject(2);
-        assertEquals(LocalDate.of(1970,12,07), date4);
+        Date date4 = (Date)rs.getObject(2);
+        assertEquals(java.sql.Date.valueOf(LocalDate.of(1970,12,07)), date4);
     }
     @Test
     public void Test_getObject_time() throws SQLException {
