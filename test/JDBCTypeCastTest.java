@@ -1,6 +1,5 @@
 import com.xxdb.DBConnection;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -8,7 +7,6 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.*;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -117,15 +115,15 @@ public class JDBCTypeCastTest {
                     YearMonth mon = (YearMonth)rs.getObject(4);
                     Timestamp ts = rs.getTimestamp(5);
                     String str = rs.getString(6);
-                    byte chr = rs.getByte(7);
-                    float flt = rs.getFloat(8);
-                    double dbl = rs.getDouble(9);
-                    int i = rs.getInt(10);
+                    Byte chr = rs.getByte(7);
+                    Float flt = rs.getFloat(8);
+                    Double dbl = rs.getDouble(9);
+                    Integer i = rs.getInt(10);
                     LocalTime  nt = (LocalTime)rs.getObject(11);
                     LocalDateTime ntp = (LocalDateTime) rs.getObject(12);
                     Boolean bool = rs.getBoolean(13);
-                    short shorts = rs.getShort(14);
-                    long longs = rs.getLong(15);
+                    Short shorts = rs.getShort(14);
+                    Long longs = rs.getLong(15);
                     LocalTime min = (LocalTime)rs.getObject(16);
                     LocalTime sec = (LocalTime) rs.getObject(17);
                     LocalDateTime dt = (LocalDateTime) rs.getObject(18);
@@ -140,7 +138,6 @@ public class JDBCTypeCastTest {
                     BigDecimal decimal64 = (BigDecimal) rs.getObject(27);
                     BigDecimal decimal128 = (BigDecimal) rs.getObject(28);
             }
-
     }
     @Test
     public void Test_getObject_SYMBOL() throws SQLException {
@@ -282,16 +279,16 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb");
         rs.next();
-        float float1 = (float)rs.getObject(8);
+        Float float1 = (Float)rs.getObject(8);
         assertEquals(10.252f, float1,3);
         rs.next();
-        float float2 = (float)rs.getObject(8);
+        Float float2 = (Float)rs.getObject(8);
         assertEquals(96.1f, float2,1);
         rs.next();
-        float float3 = (float)rs.getObject(8);
+        Float float3 = (Float)rs.getObject(8);
         assertEquals(100.2f, float3,1);
         rs.next();
-        float float4 = (float)rs.getObject(8);
+        Float float4 = (Float)rs.getObject(8);
         assertEquals(211.3f, float4,1);
     }
     @Test
@@ -300,16 +297,16 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb");
         rs.next();
-        double double1 = (double)rs.getObject(9);
+        Double double1 = (Double)rs.getObject(9);
         assertEquals(77.6, double1,1);
         rs.next();
-        double double2 = (double)rs.getObject(9);
+        Double double2 = (Double)rs.getObject(9);
         assertEquals(123.5, double2,1);
         rs.next();
-        double double3 = (double)rs.getObject(9);
+        Double double3 = (Double)rs.getObject(9);
         assertEquals(158.444, double3,3);
         rs.next();
-        double double4 = (double)rs.getObject(9);
+        Double double4 = (Double)rs.getObject(9);
         assertEquals(200.3, double4,3);
     }
     @Test
@@ -318,17 +315,17 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb");
         rs.next();
-        int int1 = (int)rs.getObject(10);
-        assertEquals(1, int1);
+        Integer int1 = (Integer)rs.getObject(10);
+        assertEquals(1, int1.intValue());
         rs.next();
-        int int2 = (int)rs.getObject(10);
-        assertEquals(2, int2);
+        Integer int2 = (Integer)rs.getObject(10);
+        assertEquals(2, int2.intValue());
         rs.next();
-        int int3 = (int)rs.getObject(10);
-        assertEquals(3, int3);
+        Integer int3 = (Integer)rs.getObject(10);
+        assertEquals(3, int3.intValue());
         rs.next();
-        int int4 = (int)rs.getObject(10);
-        assertEquals(4, int4);
+        Integer int4 = (Integer)rs.getObject(10);
+        assertEquals(4, int4.intValue());
     }
     @Test
     public void Test_getObject_nanotime() throws SQLException {
@@ -390,17 +387,17 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb");
         rs.next();
-        short short1 = (short)rs.getObject(14);
-        assertEquals((short)1, short1);
+        Short short1 = (Short)rs.getObject(14);
+        assertEquals((short)1, short1.shortValue());
         rs.next();
-        short short2 = (short)rs.getObject(14);
-        assertEquals((short)2, short2);
+        Short short2 = (Short)rs.getObject(14);
+        assertEquals((short)2, short2.shortValue());
         rs.next();
-        short short3 = (short)rs.getObject(14);
-        assertEquals((short)3, short3);
+        Short short3 = (Short)rs.getObject(14);
+        assertEquals((short)3, short3.shortValue());
         rs.next();
-        short short4 = (short)rs.getObject(14);
-        assertEquals((short)4, short4);
+        Short short4 = (Short)rs.getObject(14);
+        assertEquals((short)4, short4.shortValue());
     }
     @Test
     public void Test_getObject_long() throws SQLException {
@@ -408,17 +405,17 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb");
         rs.next();
-        long long1 = (long)rs.getObject(15);
-        assertEquals(1, long1);
+        Long long1 = (Long)rs.getObject(15);
+        assertEquals(1, long1.longValue());
         rs.next();
-        long long2 = (long)rs.getObject(15);
-        assertEquals(2, long2);
+        Long long2 = (Long)rs.getObject(15);
+        assertEquals(2, long2.longValue());
         rs.next();
-        long long3 = (long)rs.getObject(15);
-        assertEquals(3, long3);
+        Long long3 = (Long)rs.getObject(15);
+        assertEquals(3, long3.longValue());
         rs.next();
-        long long4 = (long)rs.getObject(15);
-        assertEquals(4, long4);
+        Long long4 = (Long)rs.getObject(15);
+        assertEquals(4, long4.longValue());
     }
     @Test
     public void Test_getObject_minute() throws SQLException {
@@ -498,17 +495,17 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb");
         rs.next();
-        UUID str1 = (UUID)rs.getObject(20);
-        assertEquals(UUID.fromString("5d212a78-cc48-e3b1-4235-b4d91473ee87"), str1);
+        String str1 = (String)rs.getObject(20);
+        assertEquals("5d212a78-cc48-e3b1-4235-b4d91473ee87", str1);
         rs.next();
-        UUID str2 = (UUID)rs.getObject(20);
-        assertEquals(UUID.fromString("5d212a78-cc48-e3b1-4235-b4d91473ee81"), str2);
+        String str2 = (String)rs.getObject(20);
+        assertEquals("5d212a78-cc48-e3b1-4235-b4d91473ee81", str2);
         rs.next();
-        UUID str3 = (UUID)rs.getObject(20);
-        assertEquals(UUID.fromString("5d212a78-cc48-e3b1-4235-b4d91473ee82"), str3);
+        String str3 = (String)rs.getObject(20);
+        assertEquals("5d212a78-cc48-e3b1-4235-b4d91473ee82", str3);
         rs.next();
-        UUID str4 = (UUID)rs.getObject(20);
-        assertEquals(UUID.fromString("5d212a78-cc48-e3b1-4235-b4d91473ee83"), str4);
+        String str4 = (String)rs.getObject(20);
+        assertEquals("5d212a78-cc48-e3b1-4235-b4d91473ee83", str4);
     }
     @Test
     public void Test_getObject_ipaddr() throws SQLException {
@@ -697,7 +694,7 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
-        short  short1 = (short)rs.getObject(3);
+        Short  short1 = (Short)rs.getObject(3);
         assertEquals(null, short1);
     }
     @Test
@@ -706,8 +703,8 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
-        int  short1 =  (int)rs.getObject(5);
-        assertEquals(null, short1);
+        Integer  int1 =  (Integer)rs.getObject(5);
+        assertEquals(null, int1);
     }
     @Test
     public void Test_getObject_long_null() throws SQLException {
@@ -715,7 +712,7 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
-        long long1 = (long)rs.getObject(6);
+        Long long1 = (Long)rs.getObject(6);
         assertEquals(null, long1);
     }
     @Test
@@ -806,7 +803,7 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
-        float float1 = (float)rs.getObject(16);
+        Float float1 = (Float)rs.getObject(16);
         assertEquals(null, float1);
     }
     @Test
@@ -815,7 +812,7 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
-        double double1 = (double)rs.getObject(17);
+        Double double1 = (Double)rs.getObject(17);
         assertEquals(null, double1);
     }
     @Test
@@ -825,7 +822,7 @@ public class JDBCTypeCastTest {
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
         String sym1 = (String)rs.getObject(18);
-        assertEquals("", sym1);
+        assertEquals(null, sym1);
     }
     @Test
     public void Test_getObject_string_null() throws SQLException {
@@ -834,7 +831,7 @@ public class JDBCTypeCastTest {
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
         String str1 = (String)rs.getObject(19);
-        assertEquals("", str1);
+        assertEquals(null, str1);
     }
     @Test
     public void Test_getObject_uuid_null() throws SQLException {
@@ -851,7 +848,7 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
-        LocalDateTime datehour1 = (LocalDateTime) rs.getObject(22);
+        LocalDateTime datehour1 = (LocalDateTime) rs.getObject(21);
         assertEquals(null, datehour1);
     }
     @Test
@@ -860,8 +857,8 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
-        String ipaddr1 = (String)rs.getObject(23);
-        assertEquals(null, ipaddr1);
+        String ipaddr1 = (String)rs.getObject(22);
+        assertEquals("0.0.0.0", ipaddr1);
     }
     @Test
     public void Test_getObject_int128_null() throws SQLException {
@@ -869,7 +866,7 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
-        String int1281 = (String)rs.getObject(24);
+        String int1281 = (String)rs.getObject(23);
         assertEquals(null, int1281);
     }
     @Test
@@ -878,7 +875,7 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
-        String blob1 = (String)rs.getObject(25);
+        String blob1 = (String)rs.getObject(24);
         assertEquals(null, blob1);
     }
     @Test
@@ -887,8 +884,8 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
-        String complex1 = (String)rs.getObject(26);
-        assertEquals("(,)", complex1);
+        String complex1 = (String)rs.getObject(25);
+        assertEquals(null, complex1);
     }
     @Test
     public void Test_getObject_point_null() throws SQLException {
@@ -896,8 +893,8 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
-        String point1 = (String)rs.getObject(27);
-        assertEquals(null, point1);
+        String point1 = (String)rs.getObject(26);
+        assertEquals("(,)", point1);
     }
     @Test
     public void Test_getObject_decimal32_null() throws SQLException {
@@ -905,7 +902,7 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
-        BigDecimal decimal321 = (BigDecimal)rs.getObject(28);
+        BigDecimal decimal321 = (BigDecimal)rs.getObject(27);
         assertEquals(null, decimal321);
     }
 
@@ -915,7 +912,7 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
-        BigDecimal decimal641 = (BigDecimal)rs.getObject(29);
+        BigDecimal decimal641 = (BigDecimal)rs.getObject(28);
         assertEquals(null, decimal641);
     }
     @Test
@@ -924,7 +921,7 @@ public class JDBCTypeCastTest {
         //读取内存表到RecordSet
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
-        BigDecimal decimal1281 = (BigDecimal)rs.getObject(30);
+        BigDecimal decimal1281 = (BigDecimal)rs.getObject(29);
         assertEquals(null, decimal1281);
     }
 
