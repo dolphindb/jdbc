@@ -187,7 +187,7 @@ public class JDBCUpdateTest {
     public void testUpdateDouble() throws SQLException {
         createTable();
         PreparedStatement s = conn.prepareStatement("update trade set double = ?");
-        s.setObject(1,1.111);
+        s.setObject(1,1.111f);
         s.execute();
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
@@ -248,9 +248,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(tmp_month,rs.getObject(11));
+        org.junit.Assert.assertEquals(YearMonth.of(2021,1),rs.getObject(11));
         rs.next();
-        org.junit.Assert.assertEquals(tmp_month,rs.getObject(11));
+        org.junit.Assert.assertEquals(YearMonth.of(2021,1),rs.getObject(11));
     }
 
     @Test
@@ -277,9 +277,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(tmp_minute,rs.getObject(13));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1),rs.getObject(13));
         rs.next();
-        org.junit.Assert.assertEquals(tmp_minute,rs.getObject(13));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1),rs.getObject(13));
     }
 
     @Test
@@ -292,9 +292,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(tmp_second,rs.getObject(14));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1),rs.getObject(14));
         rs.next();
-        org.junit.Assert.assertEquals(tmp_second,rs.getObject(14));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1),rs.getObject(14));
     }
 
     @Test
@@ -307,9 +307,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(tmp_datetime,rs.getObject(15));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject(15));
         rs.next();
-        org.junit.Assert.assertEquals(tmp_datetime,rs.getObject(15));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject(15));
     }
 
     @Test
@@ -322,9 +322,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(tmp_timestamp,rs.getObject(16));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,1),rs.getObject(16));
         rs.next();
-        org.junit.Assert.assertEquals(tmp_timestamp,rs.getObject(16));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,1),rs.getObject(16));
     }
 
     @Test
@@ -337,9 +337,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(tmp_nanotime,rs.getObject(17));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,001),rs.getObject(17));
         rs.next();
-        org.junit.Assert.assertEquals(tmp_nanotime,rs.getObject(17));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,001),rs.getObject(17));
     }
 
     @Test
@@ -352,9 +352,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(tmp_nanotimestamp,rs.getObject(18));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject(18));
         rs.next();
-        org.junit.Assert.assertEquals(tmp_nanotimestamp,rs.getObject(18));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject(18));
     }
 
     @Test
@@ -367,9 +367,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(tmp_datehour,rs.getObject(19));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject(19));
         rs.next();
-        org.junit.Assert.assertEquals(tmp_datehour,rs.getObject(19));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject(19));
     }
 
     @Test
@@ -382,9 +382,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(uuids,rs.getObject(20));
+        org.junit.Assert.assertEquals("00000000-0000-0001-0000-000000000002",rs.getObject(20));
         rs.next();
-        org.junit.Assert.assertEquals(uuids,rs.getObject(20));
+        org.junit.Assert.assertEquals("00000000-0000-0001-0000-000000000002",rs.getObject(20));
     }
 
     @Test
@@ -397,9 +397,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(ipaddrs,rs.getObject(21));
+        org.junit.Assert.assertEquals("0::1:0:0:0:2",rs.getObject(21));
         rs.next();
-        org.junit.Assert.assertEquals(ipaddrs,rs.getObject(21));
+        org.junit.Assert.assertEquals("0::1:0:0:0:2",rs.getObject(21));
     }
 
     @Test
@@ -412,9 +412,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(int128,rs.getObject(22));
+        org.junit.Assert.assertEquals("00000000000000010000000000000002",rs.getObject(22));
         rs.next();
-        org.junit.Assert.assertEquals(int128,rs.getObject(22));
+        org.junit.Assert.assertEquals("00000000000000010000000000000002",rs.getObject(22));
     }
 
     @Test
@@ -441,9 +441,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(complexs,rs.getObject(24));
+        org.junit.Assert.assertEquals("10.0+10.0i",rs.getObject(24));
         rs.next();
-        org.junit.Assert.assertEquals(complexs,rs.getObject(24));
+        org.junit.Assert.assertEquals("10.0+10.0i",rs.getObject(24));
     }
 
     @Test
@@ -480,9 +480,9 @@ public class JDBCUpdateTest {
         s.execute();
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
-        org.junit.Assert.assertEquals(point,rs.getObject(25));
+        org.junit.Assert.assertEquals("(0.0, 0.0)",rs.getObject(25));
         rs.next();
-        org.junit.Assert.assertEquals(point,rs.getObject(25));
+        org.junit.Assert.assertEquals("(0.0, 0.0)",rs.getObject(25));
     }
 
     @Test
