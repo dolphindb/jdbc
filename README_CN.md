@@ -20,13 +20,13 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
 
 下面通过几个示例程序来展示以上三个对象的使用方法。
 
-使用前，可以通过 maven 引入 JDBC：以 1.30.17.1 版本为例：
+使用前，可以通过 maven 引入 JDBC：以 1.30.22.1 版本为例：
 
 ```xml
 <dependency>
     <groupId>com.dolphindb</groupId>
     <artifactId>jdbc</artifactId>
-    <version>1.30.17.1</version>
+    <version>1.30.22.1</version>
 </dependency>
 ```
 
