@@ -29,7 +29,7 @@ You can use the following Maven dependency to import JDBC. For example:
 <dependency>
     <groupId>com.dolphindb</groupId>
     <artifactId>jdbc</artifactId>
-    <version>1.30.17.1</version>
+    <version>1.30.22.1</version>
 </dependency>
 ```
 
