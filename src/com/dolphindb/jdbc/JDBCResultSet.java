@@ -187,7 +187,7 @@ public class JDBCResultSet implements ResultSet{
         switch (x){
             case DT_BOOL:
                 try {
-                    return ((BasicBoolean) entity).booleanValue();
+                    return entity.getString().equals ("") ? null : ((BasicBoolean) entity).booleanValue();
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -212,7 +212,7 @@ public class JDBCResultSet implements ResultSet{
                     throw new RuntimeException(e);
                 }
             case DT_DATE:
-                return java.sql.Date.valueOf(((BasicDate) entity).getDate());
+                return entity.getString().equals("") ? null : java.sql.Date.valueOf(((BasicDate) entity).getDate());
             case DT_TIME:
                 return java.sql.Time.valueOf(((BasicTime) entity).getTime());
             case DT_DATETIME:
@@ -262,23 +262,15 @@ public class JDBCResultSet implements ResultSet{
             case DT_DECIMAL32:
             case DT_DECIMAL64:
             case DT_DECIMAL128:
-                try {
-                    if (entity.getString().equals("")) {
-                        return null;
-                    } else {
-                        return new BigDecimal(entity.getString());
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
+                return entity.getString().equals("") ? null : new BigDecimal(entity.getString());
             default:
                 return entity;
         }
     }
 
     @Override
-    public String getString(int columnIndex) throws SQLException{
-        return getObject(columnIndex).toString();
+    public String getString(int columnIndex) throws SQLException {
+        return getObject(columnIndex) == null ? null : getObject(columnIndex).toString();
     }
 
     @Override
