@@ -263,7 +263,11 @@ public class JDBCResultSet implements ResultSet{
             case DT_DECIMAL64:
             case DT_DECIMAL128:
                 try {
-                    return new BigDecimal(entity.getString());
+                    if (entity.getString().equals("")) {
+                        return null;
+                    } else {
+                        return new BigDecimal(entity.getString());
+                    }
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }

@@ -174,9 +174,9 @@ public class JDBCConnection implements Connection {
 					String tablename = prop.getProperty("tableName");
 					tablename = tablename.trim();
 					String[] tableNames = tablename.split(",");
-					for (int i = 0; i < tableNames.length; i++) {
-						if(!tableNames[i].isEmpty())
-							dbtables.add(tableNames[i]);
+					for (String tableName : tableNames) {
+						if (!tableName.isEmpty())
+							dbtables.add(tableName);
 					}
 					String script=loadTables(this.databases,dbtables,false);
 					sbInitScript.append(script);
