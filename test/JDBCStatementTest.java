@@ -1662,7 +1662,7 @@ public class JDBCStatementTest {
 		}
 	}
 
-	@Test
+	@Test(timeout = 120000)
 	public void test_JDBCStatement_BigData_outer_join() throws IOException {
 		DBConnection db = new DBConnection();
 		db.connect(HOST,PORT,"admin","123456");
@@ -1811,7 +1811,7 @@ public class JDBCStatementTest {
 		}
 	}
 
-	@Test
+	@Test(timeout = 120000)
 	public void test_JDBCStatement_DFS_bigdata() throws IOException {
 		DBConnection db = new DBConnection();
 		db.connect(HOST,PORT,"admin","123456");
