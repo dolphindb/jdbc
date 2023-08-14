@@ -23,9 +23,7 @@ import com.xxdb.DBConnection;
 import com.xxdb.comm.SqlStdEnum;
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
+import org.junit.*;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -705,5 +703,71 @@ public class JDBCConnectionTest {
 		conn1 = DriverManager.getConnection(url);
 		//conn1.equals(true);
 		conn1.close();
+	}
+	@Ignore
+	public void Test_getConnection_enableHighAvailability_true_6() throws SQLException, ClassNotFoundException, IOException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		int count1 = 0;
+		int count2 = 0;
+		int count3 = 0;
+		int count4 = 0;
+		List<DBConnection> list = new ArrayList<>();
+		for (int i = 0; i < 160; i++) {
+			DBConnection connection = new DBConnection();
+			connection.connect("192.168.1.167", 18921, "admin", "123456");
+			list.add(connection);
+		}
+		List<DBConnection> list1 = new ArrayList<>();
+		for (int i = 0; i < 160; i++) {
+			DBConnection connection1 = new DBConnection();
+			connection1.connect("192.168.1.167", 18922, "admin", "123456");
+			list1.add(connection1);
+		}
+		List<DBConnection> list2 = new ArrayList<>();
+		for (int i = 0; i < 160; i++) {
+			DBConnection connection2 = new DBConnection();
+			connection2.connect("192.168.1.167", 18923, "admin", "123456");
+			list2.add(connection2);
+		}
+//		List<DBConnection> list3 = new ArrayList<>();
+//		for (int i = 0; i < 460; i++) {
+//			DBConnection connection3 = new DBConnection();
+//			connection3.connect("192.168.1.167", 18924, "admin", "123456");
+//			list3.add(connection3);
+//		}
+
+		for (int i = 0; i < 10; i++) {
+			for (int x = 3; x >= 0; x--) {
+				String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=true&highAvailabilitySites=" + SITES;
+				Class.forName(JDBC_DRIVER);
+				conn = DriverManager.getConnection(url);
+				Statement stmt = null;
+				Statement s = conn.createStatement();
+				JDBCResultSet rs1 = (JDBCResultSet) s.executeQuery("getNodePort()");
+				int now_port = Integer.valueOf(rs1.getResult().toString());
+				switch (now_port) {
+					case 18921:
+						count1++;
+						break;
+					case 18922:
+						count2++;
+						break;
+					case 18923:
+						count3++;
+						break;
+					case 18924:
+						count4++;
+						break;
+				}
+
+
+			}
+		}
+		System.out.println(count1);
+		System.out.println(count2);
+		System.out.println(count3);
+		System.out.println(count4);
+		System.out.println("-----------");
+
 	}
 }

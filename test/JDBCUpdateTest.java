@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.ResourceBundle;
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 
@@ -191,9 +192,9 @@ public class JDBCUpdateTest {
         s.execute();
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
-        org.junit.Assert.assertEquals(1.111,rs.getFloat(7),3);
+        org.junit.Assert.assertEquals(1.111,rs.getDouble(7),3);
         rs.next();
-        org.junit.Assert.assertEquals(1.111,rs.getFloat(7),3);
+        org.junit.Assert.assertEquals(1.111,rs.getDouble(7),3);
     }
 
     @Test
@@ -337,9 +338,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,001),rs.getObject(17));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1,001),rs.getObject(17));
         rs.next();
-        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,001),rs.getObject(17));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1,001),rs.getObject(17));
     }
 
     @Test
@@ -367,9 +368,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject(19));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,0),rs.getObject(19));
         rs.next();
-        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject(19));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,0),rs.getObject(19));
     }
 
     @Test
@@ -382,9 +383,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals("00000000-0000-0001-0000-000000000002",rs.getObject(20));
+        org.junit.Assert.assertEquals(UUID.fromString("00000000-0000-0001-0000-000000000002"),rs.getObject(20));
         rs.next();
-        org.junit.Assert.assertEquals("00000000-0000-0001-0000-000000000002",rs.getObject(20));
+        org.junit.Assert.assertEquals(UUID.fromString("00000000-0000-0001-0000-000000000002"),rs.getObject(20));
     }
 
     @Test

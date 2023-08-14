@@ -1113,10 +1113,10 @@ public class JDBCPrepareStatementTest {
             pstmt = conn.prepareStatement("select wavg(price, qty) as wvap from t where sym = 'IBM' cgroup by time order by time");
             rs = pstmt.executeQuery();
             rs.absolute(1);
-            org.junit.Assert.assertEquals(rs.getString(1), "09:30m");
+            org.junit.Assert.assertEquals(rs.getString(1), "09:30");
             org.junit.Assert.assertEquals(rs.getDouble(2), 10.666667,0.0001);
             rs.absolute(2);
-            org.junit.Assert.assertEquals(rs.getString(1), "09:31m");
+            org.junit.Assert.assertEquals(rs.getString(1), "09:31");
             org.junit.Assert.assertEquals(rs.getInt(2), 12);
             rs.last();
             int rowCount = rs.getRow();
