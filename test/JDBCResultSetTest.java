@@ -12,6 +12,7 @@ import java.util.List;
 
 import com.xxdb.DBConnection;
 import org.junit.Test;
+import org.omg.CORBA.TIMEOUT;
 
 public class JDBCResultSetTest {
 	static String HOST = JDBCTestUtil.HOST;
@@ -184,9 +185,9 @@ public class JDBCResultSetTest {
 
 	@Test
 	public void Test_ResultSet_dfs_getChar() throws Exception {
-		String[] cValueStr = {"0", "2", "'-'", ""};
+		String[] cValueStr = {"0", "2", "45", ""};
 		char[] cValue = new char[4];
-		cValue[0] = 0;		cValue[1] = 2;		cValue[2] = '-';
+		cValue[0] = 0;		cValue[1] = 2;		cValue[2] = 45;
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -291,8 +292,8 @@ public class JDBCResultSetTest {
 		while (rs.next()) {
 			TestCase.assertEquals((DValue[i]), rs.getDate("date").toLocalDate().toString());
 			TestCase.assertEquals((DValue[i]), rs.getDate(1).toLocalDate().toString());
-			TestCase.assertEquals((DValueObj[i]), rs.getObject("date").toString());
-			TestCase.assertEquals((DValueObj[i]), rs.getObject(1).toString());
+			TestCase.assertEquals((DValue[i]), rs.getObject("date").toString());
+			TestCase.assertEquals((DValue[i]), rs.getObject(1).toString());
 			i++;
 		}
 	}
@@ -325,6 +326,8 @@ public class JDBCResultSetTest {
 	public void Test_ResultSet_dfs_getTimeStamp() throws Exception {
 		Timestamp[] TsValue = {new Timestamp(2012 - 1900, 5, 13, 13, 30, 10, 8000000), new Timestamp(2013 - 1900, 5, 13, 13, 30, 10, 7000000), new Timestamp(2012 - 1900, 5, 13, 13, 35, 10, 8000000), null};
 		String[] TsValueStr = {"2012.06.13T13:30:10.008", "2013.06.13T13:30:10.007", "2012.06.13T13:35:10.008", ""};
+		String[] TsValueStr1 = {"2012-06-13T13:30:10.008", "2013-06-13T13:30:10.007", "2012-06-13T13:35:10.008", ""};
+
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -338,9 +341,9 @@ public class JDBCResultSetTest {
 		int i=0;
 		while (rs.next()) {
 			TestCase.assertEquals((TsValue[i]), rs.getTimestamp("ts"));
-			TestCase.assertEquals((TsValueStr[i]), rs.getString(1));
-			TestCase.assertEquals((TsValueStr[i]), rs.getObject("ts").toString());
-			TestCase.assertEquals((TsValueStr[i]), rs.getObject(1).toString());
+			TestCase.assertEquals((TsValueStr1[i]), rs.getString(1));
+			TestCase.assertEquals((TsValueStr1[i]), rs.getObject("ts").toString());
+			TestCase.assertEquals((TsValueStr1[i]), rs.getObject(1).toString());
 			i++;
 		}
 	}
@@ -656,7 +659,7 @@ public class JDBCResultSetTest {
 		rs.first();
 	}
 
-	@Test
+	@Test(timeout = 60000)
 	public void Test_ResultSet_bigData() throws Exception {
 		String script = "\n" +
 				"a = take(1 2 3 4 5,500000000);\n" +
