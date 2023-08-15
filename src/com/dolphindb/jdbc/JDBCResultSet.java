@@ -566,7 +566,7 @@ public class JDBCResultSet implements ResultSet{
 	@Override
     public <T> T getObject(int columnIndex, Class<T> aClass) throws SQLException {
         try {
-            return (T) TypeCast.entity2java((Entity) getObject(columnIndex), aClass.getName());
+            return (T) TypeCast.entity2java(table.getColumn(adjustColumnIndex(columnIndex)).get(row), aClass.getName());
         }catch (Exception e){
             throw new SQLException(e);
         }
