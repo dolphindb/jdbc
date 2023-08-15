@@ -214,7 +214,7 @@ public class JDBCResultSet implements ResultSet{
             case DT_DATE:
                 return entity.getString().equals("") ? null : java.sql.Date.valueOf(((BasicDate) entity).getDate());
             case DT_TIME:
-                return java.sql.Time.valueOf(((BasicTime) entity).getTime());
+                return entity.getString().equals("") ? null : java.sql.Time.valueOf(((BasicTime) entity).getTime());
             case DT_DATETIME:
                 return ((BasicDateTime) entity).getDateTime();
             case DT_TIMESTAMP:
