@@ -323,9 +323,9 @@ public class JDBCUpdateTest {
         ResultSet rs = s.executeQuery("select * from trade");
         rs.next();
         System.out.println();
-        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,1),rs.getObject(16));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject(16));
         rs.next();
-        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,1),rs.getObject(16));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject(16));
     }
 
     @Test

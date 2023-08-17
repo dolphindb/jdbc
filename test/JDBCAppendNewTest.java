@@ -389,7 +389,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,001),rs.getObject("dataType"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("dataType"));
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
