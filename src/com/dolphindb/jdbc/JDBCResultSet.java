@@ -237,7 +237,7 @@ public class JDBCResultSet implements ResultSet{
             case DT_INT128:
             case DT_COMPLEX:
             case DT_POINT:
-                return entity.getString();
+                return entity.getString().equals("") ? null : entity.getString();
             case DT_MONTH:
                 return ((BasicMonth) entity).getMonth();
             case DT_MINUTE:
