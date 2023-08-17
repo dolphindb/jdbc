@@ -1454,7 +1454,7 @@ public class JDBCPrepareStatement {
 		if (pstmt.execute()) {
 			rs=pstmt.getResultSet();
 			while (rs.next()) {
-				org.junit.Assert.assertEquals(10001,rs.getInt(1));
+				org.junit.Assert.assertEquals(10001,rs.getLong(1));
 			}
 		}
 		if (rs != null) {
