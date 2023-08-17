@@ -386,32 +386,16 @@ public class JDBCResultSet implements ResultSet{
     public Time getTime(int columnIndex) throws SQLException {
         Object x = getObject(columnIndex);
         LocalTime time = null;
-        if (x instanceof BasicMinute){
-            time = ((BasicMinute) x).getMinute();
-        }
-        else if (x instanceof BasicSecond){
-            time = ((BasicSecond) x).getSecond();
-        }
-        else if (x instanceof Time) {
+
+        if (x instanceof Time) {
             return (Time) x;
-        }
-        else if (x instanceof LocalTime){
+        } else if (x instanceof LocalTime){
             time = (LocalTime) x;
-        }
-        else if (x instanceof LocalDateTime) {
+        } else if (x instanceof LocalDateTime) {
             time = LocalTime.of(((LocalDateTime) x).getHour(), ((LocalDateTime) x).getMinute(), ((LocalDateTime) x).getSecond());
         }
-        else if (x instanceof BasicNanoTime){
-            time = ((BasicNanoTime) x).getNanoTime();
-        }
-        else if (x instanceof BasicNanoTimestamp) {
-        	LocalDateTime dt = ((BasicNanoTimestamp) x).getNanoTimestamp();
-        	if (dt != null)
-        		time = LocalTime.of(dt.getHour(), dt.getMinute(), dt.getSecond(), dt.getNano());
-        }
-        if (time == null) return null;
 
-        return java.sql.Time.valueOf(time);
+        return Objects.isNull(time) ? null : java.sql.Time.valueOf(time);
     }
 
     @Override
