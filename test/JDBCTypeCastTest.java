@@ -831,7 +831,7 @@ public class JDBCTypeCastTest {
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
         String str1 = (String)rs.getObject(19);
-        assertEquals("", str1);
+        assertEquals(null, str1);
     }
     @Test
     public void Test_getObject_uuid_null() throws SQLException {
@@ -867,7 +867,7 @@ public class JDBCTypeCastTest {
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
         String int1281 = (String)rs.getObject(23);
-        assertEquals("", int1281);
+        assertEquals(null, int1281);
     }
     @Test
     public void Test_getObject_blob_null() throws SQLException {
@@ -876,7 +876,7 @@ public class JDBCTypeCastTest {
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
         String blob1 = (String)rs.getObject(24);
-        assertEquals("", blob1);
+        assertEquals(null, blob1);
     }
     @Test
     public void Test_getObject_complex_null() throws SQLException {
@@ -885,7 +885,7 @@ public class JDBCTypeCastTest {
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
         String complex1 = (String)rs.getObject(25);
-        assertEquals("", complex1);
+        assertEquals(null, complex1);
     }
     @Test
     public void Test_getObject_point_null() throws SQLException {

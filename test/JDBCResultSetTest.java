@@ -128,12 +128,12 @@ public class JDBCResultSetTest {
 
 	@Test
 	public void Test_ResultSet_dfs_getFloat() throws Exception {
-		String[] fValueStr = {"0.102", "-2.2", "301", ""};
-		String[] dValueStr = {"0.102", "-2", "301", ""};
+		String[] fValueStr = {"0.102", "-2.2", "301.0", ""};
+		String[] dValueStr = {"0.102", "-2.0", "301.0", ""};
 		float[] fValue = new float[4];
 		fValue[0] = 0.102f;		fValue[1] = -2.2f;		fValue[2] = 301f;
 		double[] dValue = new double[4];
-		dValue[0] = 0.102;		dValue[1] = -2;		dValue[2] = 301;
+		dValue[0] = 0.102;		dValue[1] = -2.0;		dValue[2] = 301.0;
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -145,15 +145,19 @@ public class JDBCResultSetTest {
 		stmt.execute(script);
 		stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 		rs = stmt.executeQuery("select * from pt ");
-		int i=0;
-		while (rs.next()) {
+		rs.next();
+		for (int i=0;i<3;rs.next()) {
 			TestCase.assertEquals((fValue[i]), rs.getFloat("f1"),3);
-			//TestCase.assertEquals((fValueStr[i]), rs.getString(1));
+			TestCase.assertEquals((fValueStr[i]), rs.getString(1));
 			TestCase.assertEquals((dValue[i]), rs.getDouble("d1"),3);
 			TestCase.assertEquals((dValueStr[i]), rs.getString(2));
 			i++;
 		}
-
+		int i=3;
+		TestCase.assertEquals((fValue[i]), rs.getFloat("f1"),3);
+		TestCase.assertEquals(null, rs.getString(1));
+		TestCase.assertEquals((dValue[i]), rs.getDouble("d1"),3);
+		TestCase.assertEquals(null, rs.getString(2));
 	}
 
 	@Test
@@ -173,14 +177,19 @@ public class JDBCResultSetTest {
 		stmt.execute(script);
 		stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 		rs = stmt.executeQuery("select * from pt ");
-		int i=0;
-		while (rs.next()) {
+		rs.next();
+		for (int i=0;i<3;rs.next()) {
 			TestCase.assertEquals((bValue[i]), rs.getBoolean("bol"));
 			TestCase.assertEquals((bValueStr[i]), rs.getObject("bol").toString());
 			TestCase.assertEquals((bValueStr[i]), rs.getObject(1).toString());
 			TestCase.assertEquals((bValueStr[i]), rs.getString(1));
 			i++;
 		}
+		int i=3;
+		TestCase.assertEquals((bValue[i]), rs.getBoolean("bol"));
+		TestCase.assertEquals(null, rs.getObject("bol"));
+		TestCase.assertEquals(null, rs.getObject(1));
+		TestCase.assertEquals(null, rs.getString(1));
 	}
 
 	@Test
@@ -198,20 +207,26 @@ public class JDBCResultSetTest {
 		stmt.execute(script);
 		stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 		rs = stmt.executeQuery("select * from pt ");
-		int i=0;
-		while (rs.next()) {
+		rs.next();
+		for (int i=0;i<3;rs.next()) {
 			TestCase.assertEquals((cValue[i]), rs.getByte("char"));
 			TestCase.assertEquals((cValueStr[i]), rs.getString(1));
 			TestCase.assertEquals((cValueStr[i]), rs.getObject("char").toString());
 			TestCase.assertEquals((cValueStr[i]), rs.getObject(1).toString());
 			i++;
 		}
+		int i=3;
+		TestCase.assertEquals((cValue[i]), rs.getByte("char"));
+		TestCase.assertEquals(null, rs.getString(1));
+		TestCase.assertEquals(null, rs.getObject("char"));
+		TestCase.assertEquals(null, rs.getObject(1));
+
 	}
 
 	@Test
 	public void Test_ResultSet_dfs_getInt() throws Exception {
 		String[] sValueStr = {"0", "-2", "301", ""};
-		String[] iValueStr = {"1", "2", "3", "4"};
+		String[] iValueStr = {"1", "2", "3", ""};
 		String[] lValueStr = {"0", "-2", "301", ""};
 		short[] sValue = new short[4];
 		sValue[0] = 0;		sValue[1] = -2;		sValue[2] = 301;
@@ -224,7 +239,7 @@ public class JDBCResultSetTest {
 		stmt = conn.createStatement();
 		String script = "\n" +
 				"f=short(0 -2 301 NULL);\n" +
-				"g=int(1 2 3 4);\n" +
+				"g=int(1 2 3 NULL);\n" +
 				"h=long(0 -2 301 NULL);" +
 				"t= table(f as s,g as i,h as l);\n" +
 				"db =database(\"" + PATH + "/db1\");\n" +
@@ -232,8 +247,8 @@ public class JDBCResultSetTest {
 		stmt.execute(script);
 		stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 		rs = stmt.executeQuery("select * from pt ");
-		int i=0;
-		while (rs.next()) {
+		rs.next();
+		for (int i=0;i<3;rs.next()) {
 			TestCase.assertEquals((sValue[i]), rs.getShort("s"));
 			TestCase.assertEquals((sValueStr[i]), rs.getString(1));
 			TestCase.assertEquals((iValue[i]), rs.getInt("i"));
@@ -248,6 +263,19 @@ public class JDBCResultSetTest {
 			TestCase.assertEquals((lValueStr[i]), rs.getObject(3).toString());
 			i++;
 		}
+		int i=3;
+		TestCase.assertEquals((sValue[i]), rs.getShort("s"));
+		TestCase.assertEquals(null, rs.getString(1));
+		TestCase.assertEquals(0, rs.getInt("i"));
+		TestCase.assertEquals(null, rs.getString(2));
+		TestCase.assertEquals((lValue[i]), rs.getLong("l"));
+		TestCase.assertEquals(null, rs.getString(3));
+		TestCase.assertEquals(null, rs.getObject("s"));
+		TestCase.assertEquals(null, rs.getObject(1));
+		TestCase.assertEquals(null, rs.getObject("i"));
+		TestCase.assertEquals(null, rs.getObject(2));
+		TestCase.assertEquals(null, rs.getObject("l"));
+		TestCase.assertEquals(null, rs.getObject(3));
 	}
 
 	@Test
@@ -263,15 +291,19 @@ public class JDBCResultSetTest {
 		stmt.execute(script);
 		stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 		rs = stmt.executeQuery("select * from pt ");
-		int i=0;
-		while (rs.next()) {
-
+		rs.next();
+		for (int i=0;i<3;rs.next()) {
 			TestCase.assertEquals((StrValue[i]), rs.getString("str"));
 			TestCase.assertEquals((StrValue[i]), rs.getString(1));
 			TestCase.assertEquals((StrValue[i]), rs.getObject("str").toString());
 			TestCase.assertEquals((StrValue[i]), rs.getObject(1).toString());
 			i++;
 		}
+		int i=3;
+		TestCase.assertEquals(null, rs.getString("str"));
+		TestCase.assertEquals(null, rs.getString(1));
+		TestCase.assertEquals(null, rs.getObject("str"));
+		TestCase.assertEquals(null, rs.getObject(1));
 	}
 
 	@Test
@@ -300,26 +332,31 @@ public class JDBCResultSetTest {
 
 	@Test
 	public void Test_ResultSet_dfs_getTime() throws Exception {
-		Time[] TValue = {new Time(0, 0, 0), null, new Time(13, 41, 39), new Time(13, 41, 29)};
-		String[] TValueStr = {"00:00:00.000", "", "13:41:39.989", "13:41:29.989"};
+		Time[] TValue = {new Time(0, 0, 0), new Time(13, 41, 39), new Time(13, 41, 29), null};
+		String[] TValueStr = {"00:00:00", "13:41:39", "13:41:29",""};
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
-		String script = "m=[00:00:00.000,NULL,13:41:39.989,13:41:29.989];\n" +
+		String script = "m=[00:00:00.000,13:41:39.989,13:41:29.989,NULL];\n" +
 				"t= table(m as time);\n" +
 				"db =database(\"" + PATH + "/db1\");\n" +
 				"saveTable(db,t,`tb)";
 		stmt.execute(script);
-		stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
+		stmt.execute("pt=loadTable('" + PATH + "/db1', 'tb')");
 		rs = stmt.executeQuery("select * from pt ");
-		int i=0;
-		while (rs.next()) {
+		rs.next();
+		for (int i = 0; i < 3; rs.next()) {
 			TestCase.assertEquals((TValue[i]), rs.getTime("time"));
 			TestCase.assertEquals((TValueStr[i]), rs.getString(1));
 			TestCase.assertEquals((TValueStr[i]), rs.getObject("time").toString());
 			TestCase.assertEquals((TValueStr[i]), rs.getObject(1).toString());
 			i++;
 		}
+		int i = 3;
+		TestCase.assertEquals((TValue[i]), rs.getTime("time"));
+		TestCase.assertEquals(null, rs.getString(1));
+		TestCase.assertEquals(null, rs.getObject("time"));
+		TestCase.assertEquals(null, rs.getObject(1));
 	}
 
 	@Test
@@ -338,14 +375,20 @@ public class JDBCResultSetTest {
 		stmt.execute(script);
 		stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 		rs = stmt.executeQuery("select * from pt ");
-		int i=0;
-		while (rs.next()) {
+		rs.next();
+		for (int i=0;i<3;rs.next()) {
 			TestCase.assertEquals((TsValue[i]), rs.getTimestamp("ts"));
 			TestCase.assertEquals((TsValueStr1[i]), rs.getString(1));
 			TestCase.assertEquals((TsValueStr1[i]), rs.getObject("ts").toString());
 			TestCase.assertEquals((TsValueStr1[i]), rs.getObject(1).toString());
 			i++;
 		}
+		int i=3;
+		TestCase.assertEquals((TsValue[i]), rs.getTimestamp("ts"));
+		TestCase.assertEquals(null, rs.getString(1));
+		TestCase.assertEquals(null, rs.getObject("ts"));
+		TestCase.assertEquals(null, rs.getObject(1));
+
 	}
 
 	@Test
@@ -380,22 +423,22 @@ public class JDBCResultSetTest {
 
 	@Test
 	public void Test_ResultSet_dfs_getDateTime() throws Exception {
-		String[] DtValueStr = {"2012.06.13T13:30:10", "", "2013.04.13T13:30:10", "2012.06.14T13:34:50"};
-		String[] DtValueDate = {"2012-06-13", "", "2013-04-13", "2012-06-14"};
-		String[] DtValueTime = {"13:30:10", "", "13:30:10", "13:34:50"};
+		String[] DtValueStr = {"2012-06-13T13:30:10", "2013-04-13T13:30:10", "2012-06-14T13:34:50", ""};
+		String[] DtValueDate = {"2012-06-13", "2013-04-13", "2012-06-14", ""};
+		String[] DtValueTime = {"13:30:10", "13:30:10", "13:34:50", ""};
 
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
-		String script = "q=[2012.06.13 13:30:10,,2013.04.13 13:30:10,2012.06.14 13:34:50];\n" +
+		String script = "q=[2012.06.13 13:30:10,2013.04.13 13:30:10,2012.06.14 13:34:50,];\n" +
 				"t= table(q as dt);\n" +
 				"db =database(\"" + PATH + "/db1\");\n" +
 				"saveTable(db,t,`tb)";
 		stmt.execute(script);
 		stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 		rs = stmt.executeQuery("select * from pt ");
-		int i=0;
-		while (rs.next()) {
+		rs.next();
+		for (int i=0;i<3;rs.next()) {
 				if (rs.getDate(1) != null) {
 					TestCase.assertEquals(DtValueDate[i], rs.getDate(1).toLocalDate().toString());
 					TestCase.assertEquals(DtValueTime[i], rs.getTime(1).toString());
@@ -405,13 +448,17 @@ public class JDBCResultSetTest {
 			TestCase.assertEquals((DtValueStr[i]), rs.getObject(1).toString());
 			i++;
 		}
+		int i=3;
+		TestCase.assertEquals(null, rs.getString("dt"));
+		TestCase.assertEquals(null, rs.getObject("dt"));
+		TestCase.assertEquals(null, rs.getObject(1));
 	}
 
 	@Test
 	public void Test_ResultSet_dfs_getMinute() throws Exception {
-		String[] MinValueStr = {"13:30m", "14:32m", "11:38m", ""};
-		long[] MinValueL = new long[4];
-		MinValueL[0] = 810;		MinValueL[1] = 872;		MinValueL[2] = 698;
+		String[] MinValueStr = {"13:30", "14:32", "11:38", ""};
+		LocalTime[] SeValueL = new LocalTime[4];
+		SeValueL[0] = LocalTime.of(13,30,00);		SeValueL[1] = LocalTime.of(14,32,00);		SeValueL[2] = LocalTime.of(11,38,00);
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -422,21 +469,26 @@ public class JDBCResultSetTest {
 		stmt.execute(script);
 		stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 		rs = stmt.executeQuery("select * from pt ");
-		int i=0;
-		while (rs.next()) {
-			TestCase.assertEquals(((MinValueL[i])), rs.getLong(1));
+		rs.next();
+		for (int i=0;i<3;rs.next()) {
+			TestCase.assertEquals((java.sql.Time.valueOf(SeValueL[i])), rs.getTime(1));
 			TestCase.assertEquals((MinValueStr[i]), rs.getString("min"));
 			TestCase.assertEquals((MinValueStr[i]), rs.getObject("min").toString());
 			TestCase.assertEquals((MinValueStr[i]), rs.getObject(1).toString());
 			i++;
 		}
+		int i=3;
+		TestCase.assertEquals(((SeValueL[i])), rs.getTime(1));
+		TestCase.assertEquals(null, rs.getString("min"));
+		TestCase.assertEquals(null, rs.getObject("min"));
+		TestCase.assertEquals(null, rs.getObject(1));
 	}
 
 	@Test
 	public void Test_ResultSet_dfs_getSecond() throws Exception {
 		String[] SeValueStr = {"13:30:10", "13:32:10", "13:30:13", ""};
-		long[] SeValueL = new long[4];
-		SeValueL[0] = 48610;		SeValueL[1] = 48730;		SeValueL[2] = 48613;
+		LocalTime[] SeValueL = new LocalTime[4];
+		SeValueL[0] = LocalTime.of(13,30,10);		SeValueL[1] = LocalTime.of(13,32,10);		SeValueL[2] = LocalTime.of(13,30,13);
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -447,28 +499,38 @@ public class JDBCResultSetTest {
 		stmt.execute(script);
 		stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 		rs = stmt.executeQuery("select * from pt ");
-		int i=0;
-		while (rs.next()) {
-			TestCase.assertEquals(((SeValueL[i])), rs.getLong(1));
+		rs.next();
+		for (int i=0;i<3;rs.next()) {
+			TestCase.assertEquals((java.sql.Time.valueOf(SeValueL[i])), rs.getTime(1));
 			TestCase.assertEquals((SeValueStr[i]), rs.getString("sec"));
 			TestCase.assertEquals((SeValueStr[i]), rs.getObject("sec").toString());
 			TestCase.assertEquals((SeValueStr[i]), rs.getObject(1).toString());
 			i++;
 		}
+		int i=3;
+		TestCase.assertEquals(null, rs.getTime(1));
+		TestCase.assertEquals(null, rs.getString("sec"));
+		TestCase.assertEquals(null, rs.getObject("sec"));
+		TestCase.assertEquals(null, rs.getObject(1));
 	}
 
 	@Test
 	public void Test_ResultSet_dfs_getNanotime() throws Exception {
-		String[] NanoSValueStr = {"2012.06.13T13:30:10.008007006", "2013.06.14T12:36:10.003007006", "2002.06.14T13:35:12.058007006", ""};
-		long[] NanoSValueL = new long[4];
-		NanoSValueL[0] = 1339594210008007006l;		NanoSValueL[1] = 1371213370003007006l;		NanoSValueL[2] = 1024061712058007006l;
-		String[] NanoTValueStr = {"13:30:10.008007006", "13:31:12.008002006", "", "13:32:10.008207006"};
-		long[] NanoTValueL = new long[4];
-		NanoTValueL[0] = 48610008007006l;		NanoTValueL[1] = 48672008002006l;		NanoTValueL[3] = 48730008207006l;
+		String[] NanoSValueStr = {"2012-06-13T13:30:10.008007006", "2013-06-14T12:36:10.003007006", "2002-06-14T13:35:12.058007006", ""};
+		String[] NanoSValueL = {"2012-06-13 13:30:10.008007006", "2013-06-14 12:36:10.003007006", "2002-06-14 13:35:12.058007006", ""};
+		LocalDateTime[] NanoSValueL1 = new LocalDateTime[4];
+		NanoSValueL1[0] = LocalDateTime.of(2012,6,13,13,30,10,8007006);
+		NanoSValueL1[1] = LocalDateTime.of(2013,06,14,12,36,10,3007006);
+		NanoSValueL1[2] = LocalDateTime.of(2002,06,14,13,35,12,58007006);
+		String[] NanoTValueStr = {"13:30:10.008007006", "13:31:12.008002006", "13:32:10.008207006", ""};
+		LocalTime[] NanoTValueL = new LocalTime[4];
+		NanoTValueL[0] = LocalTime.of(13,30,10,8007006);
+		NanoTValueL[1] = LocalTime.of(13,31,12,8002006);
+		NanoTValueL[3] = LocalTime.of(13,32,10,8207006);
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
-		String script = "u=13:30:10.008007006 13:31:12.008002006 NULL 13:32:10.008207006\n" +
+		String script = "u=13:30:10.008007006 13:31:12.008002006  13:32:10.008207006 NULL\n" +
 				"q=[2012.06.13 13:30:10.008007006,2013.06.14 12:36:10.003007006,2002.06.14 13:35:12.058007006,]\n" +
 				"t= table(u as nanoT,q as nanoTS);\n" +
 				"db =database(\"" + PATH + "/db1\");\n" +
@@ -476,11 +538,11 @@ public class JDBCResultSetTest {
 		stmt.execute(script);
 		stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 		rs = stmt.executeQuery("select * from pt ");
-		int i=0;
-		while (rs.next()) {
-			TestCase.assertEquals(((NanoSValueL[i])), rs.getLong(2));
+		rs.next();
+		for (int i=0;i<3;rs.next()) {
+			TestCase.assertEquals(((NanoSValueL[i])), rs.getTimestamp(2).toString());
 			TestCase.assertEquals((NanoSValueStr[i]), rs.getString("nanoTS"));
-			TestCase.assertEquals(((NanoTValueL[i])), rs.getLong(1));
+			//TestCase.assertEquals(((NanoTValueL[i])), rs.getTime(1));
 			TestCase.assertEquals((NanoTValueStr[i]), rs.getString("nanoT"));
 			TestCase.assertEquals(((NanoSValueStr[i])), rs.getObject(2).toString());
 			TestCase.assertEquals((NanoSValueStr[i]), rs.getObject("nanoTS").toString());
@@ -489,6 +551,15 @@ public class JDBCResultSetTest {
 			//System.out.println(rs.getType());
 			i++;
 		}
+		int i=3;
+		TestCase.assertEquals(null, rs.getTime(2));
+		TestCase.assertEquals(null, rs.getString("nanoTS"));
+		TestCase.assertEquals(null, rs.getTimestamp(1));
+		TestCase.assertEquals(null, rs.getString("nanoT"));
+		TestCase.assertEquals(null, rs.getObject(2));
+		TestCase.assertEquals(null, rs.getObject("nanoTS"));
+		TestCase.assertEquals(null, rs.getObject(1));
+		TestCase.assertEquals(null, rs.getObject("nanoT"));
 	}
 
 	@Test

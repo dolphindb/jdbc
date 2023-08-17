@@ -85,7 +85,7 @@ public class JDBCPreLoadTest {
                     "pt.append!(t);\n" +
                     "dt.append!(t2);\n" +
                     name+".append!(t3);";
-            String script2 = "n = 50080000\n" +
+            String script2 = "n = 500800\n" +
                     "date = take(2006.01.01..2006.01.31,n);\n" +
                     "de = rand(30.0,n)\n" +
                     "t3 = table(date,de)\n" +
