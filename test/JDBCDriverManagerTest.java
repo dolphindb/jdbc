@@ -333,6 +333,13 @@ public class JDBCDriverManagerTest {
 		boolean connected = CreateConnection1(url1);
 		org.junit.Assert.assertTrue(connected);
 	}
+	@Test
+	public void Test_Driver() throws Exception {
+		String url1 = "jdbc:dolphindb://"+HOST+":"+PORT;
+		Driver a = DriverManager.getDriver(url1);
+		boolean re = a.acceptsURL(url1);
+		org.junit.Assert.assertTrue(re);
+	}
     @After
     public void Destroy(){
         LOGININFO = null;

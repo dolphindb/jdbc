@@ -822,7 +822,7 @@ public class JDBCTypeCastTest {
         ResultSet rs = stm.executeQuery("select * from tb_null");
         rs.next();
         String sym1 = (String)rs.getObject(18);
-        assertEquals("", sym1);
+        assertEquals(null, sym1);
     }
     @Test
     public void Test_getObject_string_null() throws SQLException {
