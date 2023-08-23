@@ -76,25 +76,6 @@ public class JDBCResultSet implements ResultSet{
                 }
             }
         }
-//        if(sql == null || sql.length() == 0){
-//            this.isUpdatable = false;
-//        }else{
-//            this.isUpdatable = Utils.isUpdatable(sql);
-//
-//            if(this.isUpdatable){
-//                this.tableName = Utils.getTableName(sql);
-//                if(Utils.isUpdatable(this.tableName)){
-//                    String s = run("typestr " + tableName).getString();
-//                    if(!s.equals("IN-MEMORY TABLE")){
-//                        this.isUpdatable = false;
-//                    }else{
-//                        tableNameArg = new BasicString(tableName);
-//                    }
-//                }
-//            }else{
-//                this.tableName = "";
-//            }
-//        }
     }
 
     public JDBCResultSet(JDBCConnection conn, JDBCStatement statement, EntityBlockReader reader, String sql) throws SQLException{
@@ -134,7 +115,7 @@ public class JDBCResultSet implements ResultSet{
     @Override
     public boolean next() throws SQLException {
         if(this.getFetchSize() != 0) {
-            // 当未读取到大表分段或者读取分段的行数超过限定时，尝试读取下一分段
+            // When no segments of the large table have been read or when the number of rows read from a segment exceeds the limit, an attempt is made to read the next segment.
             if(this.table == null || row >= rows - 1) {
                 try {
                     if(!this.reader.hasNext()) return false;
@@ -171,11 +152,10 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public boolean wasNull() throws SQLException {
-        if (Objects.nonNull(o)) {
+        if (Objects.nonNull(o))
             return ((Scalar) o).isNull();
-        } else {
+        else
             return true;
-        }
     }
 
     @Override
@@ -252,11 +232,10 @@ public class JDBCResultSet implements ResultSet{
                 return entity.getString();
             case DT_UUID:
                 String string = entity.getString();
-                if (string.isEmpty()) {
+                if (string.isEmpty())
                     return null;
-                } else {
+                else
                     return UUID.fromString(string);
-                }
             case DT_DATEHOUR:
                 return ((BasicDateHour) entity).getDateHour();
             case DT_DECIMAL32:
