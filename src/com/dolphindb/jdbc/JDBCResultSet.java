@@ -229,7 +229,7 @@ public class JDBCResultSet implements ResultSet{
             case DT_NANOTIMESTAMP:
                 return ((BasicNanoTimestamp) entity).getNanoTimestamp();
             case DT_SYMBOL:
-                return entity.getString();
+                return entity.getString().equals("") ? null : entity.getString();
             case DT_UUID:
                 String string = entity.getString();
                 if (string.isEmpty())
