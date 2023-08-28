@@ -334,7 +334,12 @@ public class JDBCStatement implements Statement {
 
             }
 
-            return !objectQueue.isEmpty() && objectQueue.poll() instanceof ResultSet;
+            if (objectQueue.isEmpty()) {
+                return false;
+            } else {
+                result = objectQueue.poll();
+                return result instanceof ResultSet;
+            }
         } else
             strings = sql.split(";");
 
@@ -370,7 +375,12 @@ public class JDBCStatement implements Statement {
             }
         }
 
-        return !objectQueue.isEmpty() && objectQueue.poll() instanceof ResultSet;
+        if (objectQueue.isEmpty()) {
+            return false;
+        }else {
+            result = objectQueue.poll();
+            return result instanceof ResultSet;
+        }
     }
 
     @Override
