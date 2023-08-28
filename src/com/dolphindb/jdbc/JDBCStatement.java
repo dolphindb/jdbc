@@ -110,42 +110,40 @@ public class JDBCStatement implements Statement {
             case Utils.DML_INSERT:
             case Utils.DML_UPDATE:
             case Utils.DML_DELETE:
-                throw new SQLException("the given SQL statement produces anything other than a single ResultSet object");
+                throw new SQLException("The given SQL statement produces anything other than a single ResultSet object.");
             case Utils.DML_SELECT:
             case Utils.DML_EXEC:
             case Utils.DML_OTHER:
                 try {
                     if(this.fetchSize != 0) {
-                        if(fetchSize < 8192) {
-                            throw new SQLException("fetchSize must be greater than 8192");
+                        if (fetchSize < 8192) {
+                            throw new SQLException("The fetchSize param must be greater than 8192.");
                         }
                         entity = connection.run(sql, fetchSize);
-                    }
-                    else {
+                    } else {
                         entity = connection.run(sql);
                     }
-                    if(entity instanceof BasicTable){
+
+                    if (entity instanceof BasicTable) {
                         resultSet = new JDBCResultSet(connection, this, entity, sql);
                         return resultSet;
-                    }else if(entity instanceof EntityBlockReader) {
+                    } else if(entity instanceof EntityBlockReader) {
                         resultSet = new JDBCResultSet(connection, this, (EntityBlockReader) entity, sql);
                         return resultSet;
-                    }else if (entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR){
+                    } else if (entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR) {
                         resultSet = new JDBCResultSet(connection, this, entity, sql);
                         return resultSet;
-                    }else if (entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR){
+                    } else if (entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR) {
                         resultSet = new JDBCResultSet(connection, this, entity, sql);
                         return resultSet;
+                    } else {
+                        throw new SQLException("The given SQL statement produces anything other than a single ResultSet object.");
                     }
-                    else{
-                        throw new SQLException("the given SQL statement produces anything other than a single ResultSet object");
-                    }
-                }
-                catch (IOException e){
+                } catch (IOException e){
                     throw new SQLException(e);
                 }
             default:
-                throw new SQLException("the given SQL statement produces anything other than a single ResultSet object");
+                throw new SQLException("The given SQL statement produces anything other than a single ResultSet object.");
         }
     }
 
@@ -250,7 +248,6 @@ public class JDBCStatement implements Statement {
 
     @Override
     public void setMaxFieldSize(int maxFieldSize) throws SQLException {
-        return ;
     }
 
     @Override
@@ -292,7 +289,6 @@ public class JDBCStatement implements Statement {
     @Override
     public void clearWarnings() throws SQLException {
     	// TODO: implement warnings
-    	return;
     }
 
     @Override
@@ -300,7 +296,6 @@ public class JDBCStatement implements Statement {
     	throw new SQLFeatureNotSupportedException();
     }
 
-    //去除首尾指定字符
     public String trimFirstAndLastChar(String str, String element){
         boolean beginIndexFlag = true;
         boolean endIndexFlag = true;
@@ -323,45 +318,30 @@ public class JDBCStatement implements Statement {
         sql = sql.trim();
         if (sql!=null&&sql.equals("select 1"))
             sql = "select 1 as val";
-        //String[] strings = sql.split(";");
 
-        String[] strings = null;
+        String[] strings;
         if(sql.startsWith("[")&&sql.endsWith("]")){
             String temp = trimFirstAndLastChar(sql,"[");
-            String temp1 = trimFirstAndLastChar(temp,"]");
-            sql = temp1;
+            sql = trimFirstAndLastChar(temp,"]");
             strings = sql.split(",");
 
             String[] statementbatch = strings;
 
             for(int i =0; i< statementbatch.length;i++){
-                int dmlbatch = Utils.getDml(statementbatch[i]);
                 ResultSet resultSet_batch = executeQuery(statementbatch[i]);
                 resultSets.offerLast(resultSet_batch);
                 objectQueue.offer(resultSet_batch);
 
             }
-            if(objectQueue.isEmpty()){
-                return false;
-            }else {
-                result = objectQueue.poll();
-                if(result instanceof ResultSet){
-                    return true;
-                }else{
-                    return false;
-                }
-            }
-        }
-        else{
+
+            return !objectQueue.isEmpty() && objectQueue.poll() instanceof ResultSet;
+        } else
             strings = sql.split(";");
-        }
-
-
 
         String lastStatement = strings[strings.length - 1].trim();
         int dml = Utils.getDml(lastStatement);
 
-        switch (dml){
+        switch (dml) {
             case Utils.DML_SELECT:
             case Utils.DML_EXEC: {
                 ResultSet resultSet_ = executeQuery(sql);
@@ -381,6 +361,7 @@ public class JDBCStatement implements Statement {
                 } catch (IOException e) {
                     throw new SQLException(e);
                 }
+
                 if (entity instanceof BasicTable) {
                     ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, sql);
                     resultSets.offerLast(resultSet_);
@@ -389,16 +370,7 @@ public class JDBCStatement implements Statement {
             }
         }
 
-        if(objectQueue.isEmpty()){
-            return false;
-        }else {
-            result = objectQueue.poll();
-            if(result instanceof ResultSet){
-                return true;
-            }else{
-                return false;
-            }
-        }
+        return !objectQueue.isEmpty() && objectQueue.poll() instanceof ResultSet;
     }
 
     @Override
@@ -439,11 +411,7 @@ public class JDBCStatement implements Statement {
 
         if(!objectQueue.isEmpty()){
             result = objectQueue.poll();
-            if(result instanceof ResultSet){
-                return true;
-            }else{
-                return false;
-            }
+            return result instanceof ResultSet;
         }else{
             return false;
         }
@@ -535,7 +503,7 @@ public class JDBCStatement implements Statement {
             case Statement.KEEP_CURRENT_RESULT:
                 break;
             default:
-                throw new SQLException("the argument supplied is not one of the following:\n" +
+                throw new SQLException("The argument supplied is not one of the following:\n" +
                         "Statement.CLOSE_CURRENT_RESULT,\n" +
                         "Statement.KEEP_CURRENT_RESULT or\n" +
                         " Statement.CLOSE_ALL_RESULTS");

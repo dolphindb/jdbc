@@ -430,18 +430,6 @@ public class Utils {
         return colName;
     }
 
-    public static String VectorToString(Entity entity){
-        String result = "";
-        if(entity instanceof AbstractVector){
-            int length = entity.rows();
-            for(int i = 0;i < length; i++){
-                String s = String.valueOf(((Vector) entity).get(i));
-                result = result + s + " ";
-            }
-        }
-        return result;
-    }
-
     public static String outerJoinToFullJoin(String sql){
         if(!sql.contains("outer join")){
             return sql;
@@ -620,6 +608,9 @@ public class Utils {
 
     public static String parseOtherPath(String str, Set<String> aliasSet) {
         String[] split = str.split(":");
+        if (split.length == 0) {
+            throw new RuntimeException("The split of str's length is 0.");
+        }
         String alias = split[0];
         String memTableName = split[1];
         if (aliasSet.contains(alias)) {
