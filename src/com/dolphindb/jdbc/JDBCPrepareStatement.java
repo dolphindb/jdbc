@@ -2,6 +2,7 @@ package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
+import com.xxdb.data.Void;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,6 +36,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private int[] sizes;
 	private int[] types;
 
+	private String[] sqlColDefs;
+
 	public String getTableName() {
 		return tableName;
 	}
@@ -56,6 +59,22 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.dml = Utils.getDml(lastStatement);
 
 		this.isInsert = this.dml == Utils.DML_INSERT;
+		if(isInsert) {
+			if(colNames == null) {
+				try {
+					BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
+					BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+					BasicStringVector names = (BasicStringVector) colDefs.getColumn("name");
+					int size = names.rows();
+					colNames = new ArrayList<>();
+					for (int i = 0; i < size; i++) {
+						colNames.add(names.getString(i));
+					}
+				}catch (IOException e){
+					e.printStackTrace();
+				}
+			}
+		}
 		if (tableName != null) {
 			tableName = tableName.trim();
 			switch (this.dml) {
@@ -76,11 +95,14 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 		this.preSql += ";";
 		sqlSplit = this.preSql.split("\\?");
-		values = new Object[sqlSplit.length + 1];
-		sizes = new int[sqlSplit.length + 1];
-		types = new int[sqlSplit.length + 1];
+		values = new Object[colNames.size()+1];
+		sizes = new int[colNames.size()+1];
+		types = new int[colNames.size()+1];
 		batch = new StringBuilder();
 //		System.out.println("new Prepare statement: " + preSql);
+		String colNameString = preSql.substring(preSql.indexOf('(')+1,preSql.indexOf(')'));
+		sqlColDefs = colNameString.split(",");
+		if(sqlColDefs[0].contains("?")) sqlColDefs = null;
 	}
 
 	private void getTableType() {
@@ -178,11 +200,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public int executeUpdate(Object arguments)throws SQLException{
 		if (tableName != null) {
 			getTableType();
-			BasicInt basicInt;
 			if (tableType.equals(IN_MEMORY_TABLE)) {
 				try {
-					basicInt = (BasicInt) connection.run("tableInsert", (List<Entity>) arguments);
-					return basicInt.getInt();
+					return ((BasicInt) connection.run("tableInsert", (List<Entity>) arguments)).getInt();
 				} catch (IOException e) {
 					throw new SQLException(e);
 				}
@@ -197,7 +217,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@SuppressWarnings("unchecked")
 	private int tableAppend() throws SQLException {
-		if (unNameTable.size() > 1) {
+		if (!unNameTable.isEmpty()) {
 			int insertRows = 0;
 			List<Vector> cols = new ArrayList<>(unNameTable.size());
 			try {
@@ -226,7 +246,12 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					} else {
 						col = BasicEntityFactory.instance().createVectorWithDefaultValue(dataType, 1, -1);
 					}
-					col.set(0, (Scalar) values.get(tableRows));
+					if (values == null) {
+						col.set(0, new BasicString(""));
+					}
+					else {
+						col.set(0, values.get(tableRows));
+					}
 					cols.add(col);
 				}
 				tableRows++;
@@ -234,16 +259,27 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				e.printStackTrace();
 				return 0;
 			}
-			if (tableRows == unNameTable.get(colNames.get(0)).size()){
-				unNameTable = null;
-				tableRows = 0;
+
+			if(sqlColDefs != null){
+				if (tableRows == unNameTable.get(sqlColDefs[0]).size()){
+					unNameTable = null;
+					tableRows = 0;
+				}
+			}
+			else if(!colNames.isEmpty()){
+				if (tableRows == unNameTable.get(colNames.get(0)).size()){
+					unNameTable = null;
+					tableRows = 0;
+				}
+			}
+			else {
+				throw new SQLException("check the SQL " + preSql);
 			}
 
 
 			List<Entity> param = new ArrayList<>();
 			BasicTable insertTable = new BasicTable(colNames, cols);
 			param.add(insertTable);
-
 			try {
 				connection.run("append!{" + tableName + "}", param);
 			} catch (IOException e) {
@@ -721,14 +757,30 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					}
 					entity = BasicEntityFactory.createScalar(dataType, values[i], sizes[i]);
 					if (!tableType.equals(IN_MEMORY_TABLE)) {
-						if (unNameTable.size() == colTypes_.size()){
+						if (unNameTable.size() == colNames.size()){
 							ArrayList<Entity> colValues = unNameTable.get(colNames.get(j));
 							colValues.add(entity);
 							unNameTable.put(colNames.get(j), colValues);
 						}else {
 							ArrayList<Entity> args = new ArrayList<>();
 							args.add(entity);
-							unNameTable.put(colNames.get(j), args);
+							if(sqlColDefs != null){
+								if(sqlColDefs.length == unNameTable.size()){
+									ArrayList<Entity> colValues = unNameTable.get(sqlColDefs[j].trim());
+									if(colValues != null){
+										colValues.add(entity);
+									}
+									else {
+										unNameTable.put(sqlColDefs[j].trim(), args);
+									}
+								}
+								else {
+									unNameTable.put(sqlColDefs[j].trim(), args);
+								}
+							}
+							else {
+								unNameTable.put(colNames.get(j).trim(), args);
+							}
 						}
 					} else {
 						arguments.add(entity);
