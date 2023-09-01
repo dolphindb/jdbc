@@ -21,6 +21,8 @@ public class Utils {
     public static final int DML_EXEC = 4;
 
     public static final Pattern INSERT_PATTERN = Pattern.compile("insert\\sinto\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\svalues\\s*\\(.+\\)");
+
+    public static final Pattern INSERT_WITH_COLUMN_PATTERN = Pattern.compile("insert\\sinto\\s[a-zA-Z]{1}[a-zA-Z\\d_]*(.+?)\\svalues\\s*\\(.+\\)");
     public static final Pattern DELETE_PATTERN  = Pattern.compile("delete\\sfrom\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\s(where\\s(.+=.+)+)?");
     public static final Pattern UPDATE_PATTERN = Pattern.compile("update\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\sset\\s(.+=.+)+(\\swhere\\s(.+=.+)+)?");
 
@@ -191,7 +193,13 @@ public class Utils {
             if(matcher.find()){
                 tableName = sql.substring(sql.indexOf("into") + "into".length(), sql.indexOf("values"));
             }else {
-                throw new SQLException("check the SQl " + sql);
+                Matcher matcher1 = INSERT_WITH_COLUMN_PATTERN.matcher(sql);
+                if(matcher1.find()){
+                    tableName = sql.substring(sql.indexOf("into") + "into".length(), sql.indexOf("("));
+                }
+                else{
+                    throw new SQLException("check the SQl " + sql);
+                }
             }
         }else if(sql.startsWith("tableInsert")){
             tableName = sql.substring(sql.indexOf("(") + "(".length(), sql.indexOf(","));
