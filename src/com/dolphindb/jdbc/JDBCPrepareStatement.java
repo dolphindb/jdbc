@@ -59,23 +59,23 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.tableName = Utils.getTableName(lastStatement);
 		this.dml = Utils.getDml(lastStatement);
 		// getColNames
-		if(colNames == null) {
-			try {
-				BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
-				BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-				BasicStringVector names = (BasicStringVector) colDefs.getColumn("name");
-				int size = names.rows();
-				colNames = new ArrayList<>();
-				for (int i = 0; i < size; i++) {
-					colNames.add(names.getString(i));
-				}
-			}catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
 
 		this.isInsert = this.dml == Utils.DML_INSERT;
 		if(isInsert) {
+			if(colNames == null) {
+				try {
+					BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
+					BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+					BasicStringVector names = (BasicStringVector) colDefs.getColumn("name");
+					int size = names.rows();
+					colNames = new ArrayList<>();
+					for (int i = 0; i < size; i++) {
+						colNames.add(names.getString(i));
+					}
+				}catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 			String colNameString = preSql.substring(preSql.indexOf(tableName) + tableName.length(),preSql.indexOf("values")).trim();
 			if(!colNameString.isEmpty()){
 				colNameString = colNameString.substring(colNameString.indexOf("(") + 1,colNameString.lastIndexOf(")"));
@@ -105,9 +105,15 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 		this.preSql += ";";
 		sqlSplit = this.preSql.split("\\?");
-		values = new Object[colNames.size()+1];
-		sizes = new int[colNames.size()+1];
-		types = new int[colNames.size()+1];
+		if(colNames != null){
+			values = new Object[colNames.size()+1];
+			sizes = new int[colNames.size()+1];
+			types = new int[colNames.size()+1];
+		} else {
+			values = new Object[sqlSplit.length+1];
+			sizes = new int[sqlSplit.length+1];
+			types = new int[sqlSplit.length+1];
+		}
 		batch = new StringBuilder();
 //		System.out.println("new Prepare statement: " + preSql);
 	}
@@ -251,10 +257,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 							throw new SQLException("The size of the Decimal128 type should be in the range 0-38");
 						}
 					} else {
-						col = BasicEntityFactory.instance().createVectorWithDefaultValue(dataType, 1, -1);
+						col = BasicEntityFactory.instance().createVectorWithDefaultValue(dataType, 1,0);
 					}
 					if (values == null) {
-						col.set(0, new BasicString(""));
+						col.set(0, BasicEntityFactory.instance().createScalarWithDefaultValue(dataType));
 					}
 					else {
 						col.set(0, values.get(tableRows));
