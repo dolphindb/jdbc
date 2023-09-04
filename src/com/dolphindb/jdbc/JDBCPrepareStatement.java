@@ -7,6 +7,7 @@ import com.xxdb.data.Void;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
@@ -15,7 +16,7 @@ import java.text.MessageFormat;
 import java.time.YearMonth;
 import java.util.*;
 
-public class JDBCPrepareStatement extends JDBCStatement implements PreparedStatement {
+public class JDBCPrepareStatement extends JDBCStatement implements PreparedStatement  {
 
 	private String tableName;
 	private Entity tableNameArg;
@@ -57,22 +58,31 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		String lastStatement = strings[strings.length - 1].trim();
 		this.tableName = Utils.getTableName(lastStatement);
 		this.dml = Utils.getDml(lastStatement);
+		// getColNames
+		if(colNames == null) {
+			try {
+				BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
+				BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+				BasicStringVector names = (BasicStringVector) colDefs.getColumn("name");
+				int size = names.rows();
+				colNames = new ArrayList<>();
+				for (int i = 0; i < size; i++) {
+					colNames.add(names.getString(i));
+				}
+			}catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 
 		this.isInsert = this.dml == Utils.DML_INSERT;
 		if(isInsert) {
-			if(colNames == null) {
-				try {
-					BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
-					BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-					BasicStringVector names = (BasicStringVector) colDefs.getColumn("name");
-					int size = names.rows();
-					colNames = new ArrayList<>();
-					for (int i = 0; i < size; i++) {
-						colNames.add(names.getString(i));
-					}
-				}catch (IOException e){
-					e.printStackTrace();
-				}
+			String colNameString = preSql.substring(preSql.indexOf(tableName) + tableName.length(),preSql.indexOf("values")).trim();
+			if(!colNameString.isEmpty()){
+				colNameString = colNameString.substring(colNameString.indexOf("(") + 1,colNameString.lastIndexOf(")"));
+				sqlColDefs = colNameString.split(",");
+				if(sqlColDefs[0].contains("?")) sqlColDefs = null;
+			} else {
+				sqlColDefs = null;
 			}
 		}
 		if (tableName != null) {
@@ -100,9 +110,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		types = new int[colNames.size()+1];
 		batch = new StringBuilder();
 //		System.out.println("new Prepare statement: " + preSql);
-		String colNameString = preSql.substring(preSql.indexOf('(')+1,preSql.indexOf(')'));
-		sqlColDefs = colNameString.split(",");
-		if(sqlColDefs[0].contains("?")) sqlColDefs = null;
 	}
 
 	private void getTableType() {
