@@ -5,3 +5,4 @@ target/
 *.jar
 DolphinDBJDBC.iml
 test/setup/settings.properties
+*.json
