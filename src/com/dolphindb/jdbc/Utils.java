@@ -21,13 +21,7 @@ public class Utils {
     public static final int DML_EXEC = 4;
 
     public static final Pattern INSERT_PATTERN = Pattern.compile("insert\\sinto\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\svalues\\s*\\(.+\\)");
-
-    public static final Pattern INSERT_WITH_COLUMN_PATTERN = Pattern.compile("insert\\sinto\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\s+(.+?)\\svalues\\s*\\(.+\\)");
-    public static final Pattern INSERT_LOADTABLE_WITH_PARAM_PATTERN = Pattern.compile("insert\\s+into\\s+loadTable(.+?)\\s+(.+?)\\s*values\\s*(.+?)");
-    public static final Pattern INSERT_LOADTABLE_WITHOUT_PARAM_PATTERN = Pattern.compile("insert\\s+into\\s+loadTable(.+?)\\s+values\\s*(.+?)");
     public static final Pattern DELETE_PATTERN  = Pattern.compile("delete\\sfrom\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\s(where\\s(.+=.+)+)?");
-
-    public static final Pattern DELETE_LOADTABLE_PATTERN = Pattern.compile("delete\\sfrom\\sloadTable(.+?)\\s+(where\\s(.+=.+)+)?");
     public static final Pattern UPDATE_PATTERN = Pattern.compile("update\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\sset\\s(.+=.+)+(\\swhere\\s(.+=.+)+)?");
 
     public static final Pattern ASSIGN_PATTERN = Pattern.compile("[a-zA-Z]{1}[a-zA-Z\\d_]*[\\s]*=");
@@ -197,26 +191,7 @@ public class Utils {
             if(matcher.find()){
                 tableName = sql.substring(sql.indexOf("into") + "into".length(), sql.indexOf("values"));
             }else {
-                Matcher matcher1 = INSERT_WITH_COLUMN_PATTERN.matcher(sql);
-                if(matcher1.find()) {
-                    if(sql.contains("loadTable")){
-                        throw new SQLException("check the SQL " + sql);
-                    }
-                    tableName = sql.substring(sql.indexOf("into") + "into".length(), sql.indexOf("("));
-                }
-                else {
-                    Matcher matcher2 = INSERT_LOADTABLE_WITH_PARAM_PATTERN.matcher(sql);
-                    if(matcher2.find()){
-                        tableName = sql.substring(sql.indexOf("loadTable") , sql.indexOf(")")+1);
-                    } else {
-                        Matcher matcher3 = INSERT_LOADTABLE_WITHOUT_PARAM_PATTERN.matcher(sql);
-                        if(matcher3.find()){
-                            tableName = sql.substring(sql.indexOf("loadTable") , sql.indexOf(")")+1);
-                        }else{
-                            throw new SQLException("check the SQL " + sql);
-                        }
-                    }
-                }
+                throw new SQLException("check the SQl " + sql);
             }
         }else if(sql.startsWith("tableInsert")){
             tableName = sql.substring(sql.indexOf("(") + "(".length(), sql.indexOf(","));
@@ -234,14 +209,13 @@ public class Utils {
         }else if(sql.contains(".update!")){
             tableName = sql.split("\\.")[0];
         }else if(sql.startsWith("delete")){
-            Matcher matcher1 = DELETE_PATTERN.matcher(sql);
-            Matcher matcher2 = DELETE_LOADTABLE_PATTERN.matcher(sql);
-            if(matcher1.find() || matcher2.find()){
+            Matcher matcher = DELETE_PATTERN.matcher(sql);
+            if(matcher.find()){
                 int index = sql.indexOf("where");
                 if(index != -1) {
-                    tableName = sql.substring(sql.indexOf("from") + "from".length(), sql.indexOf("where")).trim();
+                    tableName = sql.substring(sql.indexOf("from") + "from".length(), sql.indexOf("where"));
                 }else{
-                    tableName = sql.substring(sql.indexOf("from") + "from".length()).replaceAll(";","").trim();
+                    tableName = sql.substring(sql.indexOf("from") + "from".length()).replaceAll(";","");
                 }
             }else{
                 throw new SQLException("check the SQl " + sql);
