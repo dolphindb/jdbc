@@ -2,12 +2,9 @@ package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
-import com.xxdb.data.Void;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
@@ -16,17 +13,17 @@ import java.text.MessageFormat;
 import java.time.YearMonth;
 import java.util.*;
 
-public class JDBCPrepareStatement extends JDBCStatement implements PreparedStatement  {
+public class JDBCPrepareStatement extends JDBCStatement implements PreparedStatement {
 
 	private String tableName;
 	private Entity tableNameArg;
 	private String preSql;
 	private String[] sqlSplit;
 	private Object[] values;
-	private int dml;
+	private final int dml;
 	private Object arguments;
 	private List<Object> argumentsBatch; // String List<Entity> Vector
-	private boolean isInsert;
+	private final boolean isInsert;
 	private String tableType;
 	private List<String> colNames;
 	private List<Entity.DATA_TYPE> colTypes_;
@@ -37,8 +34,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private int[] sizes;
 	private int[] types;
 
-	private String[] sqlColDefs;
-
 	public String getTableName() {
 		return tableName;
 	}
@@ -48,8 +43,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		sql = Utils.changeCase(sql);
 		this.connection = connection;
 		this.preSql = sql.trim();
-        while (preSql.endsWith(";"))
-        	preSql = preSql.substring(0, preSql.length() - 1);
+		while (preSql.endsWith(";"))
+			preSql = preSql.substring(0, preSql.length() - 1);
 //       	preSql = preSql.substring(0, sql.length() - 1);
 		sql = sql.trim();
 		if (sql!=null&&sql.equals("select 1"))
@@ -58,62 +53,31 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		String lastStatement = strings[strings.length - 1].trim();
 		this.tableName = Utils.getTableName(lastStatement);
 		this.dml = Utils.getDml(lastStatement);
-		// getColNames
 
 		this.isInsert = this.dml == Utils.DML_INSERT;
-		if(isInsert) {
-			if(colNames == null) {
-				try {
-					BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
-					BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-					BasicStringVector names = (BasicStringVector) colDefs.getColumn("name");
-					int size = names.rows();
-					colNames = new ArrayList<>();
-					for (int i = 0; i < size; i++) {
-						colNames.add(names.getString(i));
-					}
-				}catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-			String colNameString = preSql.substring(preSql.indexOf(tableName) + tableName.length(),preSql.indexOf("values")).trim();
-			if(!colNameString.isEmpty()){
-				colNameString = colNameString.substring(colNameString.indexOf("(") + 1,colNameString.lastIndexOf(")"));
-				sqlColDefs = colNameString.split(",");
-				if(sqlColDefs[0].contains("?")) sqlColDefs = null;
-			} else {
-				sqlColDefs = null;
-			}
-		}
 		if (tableName != null) {
 			tableName = tableName.trim();
 			switch (this.dml) {
-			case Utils.DML_SELECT:
-			case Utils.DML_EXEC:
-			case Utils.DML_INSERT:
-			case Utils.DML_DELETE: {
-				if (tableName.length() > 0) {
-					tableNameArg = new BasicString(tableName);
-					if (tableTypes == null) {
-						tableTypes = new LinkedHashMap<>();
+				case Utils.DML_SELECT:
+				case Utils.DML_EXEC:
+				case Utils.DML_INSERT:
+				case Utils.DML_DELETE: {
+					if (tableName.length() > 0) {
+						tableNameArg = new BasicString(tableName);
+						if (tableTypes == null) {
+							tableTypes = new LinkedHashMap<>();
+						}
+					} else {
+						throw new SQLException("check the SQl " + preSql);
 					}
-				} else {
-					throw new SQLException("check the SQl " + preSql);
 				}
-			}
 			}
 		}
 		this.preSql += ";";
 		sqlSplit = this.preSql.split("\\?");
-		if(colNames != null){
-			values = new Object[colNames.size()+1];
-			sizes = new int[colNames.size()+1];
-			types = new int[colNames.size()+1];
-		} else {
-			values = new Object[sqlSplit.length+1];
-			sizes = new int[sqlSplit.length+1];
-			types = new int[sqlSplit.length+1];
-		}
+		values = new Object[sqlSplit.length + 1];
+		sizes = new int[sqlSplit.length + 1];
+		types = new int[sqlSplit.length + 1];
 		batch = new StringBuilder();
 //		System.out.println("new Prepare statement: " + preSql);
 	}
@@ -156,66 +120,68 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			}
 		}
 		switch (dml) {
-		case Utils.DML_INSERT: //rt
-			if (tableName != null) {
-				getTableType();
-				BasicInt basicInt;
-				if (tableType.equals(IN_MEMORY_TABLE)) {
-					try {
-						basicInt = (BasicInt) connection.run("tableInsert", (List<Entity>) arguments);
-						return basicInt.getInt();
-					} catch (IOException e) {
-						throw new SQLException(e);
+			case Utils.DML_INSERT: //rt
+				if (tableName != null) {
+					getTableType();
+					BasicInt basicInt;
+					if (tableType.equals(IN_MEMORY_TABLE)) {
+						try {
+							basicInt = (BasicInt) connection.run("tableInsert", (List<Entity>) arguments);
+							return basicInt.getInt();
+						} catch (IOException e) {
+							throw new SQLException(e);
+						}
+					} else {
+						return tableAppend();
 					}
 				} else {
-					return tableAppend();
+					throw new SQLException("check the SQL " + preSql);
 				}
-			} else {
-				throw new SQLException("check the SQL " + preSql);
-			}
-		case Utils.DML_UPDATE:
-		case Utils.DML_DELETE:
-			if (tableName != null) {
-				getTableType();
+			case Utils.DML_UPDATE:
+			case Utils.DML_DELETE:
+				if (tableName != null) {
+					getTableType();
 //				if (tableType.equals(IN_MEMORY_TABLE)) {
-				try {
-					return super.executeUpdate((String) arguments);
-				} catch (SQLException e) {
-					throw new SQLException(e);
-				}
+					try {
+						return super.executeUpdate((String) arguments);
+					} catch (SQLException e) {
+						throw new SQLException(e);
+					}
 //				} else {
 //					throw new SQLException("only local in-memory table can update");
 //				}
-			} else {
-				throw new SQLException("check the SQL " + preSql);
-			}
-		case Utils.DML_SELECT:
-		case Utils.DML_EXEC:
-			throw new SQLException("can not produces ResultSet");
-
-		default:
-			Entity entity;
-			if (arguments instanceof String) {
-				try {
-					entity = connection.run((String) arguments);
-				} catch (IOException e) {
-					throw new SQLException(e);
+				} else {
+					throw new SQLException("check the SQL " + preSql);
 				}
-				if (entity instanceof BasicTable) {
-					throw new SQLException("can not produces ResultSet");
-				}
-			}
+			case Utils.DML_SELECT:
+			case Utils.DML_EXEC:
+				throw new SQLException("can not produces ResultSet");
 
-			return 0;
+			default:
+				Entity entity;
+				if (arguments instanceof String) {
+					try {
+						entity = connection.run((String) arguments);
+					} catch (IOException e) {
+						throw new SQLException(e);
+					}
+					if (entity instanceof BasicTable) {
+						throw new SQLException("can not produces ResultSet");
+					}
+				}
+
+				return 0;
 		}
 	}
 
 	public int executeUpdate(Object arguments)throws SQLException{
 		if (tableName != null) {
 			getTableType();
+			BasicInt basicInt;
 			if (tableType.equals(IN_MEMORY_TABLE)) {
 				try {
-					return ((BasicInt) connection.run("tableInsert", (List<Entity>) arguments)).getInt();
+					basicInt = (BasicInt) connection.run("tableInsert", (List<Entity>) arguments);
+					return basicInt.getInt();
 				} catch (IOException e) {
 					throw new SQLException(e);
 				}
@@ -230,7 +196,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@SuppressWarnings("unchecked")
 	private int tableAppend() throws SQLException {
-		if (!unNameTable.isEmpty()) {
+		if (unNameTable.size() > 1) {
 			int insertRows = 0;
 			List<Vector> cols = new ArrayList<>(unNameTable.size());
 			try {
@@ -257,14 +223,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 							throw new SQLException("The size of the Decimal128 type should be in the range 0-38");
 						}
 					} else {
-						col = BasicEntityFactory.instance().createVectorWithDefaultValue(dataType, 1,0);
+						col = BasicEntityFactory.instance().createVectorWithDefaultValue(dataType, 1, -1);
 					}
-					if (values == null) {
-						col.set(0, BasicEntityFactory.instance().createScalarWithDefaultValue(dataType));
-					}
-					else {
-						col.set(0, values.get(tableRows));
-					}
+					col.set(0, values.get(tableRows));
 					cols.add(col);
 				}
 				tableRows++;
@@ -272,27 +233,16 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				e.printStackTrace();
 				return 0;
 			}
-
-			if(sqlColDefs != null){
-				if (tableRows == unNameTable.get(sqlColDefs[0]).size()){
-					unNameTable = null;
-					tableRows = 0;
-				}
-			}
-			else if(!colNames.isEmpty()){
-				if (tableRows == unNameTable.get(colNames.get(0)).size()){
-					unNameTable = null;
-					tableRows = 0;
-				}
-			}
-			else {
-				throw new SQLException("check the SQL " + preSql);
+			if (tableRows == unNameTable.get(colNames.get(0)).size()){
+				unNameTable = null;
+				tableRows = 0;
 			}
 
 
 			List<Entity> param = new ArrayList<>();
 			BasicTable insertTable = new BasicTable(colNames, cols);
 			param.add(insertTable);
+
 			try {
 				connection.run("append!{" + tableName + "}", param);
 			} catch (IOException e) {
@@ -420,27 +370,15 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	@Override
-	public void setObject(int parameterIndex, Object object) throws SQLException { //TODO 有很大bug
+	public void setObject(int parameterIndex, Object object) throws SQLException {
 		if (parameterIndex > sqlSplit.length - 1) {
 			throw new SQLException(
 					MessageFormat.format("Parameter index out of range ({0} > number of parameters, which is {1}).",
 							parameterIndex, sqlSplit.length - 1));
 		}
-		if(!sqlColDefs[0].contains("?")){
-			for (String sqlColDef : sqlColDefs) {
-				for (int j = 0; j < colNames.size(); j++) {
-					if (sqlColDef.equals(colNames.get(j))) {
-						values[j] = object;
-						sizes[j] = 0;
-						types[j] = -1;
-					}
-				}
-			}
-		} else {
-			values[parameterIndex] = object;
-			sizes[parameterIndex] = 0;
-			types[parameterIndex] = -1;
-		}
+		values[parameterIndex] = object;
+		sizes[parameterIndex] = 0;
+		types[parameterIndex] = -1;
 	}
 
 	@Override
@@ -461,47 +399,43 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	@Override
 	public boolean execute() throws SQLException {
 		switch (dml) {
-		case Utils.DML_SELECT:
-		case Utils.DML_EXEC: {
-			ResultSet resultSet_ = executeQuery();
-			resultSets.offerLast(resultSet_);
-			objectQueue.offer(resultSet_);
-		}
+			case Utils.DML_SELECT:
+			case Utils.DML_EXEC: {
+				ResultSet resultSet_ = executeQuery();
+				resultSets.offerLast(resultSet_);
+				objectQueue.offer(resultSet_);
+			}
 			break;
-		case Utils.DML_INSERT:
-		case Utils.DML_UPDATE:
-		case Utils.DML_DELETE: {
-			objectQueue.offer(executeUpdate());
-		}
+			case Utils.DML_INSERT:
+			case Utils.DML_UPDATE:
+			case Utils.DML_DELETE: {
+				objectQueue.offer(executeUpdate());
+			}
 			break;
-		default: {
-			Entity entity;
-			String newSql;
-			if (arguments instanceof String) {
-				try {
-					newSql = (String) arguments;
-					entity = connection.run(newSql);
-				} catch (IOException e) {
-					throw new SQLException(e);
-				}
-				if (entity instanceof BasicTable) {
-					ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, newSql);
-					resultSets.offerLast(resultSet_);
-					objectQueue.offer(resultSet_);
+			default: {
+				Entity entity;
+				String newSql;
+				if (arguments instanceof String) {
+					try {
+						newSql = (String) arguments;
+						entity = connection.run(newSql);
+					} catch (IOException e) {
+						throw new SQLException(e);
+					}
+					if (entity instanceof BasicTable) {
+						ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, newSql);
+						resultSets.offerLast(resultSet_);
+						objectQueue.offer(resultSet_);
+					}
 				}
 			}
-		}
 		}
 
 		if (objectQueue.isEmpty()) {
 			return false;
 		} else {
 			result = objectQueue.poll();
-			if (result instanceof ResultSet) {
-				return true;
-			} else {
-				return false;
-			}
+			return result instanceof ResultSet;
 		}
 	}
 
@@ -641,7 +575,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public void setRowId(int parameterIndex, RowId rowId) throws SQLException {
 		Driver.unused("setRowId not implemented");
 	}
-	
+
 	@Override
 	public void setNString(int parameterIndex, String s) throws SQLException {
 		setObject(parameterIndex,s);
@@ -751,7 +685,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				int size = names.rows();
 				colNames = new ArrayList<String>();
 				for (int i = 0; i < size; i++) {
-					colNames.add(names.getString(i).toString());
+					colNames.add(names.getString(i));
 				}
 			}
 
@@ -774,46 +708,28 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					unNameTable = new LinkedHashMap<>();
 				}
 				int j = 0;
-				for (int i = 0; i < colNames.size(); ++i) {
-					dataType = colTypes_.get(i);
+				for (int i = 1; i < sqlSplit.length; ++i) {
+					dataType = colTypes_.get(j);
 					Entity entity;
 					if(values[i] instanceof YearMonth){
 						values[i] = new BasicMonth(((YearMonth) values[i]).getYear(), ((YearMonth) values[i]).getMonth());
 					}
-					System.out.println(dataType + " " + values[i] + " " + sizes[i]);
 					entity = BasicEntityFactory.createScalar(dataType, values[i], sizes[i]);
 					if (!tableType.equals(IN_MEMORY_TABLE)) {
-						if (unNameTable.size() == colNames.size()){
+						if (unNameTable.size() == colTypes_.size()){
 							ArrayList<Entity> colValues = unNameTable.get(colNames.get(j));
 							colValues.add(entity);
 							unNameTable.put(colNames.get(j), colValues);
 						}else {
 							ArrayList<Entity> args = new ArrayList<>();
 							args.add(entity);
-							if(sqlColDefs != null){
-								if(sqlColDefs.length == unNameTable.size()){
-									ArrayList<Entity> colValues = unNameTable.get(sqlColDefs[j].trim());
-									if(colValues != null){
-										colValues.add(entity);
-									}
-									else {
-										unNameTable.put(sqlColDefs[j].trim(), args);
-									}
-								}
-								else {
-									unNameTable.put(sqlColDefs[j].trim(), args);
-								}
-							}
-							else {
-								unNameTable.put(colNames.get(j).trim(), args);
-							}
+							unNameTable.put(colNames.get(j), args);
 						}
 					} else {
 						arguments.add(entity);
 					}
 					j++;
 				}
-				System.out.println(unNameTable);
 				return arguments;
 			}catch (Exception e){
 				e.printStackTrace();
