@@ -173,7 +173,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getIdentifierQuoteString() {
-        return "`";
+        return "";
     }
 
     @Override
