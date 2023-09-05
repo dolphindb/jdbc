@@ -420,15 +420,27 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	@Override
-	public void setObject(int parameterIndex, Object object) throws SQLException {
+	public void setObject(int parameterIndex, Object object) throws SQLException { //TODO 有很大bug
 		if (parameterIndex > sqlSplit.length - 1) {
 			throw new SQLException(
 					MessageFormat.format("Parameter index out of range ({0} > number of parameters, which is {1}).",
 							parameterIndex, sqlSplit.length - 1));
 		}
-		values[parameterIndex] = object;
-		sizes[parameterIndex] = 0;
-		types[parameterIndex] = -1;
+		if(!sqlColDefs[0].contains("?")){
+			for (String sqlColDef : sqlColDefs) {
+				for (int j = 0; j < colNames.size(); j++) {
+					if (sqlColDef.equals(colNames.get(j))) {
+						values[j] = object;
+						sizes[j] = 0;
+						types[j] = -1;
+					}
+				}
+			}
+		} else {
+			values[parameterIndex] = object;
+			sizes[parameterIndex] = 0;
+			types[parameterIndex] = -1;
+		}
 	}
 
 	@Override
@@ -762,12 +774,13 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					unNameTable = new LinkedHashMap<>();
 				}
 				int j = 0;
-				for (int i = 1; i < sqlSplit.length; ++i) {
-					dataType = colTypes_.get(j);
+				for (int i = 0; i < colNames.size(); ++i) {
+					dataType = colTypes_.get(i);
 					Entity entity;
 					if(values[i] instanceof YearMonth){
 						values[i] = new BasicMonth(((YearMonth) values[i]).getYear(), ((YearMonth) values[i]).getMonth());
 					}
+					System.out.println(dataType + " " + values[i] + " " + sizes[i]);
 					entity = BasicEntityFactory.createScalar(dataType, values[i], sizes[i]);
 					if (!tableType.equals(IN_MEMORY_TABLE)) {
 						if (unNameTable.size() == colNames.size()){
@@ -800,6 +813,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					}
 					j++;
 				}
+				System.out.println(unNameTable);
 				return arguments;
 			}catch (Exception e){
 				e.printStackTrace();
