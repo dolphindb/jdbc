@@ -717,7 +717,7 @@ public class JDBCAppendNewTest {
         stm.execute("pt=loadTable('dfs://test_append_type','pt')");
         PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
         ps.setInt(1,1000);
-        ps.setObject(2,123421.00012,37,5);
+        ps.setObject(2,3421.00012,37,5);
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
