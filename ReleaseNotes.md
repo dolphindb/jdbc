@@ -2,6 +2,7 @@
 
 ## New Features
 
+- Added support for returning data of primitive Java types. (**1.30.22.4**)
 - Added configuration parameter _tableAlias_ to access tables via aliases. (**1.30.22.2**)
 - The configuration parameter _highAvailablitySites_ now supports input values separated by comma (",") delimiters. (**1.30.22.2**)
 - Added support for DECIMAL128 data type. (**1.30.22.1**)
@@ -12,6 +13,8 @@
 
 ## Improvements
 
+- Reduced the JAR file size for DolphinDB JDBC dependencies. (**1.30.22.4**)
+- Added support for JDBC driver 4.0 version. Users no longer need to specify `Class.forName("com.dolphindb.jdbc.Driver")` when establishing connections. (**1.30.22.4**)
 - If only one node of a cluster is connected and high availability is not enabled, automatic reconnection is attempted in case of connection failure or disconnection caused by network issues. (**1.30.21.1**)
 
 ## Issues Fixed
