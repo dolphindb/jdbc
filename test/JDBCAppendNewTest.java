@@ -2,6 +2,7 @@ import com.xxdb.DBConnection;
 import com.xxdb.data.*;
 //import jdk.internal.org.objectweb.asm.Type;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -98,7 +99,7 @@ public class JDBCAppendNewTest {
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals(rs.getBoolean("dataType"), true);
+        Assert.assertTrue(rs.getBoolean("dataType"));
         rs.next();
         rs.getBoolean("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -167,7 +168,7 @@ public class JDBCAppendNewTest {
         stm.execute("pt=loadTable('dfs://test_append_type','pt')");
         PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
         ps.setInt(1,1);
-        ps.setLong(2, (long) 12);
+        ps.setLong(2, 12);
         ps.executeUpdate();
         ps.setInt(1,2);
         ps.setNull(2,Types.OTHER);
@@ -205,14 +206,14 @@ public class JDBCAppendNewTest {
         stm.execute("pt=loadTable('dfs://test_append_type','pt')");
         PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
         ps.setInt(1,1);
-        ps.setDouble(2, (double) 12.23);
+        ps.setDouble(2, 12.23);
         ps.executeUpdate();
         ps.setInt(1,2);
         ps.setNull(2,Types.DOUBLE);
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
-        org.junit.Assert.assertEquals((Double) 12.23,rs.getDouble("dataType"),4);
+        org.junit.Assert.assertEquals(12.23,rs.getDouble("dataType"),4);
         rs.next();
         rs.getDouble("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
@@ -717,7 +718,7 @@ public class JDBCAppendNewTest {
         stm.execute("pt=loadTable('dfs://test_append_type','pt')");
         PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
         ps.setInt(1,1000);
-        ps.setObject(2,3421.00012,37,5);
+        ps.setObject(2,123421.00012,37,5);
         ps.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
