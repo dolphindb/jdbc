@@ -1,12 +1,10 @@
 package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
+import com.xxdb.data.Vector;
 import java.io.IOException;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
@@ -102,8 +100,67 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
     }
 
     @Override
-    public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) {
-        return null;
+    public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
+        if (Objects.isNull(tableNamePattern) || tableNamePattern.isEmpty()) {
+            throw new SQLException("The param 'tableNamePattern' cannot be null.");
+        }
+
+        BasicTable colDefs = null;
+        if (Objects.nonNull(schemaPattern)) {
+            // specify tableName for dfs table
+            String dfsTableHandle = "handle=loadTable(\"dfs://" + schemaPattern + "\", `" + tableNamePattern + "); schema(handle);";
+            try {
+                BasicDictionary schema = (BasicDictionary) connection.run(dfsTableHandle);
+                colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else if (tableNamePattern.matches("%+")) {
+            // get all tables of schemaPattern's.
+            try {
+                String script = "getClusterDFSTables();";
+                BasicStringVector allTables = (BasicStringVector) connection.run(script);
+
+                for (int i = 0; i < allTables.rows(); i ++) {
+                    String tempDbAndTableName = allTables.getString(i);
+                    // tempTableName
+                    int lastSlashIndex = tempDbAndTableName.lastIndexOf("/");
+                    if (lastSlashIndex != -1) {
+                        String dbName = tempDbAndTableName.substring(0, lastSlashIndex);
+                        String tempTableName = tempDbAndTableName.substring(lastSlashIndex + 1);
+                        String dfsTableHandle = "handle=loadTable(\"" + dbName + "\", `" + tempTableName + "); schema(handle);";
+                        BasicDictionary schema = (BasicDictionary) connection.run(dfsTableHandle);
+                        BasicTable tempColDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+                        if (Objects.nonNull(colDefs)) {
+                            colDefs = colDefs.combine(tempColDefs);
+                        } else {
+                            colDefs = tempColDefs;
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            // memory table
+            try {
+                BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableNamePattern + ");");
+                colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        List<String> newColumnNames = new ArrayList<>();
+        newColumnNames.add("COLUMN_NAME");
+        newColumnNames.add("DATA_TYPE");
+        newColumnNames.add("TYPE_INT");
+        newColumnNames.add("EXTRA");
+        newColumnNames.add("COMMENT");
+        colDefs.setColName(newColumnNames);
+
+        return new JDBCResultSet(connection,statement, colDefs,"");
     }
 
     @Override
