@@ -101,14 +101,14 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-        if (Objects.isNull(tableNamePattern) || tableNamePattern.isEmpty()) {
+        if (Objects.isNull(tableNamePattern) && tableNamePattern.isEmpty()) {
             throw new SQLException("The param 'tableNamePattern' cannot be null.");
         }
 
         BasicTable colDefs = null;
-        if (Objects.nonNull(schemaPattern)) {
+        if (Objects.nonNull(catalog) && !catalog.isEmpty()) {
             // specify tableName for dfs table
-            String dfsTableHandle = "handle=loadTable(\"dfs://" + schemaPattern + "\", `" + tableNamePattern + "); schema(handle);";
+            String dfsTableHandle = "handle=loadTable(\"dfs://" + catalog + "\", `" + tableNamePattern + "); schema(handle);";
             try {
                 BasicDictionary schema = (BasicDictionary) connection.run(dfsTableHandle);
                 colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
@@ -116,7 +116,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 throw new RuntimeException(e);
             }
         } else if (tableNamePattern.matches("%+")) {
-            // get all tables of schemaPattern's.
+            // get all tables of catalog's.
             try {
                 String script = "getClusterDFSTables();";
                 BasicStringVector allTables = (BasicStringVector) connection.run(script);
