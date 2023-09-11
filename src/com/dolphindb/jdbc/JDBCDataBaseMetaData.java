@@ -456,8 +456,112 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
     }
 
     @Override
-    public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String[] types) {
-        return null;
+    public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String[] types) throws SQLException {
+        if (Objects.isNull(tableNamePattern) && tableNamePattern.isEmpty()) {
+            throw new SQLException("The param 'tableNamePattern' cannot be null.");
+        }
+
+        BasicTable colDefs;
+        List<String> colNames = new ArrayList<>();
+        colNames.add("TABLE_CAT");
+        colNames.add("TABLE_NAME");
+        colNames.add("TABLE_SCHEM");
+        colNames.add("TABLE_TYPE");
+        colNames.add("REMARKS");
+        List<Vector> cols = new ArrayList<>();
+
+        if (Objects.nonNull(catalog) && !catalog.isEmpty()) {
+            try {
+                // specify tableName for dfs table
+                String dfsTableHandle = "handle=loadTable(\"dfs://" + catalog + "\", `" + tableNamePattern + "); handle;";
+                connection.run(dfsTableHandle);
+                cols.add(new BasicStringVector(new String[]{catalog}));
+                cols.add(new BasicStringVector(new String[]{tableNamePattern}));
+                cols.add(new BasicStringVector(new String[]{null}));
+                cols.add(new BasicStringVector(new String[]{"TABLE"}));
+                cols.add(new BasicStringVector(new String[]{null}));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else if (tableNamePattern.matches("%+")) {
+            // get all tables of catalog's.
+            try {
+
+                // get all dfs table
+                String script = "getClusterDFSTables();";
+                BasicStringVector allTables = (BasicStringVector) connection.run(script);
+
+                List<String> tableCatVal = new ArrayList<>();
+                List<String> tableNameVal = new ArrayList<>();
+                List<String> tableSchemVal = new ArrayList<>();
+                List<String> tableTypeVal = new ArrayList<>();
+                List<String> remarksVal = new ArrayList<>();
+
+                for (int i = 0; i < allTables.rows(); i ++) {
+                    String tempDbAndTableName = allTables.getString(i);
+                    // tempTableName
+                    int lastSlashIndex = tempDbAndTableName.lastIndexOf("/");
+                    if (lastSlashIndex != -1) {
+                        String dbName = tempDbAndTableName.substring(0, lastSlashIndex);
+                        String tempTableName = tempDbAndTableName.substring(lastSlashIndex + 1);
+                        String dfsTableHandle = "handle=loadTable(\"" + dbName + "\", `" + tempTableName + "); handle;";
+                        connection.run(dfsTableHandle);
+
+                        tableCatVal.add(dbName);
+                        tableNameVal.add(tempTableName);
+                        tableSchemVal.add(null);
+                        tableTypeVal.add("TABLE");
+                        remarksVal.add(null);
+                    }
+                }
+
+                // get all mem table
+                BasicTable memTables = (BasicTable) connection.run("objs()");
+                BasicStringVector name = (BasicStringVector) memTables.getColumn("name");
+                if (Objects.nonNull(name)) {
+                    for (int i = 0; i < name.rows(); i ++) {
+                        BasicString memTableName = (BasicString) name.get(i);
+                        tableNameVal.add(memTableName.getString());
+
+                        tableCatVal.add(null);
+                        tableSchemVal.add(null);
+                        remarksVal.add(null);
+                    }
+                }
+
+                BasicStringVector form = (BasicStringVector) memTables.getColumn("form");
+                if (Objects.nonNull(form)) {
+                    for (int i = 0; i < form.rows(); i ++) {
+                        BasicString memForm = (BasicString) form.get(i);
+                        tableTypeVal.add(memForm.getString());
+                    }
+                }
+
+
+                cols.add(new BasicStringVector(tableCatVal));
+                cols.add(new BasicStringVector(tableNameVal));
+                cols.add(new BasicStringVector(tableSchemVal));
+                cols.add(new BasicStringVector(tableTypeVal));
+                cols.add(new BasicStringVector(remarksVal));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            // memory table
+            try {
+                BasicTable memTable = (BasicTable) connection.run(tableNamePattern + ";");
+                cols.add(new BasicStringVector(new String[]{null}));
+                cols.add(new BasicStringVector(new String[]{tableNamePattern}));
+                cols.add(new BasicStringVector(new String[]{null}));
+                cols.add(new BasicStringVector(new String[]{"TABLE"}));
+                cols.add(new BasicStringVector(new String[]{null}));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        colDefs = new BasicTable(colNames, cols);
+        return new JDBCResultSet(connection,statement, colDefs,"");
     }
 
     @Override
