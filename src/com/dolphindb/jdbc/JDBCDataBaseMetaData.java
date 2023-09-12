@@ -108,10 +108,21 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         BasicTable colDefs = null;
         if (Objects.nonNull(catalog) && !catalog.isEmpty()) {
             // specify tableName for dfs table
-            String dfsTableHandle = "handle=loadTable(\"dfs://" + catalog + "\", `" + tableNamePattern + "); schema(handle);";
+            String dfsTableHandle;
             try {
-                BasicDictionary schema = (BasicDictionary) connection.run(dfsTableHandle);
-                colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+                if (Objects.nonNull(columnNamePattern) && !columnNamePattern.isEmpty()) {
+
+                    dfsTableHandle = "handle=loadTable(\"dfs://" + catalog + "\", `" + tableNamePattern + "); " +
+                                    "select * from schema(handle).colDefs where name = '%s'";
+                    dfsTableHandle = String.format(dfsTableHandle, columnNamePattern);
+
+                    BasicTable schema = (BasicTable) connection.run(dfsTableHandle);
+                    colDefs = schema;
+                } else {
+                    dfsTableHandle = "handle=loadTable(\"dfs://" + catalog + "\", `" + tableNamePattern + "); schema(handle);";
+                    BasicDictionary schema = (BasicDictionary) connection.run(dfsTableHandle);
+                    colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
