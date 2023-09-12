@@ -527,7 +527,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 }
 
                 // get all mem table
-                BasicTable memTables = (BasicTable) connection.run("objs()");
+                BasicTable memTables = (BasicTable) connection.run("objs(true)");
                 BasicStringVector name = (BasicStringVector) memTables.getColumn("name");
                 if (Objects.nonNull(name)) {
                     for (int i = 0; i < name.rows(); i ++) {
@@ -540,7 +540,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     }
                 }
 
-                BasicStringVector form = (BasicStringVector) memTables.getColumn("form");
+                BasicSymbolVector form = (BasicSymbolVector) memTables.getColumn("form");
                 if (Objects.nonNull(form)) {
                     for (int i = 0; i < form.rows(); i ++) {
                         BasicString memForm = (BasicString) form.get(i);
