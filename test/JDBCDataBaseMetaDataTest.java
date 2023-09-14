@@ -133,8 +133,6 @@ public class JDBCDataBaseMetaDataTest {
             DatabaseMetaData metaData = conn.getMetaData();
             rs = metaData.getCatalogs();
             printData(rs);
-            rs = metaData.getColumns("", "", "", "");
-            printData(rs);
             String s = metaData.getCatalogSeparator();
             System.out.println(s);
             s = metaData.getCatalogTerm();
@@ -257,7 +255,7 @@ public class JDBCDataBaseMetaDataTest {
         ResultSet rs = null;
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
-        rs = metaData.getColumns("test_append_type_tsdb",null, "pt", "");
+        rs = metaData.getColumns("dfs://test_append_type_tsdb",null, "pt", "");
         Assert.assertEquals("COLUMN_NAME: col1    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    COLUMN_NAME: col2    DATA_TYPE: BOOL    TYPE_INT: 1    EXTRA: null    COMMENT: null    COLUMN_NAME: col3    DATA_TYPE: CHAR    TYPE_INT: 2    EXTRA: null    COMMENT: null    COLUMN_NAME: col4    DATA_TYPE: SHORT    TYPE_INT: 3    EXTRA: null    COMMENT: null    COLUMN_NAME: col5    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    COLUMN_NAME: col6    DATA_TYPE: LONG    TYPE_INT: 5    EXTRA: null    COMMENT: null    COLUMN_NAME: col7    DATA_TYPE: DATE    TYPE_INT: 6    EXTRA: null    COMMENT: null    COLUMN_NAME: col8    DATA_TYPE: MONTH    TYPE_INT: 7    EXTRA: null    COMMENT: null    COLUMN_NAME: col9    DATA_TYPE: TIME    TYPE_INT: 8    EXTRA: null    COMMENT: null    COLUMN_NAME: col10    DATA_TYPE: MINUTE    TYPE_INT: 9    EXTRA: null    COMMENT: null    COLUMN_NAME: col11    DATA_TYPE: SECOND    TYPE_INT: 10    EXTRA: null    COMMENT: null    COLUMN_NAME: col12    DATA_TYPE: DATETIME    TYPE_INT: 11    EXTRA: null    COMMENT: null    COLUMN_NAME: col13    DATA_TYPE: TIMESTAMP    TYPE_INT: 12    EXTRA: null    COMMENT: null    COLUMN_NAME: col14    DATA_TYPE: NANOTIME    TYPE_INT: 13    EXTRA: null    COMMENT: null    COLUMN_NAME: col15    DATA_TYPE: NANOTIMESTAMP    TYPE_INT: 14    EXTRA: null    COMMENT: null    COLUMN_NAME: col16    DATA_TYPE: FLOAT    TYPE_INT: 15    EXTRA: null    COMMENT: null    COLUMN_NAME: col17    DATA_TYPE: DOUBLE    TYPE_INT: 16    EXTRA: null    COMMENT: null    COLUMN_NAME: col18    DATA_TYPE: SYMBOL    TYPE_INT: 17    EXTRA: null    COMMENT: null    COLUMN_NAME: col19    DATA_TYPE: STRING    TYPE_INT: 18    EXTRA: null    COMMENT: null    COLUMN_NAME: col20    DATA_TYPE: UUID    TYPE_INT: 19    EXTRA: null    COMMENT: null    COLUMN_NAME: col21    DATA_TYPE: DATEHOUR    TYPE_INT: 28    EXTRA: null    COMMENT: null    COLUMN_NAME: col22    DATA_TYPE: IPADDR    TYPE_INT: 30    EXTRA: null    COMMENT: null    COLUMN_NAME: col23    DATA_TYPE: INT128    TYPE_INT: 31    EXTRA: null    COMMENT: null    COLUMN_NAME: col24    DATA_TYPE: BLOB    TYPE_INT: 32    EXTRA: null    COMMENT: null    COLUMN_NAME: col25    DATA_TYPE: COMPLEX    TYPE_INT: 34    EXTRA: null    COMMENT: null    COLUMN_NAME: col26    DATA_TYPE: POINT    TYPE_INT: 35    EXTRA: null    COMMENT: null    COLUMN_NAME: col27    DATA_TYPE: DECIMAL32(2)    TYPE_INT: 37    EXTRA: 2    COMMENT: null    COLUMN_NAME: col28    DATA_TYPE: DECIMAL64(7)    TYPE_INT: 38    EXTRA: 7    COMMENT: null    COLUMN_NAME: col29    DATA_TYPE: DECIMAL128(19)    TYPE_INT: 39    EXTRA: 19    COMMENT: null    ",printData1(rs));
         stmt.close();
         conn.close();
@@ -273,7 +271,7 @@ public class JDBCDataBaseMetaDataTest {
         ResultSet rs = null;
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
-        rs = metaData.getColumns("test_append_type_tsdb","", "pt", "");
+        rs = metaData.getColumns("dfs://test_append_type_tsdb","", "pt", "");
         Assert.assertEquals("COLUMN_NAME: col1    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    COLUMN_NAME: col2    DATA_TYPE: BOOL    TYPE_INT: 1    EXTRA: null    COMMENT: null    COLUMN_NAME: col3    DATA_TYPE: CHAR    TYPE_INT: 2    EXTRA: null    COMMENT: null    COLUMN_NAME: col4    DATA_TYPE: SHORT    TYPE_INT: 3    EXTRA: null    COMMENT: null    COLUMN_NAME: col5    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    COLUMN_NAME: col6    DATA_TYPE: LONG    TYPE_INT: 5    EXTRA: null    COMMENT: null    COLUMN_NAME: col7    DATA_TYPE: DATE    TYPE_INT: 6    EXTRA: null    COMMENT: null    COLUMN_NAME: col8    DATA_TYPE: MONTH    TYPE_INT: 7    EXTRA: null    COMMENT: null    COLUMN_NAME: col9    DATA_TYPE: TIME    TYPE_INT: 8    EXTRA: null    COMMENT: null    COLUMN_NAME: col10    DATA_TYPE: MINUTE    TYPE_INT: 9    EXTRA: null    COMMENT: null    COLUMN_NAME: col11    DATA_TYPE: SECOND    TYPE_INT: 10    EXTRA: null    COMMENT: null    COLUMN_NAME: col12    DATA_TYPE: DATETIME    TYPE_INT: 11    EXTRA: null    COMMENT: null    COLUMN_NAME: col13    DATA_TYPE: TIMESTAMP    TYPE_INT: 12    EXTRA: null    COMMENT: null    COLUMN_NAME: col14    DATA_TYPE: NANOTIME    TYPE_INT: 13    EXTRA: null    COMMENT: null    COLUMN_NAME: col15    DATA_TYPE: NANOTIMESTAMP    TYPE_INT: 14    EXTRA: null    COMMENT: null    COLUMN_NAME: col16    DATA_TYPE: FLOAT    TYPE_INT: 15    EXTRA: null    COMMENT: null    COLUMN_NAME: col17    DATA_TYPE: DOUBLE    TYPE_INT: 16    EXTRA: null    COMMENT: null    COLUMN_NAME: col18    DATA_TYPE: SYMBOL    TYPE_INT: 17    EXTRA: null    COMMENT: null    COLUMN_NAME: col19    DATA_TYPE: STRING    TYPE_INT: 18    EXTRA: null    COMMENT: null    COLUMN_NAME: col20    DATA_TYPE: UUID    TYPE_INT: 19    EXTRA: null    COMMENT: null    COLUMN_NAME: col21    DATA_TYPE: DATEHOUR    TYPE_INT: 28    EXTRA: null    COMMENT: null    COLUMN_NAME: col22    DATA_TYPE: IPADDR    TYPE_INT: 30    EXTRA: null    COMMENT: null    COLUMN_NAME: col23    DATA_TYPE: INT128    TYPE_INT: 31    EXTRA: null    COMMENT: null    COLUMN_NAME: col24    DATA_TYPE: BLOB    TYPE_INT: 32    EXTRA: null    COMMENT: null    COLUMN_NAME: col25    DATA_TYPE: COMPLEX    TYPE_INT: 34    EXTRA: null    COMMENT: null    COLUMN_NAME: col26    DATA_TYPE: POINT    TYPE_INT: 35    EXTRA: null    COMMENT: null    COLUMN_NAME: col27    DATA_TYPE: DECIMAL32(2)    TYPE_INT: 37    EXTRA: 2    COMMENT: null    COLUMN_NAME: col28    DATA_TYPE: DECIMAL64(7)    TYPE_INT: 38    EXTRA: 7    COMMENT: null    COLUMN_NAME: col29    DATA_TYPE: DECIMAL128(19)    TYPE_INT: 39    EXTRA: 19    COMMENT: null    ",printData1(rs));
         stmt.close();
         conn.close();
@@ -289,7 +287,7 @@ public class JDBCDataBaseMetaDataTest {
         ResultSet rs = null;
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
-        rs = metaData.getColumns("test_append_type_tsdb","test_append_type_tsdb对方的对方对方的", "pt", "");
+        rs = metaData.getColumns("dfs://test_append_type_tsdb","test_append_type_tsdb对方的对方对方的", "pt", "");
         Assert.assertEquals("COLUMN_NAME: col1    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    COLUMN_NAME: col2    DATA_TYPE: BOOL    TYPE_INT: 1    EXTRA: null    COMMENT: null    COLUMN_NAME: col3    DATA_TYPE: CHAR    TYPE_INT: 2    EXTRA: null    COMMENT: null    COLUMN_NAME: col4    DATA_TYPE: SHORT    TYPE_INT: 3    EXTRA: null    COMMENT: null    COLUMN_NAME: col5    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    COLUMN_NAME: col6    DATA_TYPE: LONG    TYPE_INT: 5    EXTRA: null    COMMENT: null    COLUMN_NAME: col7    DATA_TYPE: DATE    TYPE_INT: 6    EXTRA: null    COMMENT: null    COLUMN_NAME: col8    DATA_TYPE: MONTH    TYPE_INT: 7    EXTRA: null    COMMENT: null    COLUMN_NAME: col9    DATA_TYPE: TIME    TYPE_INT: 8    EXTRA: null    COMMENT: null    COLUMN_NAME: col10    DATA_TYPE: MINUTE    TYPE_INT: 9    EXTRA: null    COMMENT: null    COLUMN_NAME: col11    DATA_TYPE: SECOND    TYPE_INT: 10    EXTRA: null    COMMENT: null    COLUMN_NAME: col12    DATA_TYPE: DATETIME    TYPE_INT: 11    EXTRA: null    COMMENT: null    COLUMN_NAME: col13    DATA_TYPE: TIMESTAMP    TYPE_INT: 12    EXTRA: null    COMMENT: null    COLUMN_NAME: col14    DATA_TYPE: NANOTIME    TYPE_INT: 13    EXTRA: null    COMMENT: null    COLUMN_NAME: col15    DATA_TYPE: NANOTIMESTAMP    TYPE_INT: 14    EXTRA: null    COMMENT: null    COLUMN_NAME: col16    DATA_TYPE: FLOAT    TYPE_INT: 15    EXTRA: null    COMMENT: null    COLUMN_NAME: col17    DATA_TYPE: DOUBLE    TYPE_INT: 16    EXTRA: null    COMMENT: null    COLUMN_NAME: col18    DATA_TYPE: SYMBOL    TYPE_INT: 17    EXTRA: null    COMMENT: null    COLUMN_NAME: col19    DATA_TYPE: STRING    TYPE_INT: 18    EXTRA: null    COMMENT: null    COLUMN_NAME: col20    DATA_TYPE: UUID    TYPE_INT: 19    EXTRA: null    COMMENT: null    COLUMN_NAME: col21    DATA_TYPE: DATEHOUR    TYPE_INT: 28    EXTRA: null    COMMENT: null    COLUMN_NAME: col22    DATA_TYPE: IPADDR    TYPE_INT: 30    EXTRA: null    COMMENT: null    COLUMN_NAME: col23    DATA_TYPE: INT128    TYPE_INT: 31    EXTRA: null    COMMENT: null    COLUMN_NAME: col24    DATA_TYPE: BLOB    TYPE_INT: 32    EXTRA: null    COMMENT: null    COLUMN_NAME: col25    DATA_TYPE: COMPLEX    TYPE_INT: 34    EXTRA: null    COMMENT: null    COLUMN_NAME: col26    DATA_TYPE: POINT    TYPE_INT: 35    EXTRA: null    COMMENT: null    COLUMN_NAME: col27    DATA_TYPE: DECIMAL32(2)    TYPE_INT: 37    EXTRA: 2    COMMENT: null    COLUMN_NAME: col28    DATA_TYPE: DECIMAL64(7)    TYPE_INT: 38    EXTRA: 7    COMMENT: null    COLUMN_NAME: col29    DATA_TYPE: DECIMAL128(19)    TYPE_INT: 39    EXTRA: 19    COMMENT: null    ",printData1(rs));
         stmt.close();
         conn.close();
@@ -306,7 +304,7 @@ public class JDBCDataBaseMetaDataTest {
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
         try{
-            rs = metaData.getColumns("test_append_type_tsdb","", "", "");
+            rs = metaData.getColumns("dfs://test_append_type_tsdb","", "", "");
         }catch(Exception E){
             results = E.getMessage();
         }
@@ -415,14 +413,14 @@ public class JDBCDataBaseMetaDataTest {
         DatabaseMetaData metaData = conn.getMetaData();
         stmt.execute("pt = loadTable(\"dfs://test_append_type_tsdb\",`pt);setColumnComment(pt,{col1:\"标志符1！！！！！\",col2:\"标志符2@@@@@\",col3:\"标志符3#￥%……&*()\",col4:\"4fdfee\",col5:\"5__++_-=\",col6:\"6^^<>?>>>>\",col7:\"标志符7\"})");
         String results = null;
-        rs = metaData.getColumns("test_append_type_tsdb",null, "pt", "col1");
+        rs = metaData.getColumns("dfs://test_append_type_tsdb",null, "pt", "col1");
         //printData(rs);
         Assert.assertEquals("COLUMN_NAME: col1    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: 标志符1！！！！！    ",printData1(rs));
-        rs = metaData.getColumns("test_append_type_tsdb",null, "pt", "col2");
+        rs = metaData.getColumns("dfs://test_append_type_tsdb",null, "pt", "col2");
         Assert.assertEquals("COLUMN_NAME: col2    DATA_TYPE: BOOL    TYPE_INT: 1    EXTRA: null    COMMENT: 标志符2@@@@@    ",printData1(rs));
-        rs = metaData.getColumns("test_append_type_tsdb",null, "pt", "col3");
+        rs = metaData.getColumns("dfs://test_append_type_tsdb",null, "pt", "col3");
         Assert.assertEquals("COLUMN_NAME: col3    DATA_TYPE: CHAR    TYPE_INT: 2    EXTRA: null    COMMENT: 标志符3#￥%……&*()    ",printData1(rs));
-        rs = metaData.getColumns("test_append_type_tsdb",null, "pt", "col29");
+        rs = metaData.getColumns("dfs://test_append_type_tsdb",null, "pt", "col29");
         Assert.assertEquals("COLUMN_NAME: col29    DATA_TYPE: DECIMAL128(19)    TYPE_INT: 39    EXTRA: 19    COMMENT: null    ",printData1(rs));
 
         stmt.close();
@@ -526,7 +524,7 @@ public class JDBCDataBaseMetaDataTest {
         ResultSet rs = null;
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
-        rs = metaData.getTables("test_append_type_tsdb",null,"pt1", null);
+        rs = metaData.getTables("dfs://test_append_type_tsdb",null,"pt1", null);
         String results1 = getTablesData(rs);
         //printData(rs);
         Assert.assertEquals("nullTABLE_CAT: dfs://test_append_type_tsdb    TABLE_NAME: pt1    TABLE_SCHEM: null    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
@@ -545,7 +543,7 @@ public class JDBCDataBaseMetaDataTest {
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
         //stmt.execute("dfsptfdfd时代的 =  table(1..10 as id)");
-        rs = metaData.getTables("test_append_type_tsdb",null,"pt1", null);
+        rs = metaData.getTables("dfs://test_append_type_tsdb",null,"pt1", null);
         String results1 = getTablesData(rs);
         //printData(rs);
         Assert.assertEquals("nullTABLE_CAT: dfs://test_append_type_tsdb    TABLE_NAME: pt1    TABLE_SCHEM: null    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
@@ -563,7 +561,7 @@ public class JDBCDataBaseMetaDataTest {
         ResultSet rs = null;
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
-        rs = metaData.getTables("test_append_type_tsdb","","pt1", null);
+        rs = metaData.getTables("dfs://test_append_type_tsdb","","pt1", null);
         String results1 = getTablesData(rs);
         //printData(rs);
         Assert.assertEquals("nullTABLE_CAT: dfs://test_append_type_tsdb    TABLE_NAME: pt1    TABLE_SCHEM: null    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
@@ -581,7 +579,7 @@ public class JDBCDataBaseMetaDataTest {
         ResultSet rs = null;
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
-        rs = metaData.getTables("test_append_type_tsdb","sdsdswsaSFE    份额","pt1", null);
+        rs = metaData.getTables("dfs://test_append_type_tsdb","sdsdswsaSFE    份额","pt1", null);
         String results1 = getTablesData(rs);
         //printData(rs);
         Assert.assertEquals("nullTABLE_CAT: dfs://test_append_type_tsdb    TABLE_NAME: pt1    TABLE_SCHEM: null    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
@@ -599,10 +597,10 @@ public class JDBCDataBaseMetaDataTest {
         ResultSet rs = null;
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
-        rs = metaData.getTables("test_append_type_tsdb",null,null, null);
+        rs = metaData.getTables("dfs://test_append_type_tsdb",null,null, null);
         String results1 = getTablesData(rs);
         //printData(rs);
-        Assert.assertEquals("nullTABLE_CAT: dfs://test_append_type_tsdb    TABLE_NAME: pt1    TABLE_SCHEM: null    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
+        Assert.assertEquals("nullTABLE_CAT: dfs://test_append_type_tsdb    TABLE_NAME: pt    TABLE_SCHEM: null    TABLE_TYPE: TABLE    REMARKS: null    TABLE_CAT: dfs://test_append_type_tsdb    TABLE_NAME: pt1    TABLE_SCHEM: null    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
         stmt.close();
         conn.close();
     }
@@ -617,10 +615,10 @@ public class JDBCDataBaseMetaDataTest {
         ResultSet rs = null;
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
-        rs = metaData.getTables("test_append_type_tsdb",null,"", null);
+        rs = metaData.getTables("dfs://test_append_type_tsdb",null,"", null);
         String results1 = getTablesData(rs);
         //printData(rs);
-        Assert.assertEquals("nullTABLE_CAT: dfs://test_append_type_tsdb    TABLE_NAME: pt1    TABLE_SCHEM: null    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
+        Assert.assertEquals("nullTABLE_CAT: dfs://test_append_type_tsdb    TABLE_NAME: pt    TABLE_SCHEM: null    TABLE_TYPE: TABLE    REMARKS: null    TABLE_CAT: dfs://test_append_type_tsdb    TABLE_NAME: pt1    TABLE_SCHEM: null    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
         stmt.close();
         conn.close();
     }
@@ -635,10 +633,10 @@ public class JDBCDataBaseMetaDataTest {
         ResultSet rs = null;
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
-        rs = metaData.getTables("test_append_type_tsdb",null,"%", null);
+        rs = metaData.getTables("dfs://test_append_type_tsdb",null,"%", null);
         String results1 = getTablesData(rs);
         //printData(rs);
-        Assert.assertEquals("nullTABLE_CAT: dfs://test_append_type_tsdb    TABLE_NAME: pt1    TABLE_SCHEM: null    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
+        Assert.assertEquals("nullTABLE_CAT: dfs://test_append_type_tsdb    TABLE_NAME: pt    TABLE_SCHEM: null    TABLE_TYPE: TABLE    REMARKS: null    TABLE_CAT: dfs://test_append_type_tsdb    TABLE_NAME: pt1    TABLE_SCHEM: null    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
         stmt.close();
         conn.close();
     }
