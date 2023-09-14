@@ -112,14 +112,14 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             try {
                 if (Objects.nonNull(columnNamePattern) && !columnNamePattern.isEmpty()) {
 
-                    dfsTableHandle = "handle=loadTable(\"dfs://" + catalog + "\", `" + tableNamePattern + "); " +
+                    dfsTableHandle = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); " +
                                     "select * from schema(handle).colDefs where name = '%s'";
                     dfsTableHandle = String.format(dfsTableHandle, columnNamePattern);
 
                     BasicTable schema = (BasicTable) connection.run(dfsTableHandle);
                     colDefs = schema;
                 } else {
-                    dfsTableHandle = "handle=loadTable(\"dfs://" + catalog + "\", `" + tableNamePattern + "); schema(handle);";
+                    dfsTableHandle = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); schema(handle);";
                     BasicDictionary schema = (BasicDictionary) connection.run(dfsTableHandle);
                     colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
                 }
@@ -468,10 +468,6 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String[] types) throws SQLException {
-        if (Objects.isNull(tableNamePattern) && tableNamePattern.isEmpty()) {
-            throw new SQLException("The param 'tableNamePattern' cannot be null.");
-        }
-
         BasicTable colDefs;
         List<String> colNames = new ArrayList<>();
         colNames.add("TABLE_CAT");
@@ -483,21 +479,51 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
         if (Objects.nonNull(catalog) && !catalog.isEmpty()) {
             try {
-                // specify tableName for dfs table
-                String dfsTableHandle = "handle=loadTable(\"dfs://" + catalog + "\", `" + tableNamePattern + "); handle;";
-                connection.run(dfsTableHandle);
-                cols.add(new BasicStringVector(new String[]{catalog}));
-                cols.add(new BasicStringVector(new String[]{tableNamePattern}));
-                cols.add(new BasicStringVector(new String[]{null}));
-                cols.add(new BasicStringVector(new String[]{"TABLE"}));
-                cols.add(new BasicStringVector(new String[]{null}));
+                if (Utils.isNotEmpty(tableNamePattern) && !tableNamePattern.matches("%+")) {
+                    // specify tableName for dfs table
+                    String dfsTableHandle = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); handle;";
+                    connection.run(dfsTableHandle);
+                    cols.add(new BasicStringVector(new String[]{catalog}));
+                    cols.add(new BasicStringVector(new String[]{tableNamePattern}));
+                    cols.add(new BasicStringVector(new String[]{null}));
+                    cols.add(new BasicStringVector(new String[]{"TABLE"}));
+                    cols.add(new BasicStringVector(new String[]{null}));
+                } else {
+                    // not specify tableName for dfs table
+                    String script = "handle=database(\"" + catalog + "\"); getTables(handle);";
+                    BasicStringVector vector = (BasicStringVector) connection.run(script);
+
+                    List<String> tableCatVal = new ArrayList<>();
+                    List<String> tableNameVal = new ArrayList<>();
+                    List<String> tableSchemVal = new ArrayList<>();
+                    List<String> tableTypeVal = new ArrayList<>();
+                    List<String> remarksVal = new ArrayList<>();
+
+                    for (int i = 0; i < vector.rows(); i ++) {
+                        String tableName = vector.getString(i);
+                        String dfsTableHandle = "handle=loadTable(\"" + catalog + "\", `" + tableName + "); handle;";
+                        connection.run(dfsTableHandle);
+
+                        tableCatVal.add(catalog);
+                        tableNameVal.add(tableName);
+                        tableSchemVal.add(null);
+                        tableTypeVal.add("TABLE");
+                        remarksVal.add(null);
+                    }
+
+                    cols.add(new BasicStringVector(tableCatVal));
+                    cols.add(new BasicStringVector(tableNameVal));
+                    cols.add(new BasicStringVector(tableSchemVal));
+                    cols.add(new BasicStringVector(tableTypeVal));
+                    cols.add(new BasicStringVector(remarksVal));
+                    System.out.println();
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         } else if (tableNamePattern.matches("%+")) {
             // get all tables of catalog's.
             try {
-
                 // get all dfs table
                 String script = "getClusterDFSTables();";
                 BasicStringVector allTables = (BasicStringVector) connection.run(script);
