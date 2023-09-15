@@ -110,12 +110,12 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             // specify tableName for dfs table
             String dfsTableHandle;
             try {
+                // specify columnNamePattern for dfs table
                 if (Objects.nonNull(columnNamePattern) && !columnNamePattern.isEmpty()) {
 
                     dfsTableHandle = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); " +
                                     "select * from schema(handle).colDefs where name = '%s'";
                     dfsTableHandle = String.format(dfsTableHandle, columnNamePattern);
-
                     BasicTable schema = (BasicTable) connection.run(dfsTableHandle);
                     colDefs = schema;
                 } else {
@@ -155,9 +155,14 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         } else {
             // memory table
             try {
-                BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableNamePattern + ");");
-                colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-
+                // specify columnNamePattern for mem table.
+                if (Objects.nonNull(columnNamePattern) && !columnNamePattern.isEmpty()) {
+                    String script = "select * from schema(" + tableNamePattern + ").colDefs where name = '" + columnNamePattern + "';";
+                    colDefs = (BasicTable) connection.run(script);
+                } else {
+                    BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableNamePattern + ");");
+                    colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
