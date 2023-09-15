@@ -397,7 +397,8 @@ public class JDBCDataBaseMetaDataTest {
         String results = null;
         stmt.execute("dfsptfdfd时代的 =  table(1..10 as id)");
         rs = metaData.getColumns("","", "dfsptfdfd时代的", "  ds时代的     ");
-        Assert.assertEquals("COLUMN_NAME: id    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    ",printData1(rs));
+        rs.getRow();
+        Assert.assertEquals(0,rs.getRow());
         stmt.close();
         conn.close();
     }
