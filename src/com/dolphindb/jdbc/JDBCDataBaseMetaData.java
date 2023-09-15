@@ -101,26 +101,23 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-        if (Objects.isNull(tableNamePattern) && tableNamePattern.isEmpty()) {
+        if (Objects.isNull(tableNamePattern) && tableNamePattern.isEmpty())
             throw new SQLException("The param 'tableNamePattern' cannot be null.");
-        }
 
         BasicTable colDefs = null;
         if (Objects.nonNull(catalog) && !catalog.isEmpty()) {
             // specify tableName for dfs table
-            String dfsTableHandle;
+            String script;
             try {
                 // specify columnNamePattern for dfs table
                 if (Objects.nonNull(columnNamePattern) && !columnNamePattern.isEmpty()) {
-
-                    dfsTableHandle = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); " +
-                                    "select * from schema(handle).colDefs where name = '%s'";
-                    dfsTableHandle = String.format(dfsTableHandle, columnNamePattern);
-                    BasicTable schema = (BasicTable) connection.run(dfsTableHandle);
-                    colDefs = schema;
+                    script = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); " +
+                             "select * from schema(handle).colDefs where name = '%s'";
+                    script = String.format(script, columnNamePattern);
+                    colDefs = (BasicTable) connection.run(script);
                 } else {
-                    dfsTableHandle = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); schema(handle);";
-                    BasicDictionary schema = (BasicDictionary) connection.run(dfsTableHandle);
+                    script = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); schema(handle);";
+                    BasicDictionary schema = (BasicDictionary) connection.run(script);
                     colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
                 }
             } catch (IOException e) {
@@ -130,10 +127,10 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             // get all tables of catalog's.
             try {
                 String script = "getClusterDFSTables();";
-                BasicStringVector allTables = (BasicStringVector) connection.run(script);
+                BasicStringVector allTablesVec = (BasicStringVector) connection.run(script);
 
-                for (int i = 0; i < allTables.rows(); i ++) {
-                    String tempDbAndTableName = allTables.getString(i);
+                for (int i = 0; i < allTablesVec.rows(); i ++) {
+                    String tempDbAndTableName = allTablesVec.getString(i);
                     // tempTableName
                     int lastSlashIndex = tempDbAndTableName.lastIndexOf("/");
                     if (lastSlashIndex != -1) {
@@ -142,11 +139,10 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                         String dfsTableHandle = "handle=loadTable(\"" + dbName + "\", `" + tempTableName + "); schema(handle);";
                         BasicDictionary schema = (BasicDictionary) connection.run(dfsTableHandle);
                         BasicTable tempColDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-                        if (Objects.nonNull(colDefs)) {
+                        if (Objects.nonNull(colDefs))
                             colDefs = colDefs.combine(tempColDefs);
-                        } else {
+                        else
                             colDefs = tempColDefs;
-                        }
                     }
                 }
             } catch (IOException e) {
@@ -160,6 +156,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     String script = "select * from schema(" + tableNamePattern + ").colDefs where name = '" + columnNamePattern + "';";
                     colDefs = (BasicTable) connection.run(script);
                 } else {
+                    // get all columns for specify mem table
                     BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableNamePattern + ");");
                     colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
                 }
@@ -474,12 +471,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
     @Override
     public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String[] types) throws SQLException {
         BasicTable colDefs;
-        List<String> colNames = new ArrayList<>();
-        colNames.add("TABLE_CAT");
-        colNames.add("TABLE_NAME");
-        colNames.add("TABLE_SCHEM");
-        colNames.add("TABLE_TYPE");
-        colNames.add("REMARKS");
+        List<String> colNames = new ArrayList<>(Arrays.asList("TABLE_CAT", "TABLE_NAME", "TABLE_SCHEM", "TABLE_TYPE", "REMARKS"));
         List<Vector> cols = new ArrayList<>();
 
         if (Objects.nonNull(catalog) && !catalog.isEmpty()) {
@@ -488,40 +480,31 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     // specify tableName for dfs table
                     String dfsTableHandle = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); handle;";
                     connection.run(dfsTableHandle);
-                    cols.add(new BasicStringVector(new String[]{catalog}));
-                    cols.add(new BasicStringVector(new String[]{tableNamePattern}));
-                    cols.add(new BasicStringVector(new String[]{null}));
-                    cols.add(new BasicStringVector(new String[]{"TABLE"}));
-                    cols.add(new BasicStringVector(new String[]{null}));
+                    String[] values = {catalog, tableNamePattern, null, "TABLE", null};
+                    for (String value : values) {
+                        cols.add(new BasicStringVector(new String[]{value}));
+                    }
                 } else {
                     // not specify tableName for dfs table
                     String script = "handle=database(\"" + catalog + "\"); getTables(handle);";
                     BasicStringVector vector = (BasicStringVector) connection.run(script);
-
-                    List<String> tableCatVal = new ArrayList<>();
-                    List<String> tableNameVal = new ArrayList<>();
-                    List<String> tableSchemVal = new ArrayList<>();
-                    List<String> tableTypeVal = new ArrayList<>();
-                    List<String> remarksVal = new ArrayList<>();
-
-                    for (int i = 0; i < vector.rows(); i ++) {
+                    List<String[]> valuesList = new ArrayList<>();
+                    for (int i = 0; i < vector.rows(); i++) {
                         String tableName = vector.getString(i);
                         String dfsTableHandle = "handle=loadTable(\"" + catalog + "\", `" + tableName + "); handle;";
                         connection.run(dfsTableHandle);
 
-                        tableCatVal.add(catalog);
-                        tableNameVal.add(tableName);
-                        tableSchemVal.add(null);
-                        tableTypeVal.add("TABLE");
-                        remarksVal.add(null);
+                        String[] values = {catalog, tableName, null, "TABLE", null};
+                        valuesList.add(values);
                     }
 
-                    cols.add(new BasicStringVector(tableCatVal));
-                    cols.add(new BasicStringVector(tableNameVal));
-                    cols.add(new BasicStringVector(tableSchemVal));
-                    cols.add(new BasicStringVector(tableTypeVal));
-                    cols.add(new BasicStringVector(remarksVal));
-                    System.out.println();
+                    for (int j = 0; j < valuesList.get(0).length; j++) {
+                        List<String> columnValues = new ArrayList<>();
+                        for (String[] values : valuesList) {
+                            columnValues.add(values[j]);
+                        }
+                        cols.add(new BasicStringVector(columnValues));
+                    }
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -564,7 +547,6 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     for (int i = 0; i < name.rows(); i ++) {
                         BasicString memTableName = (BasicString) name.get(i);
                         tableNameVal.add(memTableName.getString());
-
                         tableCatVal.add(null);
                         tableSchemVal.add(null);
                         remarksVal.add(null);
