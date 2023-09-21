@@ -68,14 +68,18 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
     }
 
     @Override
-    public ResultSet getCatalogs() throws SQLException{
-        if(Catalogs == null){
-            List<String> colName = Collections.singletonList("TABLE_CAT");
-            String[] tableCatArr = new String[]{com.dolphindb.jdbc.Driver.DB,DATABASE_NAME};
-            List<Vector> cols = Collections.singletonList(new BasicStringVector(tableCatArr));
-            BasicTable basicTable = new BasicTable(colName,cols);
-            Catalogs =  new JDBCResultSet(connection,statement,basicTable,"");
+    public ResultSet getCatalogs() throws SQLException {
+        List<String> colNames = new ArrayList<>(Collections.singletonList("TABLE_CAT"));
+        List<Vector> cols = new ArrayList<>();
+
+        try {
+            BasicStringVector dbs = (BasicStringVector) connection.run("getClusterDFSDatabases()");
+            cols.add(dbs);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+
+        Catalogs = new JDBCResultSet(connection, statement, new BasicTable(colNames, cols), "");
         return Catalogs;
     }
 
