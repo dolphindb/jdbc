@@ -5,6 +5,8 @@ import com.xxdb.data.Vector;
 import java.io.IOException;
 import java.sql.*;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
@@ -114,7 +116,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             String script;
             try {
                 // specify columnNamePattern for dfs table
-                if (Objects.nonNull(columnNamePattern) && !columnNamePattern.isEmpty()) {
+                if (Objects.nonNull(columnNamePattern) && !columnNamePattern.isEmpty() && !columnNamePattern.equals("%")) {
                     script = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); " +
                              "select * from schema(handle).colDefs where name = '%s'";
                     script = String.format(script, columnNamePattern);
@@ -171,11 +173,17 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
         List<String> newColumnNames = new ArrayList<>();
         newColumnNames.add("COLUMN_NAME");
+        newColumnNames.add("TYPE_NAME");
         newColumnNames.add("DATA_TYPE");
-        newColumnNames.add("TYPE_INT");
         newColumnNames.add("EXTRA");
         newColumnNames.add("COMMENT");
         colDefs.setColName(newColumnNames);
+
+
+        BasicIntVector posColVector = new BasicIntVector(IntStream.rangeClosed(1, colDefs.getColumn(0).rows())
+                .boxed()
+                .collect(Collectors.toList()));
+        colDefs.addColumn("ORDINAL_POSITION", posColVector);
 
         return new JDBCResultSet(connection,statement, colDefs,"");
     }
