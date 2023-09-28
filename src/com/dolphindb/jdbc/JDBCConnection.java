@@ -284,7 +284,46 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public void setCatalog(String catalog) throws SQLException {
-		Driver.unused("setCatalog not implemented");
+		if (Utils.isEmpty(catalog)) {
+			throw new SQLException("The param catalog cannot be null or empty.");
+		}
+
+		StringBuilder sbInitScript = new StringBuilder();
+
+		if (Objects.nonNull(this.tables)) {
+			// undef existed table handle;
+			for (int i = 0; i < this.tables.rows(); i ++) {
+				String tableName = ((BasicString) this.tables.get(i)).getString();
+				try {
+					this.dbConnection.run(tableName);
+					this.dbConnection.run("undef(`" + tableName + ");");
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}
+
+		try {
+			this.dbConnection.run("system_db" + " = database(\"" + catalog + "\");\n");
+			if (catalog.trim().startsWith("dfs://")) {
+				this.databases = catalog;
+			} else return;
+
+			List<String> dbtables=new ArrayList<>();
+
+			// if not specific tableanme, load all tables; but need to authenticate every table.
+			Vector vector = (Vector) this.dbConnection.run("getTables(system_db)");
+			for (int i = 0; i < vector.rows(); i++) {
+				dbtables.add(vector.getString(i));
+			}
+			String script = loadTables(this.databases, dbtables,true);
+			sbInitScript.append(script);
+			this.tables = new BasicStringVector(dbtables);
+			this.dbConnection.run(sbInitScript.toString());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
 	}
 
 	@Override
