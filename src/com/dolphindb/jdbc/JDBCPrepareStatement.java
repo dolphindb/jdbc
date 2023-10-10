@@ -423,7 +423,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						throw new SQLException(e);
 					}
 					if (entity instanceof BasicTable) {
-						ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, newSql);
+						ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, newSql, this.getMaxRows());
 						resultSets.offerLast(resultSet_);
 						objectQueue.offer(resultSet_);
 					}

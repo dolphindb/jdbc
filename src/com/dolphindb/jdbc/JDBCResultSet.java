@@ -19,8 +19,10 @@ public class JDBCResultSet implements ResultSet{
     private final JDBCConnection conn;
     private final JDBCStatement statement;
     private BasicTable table;
-    private int row = -1;
-    private int rows;
+    private int currentRow = -1;
+    private int offsetRows;
+    private int maxRows = -1;
+    private int globalRows;
     private String tableName;
     private Entity tableNameArg;
     private List<Entity> arguments;
@@ -33,7 +35,6 @@ public class JDBCResultSet implements ResultSet{
     private boolean isUpdatable = false;
     private Object o;
     private Entity entity;
-
     private EntityBlockReader reader;
 
     public JDBCResultSet(JDBCConnection conn, JDBCStatement statement, Entity entity, String sql) throws SQLException {
@@ -41,7 +42,7 @@ public class JDBCResultSet implements ResultSet{
         this.statement = statement;
         if(entity.isTable()){
             this.table = (BasicTable) entity;
-            rows = this.table.rows();
+            offsetRows = this.table.rows();
             findColumnHashMap = new HashMap<>(this.table.columns());
             for(int i=0; i<this.table.columns(); ++i){
                 findColumnHashMap.put(this.table.getColumnName(i),i+1);
@@ -65,7 +66,7 @@ public class JDBCResultSet implements ResultSet{
                 }
                 cols.add(vector);
                 this.table = new BasicTable(colNames,cols);
-                rows = this.table.rows();
+                offsetRows = this.table.rows();
                 findColumnHashMap = new HashMap<>(this.table.columns());
                 for(int i=0; i<this.table.columns(); ++i){
                     findColumnHashMap.put(this.table.getColumnName(i),i+1);
@@ -76,6 +77,111 @@ public class JDBCResultSet implements ResultSet{
                 }
             }
         }
+    }
+
+    protected JDBCResultSet(JDBCConnection conn, JDBCStatement statement, Entity entity, String sql, int maxRows) throws SQLException {
+        this.conn = conn;
+        this.statement = statement;
+        if (entity.isTable()) {
+            if (maxRows > 0) {
+                // if param 'maxRows' is valid.
+                this.maxRows = maxRows;
+                if (entity.rows() > this.maxRows) {
+                    this.table = (BasicTable) ((BasicTable) entity).getSubTable(0, this.maxRows - 1);
+                    this.offsetRows = this.maxRows;
+                } else {
+                    this.table = (BasicTable) entity;
+                    this.offsetRows = this.table.rows();
+                }
+            } else {
+                this.table = (BasicTable) entity;
+                this.offsetRows = this.table.rows();
+            }
+
+            this.findColumnHashMap = new HashMap<>(this.table.columns());
+            for(int i=0; i<this.table.columns(); ++i)
+                this.findColumnHashMap.put(this.table.getColumnName(i), i + 1);
+
+            this.isUpdatable = false;
+            if (this.isUpdatable)
+                insertRowMap = new HashMap<>(this.table.columns() + 1);
+        } else {
+            this.entity = entity;
+            if (sql!=null&&sql.contains("select 1 as ")) {
+                List<String> colNames = new ArrayList<>(1);
+                colNames.add(Utils.getSelectOneColName(sql));
+                List<Vector> cols = new ArrayList<>(1);
+                Vector vector = new BasicIntVector(1);
+                Scalar scalar = new BasicInt(1);
+                try {
+                    vector.set(0,scalar);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+                cols.add(vector);
+                this.table = new BasicTable(colNames, cols);
+                table.getSubTable(0, 3);
+                this.offsetRows = this.table.rows();
+                this.findColumnHashMap = new HashMap<>(this.table.columns());
+                for (int i=0; i<this.table.columns(); ++i)
+                    findColumnHashMap.put(this.table.getColumnName(i), i + 1);
+
+                this.isUpdatable = false;
+                if (this.isUpdatable){
+                    insertRowMap = new HashMap<>(this.table.columns() + 1);
+                }
+            }
+        }
+    }
+
+    protected JDBCResultSet(JDBCConnection conn, JDBCStatement statement, EntityBlockReader reader, String sql, int maxRows) throws SQLException{
+        this.conn = conn;
+        this.statement = statement;
+        this.reader = reader;
+        if(!reader.hasNext()) {
+            throw new SQLException("ResultSet data is null");
+        }
+
+        BasicTable entity = null;
+
+        try {
+            entity = (BasicTable) reader.read();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        if (entity.isTable()) {
+            if (maxRows > 0) {
+                // if param 'maxRows' is valid.
+                this.maxRows = maxRows;
+                if (entity.rows() > this.maxRows) {
+                    this.table = (BasicTable) ((BasicTable) entity).getSubTable(0, this.maxRows - 1);
+                    this.offsetRows = this.maxRows;
+                } else {
+                    this.table = (BasicTable) entity;
+                    this.offsetRows = this.table.rows();
+                }
+            } else {
+                this.table = (BasicTable) entity;
+                this.offsetRows = this.table.rows();
+            }
+            // this.table = entity;
+            this.globalRows += this.offsetRows;
+            System.out.println("rows: " + this.offsetRows);
+            System.out.println(this.globalRows);
+            System.out.println("table rows: " + this.table.rows());
+        } else {
+            throw new SQLException("ResultSet data is null");
+        }
+
+        this.findColumnHashMap = new HashMap<>(this.table.columns());
+        for (int i=0; i<this.table.columns(); ++i)
+            this.findColumnHashMap.put(this.table.getColumnName(i), i + 1);
+
+        this.isUpdatable = false;
+        if (this.isUpdatable)
+            insertRowMap = new HashMap<>(this.table.columns() + 1);
     }
 
     public JDBCResultSet(JDBCConnection conn, JDBCStatement statement, EntityBlockReader reader, String sql) throws SQLException{
@@ -96,7 +202,7 @@ public class JDBCResultSet implements ResultSet{
         }else{
             throw new SQLException("ResultSet data is null");
         }
-        rows = this.table.rows();
+        offsetRows = this.table.rows();
         findColumnHashMap = new HashMap<>(this.table.columns());
         for(int i=0; i<this.table.columns(); ++i){
             findColumnHashMap.put(this.table.getColumnName(i),i+1);
@@ -114,22 +220,37 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public boolean next() throws SQLException {
-        if(this.getFetchSize() != 0) {
+        if (this.getFetchSize() != 0) {
             // When no segments of the large table have been read or when the number of rows read from a segment exceeds the limit, an attempt is made to read the next segment.
-            if(this.table == null || row >= rows - 1) {
+            if(this.table == null || currentRow >= offsetRows - 1) {
                 try {
-                    if(!this.reader.hasNext()) return false;
-                    this.table = (BasicTable) this.reader.read();
-                    rows = this.table.rows();
-                    row = -1;
+                    if (!this.reader.hasNext())
+                        return false;
+
+                    BasicTable tempTable = (BasicTable) this.reader.read();
+                    globalRows += tempTable.rows();
+                    if (this.globalRows > this.maxRows) {
+                        this.table = (BasicTable) tempTable.getSubTable(0, this.globalRows - this.maxRows - 1);
+                        offsetRows = this.globalRows - this.maxRows;
+                    } else {
+                        this.table = tempTable;
+                        offsetRows = this.table.rows();
+                    }
+
+                    currentRow = -1;
+                    // globalRows += rows;
+                    System.out.println(this.globalRows);
+                    System.out.println("rows: " + this.offsetRows);
+                    System.out.println("table rows: " + this.table.rows());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }
         }
+
         checkClosed();
-        row++;
-        return row <= rows-1;
+        currentRow++;
+        return currentRow <= offsetRows -1;
     }
 
     @Override
@@ -161,7 +282,7 @@ public class JDBCResultSet implements ResultSet{
     @Override
     public Object getObject(int columnIndex) throws SQLException {
         Vector column = table.getColumn(adjustColumnIndex(columnIndex));
-        Entity entity = column.get(row);
+        Entity entity = column.get(currentRow);
         o = entity;
         Entity.DATA_TYPE x = column.getDataType();
         switch (x){
@@ -529,7 +650,7 @@ public class JDBCResultSet implements ResultSet{
 	@Override
     public <T> T getObject(int columnIndex, Class<T> aClass) throws SQLException {
         try {
-            return (T) TypeCast.entity2java(table.getColumn(adjustColumnIndex(columnIndex)).get(row), aClass.getName());
+            return (T) TypeCast.entity2java(table.getColumn(adjustColumnIndex(columnIndex)).get(currentRow), aClass.getName());
         }catch (Exception e){
             throw new SQLException(e);
         }
@@ -564,70 +685,70 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public boolean isBeforeFirst() throws SQLException {
-        return row < 0;
+        return currentRow < 0;
     }
 
     @Override
     public boolean isAfterLast() throws SQLException {
-        return row >= rows;
+        return currentRow >= offsetRows;
     }
 
     @Override
     public boolean isFirst() throws SQLException {
-        return row == 0;
+        return currentRow == 0;
     }
 
     @Override
     public boolean isLast() throws SQLException {
-        return row == rows-1;
+        return currentRow == offsetRows -1;
     }
 
     @Override
     public void beforeFirst() throws SQLException {
-        row = -1;
+        currentRow = -1;
     }
 
     @Override
     public void afterLast() throws SQLException {
-        row = rows;
+        currentRow = offsetRows;
     }
 
     @Override
     public boolean first() throws SQLException {
-        row = 0;
-        return rows > 0;
+        currentRow = 0;
+        return offsetRows > 0;
     }
 
     @Override
     public boolean last() throws SQLException {
-        row = rows - 1;
-        return rows > 0;
+        currentRow = offsetRows - 1;
+        return offsetRows > 0;
     }
 
     @Override
     public int getRow() throws SQLException {
-        return row + 1;
+        return currentRow + 1;
     }
 
     @Override
     public boolean absolute(int columnIndex) throws SQLException {
         if (columnIndex >= 0)
-            row = columnIndex - 1;
+            currentRow = columnIndex - 1;
         else
-            row = rows + columnIndex;
-        return row < rows;
+            currentRow = offsetRows + columnIndex;
+        return currentRow < offsetRows;
     }
 
     @Override
     public boolean relative(int columnIndex) throws SQLException {
-        row += columnIndex;
-        return  row >= 0 && row < rows;
+        currentRow += columnIndex;
+        return  currentRow >= 0 && currentRow < offsetRows;
     }
 
     @Override
     public boolean previous() throws SQLException {
-        --row;
-        return row >= 0;
+        --currentRow;
+        return currentRow >= 0;
     }
 
     @Override
@@ -874,11 +995,11 @@ public class JDBCResultSet implements ResultSet{
     public void insertRow() throws SQLException {
         isUpdatable();
         try {
-            if(insertRow == row){
+            if(insertRow == currentRow){
                 createArguments();
                 conn.run("tableInsert",arguments);
                 table = loadTable();
-                rows = table.rows();
+                offsetRows = table.rows();
             }
             arguments.clear();
             insertRowMap.clear();
@@ -892,10 +1013,10 @@ public class JDBCResultSet implements ResultSet{
     @Override
     public void updateRow() throws SQLException {
         isUpdatable();
-        if(updateRow == row){
+        if(updateRow == currentRow){
             updateRun();
             table = loadTable();
-            rows = table.rows();
+            offsetRows = table.rows();
         }
         insertRowMap.clear();
     }
@@ -911,7 +1032,7 @@ public class JDBCResultSet implements ResultSet{
         String sql = sb.toString();
         run(sql);
         table = loadTable();
-        rows = table.rows();
+        offsetRows = table.rows();
     }
 
     @Override
@@ -920,7 +1041,7 @@ public class JDBCResultSet implements ResultSet{
         BasicTable newTable = loadTable();
         try {
             for(int i=0; i<newTable.columns(); ++i){
-                table.getColumn(i).set(row,newTable.getColumn(i).get(row));
+                table.getColumn(i).set(currentRow,newTable.getColumn(i).get(currentRow));
             }
         }catch (Exception e){
             throw new SQLException(e.getMessage());
@@ -1365,17 +1486,17 @@ public class JDBCResultSet implements ResultSet{
     private void update(int columnIndex, Object value) throws SQLException{
         isUpdatable();
         if (isInsert){
-            insertRow = row;
+            insertRow = currentRow;
         }
         else {
-            updateRow = row;
+            updateRow = currentRow;
         }
         insert(columnIndex, value);
     }
 
     private void insert(int columnIndex, Object value) throws SQLException {
         try {
-            Entity targetEntity = table.getColumn(adjustColumnIndex(columnIndex)).get(row);
+            Entity targetEntity = table.getColumn(adjustColumnIndex(columnIndex)).get(currentRow);
             Entity.DATA_TYPE dataType = targetEntity.getDataType();
             int size = 0;
             if(dataType.getName().equals(Entity.DATA_TYPE.DT_DECIMAL.getName()) || dataType.getName().equals(Entity.DATA_TYPE.DT_DECIMAL32.getName()) ||
@@ -1401,7 +1522,7 @@ public class JDBCResultSet implements ResultSet{
             if((value = insertRowMap.get(i)) != null){
                 sb.append(getColumnName(i)).append(" = ").append(Utils.java2db(value)).append(", ");
             }
-            where.append(getColumnName(i)).append(" = ").append(Utils.java2db(table.getColumn(adjustColumnIndex(i)).get(row))).append(" ,");
+            where.append(getColumnName(i)).append(" = ").append(Utils.java2db(table.getColumn(adjustColumnIndex(i)).get(currentRow))).append(" ,");
         }
         sb.delete(sb.length()-2,sb.length());
         where.delete(where.length()-2,where.length());
