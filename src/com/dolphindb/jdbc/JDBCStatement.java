@@ -23,8 +23,8 @@ public class JDBCStatement implements Statement {
     protected static final String IN_MEMORY_TABLE = "IN-MEMORY TABLE";
     protected boolean isClosed;
     private int timeout = 100;
-
     private int fetchSize = 0;
+    private int maxRows = -1;
 
     public JDBCStatement(JDBCConnection cnn){
         this.connection = cnn;
@@ -65,6 +65,13 @@ public class JDBCStatement implements Statement {
 
     @Override
     public void setLargeMaxRows(long max) throws SQLException {
+        if (max < 0)
+            throw new SQLException("The param max cannot less than 0.");
+
+        if (max == 0)
+            max = -1;
+
+        this.maxRows = (int) max;
     }
 
     @Override
@@ -125,16 +132,16 @@ public class JDBCStatement implements Statement {
                     }
 
                     if (entity instanceof BasicTable) {
-                        resultSet = new JDBCResultSet(connection, this, entity, sql);
+                        resultSet = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
                         return resultSet;
                     } else if(entity instanceof EntityBlockReader) {
-                        resultSet = new JDBCResultSet(connection, this, (EntityBlockReader) entity, sql);
+                        resultSet = new JDBCResultSet(connection, this, (EntityBlockReader) entity, sql, this.maxRows);
                         return resultSet;
                     } else if (entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR) {
-                        resultSet = new JDBCResultSet(connection, this, entity, sql);
+                        resultSet = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
                         return resultSet;
                     } else if (entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR) {
-                        resultSet = new JDBCResultSet(connection, this, entity, sql);
+                        resultSet = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
                         return resultSet;
                     } else {
                         throw new SQLException("The given SQL statement produces anything other than a single ResultSet object.");
@@ -252,12 +259,15 @@ public class JDBCStatement implements Statement {
 
     @Override
     public int getMaxRows() throws SQLException {
-        return 0;
+        if (this.maxRows <= 0)
+            return 0;
+
+        return this.maxRows;
     }
 
     @Override
     public void setMaxRows(int maxRows) throws SQLException {
-        Driver.unused();
+        setLargeMaxRows(maxRows);
     }
 
     @Override
@@ -368,7 +378,7 @@ public class JDBCStatement implements Statement {
                 }
 
                 if (entity instanceof BasicTable) {
-                    ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, sql);
+                    ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
                     resultSets.offerLast(resultSet_);
                     objectQueue.offer(resultSet_);
                 }

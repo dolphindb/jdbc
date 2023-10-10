@@ -124,7 +124,7 @@ public class Driver implements java.sql.Driver {
     }
 
     public static void unused()throws SQLException{
-        throw new SQLFeatureNotSupportedException("method not supported");
+        throw new SQLFeatureNotSupportedException("The current method is not supported.");
     }
 
     public static void unused(Exception e)throws SQLException{
