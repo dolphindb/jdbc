@@ -1881,5 +1881,131 @@ public class JDBCStatementTest {
 			}
 		}
 	}
+	@Test
+	public void test_JDBCStatement_setMaxRows_negative() throws Exception {
+		DBConnection db1 = new DBConnection();
+		db1.connect(HOST,PORT,"admin","123456");
+		Assert.assertTrue(CreateDfsTable(HOST,PORT));
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456"+"&databasePath=dfs://db_testStatement";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stm = (JDBCStatement) conn.createStatement();
+		String re = null;
+		try {
+			stm.setMaxRows(-1);
+		}catch(Exception e){
+			re = e.getMessage();
+		}
+		Assert.assertEquals("The param max cannot less than 0.",re);
+	}
+	@Test
+	public void test_JDBCStatement_setMaxRows_0() throws Exception {
+		DBConnection db1 = new DBConnection();
+		db1.connect(HOST,PORT,"admin","123456");
+		Assert.assertTrue(CreateDfsTable(HOST,PORT));
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456"+"&databasePath=dfs://db_testStatement";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stm = (JDBCStatement) conn.createStatement();
+		stm.setMaxRows(0);
+		rs = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from qt left outer join pt on qt.sym = pt.sym;");
+		BasicTable bt = (BasicTable) rs.getResult();
+		Assert.assertEquals(12,bt.rows());
+	}
+	@Test
+	public void test_JDBCStatement_setMaxRows_5() throws Exception {
+		DBConnection db1 = new DBConnection();
+		db1.connect(HOST,PORT,"admin","123456");
+		Assert.assertTrue(CreateDfsTable(HOST,PORT));
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456"+"&databasePath=dfs://db_testStatement";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stm = (JDBCStatement) conn.createStatement();
+		stm.setMaxRows(5);
+		rs = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from qt left outer join pt on qt.sym = pt.sym;");
+		BasicTable bt = (BasicTable) rs.getResult();
+		Assert.assertEquals(5,bt.rows());
+	}
+	@Test
+	public void test_JDBCStatement_setMaxRows_1000000() throws Exception {
+		DBConnection db1 = new DBConnection();
+		db1.connect(HOST,PORT,"admin","123456");
+		Assert.assertTrue(CreateDfsTable(HOST,PORT));
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456"+"&databasePath=dfs://db_testStatement";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stm = (JDBCStatement) conn.createStatement();
+		stm.setMaxRows(1000000);
+		rs = (JDBCResultSet) stm.executeQuery("select sym,qty,price,timestamp,char,bool,minute from qt left outer join pt on qt.sym = pt.sym;");
+		BasicTable bt = (BasicTable) rs.getResult();
+		Assert.assertEquals(12,bt.rows());
+	}
+	@Test
+	public void test_JDBCStatement_getMaxRows_0() throws Exception {
+		DBConnection db1 = new DBConnection();
+		db1.connect(HOST,PORT,"admin","123456");
+		Assert.assertTrue(CreateDfsTable(HOST,PORT));
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456"+"&databasePath=dfs://db_testStatement";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stm = (JDBCStatement) conn.createStatement();
+		Assert.assertEquals(0,stm.getMaxRows());
+		stm.setMaxRows(0);
+		Assert.assertEquals(0,stm.getMaxRows());
 
+	}
+	@Test
+	public void test_JDBCStatement_getMaxRows_5() throws Exception {
+		DBConnection db1 = new DBConnection();
+		db1.connect(HOST,PORT,"admin","123456");
+		Assert.assertTrue(CreateDfsTable(HOST,PORT));
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456"+"&databasePath=dfs://db_testStatement";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stm = (JDBCStatement) conn.createStatement();
+		Assert.assertEquals(0,stm.getMaxRows());
+		stm.setMaxRows(5);
+		Assert.assertEquals(5,stm.getMaxRows());
+	}
+	@Test
+	public void test_JDBCStatement_getMaxRows_1000000() throws Exception {
+		DBConnection db1 = new DBConnection();
+		db1.connect(HOST,PORT,"admin","123456");
+		Assert.assertTrue(CreateDfsTable(HOST,PORT));
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456"+"&databasePath=dfs://db_testStatement";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stm = (JDBCStatement) conn.createStatement();
+		Assert.assertEquals(0,stm.getMaxRows());
+		stm.setMaxRows(1000000);
+		Assert.assertEquals(1000000,stm.getMaxRows());
+	}
 }
