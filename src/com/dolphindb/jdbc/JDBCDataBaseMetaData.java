@@ -171,14 +171,59 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             }
         }
 
+        // set 'IS_NULLABLE'
+        List<String> columnIndexList = new ArrayList<>();
+        try {
+            BasicDictionary schema = (BasicDictionary) connection.run("schema(handle);");
+            Entity columnNameEntity = schema.get("partitionColumnName");
+            Entity sortColumnsEntity = schema.get("sortColumns");
+
+            // get 'partitonColumn'
+            if (Objects.nonNull(columnNameEntity)) {
+                if (columnNameEntity.isScalar()) {
+                    BasicString columnName = (BasicString) columnNameEntity;
+                    columnIndexList.add(columnName.getString());
+                } else if (columnNameEntity.isVector()) {
+                    BasicStringVector columnNameVec = (BasicStringVector) columnNameEntity;
+                    columnIndexList.addAll(Arrays.asList(columnNameVec.getdataArray()));
+                }
+            }
+
+            // get 'sortColumn'
+            if (Objects.nonNull(sortColumnsEntity)) {
+                if (sortColumnsEntity.isScalar()) {
+                    BasicString sortColumn = (BasicString) sortColumnsEntity;
+                    columnIndexList.add(sortColumn.getString());
+                } else if (sortColumnsEntity.isVector()) {
+                    BasicStringVector sortColumnsVec = (BasicStringVector) sortColumnsEntity;
+                    String[] sortColumnsArr = sortColumnsVec.getdataArray();
+                    if (sortColumnsArr.length > 1) {
+                        // if sortColumns > 1, drop last element.
+                        sortColumnsArr = Arrays.copyOfRange(sortColumnsArr, 0, sortColumnsArr.length - 1);
+                    }
+                    columnIndexList.addAll(Arrays.asList(sortColumnsArr));
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
         List<String> newColumnNames = new ArrayList<>();
         newColumnNames.add("COLUMN_NAME");
         newColumnNames.add("TYPE_NAME");
         newColumnNames.add("DATA_TYPE");
         newColumnNames.add("EXTRA");
-        newColumnNames.add("COMMENT");
+        newColumnNames.add("REMARKS");
         colDefs.setColName(newColumnNames);
 
+        List<String> isNullableStrList = new ArrayList<>();
+        BasicStringVector nameColumn = (BasicStringVector) colDefs.getColumn(0);
+        String[] nameList = nameColumn.getdataArray();
+        Arrays.stream(nameList)
+                .map(str -> columnIndexList.contains(str) ? "NO" : "YES")
+                .forEach(isNullableStrList::add);
+
+        colDefs.addColumn("IS_NULLABLE", new BasicStringVector(isNullableStrList));
 
         BasicIntVector posColVector = new BasicIntVector(IntStream.rangeClosed(1, colDefs.getColumn(0).rows())
                 .boxed()
