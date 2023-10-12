@@ -168,9 +168,6 @@ public class JDBCResultSet implements ResultSet{
             }
             // this.table = entity;
             this.globalRows += this.offsetRows;
-            System.out.println("rows: " + this.offsetRows);
-            System.out.println(this.globalRows);
-            System.out.println("table rows: " + this.table.rows());
         } else {
             throw new SQLException("ResultSet data is null");
         }
@@ -232,16 +229,13 @@ public class JDBCResultSet implements ResultSet{
                     if (this.globalRows > this.maxRows) {
                         this.table = (BasicTable) tempTable.getSubTable(0, this.globalRows - this.maxRows - 1);
                         offsetRows = this.globalRows - this.maxRows;
+                        return false;
                     } else {
                         this.table = tempTable;
                         offsetRows = this.table.rows();
                     }
 
                     currentRow = -1;
-                    // globalRows += rows;
-                    System.out.println(this.globalRows);
-                    System.out.println("rows: " + this.offsetRows);
-                    System.out.println("table rows: " + this.table.rows());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
