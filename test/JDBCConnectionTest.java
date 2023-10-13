@@ -87,19 +87,14 @@ public class JDBCConnectionTest {
 	}
 	@Test
 	public void Test_commit() throws SQLException {
-		try{
-			conn.commit();
-		}catch(SQLException e){
-			org.junit.Assert.assertEquals("commit not implemented", e.getMessage());
-		}
+		conn.commit();
+		org.junit.Assert.assertEquals(false, conn.isClosed());
 	}
 	@Test
 	public void Test_rollback() throws SQLException {
-		try{
-			conn.rollback();
-		}catch(SQLException e){
-			org.junit.Assert.assertEquals("rollback not implemented", e.getMessage());
-		}
+		conn.rollback();
+		org.junit.Assert.assertEquals(false, conn.isClosed());
+
 	}
 	@Test
 	public void Test_getMetaData() throws SQLException {
