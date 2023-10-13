@@ -240,12 +240,12 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public void commit() throws SQLException {
-		Driver.unused("commit not implemented");
+		// The method 'commit()' is not supported.
 	}
 
 	@Override
 	public void rollback() throws SQLException {
-		Driver.unused("rollback not implemented");
+		// The method 'rollback' is not supported.
 	}
 
 	@Override
