@@ -343,6 +343,9 @@ public class Utils {
     public static String changeCase(String sql, JDBCConnection connection){
         if (sql==null)
             return sql;
+
+        sql = sql.replaceAll("\r", "");
+
         createHashSet();
         StringBuilder sbSql=new StringBuilder();
         StringBuilder sbKey1=new StringBuilder();
