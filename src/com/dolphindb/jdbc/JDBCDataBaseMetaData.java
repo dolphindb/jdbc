@@ -174,7 +174,12 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         // set 'IS_NULLABLE'
         List<String> columnIndexList = new ArrayList<>();
         try {
-            BasicDictionary schema = (BasicDictionary) connection.run("schema(handle);");
+            BasicDictionary schema = null;
+            if (Objects.nonNull(catalog) && !catalog.isEmpty())
+                schema = (BasicDictionary) connection.run("schema(handle);");
+            else
+                schema = (BasicDictionary) connection.run("schema(" + tableNamePattern + ");");
+
             Entity columnNameEntity = schema.get("partitionColumnName");
             Entity sortColumnsEntity = schema.get("sortColumns");
 
