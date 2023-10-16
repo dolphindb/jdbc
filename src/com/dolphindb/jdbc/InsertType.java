@@ -1,0 +1,8 @@
+package com.dolphindb.jdbc;
+
+public enum InsertType {
+	INSERT,
+	INSERT_WITH_COLUMN,
+	INSERT_LOADTABLE_WITH_COLUMN,
+	INSERT_LOADTABLE_WITHOUT_COLUMN
+}

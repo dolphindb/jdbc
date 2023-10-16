@@ -21,7 +21,12 @@ public class Utils {
     public static final int DML_EXEC = 4;
 
     public static final Pattern INSERT_PATTERN = Pattern.compile("insert\\sinto\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\svalues\\s*\\(.+\\)");
+    public static final Pattern INSERT_WITH_COLUMN_PATTERN = Pattern.compile("insert\\sinto\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\s+(.+?)\\svalues\\s*\\(.+\\)");
+    public static final Pattern INSERT_LOADTABLE_WITH_PARAM_PATTERN = Pattern.compile("insert\\s+into\\s+loadTable(.+?)\\s*(.+?)\\s*values\\s*(.+?)");
+    public static final Pattern INSERT_LOADTABLE_WITHOUT_PARAM_PATTERN = Pattern.compile("insert\\s+into\\s+loadTable(.+?)\\s+values\\s*(.+?)");
     public static final Pattern DELETE_PATTERN  = Pattern.compile("delete\\sfrom\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\s(where\\s(.+=.+)+)?");
+
+    public static final Pattern DELETE_LOADTABLE_PATTERN = Pattern.compile("delete\\sfrom\\sloadTable(.+?)\\s+(where\\s(.+=.+)+)?");
     public static final Pattern UPDATE_PATTERN = Pattern.compile("update\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\sset\\s(.+=.+)+(\\swhere\\s(.+=.+)+)?");
 
     public static final Pattern ASSIGN_PATTERN = Pattern.compile("[a-zA-Z]{1}[a-zA-Z\\d_]*[\\s]*=");
@@ -191,7 +196,23 @@ public class Utils {
             if(matcher.find()){
                 tableName = sql.substring(sql.indexOf("into") + "into".length(), sql.indexOf("values"));
             }else {
-                throw new SQLException("check the SQl " + sql);
+                Matcher matcher1 = INSERT_WITH_COLUMN_PATTERN.matcher(sql);
+                if(matcher1.find()) {
+                    tableName = sql.substring(sql.indexOf("into") + "into".length(), sql.indexOf("("));
+                }
+                else {
+                    Matcher matcher2 = INSERT_LOADTABLE_WITH_PARAM_PATTERN.matcher(sql);
+                    if(matcher2.find()){
+                        tableName = sql.substring(sql.indexOf("loadTable") , sql.indexOf(")")+1);
+                    } else {
+                        Matcher matcher3 = INSERT_LOADTABLE_WITHOUT_PARAM_PATTERN.matcher(sql);
+                        if(matcher3.find()){
+                            tableName = sql.substring(sql.indexOf("loadTable") , sql.indexOf(")")+1);
+                        }else{
+                            throw new SQLException("check the SQL " + sql);
+                        }
+                    }
+                }
             }
         }else if(sql.startsWith("tableInsert")){
             tableName = sql.substring(sql.indexOf("(") + "(".length(), sql.indexOf(","));
@@ -209,17 +230,14 @@ public class Utils {
         }else if(sql.contains(".update!")){
             tableName = sql.split("\\.")[0];
         }else if(sql.startsWith("delete")){
-            Matcher matcher = DELETE_PATTERN.matcher(sql);
-            if(matcher.find()){
+            Matcher matcher1 = DELETE_PATTERN.matcher(sql);
+            Matcher matcher2 = DELETE_LOADTABLE_PATTERN.matcher(sql);
                 int index = sql.indexOf("where");
                 if(index != -1) {
-                    tableName = sql.substring(sql.indexOf("from") + "from".length(), sql.indexOf("where"));
-                }else{
-                    tableName = sql.substring(sql.indexOf("from") + "from".length()).replaceAll(";","");
+                    tableName = sql.substring(sql.indexOf("from") + "from".length(), sql.indexOf("where")).trim();
+                }else {
+                    tableName = sql.substring(sql.indexOf("from") + "from".length()).replaceAll(";", "").trim();
                 }
-            }else{
-                throw new SQLException("check the SQl " + sql);
-            }
         }
         return tableName;
     }
@@ -641,4 +659,57 @@ public class Utils {
         return result;
     }
 
+    /*
+    * getInsertType:
+    * 1. insert into table values (...)
+    * 2. insert into loadTable(...) (col1, col2, ...) values (...)
+    * 3. insert into loadTable(...) values (...)
+    * 4. UnknownType
+    * */
+    public static InsertType getInsertSqlType(String sql) throws SQLException {
+        Matcher matcher1 = INSERT_PATTERN.matcher(sql);
+        Matcher matcher2 = INSERT_WITH_COLUMN_PATTERN.matcher(sql);
+        Matcher matcher3 = INSERT_LOADTABLE_WITH_PARAM_PATTERN.matcher(sql);
+        Matcher matcher4 = INSERT_LOADTABLE_WITHOUT_PARAM_PATTERN.matcher(sql);
+        if(matcher1.find()) {
+            return InsertType.INSERT;
+        }
+        else if(matcher2.find()) {
+            return InsertType.INSERT_WITH_COLUMN;
+        }
+        else if(matcher3.find()) {
+            return InsertType.INSERT_LOADTABLE_WITH_COLUMN;
+        }
+        else if(matcher4.find()){
+            return InsertType.INSERT_LOADTABLE_WITHOUT_COLUMN;
+        } else {
+            throw new SQLException("check the SQL " + sql);
+        }
+    }
+
+    public static Map<String, Integer> getColumnParamInSql(String sql,String tableName){
+        Map<String,Integer> map = new HashMap<>();
+        // insert into loadTable(...) *(col1,col2,...)* values (?,?,...)
+        String columnParam = sql.substring(sql.indexOf(tableName) + tableName.length(), sql.indexOf("values")).trim(); // TODO: table可能会出现在字符串中。 应该用正则取出列名。
+        if(columnParam.isEmpty()){
+            return map;
+        }else {
+            String[] columnParams = columnParam.substring(1, columnParam.length() - 1).split(",");
+            for (int i = 0; i < columnParams.length; i++) {
+                map.put(columnParams[i].trim(), i);
+            }
+            return map;
+        }
+    }
+
+    public static void checkSQLValid(String sql, String tableName){
+        String columnParam = sql.substring(sql.indexOf(tableName) + tableName.length(), sql.indexOf("values")).trim(); // TODO: table可能会出现在字符串中。 应该用正则取出列名。
+        if(columnParam.isEmpty()) return;
+        String[] columnParams = columnParam.substring(1,columnParam.length()-1).split(",");
+        String QuestionMark = sql.substring(sql.indexOf("values") + "values".length()).trim();
+        String[] QuestionMarks = QuestionMark.substring(1,QuestionMark.length()-1).split(",");
+        if(columnParams.length != QuestionMarks.length){
+            throw new RuntimeException("The number of columns and the number of values do not match! Please check the SQL!");
+        }
+    }
 }
