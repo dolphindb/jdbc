@@ -4,6 +4,8 @@ import org.junit.*;
 
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -91,7 +93,8 @@ public class JDBCResultSetTest {
 					" cdatehour = datehour(take(1969.01.01 01:00:00 1970.01.01 01:00:00 2024.01.01 01:00:00  NULL,n))\n" +
 					" cdecimal32 = decimal32(take(-1 0 2022.9999 NULL,n),4)\n" +
 					" cdecimal64 = decimal64(take(-2022 0 4044.00008 NULL,n),4)\n" +
-					" t = table(id,cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cnanotime,cnanotimestamp,cfloat,cdouble,cstring,cstring1,cdatehour,cdecimal32,cdecimal64)\n" +
+					" cdecimal128 = decimal128(take(-2022 0 4044.00008 NULL,n),10)\n" +
+					" t = table(id,cbool,cchar,cshort,cint,clong,cdate,cmonth,ctime,cminute,csecond,cdatetime,ctimestamp,cnanotime,cnanotimestamp,cfloat,cdouble,cstring,cstring1,cdatehour,cdecimal32,cdecimal64,cdecimal128)\n" +
 					" if(existsDatabase(\"dfs://testResult\")){\n" +
 					"     dropDatabase(\"dfs://testResult\")\n" +
 					" }\n" +
@@ -561,7 +564,35 @@ public class JDBCResultSetTest {
 		TestCase.assertEquals(null, rs.getObject(1));
 		TestCase.assertEquals(null, rs.getObject("nanoT"));
 	}
-
+	@Test
+	public void Test_ResultSet_dfs_getBigDecimal() throws Exception {
+		String[] MinValueStr = {"13:30", "14:32", "11:38", ""};
+		LocalTime[] SeValueL = new LocalTime[4];
+		SeValueL[0] = LocalTime.of(13,30,00);		SeValueL[1] = LocalTime.of(14,32,00);		SeValueL[2] = LocalTime.of(11,38,00);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String script = "r=13:30m 14:32m 11:38m NULL;\n" +
+				"t= table(r as min);\n" +
+				"db =database(\"" + PATH + "/db1\");\n" +
+				"saveTable(db,t,`tb)";
+		stmt.execute(script);
+		stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
+		rs = stmt.executeQuery("select * from pt ");
+		rs.next();
+		for (int i=0;i<3;rs.next()) {
+			TestCase.assertEquals((java.sql.Time.valueOf(SeValueL[i])), rs.getTime(1));
+			TestCase.assertEquals((MinValueStr[i]), rs.getString("min"));
+			TestCase.assertEquals((MinValueStr[i]), rs.getObject("min").toString());
+			TestCase.assertEquals((MinValueStr[i]), rs.getObject(1).toString());
+			i++;
+		}
+		int i=3;
+		TestCase.assertEquals(((SeValueL[i])), rs.getTime(1));
+		TestCase.assertEquals(null, rs.getString("min"));
+		TestCase.assertEquals(null, rs.getObject("min"));
+		TestCase.assertEquals(null, rs.getObject(1));
+	}
 	@Test
 	public void Test_ResultSet_MetaData() throws Exception {
 		CreateMemoryTable(HOST, PORT);
@@ -802,33 +833,218 @@ public class JDBCResultSetTest {
 		//System.out.println(rs.getCursorName());
 	}
 
-	@Ignore
-	public void Test_ResultSet_update_decimal32() throws Exception {
+	@Test
+	public void Test_ResultSet_getObject_decimal32() throws Exception {
 		String script = "dbName = \"dfs://test_resultSet_decimal\"\n" +
 				"if(existsDatabase(dbName)){\n" +
 				"\tdropDB(dbName)\n" +
 				"}\n" +
 				"db = database(dbName,VALUE,1..101)\n" +
-				"t = table(1..100 as id,take(`a`b`c`d,100) as sym,decimal32(rand(1000,100)\\100,4) as decimal32)\n" +
+				"t = table(1..100 as id,take(`a`b`c`d,100) as sym,decimal32(take(0..99,100),4) as decimal32)\n" +
 				"pt = db.createPartitionedTable(t,`pt,`id).append!(t)";
 		DBConnection DBconn = new DBConnection();
 		DBconn.connect(HOST,PORT,"admin","123456");
 		DBconn.run(script);
 		Class.forName(JDBC_DRIVER);
-		Connection conn = DriverManager.getConnection(url);
-		Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
 				ResultSet.CONCUR_UPDATABLE,ResultSet.HOLD_CURSORS_OVER_COMMIT);
 		stmt.execute("pt=loadTable(\"dfs://test_resultSet_decimal\", 'pt')");
-		ResultSet rs = stmt.executeQuery("select * from pt");
+		rs = stmt.executeQuery("select * from pt");
+		int i = 0;
+		while (rs.next()) {
+			TestCase.assertEquals("class java.math.BigDecimal", rs.getObject("decimal32").getClass().toString());
+			TestCase.assertEquals(i + ".0000", rs.getObject("decimal32").toString());
+			i++;
+		}
+	}
+	@Test
+	public void Test_ResultSet_getBigDecimal_decimal32() throws Exception {
+		String script = "dbName = \"dfs://test_resultSet_decimal\"\n" +
+				"if(existsDatabase(dbName)){\n" +
+				"\tdropDB(dbName)\n" +
+				"}\n" +
+				"db = database(dbName,VALUE,1..101)\n" +
+				"t = table(1..100 as id,take(`a`b`c`d,100) as sym,decimal32(take(0..99,100),4) as decimal32)\n" +
+				"pt = db.createPartitionedTable(t,`pt,`id).append!(t)";
+		DBConnection DBconn = new DBConnection();
+		DBconn.connect(HOST,PORT,"admin","123456");
+		DBconn.run(script);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+				ResultSet.CONCUR_UPDATABLE,ResultSet.HOLD_CURSORS_OVER_COMMIT);
+		stmt.execute("pt=loadTable(\"dfs://test_resultSet_decimal\", 'pt')");
+		rs = stmt.executeQuery("select * from pt");
+		int i = 0;
+		while (rs.next()) {
+			TestCase.assertEquals(i + ".0000", rs.getBigDecimal("decimal32").toString());
+			i++;
+		}
+	}
+	@Test
+	public void Test_ResultSet_getObject_decimal64() throws Exception {
+		String script = "dbName = \"dfs://test_resultSet_decimal\"\n" +
+				"if(existsDatabase(dbName)){\n" +
+				"\tdropDB(dbName)\n" +
+				"}\n" +
+				"db = database(dbName,VALUE,1..101)\n" +
+				"t = table(1..3 as id,take(`a`b`c`d,3) as sym,decimal64(take(9.999999999 9999999999.3434 0.0000001,3),8) as decimal64)\n" +
+				"pt = db.createPartitionedTable(t,`pt,`id).append!(t)";
+		DBConnection DBconn = new DBConnection();
+		DBconn.connect(HOST,PORT,"admin","123456");
+		DBconn.run(script);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+				ResultSet.CONCUR_UPDATABLE,ResultSet.HOLD_CURSORS_OVER_COMMIT);
+		stmt.execute("pt=loadTable(\"dfs://test_resultSet_decimal\", 'pt')");
+		rs = stmt.executeQuery("select * from pt");
 		rs.next();
-		rs.updateObject("id",1123);
-		rs.updateRow();
-		rs.moveToInsertRow();
-		rs.moveToCurrentRow();
+		TestCase.assertEquals("class java.math.BigDecimal", rs.getObject("decimal64").getClass().toString());
+		TestCase.assertEquals("9.99999999", rs.getObject("decimal64").toString());
+		rs.next();
+		TestCase.assertEquals("9999999999.34339968", rs.getObject("decimal64").toString());
+		rs.next();
+		TestCase.assertEquals("1.0E-7", rs.getObject("decimal64").toString());
+	}
+	@Test
+	public void Test_ResultSet_getBigDecimal_decimal64() throws Exception {
+		String script = "dbName = \"dfs://test_resultSet_decimal\"\n" +
+				"if(existsDatabase(dbName)){\n" +
+				"\tdropDB(dbName)\n" +
+				"}\n" +
+				"db = database(dbName,VALUE,1..101)\n" +
+				"t = table(1..3 as id,take(`a`b`c`d,3) as sym,decimal64(take(9.999999999 9999999999.3434 0.0000001,3),8) as decimal64)\n" +
+				"pt = db.createPartitionedTable(t,`pt,`id).append!(t)";
+		DBConnection DBconn = new DBConnection();
+		DBconn.connect(HOST,PORT,"admin","123456");
+		DBconn.run(script);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+				ResultSet.CONCUR_UPDATABLE,ResultSet.HOLD_CURSORS_OVER_COMMIT);
+		stmt.execute("pt=loadTable(\"dfs://test_resultSet_decimal\", 'pt')");
+		rs = stmt.executeQuery("select * from pt");
+		rs.next();
+		TestCase.assertEquals("class java.math.BigDecimal", rs.getBigDecimal("decimal64").getClass().toString());
+		TestCase.assertEquals("9.99999999", rs.getBigDecimal("decimal64").toString());
+		rs.next();
+		TestCase.assertEquals("9999999999.34339968", rs.getBigDecimal("decimal64").toString());
+		rs.next();
+		TestCase.assertEquals("1.0E-7", rs.getBigDecimal("decimal64").toString());
+	}
+	@Test
+	public void Test_ResultSet_getObject_decimal128() throws Exception {
+		String script = "dbName = \"dfs://test_resultSet_decimal\"\n" +
+				"if(existsDatabase(dbName)){\n" +
+				"\tdropDB(dbName)\n" +
+				"}\n" +
+				"db = database(dbName,VALUE,1..101)\n" +
+				"t = table(1..3 as id,take(`a`b`c`d,3) as sym,decimal128(take(9.999999999 9999999999.3434 0.0000001,3),8) as decimal128)\n" +
+				"pt = db.createPartitionedTable(t,`pt,`id).append!(t)";
+		DBConnection DBconn = new DBConnection();
+		DBconn.connect(HOST,PORT,"admin","123456");
+		DBconn.run(script);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+				ResultSet.CONCUR_UPDATABLE,ResultSet.HOLD_CURSORS_OVER_COMMIT);
+		stmt.execute("pt=loadTable(\"dfs://test_resultSet_decimal\", 'pt')");
+		rs = stmt.executeQuery("select * from pt");
+		rs.next();
+		TestCase.assertEquals("class java.math.BigDecimal", rs.getObject("decimal128").getClass().toString());
+		TestCase.assertEquals("9.99999999", rs.getObject("decimal128").toString());
+		rs.next();
+		TestCase.assertEquals("9999999999.34339968", rs.getObject("decimal128").toString());
+		rs.next();
+		TestCase.assertEquals("1.0E-7", rs.getObject("decimal128").toString());
+	}
+	@Test
+	public void Test_ResultSet_getBigDecimal_decimal128() throws Exception {
+		String script = "dbName = \"dfs://test_resultSet_decimal\"\n" +
+				"if(existsDatabase(dbName)){\n" +
+				"\tdropDB(dbName)\n" +
+				"}\n" +
+				"db = database(dbName,VALUE,1..101)\n" +
+				"t = table(1..3 as id,take(`a`b`c`d,3) as sym,decimal128(take(9.999999999 9999999999.3434 0.0000001,3),8) as decimal128)\n" +
+				"pt = db.createPartitionedTable(t,`pt,`id).append!(t)";
+		DBConnection DBconn = new DBConnection();
+		DBconn.connect(HOST,PORT,"admin","123456");
+		DBconn.run(script);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+				ResultSet.CONCUR_UPDATABLE,ResultSet.HOLD_CURSORS_OVER_COMMIT);
+		stmt.execute("pt=loadTable(\"dfs://test_resultSet_decimal\", 'pt')");
+		rs = stmt.executeQuery("select * from pt");
+		rs.next();
+		TestCase.assertEquals("class java.math.BigDecimal", rs.getBigDecimal("decimal128").getClass().toString());
+		TestCase.assertEquals("9.99999999", rs.getBigDecimal("decimal128").toString());
+		rs.next();
+		TestCase.assertEquals("9999999999.34339968", rs.getBigDecimal("decimal128").toString());
+		rs.next();
+		TestCase.assertEquals("1.0E-7", rs.getBigDecimal("decimal128").toString());
+	}
+	@Test
+	public void Test_ResultSet_getBigDecimal_columnIndex() throws Exception {
+		String script = "dbName = \"dfs://test_resultSet_decimal\"\n" +
+				"if(existsDatabase(dbName)){\n" +
+				"\tdropDB(dbName)\n" +
+				"}\n" +
+				"db = database(dbName,VALUE,1..101)\n" +
+				"t = table(1..3 as id,take(`a`b`c`d,3) as sym,decimal128(take(9.999999999 9999999999.3434 0.0000001,3),8) as decimal128)\n" +
+				"pt = db.createPartitionedTable(t,`pt,`id).append!(t)";
+		DBConnection DBconn = new DBConnection();
+		DBconn.connect(HOST,PORT,"admin","123456");
+		DBconn.run(script);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+				ResultSet.CONCUR_UPDATABLE,ResultSet.HOLD_CURSORS_OVER_COMMIT);
+		stmt.execute("pt=loadTable(\"dfs://test_resultSet_decimal\", 'pt')");
+		rs = stmt.executeQuery("select * from pt");
+		rs.next();
+		TestCase.assertEquals("class java.math.BigDecimal", rs.getBigDecimal(3).getClass().toString());
+		TestCase.assertEquals("9.99999999", rs.getBigDecimal(3).toString());
+		rs.next();
+		TestCase.assertEquals("9999999999.34339968", rs.getBigDecimal(3).toString());
+		rs.next();
+		TestCase.assertEquals("1.0E-7", rs.getBigDecimal(3).toString());
+	}
 
-		rs.close();
-		stmt.close();
-		conn.close();
+	@Test
+	public void Test_ResultSet_getBigDecimal_not_support() throws Exception {
+		String script = "dbName = \"dfs://test_resultSet_decimal\"\n" +
+				"if(existsDatabase(dbName)){\n" +
+				"\tdropDB(dbName)\n" +
+				"}\n" +
+				"db = database(dbName,VALUE,1..101)\n" +
+				"t = table(1..3 as id,take(`a`b`c`d,3) as sym,decimal128(take(9.999999999 9999999999.3434 0.0000001,3),8) as decimal128)\n" +
+				"pt = db.createPartitionedTable(t,`pt,`id).append!(t)";
+		DBConnection DBconn = new DBConnection();
+		DBconn.connect(HOST,PORT,"admin","123456");
+		DBconn.run(script);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+				ResultSet.CONCUR_UPDATABLE,ResultSet.HOLD_CURSORS_OVER_COMMIT);
+		stmt.execute("pt=loadTable(\"dfs://test_resultSet_decimal\", 'pt')");
+		rs = stmt.executeQuery("select * from pt");
+		rs.next();
+		String re = null;
+		try{
+			TestCase.assertEquals("9.99999999", rs.getBigDecimal("decimal128",8).toString());
+		}catch(Exception e){
+			re = e.getMessage();
+		}
+		TestCase.assertEquals("The method 'getBigDecimal(String columnLabel, int scale)' is not supported.",re);
+		try{
+			TestCase.assertEquals("9999999999.34339968", rs.getBigDecimal(3,8).toString());
+		}catch(Exception e){
+			re = e.getMessage();
+		}
+		TestCase.assertEquals("The method 'getBigDecimal(int columnIndex, int scale)' is not supported.",re);
 	}
 	@Test
 	public void Test_getFetchDirection() throws Exception {
