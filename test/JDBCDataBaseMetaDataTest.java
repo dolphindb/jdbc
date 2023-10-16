@@ -25,17 +25,17 @@ public class JDBCDataBaseMetaDataTest {
         url = "jdbc:dolphindb://" + HOST + ":" + PORT;
     }
 
-    public static boolean createPartitionTable1() {
+    public static boolean createPartitionTable1(String dataBaseName) {
         boolean success = false;
         DBConnection db = null;
         try {
             String script = "login(`admin, `123456); \n" +
-                    "if(existsDatabase('dfs://test_append_type_tsdb'))" +
-                    "{ dropDatabase('dfs://test_append_type_tsdb')} \n" +
+                    "if(existsDatabase('"+dataBaseName+"'))" +
+                    "{ dropDatabase('"+dataBaseName+"')} \n" +
                     "colNames=\"col\"+string(1..29);\n" +
                     "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                     "t=table(1:0,colNames,colTypes);\n" +
-                    "db=database('dfs://test_append_type_tsdb', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n" +
+                    "db=database('"+dataBaseName+"', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n" +
                     "db.createPartitionedTable(t, `pt, `col1,,`col1) \n" +
                     "db.createPartitionedTable(t, `pt1, `col1,,`col1)\n";
             db = new DBConnection();
@@ -54,17 +54,17 @@ public class JDBCDataBaseMetaDataTest {
 
     }
 
-    public static boolean createTable1() {
+    public static boolean createTable1(String dataBaseName) {
         boolean success = false;
         DBConnection db = null;
         try {
             String script = "login(`admin, `123456); \n" +
-                    "if(existsDatabase('dfs://test_append_type_tsdb'))" +
-                    "{ dropDatabase('dfs://test_append_type_tsdb')} \n" +
+                    "if(existsDatabase('"+dataBaseName+"'))" +
+                    "{ dropDatabase('"+dataBaseName+"')} \n" +
                     "colNames=\"col\"+string(1..29);\n" +
                     "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                     "t=table(1:0,colNames,colTypes);\n" +
-                    "db=database('dfs://test_append_type_tsdb', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n" +
+                    "db=database('"+dataBaseName+"', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n" +
                     "db.createTable(t, `pt,,`col1)\n" +
                     "db.createTable(t, `pt1,,`col1)\n";
             db = new DBConnection();
@@ -201,7 +201,7 @@ public class JDBCDataBaseMetaDataTest {
         connDB.run("share table(1..10 as id) as table1");
         DatabaseMetaData metaData = conn.getMetaData();
         rs = metaData.getColumns(null,null, "table1", "");
-        Assert.assertEquals("COLUMN_NAME: id    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    ",printData1(rs));
+        Assert.assertEquals("COLUMN_NAME: id    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 1    ",printData1(rs));
         stmt.close();
         conn.close();
     }
@@ -218,7 +218,7 @@ public class JDBCDataBaseMetaDataTest {
         connDB.run("share table(1..10 as id) as table1");
         DatabaseMetaData metaData = conn.getMetaData();
         rs = metaData.getColumns("",null, "table1", "");
-        Assert.assertEquals("COLUMN_NAME: id    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    ",printData1(rs));
+        Assert.assertEquals("COLUMN_NAME: id    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 1    ",printData1(rs));
         stmt.close();
         conn.close();
     }
@@ -246,7 +246,7 @@ public class JDBCDataBaseMetaDataTest {
     }
     @Test
     public void test_DatabaseMetaData_getColumns_catalog_DFS() throws Exception {
-        createPartitionTable1();
+        createPartitionTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -255,14 +255,14 @@ public class JDBCDataBaseMetaDataTest {
         ResultSet rs = null;
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
-        rs = metaData.getColumns("dfs://test_append_type_tsdb",null, "pt", "");
-        Assert.assertEquals("COLUMN_NAME: col1    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    COLUMN_NAME: col2    DATA_TYPE: BOOL    TYPE_INT: 1    EXTRA: null    COMMENT: null    COLUMN_NAME: col3    DATA_TYPE: CHAR    TYPE_INT: 2    EXTRA: null    COMMENT: null    COLUMN_NAME: col4    DATA_TYPE: SHORT    TYPE_INT: 3    EXTRA: null    COMMENT: null    COLUMN_NAME: col5    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    COLUMN_NAME: col6    DATA_TYPE: LONG    TYPE_INT: 5    EXTRA: null    COMMENT: null    COLUMN_NAME: col7    DATA_TYPE: DATE    TYPE_INT: 6    EXTRA: null    COMMENT: null    COLUMN_NAME: col8    DATA_TYPE: MONTH    TYPE_INT: 7    EXTRA: null    COMMENT: null    COLUMN_NAME: col9    DATA_TYPE: TIME    TYPE_INT: 8    EXTRA: null    COMMENT: null    COLUMN_NAME: col10    DATA_TYPE: MINUTE    TYPE_INT: 9    EXTRA: null    COMMENT: null    COLUMN_NAME: col11    DATA_TYPE: SECOND    TYPE_INT: 10    EXTRA: null    COMMENT: null    COLUMN_NAME: col12    DATA_TYPE: DATETIME    TYPE_INT: 11    EXTRA: null    COMMENT: null    COLUMN_NAME: col13    DATA_TYPE: TIMESTAMP    TYPE_INT: 12    EXTRA: null    COMMENT: null    COLUMN_NAME: col14    DATA_TYPE: NANOTIME    TYPE_INT: 13    EXTRA: null    COMMENT: null    COLUMN_NAME: col15    DATA_TYPE: NANOTIMESTAMP    TYPE_INT: 14    EXTRA: null    COMMENT: null    COLUMN_NAME: col16    DATA_TYPE: FLOAT    TYPE_INT: 15    EXTRA: null    COMMENT: null    COLUMN_NAME: col17    DATA_TYPE: DOUBLE    TYPE_INT: 16    EXTRA: null    COMMENT: null    COLUMN_NAME: col18    DATA_TYPE: SYMBOL    TYPE_INT: 17    EXTRA: null    COMMENT: null    COLUMN_NAME: col19    DATA_TYPE: STRING    TYPE_INT: 18    EXTRA: null    COMMENT: null    COLUMN_NAME: col20    DATA_TYPE: UUID    TYPE_INT: 19    EXTRA: null    COMMENT: null    COLUMN_NAME: col21    DATA_TYPE: DATEHOUR    TYPE_INT: 28    EXTRA: null    COMMENT: null    COLUMN_NAME: col22    DATA_TYPE: IPADDR    TYPE_INT: 30    EXTRA: null    COMMENT: null    COLUMN_NAME: col23    DATA_TYPE: INT128    TYPE_INT: 31    EXTRA: null    COMMENT: null    COLUMN_NAME: col24    DATA_TYPE: BLOB    TYPE_INT: 32    EXTRA: null    COMMENT: null    COLUMN_NAME: col25    DATA_TYPE: COMPLEX    TYPE_INT: 34    EXTRA: null    COMMENT: null    COLUMN_NAME: col26    DATA_TYPE: POINT    TYPE_INT: 35    EXTRA: null    COMMENT: null    COLUMN_NAME: col27    DATA_TYPE: DECIMAL32(2)    TYPE_INT: 37    EXTRA: 2    COMMENT: null    COLUMN_NAME: col28    DATA_TYPE: DECIMAL64(7)    TYPE_INT: 38    EXTRA: 7    COMMENT: null    COLUMN_NAME: col29    DATA_TYPE: DECIMAL128(19)    TYPE_INT: 39    EXTRA: 19    COMMENT: null    ",printData1(rs));
+        rs = metaData.getColumns("dfs://test_append_type_tsdb1",null, "pt", "");
+        Assert.assertEquals("COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: NO    ORDINAL_POSITION: 1    COLUMN_NAME: col2    TYPE_NAME: BOOL    DATA_TYPE: 1    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 2    COLUMN_NAME: col3    TYPE_NAME: CHAR    DATA_TYPE: 2    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 3    COLUMN_NAME: col4    TYPE_NAME: SHORT    DATA_TYPE: 3    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 4    COLUMN_NAME: col5    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 5    COLUMN_NAME: col6    TYPE_NAME: LONG    DATA_TYPE: 5    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 6    COLUMN_NAME: col7    TYPE_NAME: DATE    DATA_TYPE: 6    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 7    COLUMN_NAME: col8    TYPE_NAME: MONTH    DATA_TYPE: 7    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 8    COLUMN_NAME: col9    TYPE_NAME: TIME    DATA_TYPE: 8    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 9    COLUMN_NAME: col10    TYPE_NAME: MINUTE    DATA_TYPE: 9    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 10    COLUMN_NAME: col11    TYPE_NAME: SECOND    DATA_TYPE: 10    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 11    COLUMN_NAME: col12    TYPE_NAME: DATETIME    DATA_TYPE: 11    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 12    COLUMN_NAME: col13    TYPE_NAME: TIMESTAMP    DATA_TYPE: 12    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 13    COLUMN_NAME: col14    TYPE_NAME: NANOTIME    DATA_TYPE: 13    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 14    COLUMN_NAME: col15    TYPE_NAME: NANOTIMESTAMP    DATA_TYPE: 14    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 15    COLUMN_NAME: col16    TYPE_NAME: FLOAT    DATA_TYPE: 15    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 16    COLUMN_NAME: col17    TYPE_NAME: DOUBLE    DATA_TYPE: 16    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 17    COLUMN_NAME: col18    TYPE_NAME: SYMBOL    DATA_TYPE: 17    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 18    COLUMN_NAME: col19    TYPE_NAME: STRING    DATA_TYPE: 18    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 19    COLUMN_NAME: col20    TYPE_NAME: UUID    DATA_TYPE: 19    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 20    COLUMN_NAME: col21    TYPE_NAME: DATEHOUR    DATA_TYPE: 28    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 21    COLUMN_NAME: col22    TYPE_NAME: IPADDR    DATA_TYPE: 30    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 22    COLUMN_NAME: col23    TYPE_NAME: INT128    DATA_TYPE: 31    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 23    COLUMN_NAME: col24    TYPE_NAME: BLOB    DATA_TYPE: 32    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 24    COLUMN_NAME: col25    TYPE_NAME: COMPLEX    DATA_TYPE: 34    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 25    COLUMN_NAME: col26    TYPE_NAME: POINT    DATA_TYPE: 35    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 26    COLUMN_NAME: col27    TYPE_NAME: DECIMAL32(2)    DATA_TYPE: 37    EXTRA: 2    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 27    COLUMN_NAME: col28    TYPE_NAME: DECIMAL64(7)    DATA_TYPE: 38    EXTRA: 7    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 28    COLUMN_NAME: col29    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 39    EXTRA: 19    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 29    ",printData1(rs));
         stmt.close();
         conn.close();
     }
     @Test
     public void test_DatabaseMetaData_getColumns_schemaPattern_null() throws Exception {
-        createPartitionTable1();
+        createPartitionTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -271,14 +271,14 @@ public class JDBCDataBaseMetaDataTest {
         ResultSet rs = null;
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
-        rs = metaData.getColumns("dfs://test_append_type_tsdb","", "pt", "");
-        Assert.assertEquals("COLUMN_NAME: col1    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    COLUMN_NAME: col2    DATA_TYPE: BOOL    TYPE_INT: 1    EXTRA: null    COMMENT: null    COLUMN_NAME: col3    DATA_TYPE: CHAR    TYPE_INT: 2    EXTRA: null    COMMENT: null    COLUMN_NAME: col4    DATA_TYPE: SHORT    TYPE_INT: 3    EXTRA: null    COMMENT: null    COLUMN_NAME: col5    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    COLUMN_NAME: col6    DATA_TYPE: LONG    TYPE_INT: 5    EXTRA: null    COMMENT: null    COLUMN_NAME: col7    DATA_TYPE: DATE    TYPE_INT: 6    EXTRA: null    COMMENT: null    COLUMN_NAME: col8    DATA_TYPE: MONTH    TYPE_INT: 7    EXTRA: null    COMMENT: null    COLUMN_NAME: col9    DATA_TYPE: TIME    TYPE_INT: 8    EXTRA: null    COMMENT: null    COLUMN_NAME: col10    DATA_TYPE: MINUTE    TYPE_INT: 9    EXTRA: null    COMMENT: null    COLUMN_NAME: col11    DATA_TYPE: SECOND    TYPE_INT: 10    EXTRA: null    COMMENT: null    COLUMN_NAME: col12    DATA_TYPE: DATETIME    TYPE_INT: 11    EXTRA: null    COMMENT: null    COLUMN_NAME: col13    DATA_TYPE: TIMESTAMP    TYPE_INT: 12    EXTRA: null    COMMENT: null    COLUMN_NAME: col14    DATA_TYPE: NANOTIME    TYPE_INT: 13    EXTRA: null    COMMENT: null    COLUMN_NAME: col15    DATA_TYPE: NANOTIMESTAMP    TYPE_INT: 14    EXTRA: null    COMMENT: null    COLUMN_NAME: col16    DATA_TYPE: FLOAT    TYPE_INT: 15    EXTRA: null    COMMENT: null    COLUMN_NAME: col17    DATA_TYPE: DOUBLE    TYPE_INT: 16    EXTRA: null    COMMENT: null    COLUMN_NAME: col18    DATA_TYPE: SYMBOL    TYPE_INT: 17    EXTRA: null    COMMENT: null    COLUMN_NAME: col19    DATA_TYPE: STRING    TYPE_INT: 18    EXTRA: null    COMMENT: null    COLUMN_NAME: col20    DATA_TYPE: UUID    TYPE_INT: 19    EXTRA: null    COMMENT: null    COLUMN_NAME: col21    DATA_TYPE: DATEHOUR    TYPE_INT: 28    EXTRA: null    COMMENT: null    COLUMN_NAME: col22    DATA_TYPE: IPADDR    TYPE_INT: 30    EXTRA: null    COMMENT: null    COLUMN_NAME: col23    DATA_TYPE: INT128    TYPE_INT: 31    EXTRA: null    COMMENT: null    COLUMN_NAME: col24    DATA_TYPE: BLOB    TYPE_INT: 32    EXTRA: null    COMMENT: null    COLUMN_NAME: col25    DATA_TYPE: COMPLEX    TYPE_INT: 34    EXTRA: null    COMMENT: null    COLUMN_NAME: col26    DATA_TYPE: POINT    TYPE_INT: 35    EXTRA: null    COMMENT: null    COLUMN_NAME: col27    DATA_TYPE: DECIMAL32(2)    TYPE_INT: 37    EXTRA: 2    COMMENT: null    COLUMN_NAME: col28    DATA_TYPE: DECIMAL64(7)    TYPE_INT: 38    EXTRA: 7    COMMENT: null    COLUMN_NAME: col29    DATA_TYPE: DECIMAL128(19)    TYPE_INT: 39    EXTRA: 19    COMMENT: null    ",printData1(rs));
+        rs = metaData.getColumns("dfs://test_append_type_tsdb1","", "pt", "");
+        Assert.assertEquals("COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: NO    ORDINAL_POSITION: 1    COLUMN_NAME: col2    TYPE_NAME: BOOL    DATA_TYPE: 1    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 2    COLUMN_NAME: col3    TYPE_NAME: CHAR    DATA_TYPE: 2    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 3    COLUMN_NAME: col4    TYPE_NAME: SHORT    DATA_TYPE: 3    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 4    COLUMN_NAME: col5    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 5    COLUMN_NAME: col6    TYPE_NAME: LONG    DATA_TYPE: 5    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 6    COLUMN_NAME: col7    TYPE_NAME: DATE    DATA_TYPE: 6    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 7    COLUMN_NAME: col8    TYPE_NAME: MONTH    DATA_TYPE: 7    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 8    COLUMN_NAME: col9    TYPE_NAME: TIME    DATA_TYPE: 8    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 9    COLUMN_NAME: col10    TYPE_NAME: MINUTE    DATA_TYPE: 9    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 10    COLUMN_NAME: col11    TYPE_NAME: SECOND    DATA_TYPE: 10    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 11    COLUMN_NAME: col12    TYPE_NAME: DATETIME    DATA_TYPE: 11    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 12    COLUMN_NAME: col13    TYPE_NAME: TIMESTAMP    DATA_TYPE: 12    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 13    COLUMN_NAME: col14    TYPE_NAME: NANOTIME    DATA_TYPE: 13    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 14    COLUMN_NAME: col15    TYPE_NAME: NANOTIMESTAMP    DATA_TYPE: 14    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 15    COLUMN_NAME: col16    TYPE_NAME: FLOAT    DATA_TYPE: 15    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 16    COLUMN_NAME: col17    TYPE_NAME: DOUBLE    DATA_TYPE: 16    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 17    COLUMN_NAME: col18    TYPE_NAME: SYMBOL    DATA_TYPE: 17    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 18    COLUMN_NAME: col19    TYPE_NAME: STRING    DATA_TYPE: 18    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 19    COLUMN_NAME: col20    TYPE_NAME: UUID    DATA_TYPE: 19    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 20    COLUMN_NAME: col21    TYPE_NAME: DATEHOUR    DATA_TYPE: 28    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 21    COLUMN_NAME: col22    TYPE_NAME: IPADDR    DATA_TYPE: 30    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 22    COLUMN_NAME: col23    TYPE_NAME: INT128    DATA_TYPE: 31    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 23    COLUMN_NAME: col24    TYPE_NAME: BLOB    DATA_TYPE: 32    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 24    COLUMN_NAME: col25    TYPE_NAME: COMPLEX    DATA_TYPE: 34    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 25    COLUMN_NAME: col26    TYPE_NAME: POINT    DATA_TYPE: 35    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 26    COLUMN_NAME: col27    TYPE_NAME: DECIMAL32(2)    DATA_TYPE: 37    EXTRA: 2    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 27    COLUMN_NAME: col28    TYPE_NAME: DECIMAL64(7)    DATA_TYPE: 38    EXTRA: 7    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 28    COLUMN_NAME: col29    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 39    EXTRA: 19    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 29    ",printData1(rs));
         stmt.close();
         conn.close();
     }
     @Test
     public void test_DatabaseMetaData_getColumns_schemaPattern_not_exist() throws Exception {
-        createPartitionTable1();
+        createPartitionTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -287,14 +287,14 @@ public class JDBCDataBaseMetaDataTest {
         ResultSet rs = null;
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
-        rs = metaData.getColumns("dfs://test_append_type_tsdb","test_append_type_tsdb对方的对方对方的", "pt", "");
-        Assert.assertEquals("COLUMN_NAME: col1    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    COLUMN_NAME: col2    DATA_TYPE: BOOL    TYPE_INT: 1    EXTRA: null    COMMENT: null    COLUMN_NAME: col3    DATA_TYPE: CHAR    TYPE_INT: 2    EXTRA: null    COMMENT: null    COLUMN_NAME: col4    DATA_TYPE: SHORT    TYPE_INT: 3    EXTRA: null    COMMENT: null    COLUMN_NAME: col5    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    COLUMN_NAME: col6    DATA_TYPE: LONG    TYPE_INT: 5    EXTRA: null    COMMENT: null    COLUMN_NAME: col7    DATA_TYPE: DATE    TYPE_INT: 6    EXTRA: null    COMMENT: null    COLUMN_NAME: col8    DATA_TYPE: MONTH    TYPE_INT: 7    EXTRA: null    COMMENT: null    COLUMN_NAME: col9    DATA_TYPE: TIME    TYPE_INT: 8    EXTRA: null    COMMENT: null    COLUMN_NAME: col10    DATA_TYPE: MINUTE    TYPE_INT: 9    EXTRA: null    COMMENT: null    COLUMN_NAME: col11    DATA_TYPE: SECOND    TYPE_INT: 10    EXTRA: null    COMMENT: null    COLUMN_NAME: col12    DATA_TYPE: DATETIME    TYPE_INT: 11    EXTRA: null    COMMENT: null    COLUMN_NAME: col13    DATA_TYPE: TIMESTAMP    TYPE_INT: 12    EXTRA: null    COMMENT: null    COLUMN_NAME: col14    DATA_TYPE: NANOTIME    TYPE_INT: 13    EXTRA: null    COMMENT: null    COLUMN_NAME: col15    DATA_TYPE: NANOTIMESTAMP    TYPE_INT: 14    EXTRA: null    COMMENT: null    COLUMN_NAME: col16    DATA_TYPE: FLOAT    TYPE_INT: 15    EXTRA: null    COMMENT: null    COLUMN_NAME: col17    DATA_TYPE: DOUBLE    TYPE_INT: 16    EXTRA: null    COMMENT: null    COLUMN_NAME: col18    DATA_TYPE: SYMBOL    TYPE_INT: 17    EXTRA: null    COMMENT: null    COLUMN_NAME: col19    DATA_TYPE: STRING    TYPE_INT: 18    EXTRA: null    COMMENT: null    COLUMN_NAME: col20    DATA_TYPE: UUID    TYPE_INT: 19    EXTRA: null    COMMENT: null    COLUMN_NAME: col21    DATA_TYPE: DATEHOUR    TYPE_INT: 28    EXTRA: null    COMMENT: null    COLUMN_NAME: col22    DATA_TYPE: IPADDR    TYPE_INT: 30    EXTRA: null    COMMENT: null    COLUMN_NAME: col23    DATA_TYPE: INT128    TYPE_INT: 31    EXTRA: null    COMMENT: null    COLUMN_NAME: col24    DATA_TYPE: BLOB    TYPE_INT: 32    EXTRA: null    COMMENT: null    COLUMN_NAME: col25    DATA_TYPE: COMPLEX    TYPE_INT: 34    EXTRA: null    COMMENT: null    COLUMN_NAME: col26    DATA_TYPE: POINT    TYPE_INT: 35    EXTRA: null    COMMENT: null    COLUMN_NAME: col27    DATA_TYPE: DECIMAL32(2)    TYPE_INT: 37    EXTRA: 2    COMMENT: null    COLUMN_NAME: col28    DATA_TYPE: DECIMAL64(7)    TYPE_INT: 38    EXTRA: 7    COMMENT: null    COLUMN_NAME: col29    DATA_TYPE: DECIMAL128(19)    TYPE_INT: 39    EXTRA: 19    COMMENT: null    ",printData1(rs));
+        rs = metaData.getColumns("dfs://test_append_type_tsdb1","test_append_type_tsdb对方的对方对方的", "pt", "");
+        Assert.assertEquals("COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: NO    ORDINAL_POSITION: 1    COLUMN_NAME: col2    TYPE_NAME: BOOL    DATA_TYPE: 1    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 2    COLUMN_NAME: col3    TYPE_NAME: CHAR    DATA_TYPE: 2    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 3    COLUMN_NAME: col4    TYPE_NAME: SHORT    DATA_TYPE: 3    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 4    COLUMN_NAME: col5    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 5    COLUMN_NAME: col6    TYPE_NAME: LONG    DATA_TYPE: 5    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 6    COLUMN_NAME: col7    TYPE_NAME: DATE    DATA_TYPE: 6    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 7    COLUMN_NAME: col8    TYPE_NAME: MONTH    DATA_TYPE: 7    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 8    COLUMN_NAME: col9    TYPE_NAME: TIME    DATA_TYPE: 8    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 9    COLUMN_NAME: col10    TYPE_NAME: MINUTE    DATA_TYPE: 9    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 10    COLUMN_NAME: col11    TYPE_NAME: SECOND    DATA_TYPE: 10    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 11    COLUMN_NAME: col12    TYPE_NAME: DATETIME    DATA_TYPE: 11    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 12    COLUMN_NAME: col13    TYPE_NAME: TIMESTAMP    DATA_TYPE: 12    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 13    COLUMN_NAME: col14    TYPE_NAME: NANOTIME    DATA_TYPE: 13    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 14    COLUMN_NAME: col15    TYPE_NAME: NANOTIMESTAMP    DATA_TYPE: 14    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 15    COLUMN_NAME: col16    TYPE_NAME: FLOAT    DATA_TYPE: 15    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 16    COLUMN_NAME: col17    TYPE_NAME: DOUBLE    DATA_TYPE: 16    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 17    COLUMN_NAME: col18    TYPE_NAME: SYMBOL    DATA_TYPE: 17    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 18    COLUMN_NAME: col19    TYPE_NAME: STRING    DATA_TYPE: 18    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 19    COLUMN_NAME: col20    TYPE_NAME: UUID    DATA_TYPE: 19    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 20    COLUMN_NAME: col21    TYPE_NAME: DATEHOUR    DATA_TYPE: 28    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 21    COLUMN_NAME: col22    TYPE_NAME: IPADDR    DATA_TYPE: 30    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 22    COLUMN_NAME: col23    TYPE_NAME: INT128    DATA_TYPE: 31    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 23    COLUMN_NAME: col24    TYPE_NAME: BLOB    DATA_TYPE: 32    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 24    COLUMN_NAME: col25    TYPE_NAME: COMPLEX    DATA_TYPE: 34    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 25    COLUMN_NAME: col26    TYPE_NAME: POINT    DATA_TYPE: 35    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 26    COLUMN_NAME: col27    TYPE_NAME: DECIMAL32(2)    DATA_TYPE: 37    EXTRA: 2    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 27    COLUMN_NAME: col28    TYPE_NAME: DECIMAL64(7)    DATA_TYPE: 38    EXTRA: 7    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 28    COLUMN_NAME: col29    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 39    EXTRA: 19    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 29    ",printData1(rs));
         stmt.close();
         conn.close();
     }
     @Test
     public void test_DatabaseMetaData_getColumns_tableNamePattern_null() throws Exception {
-        createPartitionTable1();
+        createPartitionTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -304,17 +304,18 @@ public class JDBCDataBaseMetaDataTest {
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
         try{
-            rs = metaData.getColumns("dfs://test_append_type_tsdb","", "", "");
+            rs = metaData.getColumns("dfs://test_append_type_tsdb1","", "", "");
         }catch(Exception E){
             results = E.getMessage();
         }
+        System.out.println(results);
         Assert.assertFalse(results.isEmpty());
         stmt.close();
         conn.close();
     }
     @Test
     public void test_DatabaseMetaData_getColumns_tableNamePattern_null_1() throws Exception {
-        createPartitionTable1();
+        createPartitionTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -335,7 +336,7 @@ public class JDBCDataBaseMetaDataTest {
     }
     @Test
     public void test_DatabaseMetaData_getColumns_tableNamePattern_dfs() throws Exception {
-        createPartitionTable1();
+        createPartitionTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -344,15 +345,14 @@ public class JDBCDataBaseMetaDataTest {
         ResultSet rs = null;
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
-        stmt.execute("pt = loadTable(\"dfs://test_append_type_tsdb\",`pt)");
+        stmt.execute("pt = loadTable(\"dfs://test_append_type_tsdb1\",`pt)");
         rs = metaData.getColumns("","", "pt", "");
-        Assert.assertEquals("COLUMN_NAME: col1    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    COLUMN_NAME: col2    DATA_TYPE: BOOL    TYPE_INT: 1    EXTRA: null    COMMENT: null    COLUMN_NAME: col3    DATA_TYPE: CHAR    TYPE_INT: 2    EXTRA: null    COMMENT: null    COLUMN_NAME: col4    DATA_TYPE: SHORT    TYPE_INT: 3    EXTRA: null    COMMENT: null    COLUMN_NAME: col5    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    COLUMN_NAME: col6    DATA_TYPE: LONG    TYPE_INT: 5    EXTRA: null    COMMENT: null    COLUMN_NAME: col7    DATA_TYPE: DATE    TYPE_INT: 6    EXTRA: null    COMMENT: null    COLUMN_NAME: col8    DATA_TYPE: MONTH    TYPE_INT: 7    EXTRA: null    COMMENT: null    COLUMN_NAME: col9    DATA_TYPE: TIME    TYPE_INT: 8    EXTRA: null    COMMENT: null    COLUMN_NAME: col10    DATA_TYPE: MINUTE    TYPE_INT: 9    EXTRA: null    COMMENT: null    COLUMN_NAME: col11    DATA_TYPE: SECOND    TYPE_INT: 10    EXTRA: null    COMMENT: null    COLUMN_NAME: col12    DATA_TYPE: DATETIME    TYPE_INT: 11    EXTRA: null    COMMENT: null    COLUMN_NAME: col13    DATA_TYPE: TIMESTAMP    TYPE_INT: 12    EXTRA: null    COMMENT: null    COLUMN_NAME: col14    DATA_TYPE: NANOTIME    TYPE_INT: 13    EXTRA: null    COMMENT: null    COLUMN_NAME: col15    DATA_TYPE: NANOTIMESTAMP    TYPE_INT: 14    EXTRA: null    COMMENT: null    COLUMN_NAME: col16    DATA_TYPE: FLOAT    TYPE_INT: 15    EXTRA: null    COMMENT: null    COLUMN_NAME: col17    DATA_TYPE: DOUBLE    TYPE_INT: 16    EXTRA: null    COMMENT: null    COLUMN_NAME: col18    DATA_TYPE: SYMBOL    TYPE_INT: 17    EXTRA: null    COMMENT: null    COLUMN_NAME: col19    DATA_TYPE: STRING    TYPE_INT: 18    EXTRA: null    COMMENT: null    COLUMN_NAME: col20    DATA_TYPE: UUID    TYPE_INT: 19    EXTRA: null    COMMENT: null    COLUMN_NAME: col21    DATA_TYPE: DATEHOUR    TYPE_INT: 28    EXTRA: null    COMMENT: null    COLUMN_NAME: col22    DATA_TYPE: IPADDR    TYPE_INT: 30    EXTRA: null    COMMENT: null    COLUMN_NAME: col23    DATA_TYPE: INT128    TYPE_INT: 31    EXTRA: null    COMMENT: null    COLUMN_NAME: col24    DATA_TYPE: BLOB    TYPE_INT: 32    EXTRA: null    COMMENT: null    COLUMN_NAME: col25    DATA_TYPE: COMPLEX    TYPE_INT: 34    EXTRA: null    COMMENT: null    COLUMN_NAME: col26    DATA_TYPE: POINT    TYPE_INT: 35    EXTRA: null    COMMENT: null    COLUMN_NAME: col27    DATA_TYPE: DECIMAL32(2)    TYPE_INT: 37    EXTRA: 2    COMMENT: null    COLUMN_NAME: col28    DATA_TYPE: DECIMAL64(7)    TYPE_INT: 38    EXTRA: 7    COMMENT: null    COLUMN_NAME: col29    DATA_TYPE: DECIMAL128(19)    TYPE_INT: 39    EXTRA: 19    COMMENT: null    ",printData1(rs));
+        Assert.assertEquals("COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: NO    ORDINAL_POSITION: 1    COLUMN_NAME: col2    TYPE_NAME: BOOL    DATA_TYPE: 1    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 2    COLUMN_NAME: col3    TYPE_NAME: CHAR    DATA_TYPE: 2    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 3    COLUMN_NAME: col4    TYPE_NAME: SHORT    DATA_TYPE: 3    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 4    COLUMN_NAME: col5    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 5    COLUMN_NAME: col6    TYPE_NAME: LONG    DATA_TYPE: 5    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 6    COLUMN_NAME: col7    TYPE_NAME: DATE    DATA_TYPE: 6    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 7    COLUMN_NAME: col8    TYPE_NAME: MONTH    DATA_TYPE: 7    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 8    COLUMN_NAME: col9    TYPE_NAME: TIME    DATA_TYPE: 8    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 9    COLUMN_NAME: col10    TYPE_NAME: MINUTE    DATA_TYPE: 9    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 10    COLUMN_NAME: col11    TYPE_NAME: SECOND    DATA_TYPE: 10    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 11    COLUMN_NAME: col12    TYPE_NAME: DATETIME    DATA_TYPE: 11    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 12    COLUMN_NAME: col13    TYPE_NAME: TIMESTAMP    DATA_TYPE: 12    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 13    COLUMN_NAME: col14    TYPE_NAME: NANOTIME    DATA_TYPE: 13    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 14    COLUMN_NAME: col15    TYPE_NAME: NANOTIMESTAMP    DATA_TYPE: 14    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 15    COLUMN_NAME: col16    TYPE_NAME: FLOAT    DATA_TYPE: 15    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 16    COLUMN_NAME: col17    TYPE_NAME: DOUBLE    DATA_TYPE: 16    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 17    COLUMN_NAME: col18    TYPE_NAME: SYMBOL    DATA_TYPE: 17    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 18    COLUMN_NAME: col19    TYPE_NAME: STRING    DATA_TYPE: 18    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 19    COLUMN_NAME: col20    TYPE_NAME: UUID    DATA_TYPE: 19    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 20    COLUMN_NAME: col21    TYPE_NAME: DATEHOUR    DATA_TYPE: 28    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 21    COLUMN_NAME: col22    TYPE_NAME: IPADDR    DATA_TYPE: 30    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 22    COLUMN_NAME: col23    TYPE_NAME: INT128    DATA_TYPE: 31    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 23    COLUMN_NAME: col24    TYPE_NAME: BLOB    DATA_TYPE: 32    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 24    COLUMN_NAME: col25    TYPE_NAME: COMPLEX    DATA_TYPE: 34    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 25    COLUMN_NAME: col26    TYPE_NAME: POINT    DATA_TYPE: 35    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 26    COLUMN_NAME: col27    TYPE_NAME: DECIMAL32(2)    DATA_TYPE: 37    EXTRA: 2    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 27    COLUMN_NAME: col28    TYPE_NAME: DECIMAL64(7)    DATA_TYPE: 38    EXTRA: 7    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 28    COLUMN_NAME: col29    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 39    EXTRA: 19    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 29    ",printData1(rs));
         stmt.close();
         conn.close();
     }
     @Test
     public void test_DatabaseMetaData_getColumns_tableNamePattern_memory_table() throws Exception {
-        createPartitionTable1();
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -363,13 +363,13 @@ public class JDBCDataBaseMetaDataTest {
         String results = null;
         stmt.execute("dfsptfdfd时代的 =  table(1..10 as id)");
         rs = metaData.getColumns("","", "dfsptfdfd时代的", "");
-        Assert.assertEquals("COLUMN_NAME: id    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    ",printData1(rs));
+        Assert.assertEquals("COLUMN_NAME: id    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 1    ",printData1(rs));
         stmt.close();
         conn.close();
     }
     @Test
     public void test_DatabaseMetaData_getColumns_columnNamePattern_null() throws Exception {
-        createPartitionTable1();
+        createPartitionTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -380,13 +380,13 @@ public class JDBCDataBaseMetaDataTest {
         String results = null;
         stmt.execute("dfsptfdfd时代的 =  table(1..10 as id)");
         rs = metaData.getColumns("","", "dfsptfdfd时代的", null);
-        Assert.assertEquals("COLUMN_NAME: id    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    ",printData1(rs));
+        Assert.assertEquals("COLUMN_NAME: id    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 1    ",printData1(rs));
         stmt.close();
         conn.close();
     }
     @Test
     public void test_DatabaseMetaData_getColumns_columnNamePattern_not_exist() throws Exception {
-        createPartitionTable1();
+        createPartitionTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -404,7 +404,7 @@ public class JDBCDataBaseMetaDataTest {
     }
     @Test
     public void test_DatabaseMetaData_getColumns_columnNamePattern_DFS_exist() throws Exception {
-        createPartitionTable1();
+        createPartitionTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -412,24 +412,24 @@ public class JDBCDataBaseMetaDataTest {
         stmt = conn.createStatement();
         ResultSet rs = null;
         DatabaseMetaData metaData = conn.getMetaData();
-        stmt.execute("pt = loadTable(\"dfs://test_append_type_tsdb\",`pt);setColumnComment(pt,{col1:\"标志符1！！！！！\",col2:\"标志符2@@@@@\",col3:\"标志符3#￥%……&*()\",col4:\"4fdfee\",col5:\"5__++_-=\",col6:\"6^^<>?>>>>\",col7:\"标志符7\"})");
+        stmt.execute("pt = loadTable(\"dfs://test_append_type_tsdb1\",`pt);setColumnComment(pt,{col1:\"标志符1！！！！！\",col2:\"标志符2@@@@@\",col3:\"标志符3#￥%……&*()\",col4:\"4fdfee\",col5:\"5__++_-=\",col6:\"6^^<>?>>>>\",col7:\"标志符7\"})");
         String results = null;
-        rs = metaData.getColumns("dfs://test_append_type_tsdb",null, "pt", "col1");
+        rs = metaData.getColumns("dfs://test_append_type_tsdb1",null, "pt", "col1");
         //printData(rs);
-        Assert.assertEquals("COLUMN_NAME: col1    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: 标志符1！！！！！    ",printData1(rs));
+        Assert.assertEquals("COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: 标志符1！！！！！    IS_NULLABLE: NO    ORDINAL_POSITION: 1    ",printData1(rs));
         rs = metaData.getColumns("dfs://test_append_type_tsdb",null, "pt", "col2");
-        Assert.assertEquals("COLUMN_NAME: col2    DATA_TYPE: BOOL    TYPE_INT: 1    EXTRA: null    COMMENT: 标志符2@@@@@    ",printData1(rs));
+        Assert.assertEquals("COLUMN_NAME: col2    TYPE_NAME: BOOL    DATA_TYPE: 1    EXTRA: null    REMARKS: 标志符2@@@@@    IS_NULLABLE: YES    ORDINAL_POSITION: 1    ",printData1(rs));
         rs = metaData.getColumns("dfs://test_append_type_tsdb",null, "pt", "col3");
-        Assert.assertEquals("COLUMN_NAME: col3    DATA_TYPE: CHAR    TYPE_INT: 2    EXTRA: null    COMMENT: 标志符3#￥%……&*()    ",printData1(rs));
+        Assert.assertEquals("COLUMN_NAME: col3    TYPE_NAME: CHAR    DATA_TYPE: 2    EXTRA: null    REMARKS: 标志符3#￥%……&*()    IS_NULLABLE: YES    ORDINAL_POSITION: 1    ",printData1(rs));
         rs = metaData.getColumns("dfs://test_append_type_tsdb",null, "pt", "col29");
-        Assert.assertEquals("COLUMN_NAME: col29    DATA_TYPE: DECIMAL128(19)    TYPE_INT: 39    EXTRA: 19    COMMENT: null    ",printData1(rs));
+        Assert.assertEquals("COLUMN_NAME: col29    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 39    EXTRA: 19    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 1    ",printData1(rs));
 
         stmt.close();
         conn.close();
     }
     @Test
     public void test_DatabaseMetaData_getColumns_columnNamePattern_memory_table_exist() throws Exception {
-        createPartitionTable1();
+        createPartitionTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -440,14 +440,91 @@ public class JDBCDataBaseMetaDataTest {
         String results = null;
         stmt.execute("dfsptfdfd时代的 =  table(1..10 as id,take(`weqw`wewe`qa22,10) as sym)");
         rs = metaData.getColumns("","", "dfsptfdfd时代的", "id");
-        Assert.assertEquals("COLUMN_NAME: id    DATA_TYPE: INT    TYPE_INT: 4    EXTRA: null    COMMENT: null    ",printData1(rs));
+        Assert.assertEquals("COLUMN_NAME: id    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 1    ",printData1(rs));
+        stmt.close();
+        conn.close();
+    }
+    @Test
+    public void test_DatabaseMetaData_getColumns_IS_NULLABLE_1() throws Exception {
+        createTable1("dfs://test_append_type_tsdb1");
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        rs = metaData.getColumns("dfs://test_append_type_tsdb1","", "pt", "");
+        Assert.assertEquals("COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: NO    ORDINAL_POSITION: 1    COLUMN_NAME: col2    TYPE_NAME: BOOL    DATA_TYPE: 1    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 2    COLUMN_NAME: col3    TYPE_NAME: CHAR    DATA_TYPE: 2    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 3    COLUMN_NAME: col4    TYPE_NAME: SHORT    DATA_TYPE: 3    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 4    COLUMN_NAME: col5    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 5    COLUMN_NAME: col6    TYPE_NAME: LONG    DATA_TYPE: 5    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 6    COLUMN_NAME: col7    TYPE_NAME: DATE    DATA_TYPE: 6    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 7    COLUMN_NAME: col8    TYPE_NAME: MONTH    DATA_TYPE: 7    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 8    COLUMN_NAME: col9    TYPE_NAME: TIME    DATA_TYPE: 8    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 9    COLUMN_NAME: col10    TYPE_NAME: MINUTE    DATA_TYPE: 9    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 10    COLUMN_NAME: col11    TYPE_NAME: SECOND    DATA_TYPE: 10    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 11    COLUMN_NAME: col12    TYPE_NAME: DATETIME    DATA_TYPE: 11    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 12    COLUMN_NAME: col13    TYPE_NAME: TIMESTAMP    DATA_TYPE: 12    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 13    COLUMN_NAME: col14    TYPE_NAME: NANOTIME    DATA_TYPE: 13    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 14    COLUMN_NAME: col15    TYPE_NAME: NANOTIMESTAMP    DATA_TYPE: 14    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 15    COLUMN_NAME: col16    TYPE_NAME: FLOAT    DATA_TYPE: 15    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 16    COLUMN_NAME: col17    TYPE_NAME: DOUBLE    DATA_TYPE: 16    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 17    COLUMN_NAME: col18    TYPE_NAME: SYMBOL    DATA_TYPE: 17    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 18    COLUMN_NAME: col19    TYPE_NAME: STRING    DATA_TYPE: 18    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 19    COLUMN_NAME: col20    TYPE_NAME: UUID    DATA_TYPE: 19    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 20    COLUMN_NAME: col21    TYPE_NAME: DATEHOUR    DATA_TYPE: 28    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 21    COLUMN_NAME: col22    TYPE_NAME: IPADDR    DATA_TYPE: 30    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 22    COLUMN_NAME: col23    TYPE_NAME: INT128    DATA_TYPE: 31    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 23    COLUMN_NAME: col24    TYPE_NAME: BLOB    DATA_TYPE: 32    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 24    COLUMN_NAME: col25    TYPE_NAME: COMPLEX    DATA_TYPE: 34    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 25    COLUMN_NAME: col26    TYPE_NAME: POINT    DATA_TYPE: 35    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 26    COLUMN_NAME: col27    TYPE_NAME: DECIMAL32(2)    DATA_TYPE: 37    EXTRA: 2    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 27    COLUMN_NAME: col28    TYPE_NAME: DECIMAL64(7)    DATA_TYPE: 38    EXTRA: 7    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 28    COLUMN_NAME: col29    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 39    EXTRA: 19    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 29    ",printData1(rs));
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
+    public void test_DatabaseMetaData_getColumns_IS_NULLABLE_TSDB() throws Exception {
+        DBConnection db = null;
+        String dataBaseName = "dfs://test_append_type_tsdb1";
+        String script = "login(`admin, `123456); \n" +
+                "if(existsDatabase(\""+dataBaseName+"\"))" +
+                "{ dropDatabase(\""+dataBaseName+"\")} \n" +
+                "db1=database(\"\",VALUE,[2023.01.01]);\n" +
+                "db2=database(\"\",HASH,[SYMBOL,20]);\n" +
+                "db=database(\""+dataBaseName+"\",COMPO,[db1,db2],,\"TSDB\",\"CHUNK\");\n" +
+                "colName = `ChannelNo`ApplSeqNum`MDStreamID`SecurityID`SecurityIDSource`Price`Side`TradeTIme`OrderQty`OrderType`OrderIndex`ReceiveTime`SeqNo`Market`DataStatus`BizIndex`isDeleted \n" +
+                "colType = [INT,LONG,INT,SYMBOL,INT,DOUBLE,SYMBOL,TIMESTAMP,INT,SYMBOL,INT,TIME,LONG,SYMBOL,INT,LONG,CHAR]\n" +
+                "tbSchema = table(1:0, colName, colType)\n" +
+                "db.createPartitionedTable(table=tbSchema,tableName=`entrust,partitionColumns=`TradeTIme`SecurityID,sortColumns=`OrderIndex`Market`SecurityID`TradeTIme,keepDuplicates=LAST)\n" ;
+        db = new DBConnection();
+        db.connect(HOST, PORT);
+        db.run(script);
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        rs = metaData.getColumns("dfs://test_append_type_tsdb1","", "entrust", "");
+        Assert.assertEquals("COLUMN_NAME: ChannelNo    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 1    COLUMN_NAME: ApplSeqNum    TYPE_NAME: LONG    DATA_TYPE: 5    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 2    COLUMN_NAME: MDStreamID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 3    COLUMN_NAME: SecurityID    TYPE_NAME: SYMBOL    DATA_TYPE: 17    EXTRA: null    REMARKS: null    IS_NULLABLE: NO    ORDINAL_POSITION: 4    COLUMN_NAME: SecurityIDSource    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 5    COLUMN_NAME: Price    TYPE_NAME: DOUBLE    DATA_TYPE: 16    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 6    COLUMN_NAME: Side    TYPE_NAME: SYMBOL    DATA_TYPE: 17    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 7    COLUMN_NAME: TradeTIme    TYPE_NAME: TIMESTAMP    DATA_TYPE: 12    EXTRA: null    REMARKS: null    IS_NULLABLE: NO    ORDINAL_POSITION: 8    COLUMN_NAME: OrderQty    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 9    COLUMN_NAME: OrderType    TYPE_NAME: SYMBOL    DATA_TYPE: 17    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 10    COLUMN_NAME: OrderIndex    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 11    COLUMN_NAME: ReceiveTime    TYPE_NAME: TIME    DATA_TYPE: 8    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 12    COLUMN_NAME: SeqNo    TYPE_NAME: LONG    DATA_TYPE: 5    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 13    COLUMN_NAME: Market    TYPE_NAME: SYMBOL    DATA_TYPE: 17    EXTRA: null    REMARKS: null    IS_NULLABLE: NO    ORDINAL_POSITION: 14    COLUMN_NAME: DataStatus    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 15    COLUMN_NAME: BizIndex    TYPE_NAME: LONG    DATA_TYPE: 5    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 16    COLUMN_NAME: isDeleted    TYPE_NAME: CHAR    DATA_TYPE: 2    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 17    ",printData1(rs));
+        stmt.close();
+        conn.close();
+    }
+    @Test
+    public void test_DatabaseMetaData_getColumns_IS_NULLABLE_OLAP() throws Exception {
+        DBConnection db = null;
+        String dataBaseName = "dfs://test_append_type_tsdb1";
+        String script = "login(`admin, `123456); \n" +
+                "if(existsDatabase(\""+dataBaseName+"\"))" +
+                "{ dropDatabase(\""+dataBaseName+"\")} \n" +
+                "db1=database(\"\",VALUE,[2023.01.01]);\n" +
+                "db2=database(\"\",HASH,[SYMBOL,20]);\n" +
+                "db=database(\""+dataBaseName+"\",COMPO,[db1,db2],,\"OLAP\",\"CHUNK\");\n" +
+                "colName = `ChannelNo`ApplSeqNum`MDStreamID`SecurityID`SecurityIDSource`Price`Side`TradeTIme`OrderQty`OrderType`OrderIndex`ReceiveTime`SeqNo`Market`DataStatus`BizIndex`isDeleted \n" +
+                "colType = [INT,LONG,INT,SYMBOL,INT,DOUBLE,SYMBOL,TIMESTAMP,INT,SYMBOL,INT,TIME,LONG,SYMBOL,INT,LONG,CHAR]\n" +
+                "tbSchema = table(1:0, colName, colType)\n" +
+                "db.createPartitionedTable(table=tbSchema,tableName=`entrust,partitionColumns=`TradeTIme`SecurityID)\n" ;
+        db = new DBConnection();
+        db.connect(HOST, PORT);
+        db.run(script);
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        rs = metaData.getColumns("dfs://test_append_type_tsdb1","", "entrust", "");
+        Assert.assertEquals("COLUMN_NAME: ChannelNo    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 1    COLUMN_NAME: ApplSeqNum    TYPE_NAME: LONG    DATA_TYPE: 5    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 2    COLUMN_NAME: MDStreamID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 3    COLUMN_NAME: SecurityID    TYPE_NAME: SYMBOL    DATA_TYPE: 17    EXTRA: null    REMARKS: null    IS_NULLABLE: NO    ORDINAL_POSITION: 4    COLUMN_NAME: SecurityIDSource    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 5    COLUMN_NAME: Price    TYPE_NAME: DOUBLE    DATA_TYPE: 16    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 6    COLUMN_NAME: Side    TYPE_NAME: SYMBOL    DATA_TYPE: 17    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 7    COLUMN_NAME: TradeTIme    TYPE_NAME: TIMESTAMP    DATA_TYPE: 12    EXTRA: null    REMARKS: null    IS_NULLABLE: NO    ORDINAL_POSITION: 8    COLUMN_NAME: OrderQty    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 9    COLUMN_NAME: OrderType    TYPE_NAME: SYMBOL    DATA_TYPE: 17    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 10    COLUMN_NAME: OrderIndex    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 11    COLUMN_NAME: ReceiveTime    TYPE_NAME: TIME    DATA_TYPE: 8    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 12    COLUMN_NAME: SeqNo    TYPE_NAME: LONG    DATA_TYPE: 5    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 13    COLUMN_NAME: Market    TYPE_NAME: SYMBOL    DATA_TYPE: 17    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 14    COLUMN_NAME: DataStatus    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 15    COLUMN_NAME: BizIndex    TYPE_NAME: LONG    DATA_TYPE: 5    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 16    COLUMN_NAME: isDeleted    TYPE_NAME: CHAR    DATA_TYPE: 2    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 17    ",printData1(rs));
         stmt.close();
         conn.close();
     }
 
     @Test
     public void test_DatabaseMetaData_getTables_catalog_null() throws Exception {
-        createPartitionTable1();
+        createPartitionTable1("dfs://test_append_type_tsdb1");
         DBConnection connDB = new DBConnection();
         connDB.connect(HOST,PORT,"admin","123456");
         Connection conn = null;
@@ -473,7 +550,7 @@ public class JDBCDataBaseMetaDataTest {
     }
     @Test
     public void test_DatabaseMetaData_getTables_catalog_null_1() throws Exception {
-        createPartitionTable1();
+        createPartitionTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -494,7 +571,7 @@ public class JDBCDataBaseMetaDataTest {
     }
     @Test
     public void test_DatabaseMetaData_getTables_catalog_not_exist() throws Exception {
-        createPartitionTable1();
+        createPartitionTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -516,7 +593,7 @@ public class JDBCDataBaseMetaDataTest {
     }
     @Test
     public void test_DatabaseMetaData_getTables_catalog_dfs() throws Exception {
-        createPartitionTable1();
+        createPartitionTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -534,7 +611,7 @@ public class JDBCDataBaseMetaDataTest {
     }
     @Test
     public void test_DatabaseMetaData_getTables_catalog_dimension() throws Exception {
-        createTable1();
+        createTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -553,7 +630,7 @@ public class JDBCDataBaseMetaDataTest {
     }
     @Test
     public void test_DatabaseMetaData_getTables_schemaPattern_null() throws Exception {
-        createTable1();
+        createTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -571,7 +648,7 @@ public class JDBCDataBaseMetaDataTest {
     }
     @Test
     public void test_DatabaseMetaData_getTables_schemaPattern_not_exist() throws Exception {
-        createTable1();
+        createTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -589,7 +666,7 @@ public class JDBCDataBaseMetaDataTest {
     }
     @Test
     public void test_DatabaseMetaData_getTables_tableNamePattern_null() throws Exception {
-        createTable1();
+        createTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -607,7 +684,7 @@ public class JDBCDataBaseMetaDataTest {
     }
     @Test
     public void test_DatabaseMetaData_getTables_tableNamePattern_null_1() throws Exception {
-        createTable1();
+        createTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -625,7 +702,7 @@ public class JDBCDataBaseMetaDataTest {
     }
     @Test
     public void test_DatabaseMetaData_getTables_tableNamePattern_all() throws Exception {
-        createTable1();
+        createTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
@@ -643,7 +720,7 @@ public class JDBCDataBaseMetaDataTest {
     }
     @Test
     public void test_DatabaseMetaData_getTables_tableNamePattern_memory_table() throws Exception {
-        createTable1();
+        createTable1("dfs://test_append_type_tsdb1");
         Connection conn = null;
         Statement stmt = null;
         Class.forName(JDBC_DRIVER);
