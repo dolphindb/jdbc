@@ -2,6 +2,7 @@ package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -9,431 +10,451 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
-import java.text.MessageFormat;
-import java.time.YearMonth;
 import java.util.*;
 
 public class JDBCPrepareStatement extends JDBCStatement implements PreparedStatement {
+	private String sql;
+	private final String tableName;
+	private final int sqlDmlType;
+	private List<ColumnBindValue> columnBindValues;
 
-	private String tableName;
-	private Entity tableNameArg;
-	private String preSql;
-	private String[] sqlSplit;
-	private Object[] values;
-	private final int dml;
-	private Object arguments;
-	private List<Object> argumentsBatch; // String List<Entity> Vector
-	private final boolean isInsert;
-	private String tableType;
-	private List<String> colNames;
-	private List<Entity.DATA_TYPE> colTypes_;
-	private int tableRows = 0;
+	private Map<Integer, Integer> indexSQLToDDB;
+	private BindValue[] bufferArea;
+	String tableTypeCache;
+	private InsertType insertSqlType;
+	private int batchSize;
+	List<String> sqlBuffer;
 
-	@SuppressWarnings("rawtypes")
-	private HashMap<String, ArrayList> unNameTable;
-	private int[] sizes;
-	private int[] types;
+	public JDBCPrepareStatement(JDBCConnection conn,String sql) throws SQLException {
+		super(conn);
+		this.batchSize = 0;
+		this.connection = conn;
+		this.sql = processSql(sql);
+		String[] sqlSplit = sql.split(";");
+		this.sql = sqlSplit[sqlSplit.length - 1].trim();
+		this.tableName = Utils.getTableName(sql);
+		this.sqlDmlType = Utils.getDml(sql);
+		this.sqlBuffer = new ArrayList<>();
+		this.indexSQLToDDB = new HashMap<>();
+		if (this.sqlDmlType == Utils.DML_INSERT) {
+			this.insertSqlType = Utils.getInsertSqlType(sql);
+			initColumnBindValues(this.tableName);
+			Utils.checkSQLValid(sql, this.tableName);
 
-	public String getTableName() {
-		return tableName;
+			Map<String, Integer> columnParamInSql = Utils.getColumnParamInSql(sql, this.tableName);
+			for(ColumnBindValue value : columnBindValues){
+				String colName = value.getColName();
+				if(columnParamInSql.containsKey(colName)){
+					indexSQLToDDB.put(columnParamInSql.get(colName), value.getIndex());
+					columnParamInSql.remove(colName);
+				}
+			}
+			if(columnParamInSql.size() != 0){
+				for (String key : columnParamInSql.keySet())
+					throw new SQLException("the column name " + key + "does not exist in table. ");
+			}
+
+			this.bufferArea = new BindValue[this.columnBindValues.size()];
+		} else {
+			int size = 0;
+			for (int i = 0; i < sql.length(); i++) {
+				char ch = sql.charAt(i);
+				if(ch == '?')// TODO: 字符串里的问号会有问题
+					size++;
+			}
+
+			bufferArea = new BindValue[size];
+		}
 	}
 
-	public JDBCPrepareStatement(JDBCConnection connection, String sql) throws SQLException {
-		super(connection);
-		sql = Utils.changeCase(sql);
-		this.connection = connection;
-		this.preSql = sql.trim();
-		while (preSql.endsWith(";"))
-			preSql = preSql.substring(0, preSql.length() - 1);
-//       	preSql = preSql.substring(0, sql.length() - 1);
-		sql = sql.trim();
-		if (sql!=null&&sql.equals("select 1"))
-			sql = "select 1 as val";
-		String[] strings = preSql.split(";");
-		String lastStatement = strings[strings.length - 1].trim();
-		this.tableName = Utils.getTableName(lastStatement);
-		this.dml = Utils.getDml(lastStatement);
+	private void initColumnBindValues(String tableName) throws SQLException {
+		if (this.columnBindValues == null) {
+			try {
+				this.columnBindValues = new ArrayList<>();
+				BasicDictionary schema = (BasicDictionary) connection.run(String.format("schema(%s)", tableName));
+				BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+				BasicStringVector names = (BasicStringVector) colDefs.getColumn("name");
+				BasicIntVector colDefsTypeInt = (BasicIntVector) colDefs.getColumn("typeInt");
+				BasicIntVector extraInt = (BasicIntVector) colDefs.getColumn("extra");
+				for (int i = 0; i < names.rows(); i++) {
+					String colName = names.getString(i);
+					int typeInt = colDefsTypeInt.getInt(i);
+					Entity.DATA_TYPE type = Entity.DATA_TYPE.values()[typeInt];
+					int extra = extraInt.getInt(i);
+					ColumnBindValue columnBindValue = new ColumnBindValue(i, colName, type, extra);
+					columnBindValues.add(columnBindValue);
+				}
+			} catch (IOException e) {
+				throw new SQLException(e);
+			}
+		}
+	}
 
-		this.isInsert = this.dml == Utils.DML_INSERT;
-		if (tableName != null) {
-			tableName = tableName.trim();
-			switch (this.dml) {
-				case Utils.DML_SELECT:
-				case Utils.DML_EXEC:
-				case Utils.DML_INSERT:
-				case Utils.DML_DELETE: {
-					if (tableName.length() > 0) {
-						tableNameArg = new BasicString(tableName);
-						if (tableTypes == null) {
-							tableTypes = new LinkedHashMap<>();
-						}
-					} else {
-						throw new SQLException("check the SQl " + preSql);
+	private void bind(int paramIndex, Object obj, int scaleOrLength) throws SQLException {
+		if (this.sqlDmlType == Utils.DML_INSERT) {
+			int index = getDataIndexBySQLIndex(paramIndex);
+			if(index >= this.columnBindValues.size())
+				throw new SQLException("the index of columnBindValues is out of range");
+			Vector column = this.columnBindValues.get(index).getBindValues();
+			try {
+				column.Append((Scalar) BasicEntityFactory.createScalar(column.getDataType(), obj, this.columnBindValues.get(index).getScale()));
+			}catch (Exception e){
+				throw new SQLException(e);
+			}
+		} else
+			bufferArea[paramIndex - 1] = new BindValue(obj, false);
+	}
+
+	@Override
+	public void clearBatch() throws SQLException {
+		super.clearBatch();
+		batchSize = 0;
+		sqlBuffer.clear();
+		clearParameters();
+	}
+
+	@Override
+	public int[] executeBatch() throws SQLException {
+		// todo @zouminxing 我们现在是不是还不支持 batchsize，我看默认设置为 0.
+		if(this.batchSize == 0)
+			return new int[0];
+		switch (this.sqlDmlType){
+			case Utils.DML_INSERT:
+				return tableAppend();
+		}
+		int[] executeRes = new int[this.batchSize];
+		try {
+			for (int i = 0; i < this.batchSize; i++){
+				switch (this.sqlDmlType){
+					case Utils.DML_UPDATE:
+					case Utils.DML_DELETE:
+						if(tableName != null)
+							executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
+						else
+							throw new SQLException("check the SQL " + sqlBuffer.get(i));
+						break;
+					case Utils.DML_SELECT:
+					case Utils.DML_EXEC:
+						throw new SQLException("can not produces ResultSet");
+					default:
+						Entity entity = connection.run(sqlBuffer.get(i));
+						if (entity instanceof BasicTable)
+							throw new SQLException("can not produces ResultSet");
+						executeRes[i] = 0;
+						sqlBuffer.clear();
+				}
+			}
+		} catch (Exception e){
+			throw new SQLException(e);
+		} finally {
+			sqlBuffer.clear();
+		}
+		return executeRes;
+	}
+
+	private void bind(int paramIndex, Object obj) throws SQLException {
+		bind(paramIndex, obj, 0);
+	}
+
+	private int getDataIndexBySQLIndex(int paramIndex) throws SQLException {
+		int index = paramIndex - 1;
+		if (indexSQLToDDB.size() != 0) {
+			if(!indexSQLToDDB.containsKey(index))
+				throw new SQLException("paramIndex is out of range");
+			index = indexSQLToDDB.get(index);
+		}
+		return index;
+	}
+
+	private void bindNull(int paramIndex, Object obj) throws SQLException {
+		if (this.sqlDmlType == Utils.DML_INSERT) {
+			int index = getDataIndexBySQLIndex(paramIndex);
+			Vector column = this.columnBindValues.get(index).getBindValues();
+			try {
+				column.Append((Scalar) BasicEntityFactory.createScalar(column.getDataType(), obj, this.columnBindValues.get(index).getScale()));
+			}catch (Exception e){
+				throw new SQLException(e);
+			}
+		} else
+			bufferArea[paramIndex - 1] = new BindValue(obj,false);
+	}
+
+	private void flushBufferArea(int rows) throws SQLException { //todo:rename
+		if (sqlDmlType == Utils.DML_INSERT) {
+			for(ColumnBindValue column : columnBindValues){
+				if(column.getBindValues().rows() != rows) {
+					Vector columnCol = column.getBindValues();
+					try {
+						columnCol.Append((Scalar) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
+					}catch (Exception e){
+						throw new SQLException(e);
 					}
 				}
 			}
+		} else{
+			sqlBuffer.add(generateSQL());
 		}
-		this.preSql += ";";
-		sqlSplit = this.preSql.split("\\?");
-		values = new Object[sqlSplit.length + 1];
-		sizes = new int[sqlSplit.length + 1];
-		types = new int[sqlSplit.length + 1];
-		batch = new StringBuilder();
-//		System.out.println("new Prepare statement: " + preSql);
-	}
 
-	private void getTableType() {
-		if (tableType == null) {
-			try {
-				tableType = connection.run("typestr " + tableName).getString();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			if (tableType != null) {
-				if (tableTypes == null) {
-					tableTypes = new LinkedHashMap<>();
-				}
-				tableTypes.put(tableName, tableType);
-			}
-		}
+		clearParameters();
 	}
 
 	@Override
 	public ResultSet executeQuery() throws SQLException {
-		return super.executeQuery(createSql());
+		flushBufferArea(1);
+		//noinspection SqlSourceToSinkFlow
+		return super.executeQuery(sqlBuffer.get(0));
 	}
 
-	@SuppressWarnings("unchecked")
+	private void checkBindsLegal() throws SQLException {
+		if(indexSQLToDDB.size() == 0) {
+			for (ColumnBindValue columnBindValue : columnBindValues) {
+				if(columnBindValue.getBindValues().rows() != batchSize)
+					throw new SQLException("The column " + columnBindValue.getColName() + " is not set.");
+			}
+		}else{
+			for (Integer index : indexSQLToDDB.keySet()){
+				if(this.columnBindValues.get(indexSQLToDDB.get(index)).getBindValues().rows() != batchSize)
+					throw new SQLException("The column " + this.columnBindValues.get(indexSQLToDDB.get(index)).getColName() + " is not set.");
+			}
+		}
+	}
+
 	@Override
 	public int executeUpdate() throws SQLException {
-		if (arguments == null) {
-			try {
-				arguments = createArguments();
-			} catch (IOException e) {
-				throw new SQLException(e.getMessage());
-			}
-		} else{
-			try {
-				createArguments();
-			} catch (IOException e) {
-				throw new SQLException(e.getMessage());
-			}
-		}
-		switch (dml) {
-			case Utils.DML_INSERT: //rt
-				if (tableName != null) {
-					getTableType();
-					BasicInt basicInt;
-					if (tableType.equals(IN_MEMORY_TABLE)) {
-						try {
-							basicInt = (BasicInt) connection.run("tableInsert", (List<Entity>) arguments);
-							return basicInt.getInt();
-						} catch (IOException e) {
-							throw new SQLException(e);
-						}
-					} else {
-						return tableAppend();
-					}
-				} else {
-					throw new SQLException("check the SQL " + preSql);
-				}
-			case Utils.DML_UPDATE:
-			case Utils.DML_DELETE:
-				if (tableName != null) {
-					getTableType();
-//				if (tableType.equals(IN_MEMORY_TABLE)) {
-					try {
-						return super.executeUpdate((String) arguments);
-					} catch (SQLException e) {
-						throw new SQLException(e);
-					}
-//				} else {
-//					throw new SQLException("only local in-memory table can update");
-//				}
-				} else {
-					throw new SQLException("check the SQL " + preSql);
-				}
-			case Utils.DML_SELECT:
-			case Utils.DML_EXEC:
-				throw new SQLException("can not produces ResultSet");
-
-			default:
-				Entity entity;
-				if (arguments instanceof String) {
-					try {
-						entity = connection.run((String) arguments);
-					} catch (IOException e) {
-						throw new SQLException(e);
-					}
-					if (entity instanceof BasicTable) {
+		try {
+			flushBufferArea(1);
+			switch (this.sqlDmlType) {
+				case Utils.DML_INSERT:
+					 tableAppend();
+					 return 0; // TODO: executeUpdate result
+				case Utils.DML_UPDATE:
+				case Utils.DML_DELETE:
+					if (tableName != null) {
+						String sql = sqlBuffer.get(0);
+						sqlBuffer.clear();
+						connection.run(sql);
+						return 0; // TODO: executeUpdate result
+					} else
+						throw new SQLException("check the SQL " + sql);
+				case Utils.DML_SELECT:
+				case Utils.DML_EXEC:
+					throw new SQLException("can not produces ResultSet");
+				default:
+					Entity entity = connection.run(sqlBuffer.get(0));
+					sqlBuffer.clear();
+					if (entity instanceof BasicTable)
 						throw new SQLException("can not produces ResultSet");
-					}
-				}
-
-				return 0;
+					return 0;
+			}
+		} catch (Exception e ) {
+			throw new SQLException(e);
 		}
 	}
 
-	public int executeUpdate(Object arguments)throws SQLException{
-		if (tableName != null) {
-			getTableType();
-			BasicInt basicInt;
-			if (tableType.equals(IN_MEMORY_TABLE)) {
-				try {
-					basicInt = (BasicInt) connection.run("tableInsert", (List<Entity>) arguments);
-					return basicInt.getInt();
-				} catch (IOException e) {
-					throw new SQLException(e);
+	private int[] tableAppend() throws SQLException {
+		List<Vector> arguments = createDFSArguments();
+		List<String> colNames = new ArrayList<>();
+		columnBindValues.forEach(e -> colNames.add(e.getColName()));
+		BasicTable basicTable = new BasicTable(colNames, arguments);
+		List<Entity> param = new ArrayList<>();
+		param.add(basicTable);
+		try {
+			int size = ((Scalar)connection.run("tableInsert{" + tableName + "}", param)).getNumber().intValue();
+			int[] value = new int[size];
+			if(arguments.get(0).rows() != size){
+				for(int i = 0; i < size; ++i){
+					value[i] = EXECUTE_FAILED;
 				}
-			} else {
-				return tableAppend();
+			}else{
+				for(int i = 0; i < size; ++i){
+					value[i] = SUCCESS_NO_INFO;
+				}
 			}
-		} else {
-			throw new SQLException("check the SQL " + preSql);
+			return value;
+		} catch (Exception e) {
+			throw new SQLException(e);
 		}
-
 	}
 
-	@SuppressWarnings("unchecked")
-	private int tableAppend() throws SQLException {
-		if (unNameTable.size() > 1) {
-			int insertRows = 0;
-			List<Vector> cols = new ArrayList<>(unNameTable.size());
-			try {
-				for (int i = 0; i < colNames.size(); i++) {
-					Entity.DATA_TYPE dataType = colTypes_.get(i);
-					List<Entity> values = unNameTable.get(colNames.get(i));
-					Vector col;
-					if ((types[i+1] == -1 && dataType == Entity.DATA_TYPE.DT_DECIMAL32)
-							|| types[i+1] == Entity.DATA_TYPE.DT_DECIMAL32.getValue()) {
-						col = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.DT_DECIMAL32, 1, sizes[i+1]);
-						if (sizes[i+1]<0 || sizes[i+1] > 9) {
-							throw new SQLException("The size of the Decimal32 type should be in the range 0-9");
-						}
-					} else if ((types[i+1] == -1 && dataType == Entity.DATA_TYPE.DT_DECIMAL64)
-							|| types[i+1] == Entity.DATA_TYPE.DT_DECIMAL64.getValue()) {
-						col = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.DT_DECIMAL64, 1, sizes[i+1]);
-						if (sizes[i+1]<0 || sizes[i+1] > 18) {
-							throw new SQLException("The size of the Decimal64 type should be in the range 0-18");
-						}
-					} else if ((types[i+1] == -1 && dataType == Entity.DATA_TYPE.DT_DECIMAL128)
-							|| types[i+1] == Entity.DATA_TYPE.DT_DECIMAL128.getValue()) {
-						col = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.DT_DECIMAL128, 1, sizes[i+1]);
-						if (sizes[i+1]<0 || sizes[i+1] > 38) {
-							throw new SQLException("The size of the Decimal128 type should be in the range 0-38");
-						}
-					} else {
-						col = BasicEntityFactory.instance().createVectorWithDefaultValue(dataType, 1, -1);
-					}
-					col.set(0, values.get(tableRows));
-					cols.add(col);
-				}
-				tableRows++;
-			}catch (Exception e){
-				e.printStackTrace();
-				return 0;
-			}
-			if (tableRows == unNameTable.get(colNames.get(0)).size()){
-				unNameTable = null;
-				tableRows = 0;
-			}
+//	private List<Entity> createMemArguments(int idx) throws Exception {
+//		List<Entity> arguments = new ArrayList<>();
+//		arguments.add(new BasicString(tableName));
+//		for (ColumnBindValue columnBindValue : columnBindValues)
+//			arguments.add(createColVectorFromBindValue(columnBindValue,idx));
+//
+//		return arguments;
+//	}
 
+	private List<Vector> createDFSArguments() {
+		List<Vector> arguments = new ArrayList<>();
+		for (ColumnBindValue columnBindValue : columnBindValues)
+			arguments.add(columnBindValue.getBindValues());
+		return arguments;
+	}
 
-			List<Entity> param = new ArrayList<>();
-			BasicTable insertTable = new BasicTable(colNames, cols);
-			param.add(insertTable);
+//	private Vector createColVectorFromBindValue(ColumnBindValue columnBindValue, int idx) throws Exception {
+//		Vector col = BasicEntityFactory.instance().createVectorWithDefaultValue(columnBindValue.getType(), 0, columnBindValue.getScale());
+//		if (columnBindValue.getType().equals(Entity.DATA_TYPE.DT_DECIMAL32) && (columnBindValue.getScale() < 0 || columnBindValue.getScale() > 9)) {
+//			throw new IllegalArgumentException("The size of the Decimal32 type should be in the range 0-9");
+//		} else if (columnBindValue.getType().equals(Entity.DATA_TYPE.DT_DECIMAL64) && (columnBindValue.getScale() < 0 || columnBindValue.getScale() > 18)) {
+//			throw new IllegalArgumentException("The size of the Decimal64 type should be in the range 0-18");
+//		} else if (columnBindValue.getType().equals(Entity.DATA_TYPE.DT_DECIMAL128) && (columnBindValue.getScale() < 0 || columnBindValue.getScale() > 38)) {
+//			throw new IllegalArgumentException("The size of the Decimal128 type should be in the range 0-38");
+//		}
+//
+//		BindValue bindValue = columnBindValue.getBindValues().get(idx);
+//		// todo: decimal64 has a bug, see JAVAOS-184.
+//		col.Append((Scalar) BasicEntityFactory.createScalar(columnBindValue.getType(), bindValue.getValue(), columnBindValue.getScale()));
+//		return col;
+//	}
 
-			try {
-				connection.run("append!{" + tableName + "}", param);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+	private String getTableType() throws IOException {
+		if (tableTypeCache != null)
+			return tableTypeCache;
 
-			cols = null;
-			insertTable = null;
-
-			return insertRows;
-		}
-		return 0;
+		tableTypeCache = connection.run("typestr " + tableName).getString();
+		return tableTypeCache;
 	}
 
 	@Override
-	public void setNull(int parameterIndex, int type) throws SQLException {
-		if (colTypes_ == null){
-			try {
-				BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
-				BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-				BasicIntVector colDefsTypeInt = (BasicIntVector) colDefs.getColumn("typeInt");
-				int size = colDefs.rows();
-				colTypes_ = new ArrayList<Entity.DATA_TYPE>();
-				for (int i = 0;i < size; i++){
-					colTypes_.add(Entity.DATA_TYPE.valueOf(colDefsTypeInt.getInt(i)));
-				}
-			}catch (Exception e){
-				System.out.println(e.getMessage());
-				return;
-			}
+	public void setNull(int parameterIndex, int sqlType) throws SQLException {
+		if (this.sqlDmlType == Utils.DML_INSERT) {
+			int index = getDataIndexBySQLIndex(parameterIndex);
+			bindNull(parameterIndex, TypeCast.nullScalar(columnBindValues.get(index).getType()));
+		}else{
+			bufferArea[parameterIndex - 1] = new BindValue("", true);
 		}
-		setObject(parameterIndex, TypeCast.nullScalar(colTypes_.get(parameterIndex-1)));
 	}
 
 	@Override
 	public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-		setObject(parameterIndex, x);
+		bind(parameterIndex, x);
 	}
 
 	@Override
 	public void setByte(int parameterIndex, byte x) throws SQLException {
-		setObject(parameterIndex, x);
+		bind(parameterIndex, x);
 	}
 
 	@Override
 	public void setShort(int parameterIndex, short x) throws SQLException {
-		setObject(parameterIndex, x);
+		bind(parameterIndex, x);
 	}
 
 	@Override
 	public void setInt(int parameterIndex, int x) throws SQLException {
-		setObject(parameterIndex, x);
+		bind(parameterIndex, x);
 	}
 
 	@Override
 	public void setLong(int parameterIndex, long x) throws SQLException {
-		setObject(parameterIndex, x);
+		bind(parameterIndex, x);
 	}
 
 	@Override
 	public void setFloat(int parameterIndex, float x) throws SQLException {
-		setObject(parameterIndex, x);
+		bind(parameterIndex, x);
 	}
 
 	@Override
 	public void setDouble(int parameterIndex, double x) throws SQLException {
-		setObject(parameterIndex, x);
+		bind(parameterIndex, x);
 	}
 
 	@Override
-	public void setBigDecimal(int parameterIndex, BigDecimal bigDecimal) throws SQLException {
-		setObject(parameterIndex, bigDecimal.doubleValue());
+	public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
+		bind(parameterIndex, x.doubleValue());
 	}
 
 	@Override
-	public void setString(int parameterIndex, String s) throws SQLException {
-		setObject(parameterIndex, s);
+	public void setString(int parameterIndex, String x) throws SQLException {
+		bind(parameterIndex, x);
 	}
 
 	@Override
-	public void setBytes(int parameterIndex, byte[] bytes) throws SQLException {
-		setObject(parameterIndex, bytes);
+	public void setBytes(int parameterIndex, byte[] x) throws SQLException {
+		bind(parameterIndex, x);
 	}
 
 	@Override
-	public void setDate(int parameterIndex, Date date) throws SQLException {
-		setObject(parameterIndex, date);
+	public void setDate(int parameterIndex, Date x) throws SQLException {
+		bind(parameterIndex, x);
 	}
 
 	@Override
-	public void setTime(int parameterIndex, Time time) throws SQLException {
-		setObject(parameterIndex, time);
+	public void setTime(int parameterIndex, Time x) throws SQLException {
+		bind(parameterIndex, x);
 	}
 
 	@Override
-	public void setTimestamp(int parameterIndex, Timestamp timestamp) throws SQLException {
-		setObject(parameterIndex, timestamp);
+	public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
+		bind(parameterIndex, x);
 	}
 
 	@Override
-	public void setAsciiStream(int parameterIndex, InputStream inputStream, int length) throws SQLException {
-		Driver.unused();
+	public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException {
+		Driver.unused("setAsciiStream not implemented");
 	}
 
 	@Override
-	public void setUnicodeStream(int parameterIndex, InputStream inputStream, int length) throws SQLException {
-		Driver.unused();
+	public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
+		Driver.unused("setUnicodeStream not implemented");
 	}
 
 	@Override
-	public void setBinaryStream(int parameterIndex, InputStream inputStream, int length) throws SQLException {
-		Driver.unused();
+	public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
+		Driver.unused("setBinaryStream not implemented");
 	}
 
 	@Override
 	public void clearParameters() throws SQLException {
-		super.clearBatch();
-		if (values != null) {
-			for (int i = 0, len = values.length; i < len; ++i) {
-				values[i] = null;
-				sizes[i] = 0;
-				types[i] = -1;
-			}
-		}
+		Arrays.fill(bufferArea, null);
 	}
 
 	@Override
-	public void setObject(int parameterIndex, Object object) throws SQLException {
-		if (parameterIndex > sqlSplit.length - 1) {
-			throw new SQLException(
-					MessageFormat.format("Parameter index out of range ({0} > number of parameters, which is {1}).",
-							parameterIndex, sqlSplit.length - 1));
-		}
-		values[parameterIndex] = object;
-		sizes[parameterIndex] = 0;
-		types[parameterIndex] = -1;
+	public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
+		bind(parameterIndex, x);
 	}
 
 	@Override
-	public void setObject(int parameterIndex, Object object, int targetSqlType) throws SQLException {
-		setObject(parameterIndex, object);
-	}
-
-	@Override
-	public void setObject(int parameterIndex, Object object, int targetSqlType, int scaleOrLength) throws SQLException {
-		setObject(parameterIndex, object);
-		if(targetSqlType == Entity.DATA_TYPE.DT_DECIMAL.getValue() || targetSqlType == Entity.DATA_TYPE.DT_DECIMAL32.getValue()
-				|| targetSqlType == Entity.DATA_TYPE.DT_DECIMAL64.getValue() || targetSqlType == Entity.DATA_TYPE.DT_DECIMAL128.getValue()){
-			sizes[parameterIndex] = scaleOrLength;
-			types[parameterIndex] = targetSqlType;
-		}
+	public void setObject(int parameterIndex, Object x) throws SQLException {
+		bind(parameterIndex, x);
 	}
 
 	@Override
 	public boolean execute() throws SQLException {
-		switch (dml) {
-			case Utils.DML_SELECT:
-			case Utils.DML_EXEC: {
-				ResultSet resultSet_ = executeQuery();
-				resultSets.offerLast(resultSet_);
-				objectQueue.offer(resultSet_);
-			}
-			break;
-			case Utils.DML_INSERT:
-			case Utils.DML_UPDATE:
-			case Utils.DML_DELETE: {
-				objectQueue.offer(executeUpdate());
-			}
-			break;
-			default: {
-				Entity entity;
-				String newSql;
-				if (arguments instanceof String) {
-					try {
-						newSql = (String) arguments;
-						entity = connection.run(newSql);
-					} catch (IOException e) {
-						throw new SQLException(e);
-					}
+		try {
+			switch (sqlDmlType){
+				case Utils.DML_SELECT:
+				case Utils.DML_EXEC: {
+					ResultSet resultSet_ = executeQuery();
+					resultSets.offerLast(resultSet_);
+					objectQueue.offer(resultSet_);
+					break;
+				}
+				case Utils.DML_INSERT:
+				case Utils.DML_UPDATE:
+				case Utils.DML_DELETE:
+					objectQueue.offer(executeUpdate());
+					break;
+				default: {
+					flushBufferArea(1);
+					Entity entity = connection.run(sqlBuffer.get(0));
 					if (entity instanceof BasicTable) {
-						ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, newSql, this.getMaxRows());
+						ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, sqlBuffer.get(0), this.getMaxRows());
 						resultSets.offerLast(resultSet_);
 						objectQueue.offer(resultSet_);
 					}
+					sqlBuffer.clear();
 				}
 			}
+		} catch (Exception e){
+			throw new SQLException(e);
 		}
 
-		if (objectQueue.isEmpty()) {
+		if (objectQueue.isEmpty())
 			return false;
-		} else {
+		else {
 			result = objectQueue.poll();
 			return result instanceof ResultSet;
 		}
@@ -441,67 +462,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void addBatch() throws SQLException {
-		if (argumentsBatch == null) {
-			argumentsBatch = new ArrayList<>();
-		}
-		try {
-			arguments = createArguments();
-		} catch (IOException e) {
-			throw new SQLException(e);
-		}
-		if (arguments != null) {
-			argumentsBatch.add(arguments);
-		}
-	}
-
-	@Override
-	public void addBatch(String sql) throws SQLException {
-		if (argumentsBatch == null) {
-			argumentsBatch = new ArrayList<>();
-		}
-		argumentsBatch.add(sql);
-	}
-
-	@Override
-	public void clearBatch() throws SQLException {
-		super.clearBatch();
-		if (argumentsBatch != null) {
-			argumentsBatch.clear();
-		}
-	}
-
-	@Override
-	public void close() throws SQLException {
-		super.close();
-		sqlSplit = null;
-		values = null;
-		sizes = null;
-		types = null;
-	}
-
-	@Override
-	public int[] executeBatch() throws SQLException {
-		int[] arr_int = new int[argumentsBatch.size()];
-		int index = 0;
-		try {
-			for (Object args : argumentsBatch) {
-				if (args == null) {
-					arr_int[index++] = 0;
-				}
-				else if (args instanceof String) {
-					arr_int[index++] = super.executeUpdate((String) args);
-				}
-				else {
-					arr_int[index++] = executeUpdate(args);
-					//return arr_int;
-				}
-			}
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-			throw new BatchUpdateException(e.getMessage(), Arrays.copyOf(arr_int, index));
-		}
-		return arr_int;
+		batchSize++;
+		flushBufferArea(batchSize);
+		checkBindsLegal();
 	}
 
 	@Override
@@ -510,49 +473,48 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	@Override
-	public void setRef(int parameterIndex, Ref ref) throws SQLException {
+	public void setRef(int parameterIndex, Ref x) throws SQLException {
 		Driver.unused("setRef not implemented");
 	}
 
 	@Override
-	public void setBlob(int parameterIndex, Blob blob) throws SQLException {
-		byte []blobbyte = blob.getBytes(1,(int)blob.length());
-		String blobstring = new String(blobbyte);
-		setObject(parameterIndex,blobstring);
+	public void setBlob(int parameterIndex, Blob x) throws SQLException {
+		byte[] blobbyte = x.getBytes(1,(int)x.length());
+		String blobstring = new String( blobbyte);
+		bind(parameterIndex,blobstring);
 	}
 
 	@Override
-	public void setClob(int parameterIndex, Clob clob) throws SQLException {
+	public void setClob(int parameterIndex, Clob x) throws SQLException {
 		Driver.unused("setClob not implemented");
 	}
 
 	@Override
-	public void setArray(int parameterIndex, Array array) throws SQLException {
+	public void setArray(int parameterIndex, Array x) throws SQLException {
 		Driver.unused("setArray not implemented");
 	}
 
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
-		if (resultSet != null) {
+		if(Objects.nonNull(this.resultSet))
 			return resultSet.getMetaData();
-		} else {
+		else
 			return null;
-		}
 	}
 
 	@Override
-	public void setDate(int parameterIndex, Date date, Calendar cal) throws SQLException {
-		setObject(parameterIndex, date);
+	public void setDate(int parameterIndex, Date x, Calendar cal) throws SQLException {
+		bind(parameterIndex, x);
 	}
 
 	@Override
-	public void setTime(int parameterIndex, Time time, Calendar cal) throws SQLException {
-		setObject(parameterIndex, time);
+	public void setTime(int parameterIndex, Time x, Calendar cal) throws SQLException {
+		bind(parameterIndex, x);
 	}
 
 	@Override
-	public void setTimestamp(int parameterIndex, Timestamp timestamp, Calendar cal) throws SQLException {
-		setObject(parameterIndex, timestamp);
+	public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal) throws SQLException {
+		bind(parameterIndex, x);
 	}
 
 	@Override
@@ -561,7 +523,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	@Override
-	public void setURL(int parameterIndex, URL url) throws SQLException {
+	public void setURL(int parameterIndex, URL x) throws SQLException {
 		Driver.unused("setURL not implemented");
 	}
 
@@ -572,67 +534,72 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	@Override
-	public void setRowId(int parameterIndex, RowId rowId) throws SQLException {
+	public void setRowId(int parameterIndex, RowId x) throws SQLException {
 		Driver.unused("setRowId not implemented");
 	}
 
 	@Override
-	public void setNString(int parameterIndex, String s) throws SQLException {
-		setObject(parameterIndex,s);
+	public void setNString(int parameterIndex, String value) throws SQLException {
+		bind(parameterIndex, value);
 	}
 
 	@Override
-	public void setNCharacterStream(int parameterIndex, Reader reader, long l) throws SQLException {
+	public void setNCharacterStream(int parameterIndex, Reader value, long length) throws SQLException {
 		Driver.unused("setNCharacterStream not implemented");
 	}
 
 	@Override
-	public void setNClob(int parameterIndex, NClob nClob) throws SQLException {
+	public void setNClob(int parameterIndex, NClob value) throws SQLException {
 		Driver.unused("setNClob not implemented");
 	}
 
 	@Override
-	public void setClob(int parameterIndex, Reader reader, long l) throws SQLException {
+	public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
 		Driver.unused("setClob not implemented");
 	}
 
 	@Override
-	public void setBlob(int parameterIndex, InputStream inputStream, long l) throws SQLException {
+	public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
 		Driver.unused("setBlob not implemented");
 	}
 
 	@Override
-	public void setNClob(int parameterIndex, Reader reader, long l) throws SQLException {
-		Driver.unused("setNClob not implemented");
+	public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
+
 	}
 
 	@Override
-	public void setSQLXML(int parameterIndex, SQLXML sqlxml) throws SQLException {
+	public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
 		Driver.unused("setSQLXML not implemented");
 	}
 
 	@Override
-	public void setAsciiStream(int parameterIndex, InputStream inputStream, long l) throws SQLException {
+	public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
+		bind(parameterIndex, x, scaleOrLength);
+	}
+
+	@Override
+	public void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException {
 		Driver.unused("setAsciiStream not implemented");
 	}
 
 	@Override
-	public void setBinaryStream(int parameterIndex, InputStream inputStream, long l) throws SQLException {
+	public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
 		Driver.unused("setBinaryStream not implemented");
 	}
 
 	@Override
-	public void setCharacterStream(int parameterIndex, Reader reader, long l) throws SQLException {
+	public void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
 		Driver.unused("setCharacterStream not implemented");
 	}
 
 	@Override
-	public void setAsciiStream(int parameterIndex, InputStream inputStream) throws SQLException {
+	public void setAsciiStream(int parameterIndex, InputStream x) throws SQLException {
 		Driver.unused("setAsciiStream not implemented");
 	}
 
 	@Override
-	public void setBinaryStream(int parameterIndex, InputStream inputStream) throws SQLException {
+	public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
 		Driver.unused("setBinaryStream not implemented");
 	}
 
@@ -642,7 +609,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	@Override
-	public void setNCharacterStream(int parameterIndex, Reader reader) throws SQLException {
+	public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
 		Driver.unused("setNCharacterStream not implemented");
 	}
 
@@ -662,12 +629,12 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	@Override
-	public void setObject(int parameterIndex, Object x, SQLType targetSqlType) throws SQLException {
+	public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
 		Driver.unused("setObject not implemented");
 	}
 
 	@Override
-	public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+	public void setObject(int parameterIndex, Object x, SQLType targetSqlType) throws SQLException {
 		Driver.unused("setObject not implemented");
 	}
 
@@ -676,87 +643,40 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		return 0;
 	}
 
-	private Object createArguments() throws IOException {
-		if (isInsert) {
-			if(colNames == null) {
-				BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
-				BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-				BasicStringVector names = (BasicStringVector) colDefs.getColumn("name");
-				int size = names.rows();
-				colNames = new ArrayList<String>();
-				for (int i = 0; i < size; i++) {
-					colNames.add(names.getString(i));
-				}
-			}
-
-			if (colTypes_ == null){
-				BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ")");
-				BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-				BasicIntVector colDefsTypeInt = (BasicIntVector) colDefs.getColumn("typeInt");
-				int size = colDefs.rows();
-				colTypes_ = new ArrayList<Entity.DATA_TYPE>();
-				for (int i = 0;i < size; i++){
-					colTypes_.add(Entity.DATA_TYPE.valueOf(colDefsTypeInt.getInt(i)));
-				}
-			}
-			try {
-				List<Entity> arguments = new ArrayList<>(sqlSplit.length);
-				arguments.add(tableNameArg);
-				getTableType();
-				Entity.DATA_TYPE dataType;
-				if(unNameTable == null) {
-					unNameTable = new LinkedHashMap<>();
-				}
-				int j = 0;
-				for (int i = 1; i < sqlSplit.length; ++i) {
-					dataType = colTypes_.get(j);
-					Entity entity;
-					if(values[i] instanceof YearMonth){
-						values[i] = new BasicMonth(((YearMonth) values[i]).getYear(), ((YearMonth) values[i]).getMonth());
-					}
-					entity = BasicEntityFactory.createScalar(dataType, values[i], sizes[i]);
-					if (!tableType.equals(IN_MEMORY_TABLE)) {
-						if (unNameTable.size() == colTypes_.size()){
-							ArrayList<Entity> colValues = unNameTable.get(colNames.get(j));
-							colValues.add(entity);
-							unNameTable.put(colNames.get(j), colValues);
-						}else {
-							ArrayList<Entity> args = new ArrayList<>();
-							args.add(entity);
-							unNameTable.put(colNames.get(j), args);
-						}
-					} else {
-						arguments.add(entity);
-					}
-					j++;
-				}
-				return arguments;
-			}catch (Exception e){
-				e.printStackTrace();
-				return null;
-			}
-		} else {
-			try {
-				return createSql();
-			} catch (SQLException e) {
-				throw new IOException(e.getMessage());
-			}
-		}
+	@Override
+	public void close() throws SQLException {
+		super.close();
+		this.columnBindValues = null;
+		this.sql = null;
+		this.bufferArea = null;
+		this.tableTypeCache = null;
+		this.insertSqlType = null;
 	}
 
-	private String createSql() throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		for (int i = 1; i < sqlSplit.length; ++i) {
-			if (values[i] == null) {
-				throw new SQLException("No value specified for parameter " + i);
-			}
-			String s = TypeCast.castDbString(values[i]);
-			if (s == null) {
-				throw new SQLException("Unsupported type for parameter " + i + " "+values[i].getClass());
-			}
-			sb.append(sqlSplit[i - 1]).append(s);
-		}
-		sb.append(sqlSplit[sqlSplit.length - 1]);
-		return sb.toString();
+	private String processSql(String sql){
+		sql = Utils.changeCase(sql);
+		sql = sql.trim();
+		while (sql.endsWith(";"))
+			sql = sql.substring(0, sql.length() - 1);
+		sql = sql.trim();
+		if(sql.equals("select 1"))
+			sql = "select 1 as val";
+
+		return sql;
+	}
+
+	private String generateSQL() throws SQLException {
+		String[] sqlSplitByQuestionMark = this.sql.split("\\?");
+		StringBuilder stringBuilder = new StringBuilder();
+		for (int i = 0; i < sqlSplitByQuestionMark.length; i++) {
+			if(i <= this.bufferArea.length - 1 && (this.bufferArea[i] == null || this.bufferArea[i].getValue() == null))
+				throw new SQLException("No value specified for parameter " + (i + 1));
+
+			stringBuilder.append(sqlSplitByQuestionMark[i]);
+			if(i <= this.bufferArea.length - 1)
+				stringBuilder.append(TypeCast.castDbString(this.bufferArea[i].getValue()));
+ 		}
+
+		return stringBuilder.toString();
 	}
 }

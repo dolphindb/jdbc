@@ -1,4 +1,3 @@
-
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -279,7 +278,7 @@ public class JDBCPrepareStatement {
 			pstmt = conn.prepareStatement("select * from t");
 			rs = pstmt.executeQuery();
 			rs.absolute(101);
-		    org.junit.Assert.assertEquals(rs.getInt(2), 0);
+			org.junit.Assert.assertEquals(rs.getInt(2), 0);
 			//setBoolean
 			pstmt = conn.prepareStatement("insert into t values(?,?)");
 			pstmt.setInt(1, 102);
@@ -420,8 +419,8 @@ public class JDBCPrepareStatement {
 			pstmt.executeUpdate();
 			pstmt = conn.prepareStatement("select * from t");
 			rs = pstmt.executeQuery();
-        	rs.absolute(4);
-		    org.junit.Assert.assertEquals(rs.getDate(2), date);
+			rs.absolute(4);
+			org.junit.Assert.assertEquals(rs.getDate(2), date);
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -982,7 +981,7 @@ public class JDBCPrepareStatement {
 			rs.last();
 			int rowCount = rs.getRow();
 			org.junit.Assert.assertEquals(rowCount,1);
-            rs.absolute(1);
+			rs.absolute(1);
 			org.junit.Assert.assertEquals(rs.getInt(2), 21);
 			//order by
 			pstmt = conn.prepareStatement("select * from t order by id");
@@ -1096,10 +1095,10 @@ public class JDBCPrepareStatement {
 			conn = DriverManager.getConnection(url);
 			stmt = conn.createStatement();
 			stmt.execute("sym = `C`MS`MS`MS`IBM`IBM`C`C`C$SYMBOL\n" +
-							 "price= 49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29\n" +
-					         "qty = 2200 1900 2100 3200 6800 5400 1300 2500 8800\n" +
-					         "timestamp = [09:34:07,09:35:42,09:36:51,09:36:59,09:35:47,09:36:26,09:34:16,09:35:26,09:36:12]\n" +
-					         "t = table(timestamp, sym, qty, price)");
+					"price= 49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29\n" +
+					"qty = 2200 1900 2100 3200 6800 5400 1300 2500 8800\n" +
+					"timestamp = [09:34:07,09:35:42,09:36:51,09:36:59,09:35:47,09:36:26,09:34:16,09:35:26,09:36:12]\n" +
+					"t = table(timestamp, sym, qty, price)");
 			//pivot by
 			pstmt = conn.prepareStatement("select last(price) from t pivot by timestamp.minute(), sym");
 			rs = pstmt.executeQuery();
