@@ -217,26 +217,25 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             // specify 'columnNamePattern'
             try {
                 String script = null;
-                if (Objects.nonNull(catalog) && !catalog.isEmpty()) {
+                if (Objects.nonNull(catalog) && !catalog.isEmpty())
                     // dfs
                     script = String.format("schema(loadTable(\"%s\", `%s)).colDefs;", catalog, tableNamePattern);
-                } else {
+                else
                     // mem
                     script = String.format("schema(%s).colDefs;", tableNamePattern);
-                }
                 BasicTable tempColDefs = (BasicTable) connection.run(script);
                 BasicStringVector tempNameColumn = (BasicStringVector) tempColDefs.getColumn(0);
                 List<String> nameColumnList = Arrays.asList(tempNameColumn.getdataArray());
                 int pos = nameColumnList.indexOf(columnNamePattern);
                 List<Integer> ordinalPositionList =  new ArrayList<>();
-                ordinalPositionList.add(pos);
+                ordinalPositionList.add(pos + 1);
                 colDefs.addColumn("ORDINAL_POSITION", new BasicIntVector(ordinalPositionList));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         } else {
             // get all cols.
-            BasicIntVector posColVector = new BasicIntVector(IntStream.rangeClosed(0, colDefs.getColumn(0).rows() - 1)
+            BasicIntVector posColVector = new BasicIntVector(IntStream.rangeClosed(1, colDefs.getColumn(0).rows())
                     .boxed()
                     .collect(Collectors.toList()));
             colDefs.addColumn("ORDINAL_POSITION", posColVector);
