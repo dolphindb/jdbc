@@ -1,18 +1,22 @@
 import com.dolphindb.jdbc.JDBCResultSet;
+import com.dolphindb.jdbc.TypeCast;
 import com.xxdb.DBConnection;
-import com.xxdb.data.BasicDate;
+import com.xxdb.data.*;
 //import java.util.Date;
-import com.xxdb.data.BasicTable;
-import com.xxdb.data.Scalar;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;
+import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
 //import com.xxdb.DBConnection;
@@ -23,6 +27,8 @@ public class JDBCPrepareStatementTest {
     Properties LOGININFO = new Properties();
     String JDBC_DRIVER;
     String DB_URL ;
+    Statement stm ;
+    Connection conn;
     @Before
     public void SetUp(){
         JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
@@ -30,6 +36,14 @@ public class JDBCPrepareStatementTest {
         LOGININFO.put("user", "admin");
         LOGININFO.put("password", "123456");
         DB_URL = "jdbc:dolphindb://"+HOST+":"+PORT;
+        JDBCTestUtil.LOGININFO.put("user", "admin");
+        JDBCTestUtil.LOGININFO.put("password", "123456");
+        conn = JDBCTestUtil.getConnection(JDBCTestUtil.LOGININFO);
+        try {
+            stm = conn.createStatement();
+        }catch (SQLException ex){
+
+        }
     }
     public static boolean CreateDfsTable(String host, Integer port) {
         boolean success = false;
@@ -54,7 +68,172 @@ public class JDBCPrepareStatementTest {
             return success;
         }
     }
+    public static boolean createPartitionTable(String dataType){
+        boolean success = false;
+        DBConnection db = null;
 
+        try{
+            String script = "login(`admin, `123456); \n"+
+                    "if(existsDatabase('dfs://test_append_type'))" +
+                    "{ dropDatabase('dfs://test_append_type')} \n"+
+                    "t = table(10:0,`id`dataType,[INT,"+dataType+"]) \n"+
+                    "db=database('dfs://test_append_type', RANGE, 1 2001 4001 6001 8001 10000001) \n"+
+                    "db.createPartitionedTable(t, `pt, `id) \n";
+            db = new DBConnection();
+            db.connect(HOST, PORT);
+            db.run(script);
+            success = true;
+        }catch(Exception e){
+            e.printStackTrace();
+            success = false;
+        }finally{
+            if(db != null){
+                db.close();
+            }
+            return success;
+        }
+    }
+    public static boolean createPartitionTable1() {
+        boolean success = false;
+        DBConnection db = null;
+        try{
+            String script = "login(`admin, `123456); \n"+
+                    "if(existsDatabase('dfs://test_append_type_tsdb1'))" +
+                    "{ dropDatabase('dfs://test_append_type_tsdb1')} \n"+
+                    "colNames=\"col\"+string(1..29);\n" +
+                    "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
+                    "t=table(1:0,colNames,colTypes);\n" +
+                    "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001 10000000,,'TSDB') \n"+
+                    "db.createPartitionedTable(t, `pt, `col1,,`col1)\n";
+            db = new DBConnection();
+            db.connect(HOST, PORT);
+            db.run(script);
+            success = true;
+        }catch(Exception e){
+            e.printStackTrace();
+            success = false;
+        }finally{
+            if(db != null){
+                db.close();
+            }
+            return success;
+        }
+
+    }
+    public static boolean createPartitionTable_Array() {
+        boolean success = false;
+        DBConnection db = null;
+        try{
+            String script = "login(`admin, `123456); \n"+
+                    "if(existsDatabase('dfs://test_append_array_tsdb1'))" +
+                    "{ dropDatabase('dfs://test_append_array_tsdb1')} \n"+
+                    "colNames=\"col\"+string(1..26);\n" +
+                    "colTypes=[INT,BOOL[],CHAR[],SHORT[],INT[],LONG[],DATE[],MONTH[],TIME[],MINUTE[],SECOND[],DATETIME[],TIMESTAMP[],NANOTIME[],NANOTIMESTAMP[],FLOAT[],DOUBLE[],UUID[],DATEHOUR[],IPADDR[],INT128[],COMPLEX[],POINT[],DECIMAL32(2)[],DECIMAL64(7)[],DECIMAL128(19)[]];\n" +
+                    "t=table(1:0,colNames,colTypes);\n" +
+                    "db=database('dfs://test_append_array_tsdb1', RANGE, 1 2001 4001 6001 8001 10001 10000000,,'TSDB') \n"+
+                    "db.createPartitionedTable(t, `pt, `col1,,`col1)\n";
+            db = new DBConnection();
+            db.connect(HOST, PORT);
+            db.run(script);
+            success = true;
+        }catch(Exception e){
+            e.printStackTrace();
+            success = false;
+        }finally{
+            if(db != null){
+                db.close();
+            }
+            return success;
+        }
+
+    }
+    public static boolean createTable1() {
+        boolean success = false;
+        DBConnection db = null;
+        try{
+            String script = "login(`admin, `123456); \n"+
+                    "if(existsDatabase('dfs://test_append_type_tsdb1'))" +
+                    "{ dropDatabase('dfs://test_append_type_tsdb1')} \n"+
+                    "colNames=\"col\"+string(1..29);\n" +
+                    "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
+                    "t=table(1:0,colNames,colTypes);\n" +
+                    "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
+                    "db.createTable(t, `pt,,`col1)\n";
+            db = new DBConnection();
+            db.connect(HOST, PORT);
+            db.run(script);
+            success = true;
+        }catch(Exception e){
+            e.printStackTrace();
+            success = false;
+        }finally{
+            if(db != null){
+                db.close();
+            }
+            return success;
+        }
+
+    }
+    public static boolean createTSDBPartitionTable(String dataType){
+        boolean success = false;
+        DBConnection db = null;
+        try{
+            String script = "login(`admin, `123456); \n"+
+                    "if(existsDatabase('dfs://test_append_type_tsdb1'))" +
+                    "{ dropDatabase('dfs://test_append_type_tsdb1')} \n"+
+                    "t = table(10:0,`id`dataType,[INT,"+dataType+"]) \n"+
+                    "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
+                    "db.createPartitionedTable(t, `pt, `id,,`id) \n";
+            db = new DBConnection();
+            db.connect(HOST, PORT);
+            db.run(script);
+            success = true;
+        }catch(Exception e){
+            e.printStackTrace();
+            success = false;
+        }finally{
+            if(db != null){
+                db.close();
+            }
+            return success;
+        }
+    }
+    public static boolean createWideTable(String databaseName, int intColNum, int doubleColNum) throws IOException {
+        boolean success = false;
+        DBConnection db = null;
+        try{
+        db = new DBConnection();
+        db.connect(HOST, PORT);
+        StringBuilder colNames = new StringBuilder("`time`id");
+        StringBuilder colTypes = new StringBuilder("`TIMESTAMP`SYMBOL");
+        for(int i = 0; i < intColNum; ++i) {
+            colNames.append("`int_" + i);
+            colTypes.append("`INT");
+        }
+        for(int i = 0; i < doubleColNum; ++i) {
+            colNames.append("`double_" + i);
+            colTypes.append("`DOUBLE");
+        }
+        System.out.println(colNames.toString());
+        System.out.println(colTypes.toString());
+        String script = "login(`admin, `123456); \n"+
+                "if(existsDatabase('" + databaseName + "'))" +
+                "{ dropDatabase('" + databaseName + "')} \n" +
+                "t=table(1:0," + colNames + "," + colTypes + ");\n"+
+                "db=database('" + databaseName + "', HASH, [SYMBOL,10],,'TSDB') \n"+
+                "db.createPartitionedTable(t, `pt, `id,,`id) \n";
+        db.run(script);
+            success = true;
+        }catch(Exception e){
+            e.printStackTrace();
+            success = false;
+        }finally{
+            if(db != null){
+                db.close();
+            }
+            return success;
+        }
+    }
     @Test
     public  void TestPrepareStatement() throws ClassNotFoundException,SQLException{
         CreateDfsTable(HOST,PORT);
@@ -305,7 +484,7 @@ public class JDBCPrepareStatementTest {
             pstmt = conn.prepareStatement("select * from t");
             rs = pstmt.executeQuery();
             rs.absolute(102);
-            Assert.assertFalse(rs.getBoolean(2));
+            org.junit.Assert.assertEquals(rs.getBoolean(2), false);
             //setByte
             pstmt = conn.prepareStatement("insert into t values(?,?)");
             pstmt.setInt(1, 103);
@@ -535,7 +714,7 @@ public class JDBCPrepareStatementTest {
             pstmt = conn.prepareStatement("select * from t");
             rs = pstmt.executeQuery();
             rs.absolute(4);
-            org.junit.Assert.assertEquals(rs.getLong(2), 4L);
+            org.junit.Assert.assertEquals(rs.getLong(2), 4l);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -937,51 +1116,40 @@ public class JDBCPrepareStatementTest {
         Connection conn = JDBCSQLSelectTest.getConnection();
         String sql = "insert into trade values(?,?,?,?,?,?,?,?)";
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd");
-
         PreparedStatement ps = null;
-
-
         StringBuilder sb = new StringBuilder();
-        try {
-            ps = conn.prepareStatement(sql);
+        StringBuilder sb2 = new StringBuilder();
+        sb2.append("if(existsDatabase(\""+ dataBase +"\"))dropDatabase(\""+ dataBase +"\")\n");
+        sb2.append("db=database(\""+ dataBase +"\", RANGE, `A`F`K`O`S`ZZZ)\n");
+        sb2.append("t1=table(100:0, `PERMNO`date`TICKER`PRC`VOL`BID`ASK`SHROUT, [INT, DATE, SYMBOL, DOUBLE, INT, DOUBLE, DOUBLE,INT])\n");
+        sb2.append("db.createPartitionedTable(t1,`trade, `TICKER)\n");
+        ps = conn.prepareStatement(sb2.toString());
+        ps.execute();
+        ps.execute("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")");
+        ps = conn.prepareStatement(sql);
+        ps.clearBatch();
+        ps.setInt(1, Integer.parseInt("1"));
+        LocalDate localDate = LocalDate.parse("2010.03.13", formatter);
+        ps.setObject(2, new BasicDate(localDate));
+        ps.setString(3, "NULL");
+        ps.setNull(4, Types.DOUBLE);
+        ps.setNull(5, Types.INTEGER);
+        ps.setDouble(6, Double.parseDouble("6.1"));
+        ps.setDouble(7, Double.parseDouble("6.1"));
+        ps.setNull(8, Types.INTEGER);
+        ps.addBatch();
 
-
-            ps = conn.prepareStatement(sql);
-            String sb2 = "if(existsDatabase(\"" + dataBase + "\"))dropDatabase(\"" + dataBase + "\")\n" +
-                    "db=database(\"" + dataBase + "\", RANGE, `A`F`K`O`S`ZZZ)\n" +
-                    "t1=table(100:0, `PERMNO`date`TICKER`PRC`VOL`BID`ASK`SHROUT, [INT, DATE, SYMBOL, DOUBLE, INT, DOUBLE, DOUBLE,INT])\n" +
-                    "db.createPartitionedTable(t1,`trade, `TICKER)\n";
-            ps.execute(sb2);
-            ps.execute("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")");
-
-            ps.clearBatch();
-            ps.setInt(1, Integer.parseInt("1"));
-            LocalDate localDate = LocalDate.parse("2010.03.13", formatter);
-            ps.setObject(2, new BasicDate(localDate));
-            ps.setString(3, "NULL");
-            ps.setNull(4, Types.DOUBLE);
-            ps.setNull(5, Types.INTEGER);
-            ps.setDouble(6, Double.parseDouble("6.1"));
-            ps.setDouble(7, Double.parseDouble("6.1"));
-            ps.setNull(8, Types.INTEGER);
-            ps.addBatch();
-
-            ps.setInt(1, Integer.parseInt("2"));
-            ps.setObject(2, new BasicDate(localDate));
-            ps.setString(3, "NULL");
-            ps.setNull(4, Types.DOUBLE);
-            ps.setNull(5, Types.INTEGER);
-            ps.setDouble(6, Double.parseDouble("6.1"));
-            ps.setDouble(7, Double.parseDouble("6.1"));
-            ps.setNull(8, Types.INTEGER);
-            ps.addBatch();
-            ps.executeBatch();
-            ps.clearBatch();
-
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        ps.setInt(1, Integer.parseInt("2"));
+        ps.setObject(2, new BasicDate(localDate));
+        ps.setString(3, "NULL");
+        ps.setNull(4, Types.DOUBLE);
+        ps.setNull(5, Types.INTEGER);
+        ps.setDouble(6, Double.parseDouble("6.1"));
+        ps.setDouble(7, Double.parseDouble("6.1"));
+        ps.setNull(8, Types.INTEGER);
+        ps.addBatch();
+        ps.executeBatch();
+        ps.clearBatch();
     }
 
     @Test
@@ -1743,6 +1911,1774 @@ public class JDBCPrepareStatementTest {
         ps2.execute();
         Assert.assertTrue(ps2.getResultSet().next());
         conn.close();
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Boolean() throws SQLException {
+        createPartitionTable("BOOL");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setBoolean(2,true);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.BOOLEAN);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getBoolean("dataType"), true);
+        rs.next();
+        rs.getBoolean("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Int() throws SQLException {
+        createPartitionTable("INT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setInt(2,100);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.INTEGER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Char() throws SQLException {
+        createPartitionTable("CHAR");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setByte(2, (byte) 12);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.CHAR);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getByte("dataType"), 12);
+        rs.next();
+        rs.getByte("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Short() throws SQLException {
+        createPartitionTable("SHORT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setShort(2, (short) 12);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getShort("dataType"), 12);
+        rs.next();
+        rs.getShort("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Long() throws SQLException {
+        createPartitionTable("LONG");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setLong(2, (long) 12);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getLong("dataType"), 12);
+        rs.next();
+        rs.getLong("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Float() throws SQLException {
+        createPartitionTable("FLOAT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setFloat(2, (float) 12.23);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.FLOAT);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals((float) 12.23,rs.getFloat("dataType"),4);
+        rs.next();
+        rs.getFloat("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Double() throws SQLException {
+        createPartitionTable("DOUBLE");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setDouble(2, (double) 12.23);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.DOUBLE);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals((Double) 12.23,rs.getDouble("dataType"),4);
+        rs.next();
+        rs.getDouble("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_String() throws SQLException {
+        createPartitionTable("STRING");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setString(2, "test1");
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("test1",rs.getString("dataType"));
+        rs.next();
+        rs.getString("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Symbol() throws SQLException {
+        createPartitionTable("SYMBOL");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setString(2, "test1");
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("test1",rs.getString("dataType"));
+        rs.next();
+        rs.getString("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Date() throws SQLException {
+        createPartitionTable("DATE");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setDate(2, Date.valueOf(LocalDate.of(2021,1,1)));
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.DATE);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2021,1,1)),rs.getDate("dataType"));
+        rs.next();
+        rs.getDate("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Month() throws SQLException {
+        createPartitionTable("MONTH");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicMonth tmp_month = new BasicMonth(YearMonth.of(2021,1));
+        ps.setObject(2, tmp_month);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(YearMonth.of(2021, 1),rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Time() throws SQLException {
+        createPartitionTable("TIME");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setTime(2, Time.valueOf(LocalTime.of(1,1,1)));
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.TIME);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        System.out.println();
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(1,1,1)),rs.getTime("dataType"));
+        rs.next();
+        rs.getTime("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Minute() throws SQLException {
+        createPartitionTable("MINUTE");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicMinute tmp_minute = new BasicMinute(LocalTime.of(1,1));
+        ps.setObject(2, tmp_minute);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(LocalTime.of(1,1),rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Second() throws SQLException {
+        createPartitionTable("SECOND");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicSecond tmp_second = new BasicSecond(LocalTime.of(1,1,1));
+        ps.setObject(2, tmp_second);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1),rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Datetime() throws SQLException {
+        createPartitionTable("DATETIME");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(2021,1,1,1,1,1));
+        ps.setObject(2, tmp_datetime);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Timestamp() throws SQLException {
+        createPartitionTable("TIMESTAMP");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(2, tmp_timestamp);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Nanotime() throws SQLException {
+        createPartitionTable("NANOTIME");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicNanoTime tmp_nanotime = new BasicNanoTime(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(2, tmp_nanotime);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1,1),rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Nanotimestamp() throws SQLException {
+        createPartitionTable("NANOTIMESTAMP");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(2, tmp_nanotimestamp);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Datehour() throws SQLException {
+        createPartitionTable("DATEHOUR");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicDateHour tmp_datehour = new BasicDateHour(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(2, tmp_datehour);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,0),rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Uuid() throws SQLException {
+        createPartitionTable("UUID");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicUuid uuids = new BasicUuid(1,2);
+        ps.setObject(2, uuids);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(UUID.fromString("00000000-0000-0001-0000-000000000002"),rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Ipaddr() throws SQLException {
+        createPartitionTable("IPADDR");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicIPAddr ipaddrs = new BasicIPAddr(1,2);
+        ps.setObject(2, ipaddrs);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("0::1:0:0:0:2",rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Int128() throws SQLException {
+        createPartitionTable("INT128");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicInt128 int128 = new BasicInt128(1,2);
+        ps.setObject(2, int128);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("00000000000000010000000000000002",rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Blob() throws SQLException {
+        createTSDBPartitionTable("BLOB");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2, "TEST BLOB");
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("TEST BLOB",rs.getString("dataType"));
+        //getBlob还没有实现,等实现后替换getString
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Complex() throws SQLException {
+        createPartitionTable("COMPLEX");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicComplex complexs = new BasicComplex(1,2);
+        ps.setObject(2, complexs);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("1.0+2.0i",rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Point() throws SQLException {
+        createPartitionTable("POINT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicPoint points = new BasicPoint(0,0);
+        ps.setObject(2, points);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("(0.0, 0.0)",rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_Mul() throws SQLException {
+        createPartitionTable("INT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        for(int i =1;i<=10;i++) {
+            ps.setInt(1, i);
+            ps.setInt(2, i*100);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select count(*) from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("count"), 10);
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_AddBatch() throws SQLException {
+        createPartitionTable("INT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        for(int i =1;i<=10000000;i++) {
+            ps.setInt(1, i);
+            ps.setInt(2, i*100);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select count(*) from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(10000000, rs.getLong("count"));
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_Decimal32() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,37,4);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("123421.0001",rs.getObject("dataType").toString());
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_Decimal64() throws SQLException {
+        createPartitionTable("DECIMAL64(4)");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,38,4);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("123421.0001",rs.getObject("dataType").toString());
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_Decimal128() throws SQLException {
+        createPartitionTable("DECIMAL128(4)");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,"123421.00012",39,4);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("123421.0001",rs.getObject("dataType").toString());
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_col_Boolean() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col2) values(?,?)");
+        ps.setInt(1,1);
+        ps.setBoolean(2,true);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.BOOLEAN);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getBoolean("col2"), true);
+        rs.next();
+        rs.getBoolean("col2");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_col_Char() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col3) values(?,?)");
+        ps.setInt(1,1);
+        ps.setByte(2, (byte) 12);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.CHAR);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getByte("col3"), 12);
+        rs.next();
+        rs.getByte("col3");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Short() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col4) values(?,?)");
+        ps.setInt(1,1);
+        ps.setShort(2, (short) 12);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getShort("col4"), 12);
+        rs.next();
+        rs.getShort("col4");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Int() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col5) values(?,?)");
+        ps.setInt(1,1);
+        ps.setInt(2,100);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.INTEGER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("col5"), 100);
+        rs.next();
+        rs.getInt("col5");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Long() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col6) values(?,?)");
+        ps.setInt(1,1);
+        ps.setLong(2, (long) 12);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getLong("col6"), 12);
+        rs.next();
+        rs.getLong("col6");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_col_Date() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col7) values(?,?)");
+        ps.setInt(1,1);
+        ps.setDate(2, Date.valueOf(LocalDate.of(2021,1,1)));
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.DATE);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2021,1,1)),rs.getDate("col7"));
+        rs.next();
+        rs.getDate("col7");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Month() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col8) values(?,?)");
+        ps.setInt(1,1);
+        BasicMonth tmp_month = new BasicMonth(YearMonth.of(2021,1));
+        ps.setObject(2, tmp_month);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(YearMonth.of(2021, 1),rs.getObject("col8"));
+        rs.next();
+        rs.getObject("col8");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Time() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col9) values(?,?)");
+        ps.setInt(1,1);
+        ps.setTime(2, Time.valueOf(LocalTime.of(1,1,1)));
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.TIME);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        System.out.println();
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(1,1,1)),rs.getTime("col9"));
+        rs.next();
+        rs.getTime("col9");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Minute() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col10) values(?,?)");
+        ps.setInt(1,1);
+        BasicMinute tmp_minute = new BasicMinute(LocalTime.of(1,1));
+        ps.setObject(2, tmp_minute);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(LocalTime.of(1,1),rs.getObject("col10"));
+        rs.next();
+        rs.getObject("col10");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Second() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col11) values(?,?)");
+        ps.setInt(1,1);
+        BasicSecond tmp_second = new BasicSecond(LocalTime.of(1,1,1));
+        ps.setObject(2, tmp_second);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1),rs.getObject("col11"));
+        rs.next();
+        rs.getObject("col11");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Datetime() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col12) values(?,?)");
+        ps.setInt(1,1);
+        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(2021,1,1,1,1,1));
+        ps.setObject(2, tmp_datetime);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col12"));
+        rs.next();
+        rs.getObject("col12");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Timestamp() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col13) values(?,?)");
+        ps.setInt(1,1);
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(2, tmp_timestamp);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col13"));
+        rs.next();
+        rs.getObject("col13");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Nanotime() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col14) values(?,?)");
+        ps.setInt(1,1);
+        BasicNanoTime tmp_nanotime = new BasicNanoTime(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(2, tmp_nanotime);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1,1),rs.getObject("col14"));
+        rs.next();
+        rs.getObject("col14");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Nanotimestamp() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col15) values(?,?)");
+        ps.setInt(1,1);
+        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(2, tmp_nanotimestamp);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject("col15"));
+        rs.next();
+        rs.getObject("col15");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Float() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col16) values(?,?)");
+        ps.setInt(1,1);
+        ps.setFloat(2, (float) 12.23);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.FLOAT);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals((float) 12.23,rs.getFloat("col16"),4);
+        rs.next();
+        rs.getFloat("col16");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Double() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col17) values(?,?)");
+        ps.setInt(1,1);
+        ps.setDouble(2, (double) 12.23);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.DOUBLE);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals((Double) 12.23,rs.getDouble("col17"),4);
+        rs.next();
+        rs.getDouble("col17");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_col_Symbol() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col18) values(?,?)");
+        ps.setInt(1,1);
+        ps.setString(2, "test1");
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("test1",rs.getString("col18"));
+        rs.next();
+        rs.getString("col18");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_String() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col19) values(?,?)");
+        ps.setInt(1,1);
+        ps.setString(2, "test1");
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("test1",rs.getString("col19"));
+        rs.next();
+        rs.getString("col19");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_col_Uuid() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col20) values(?,?)");
+        ps.setInt(1,1);
+        BasicUuid uuids = new BasicUuid(1,2);
+        ps.setObject(2, uuids);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(UUID.fromString("00000000-0000-0001-0000-000000000002"),rs.getObject("col20"));
+        rs.next();
+        rs.getObject("col20");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Datehour() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col21) values(?,?)");
+        ps.setInt(1,1);
+        BasicDateHour tmp_datehour = new BasicDateHour(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(2, tmp_datehour);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,0),rs.getObject("col21"));
+        rs.next();
+        rs.getObject("col21");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Ipaddr() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col22) values(?,?)");
+        ps.setInt(1,1);
+        BasicIPAddr ipaddrs = new BasicIPAddr(1,2);
+        ps.setObject(2, ipaddrs);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("0::1:0:0:0:2",rs.getObject("col22"));
+        rs.next();
+        rs.getObject("col22");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Int128() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col23) values(?,?)");
+        ps.setInt(1,1);
+        BasicInt128 int128 = new BasicInt128(1,2);
+        ps.setObject(2, int128);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("00000000000000010000000000000002",rs.getObject("col23"));
+        rs.next();
+        rs.getObject("col23");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Blob() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col24) values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2, "TEST BLOB");
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("TEST BLOB",rs.getString("col24"));
+        //getBlob还没有实现,等实现后替换getString
+        rs.next();
+        rs.getObject("col24");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Complex() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col25) values(?,?)");
+        ps.setInt(1,1);
+        BasicComplex complexs = new BasicComplex(1,2);
+        ps.setObject(2, complexs);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("1.0+2.0i",rs.getObject("col25"));
+        rs.next();
+        rs.getObject("col25");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Point() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col26) values(?,?)");
+        ps.setInt(1,1);
+        BasicPoint points = new BasicPoint(0,0);
+        ps.setObject(2, points);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("(0.0, 0.0)",rs.getObject("col26"));
+        rs.next();
+        rs.getObject("col26");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_col_Decimal32() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col27) values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,37,4);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        rs.getObject("col27");
+        org.junit.Assert.assertTrue(rs.wasNull());
+        rs.next();
+        org.junit.Assert.assertEquals("123421.00",rs.getObject("col27").toString());
+
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_col_Decimal64() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col28) values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,123421.00012,38,4);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        rs.getObject("col28");
+        org.junit.Assert.assertTrue(rs.wasNull());
+        rs.next();
+        org.junit.Assert.assertEquals("123421.0001200",rs.getObject("col28").toString());
+
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_col_Decimal128() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col29) values(?,?)");
+        ps.setInt(1,1000);
+        ps.setObject(2,"123421.00012",39,4);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        rs.getObject("col29");
+        org.junit.Assert.assertTrue(rs.wasNull());
+        rs.next();
+        org.junit.Assert.assertEquals("123421.0001200000000000000",rs.getObject("col29").toString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_all_dateType1() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        BasicInt tmp_int = new BasicInt(1);
+        ps.setObject(1,tmp_int);
+        BasicBoolean tmp_Boolean = new BasicBoolean(true);
+        ps.setObject(2,tmp_Boolean);
+        BasicByte tmp_Byte = new BasicByte((byte) 12);
+        ps.setObject(3, tmp_Byte);
+        BasicShort tmp_Short = new BasicShort((short) 12);
+        ps.setObject(4, tmp_Short);
+        BasicInt tmp_int1 = new BasicInt(100);
+        ps.setObject(5,tmp_int1);
+        BasicLong tmp_Long = new BasicLong((long) 12);
+        ps.setObject(6, tmp_Long);
+        BasicDate tmp_Date = new BasicDate(LocalDate.of(2021,1,1));
+        ps.setObject(7, tmp_Date);
+        BasicMonth tmp_month = new BasicMonth(YearMonth.of(2021,1));
+        ps.setObject(8, tmp_month);
+        BasicTime tmp_Time = new BasicTime(LocalTime.of(1,1,1));
+        ps.setObject(9, tmp_Time);
+        BasicMinute tmp_minute = new BasicMinute(LocalTime.of(1,1));
+        ps.setObject(10, tmp_minute);
+        BasicSecond tmp_second = new BasicSecond(LocalTime.of(1,1,1));
+        ps.setObject(11, tmp_second);
+        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(2021,1,1,1,1,1));
+        ps.setObject(12, tmp_datetime);
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(13, tmp_timestamp);
+        BasicNanoTime tmp_nanotime = new BasicNanoTime(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(14, tmp_nanotime);
+        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(15, tmp_nanotimestamp);
+        BasicFloat tmp_Float = new BasicFloat((float) 12.23);
+        ps.setObject(16, tmp_Float);
+        BasicDouble tmp_Double = new BasicDouble((double) 12.23);
+        ps.setObject(17, tmp_Double);
+        BasicString tmp_String = new BasicString("test1");
+        ps.setObject(18, tmp_String);
+        BasicString tmp_Symbol = new BasicString("test1");
+        ps.setObject(19, tmp_Symbol);
+        BasicUuid uuids = new BasicUuid(1,2);
+        ps.setObject(20, uuids);
+        BasicDateHour tmp_datehour = new BasicDateHour(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(21, tmp_datehour);
+        BasicIPAddr ipaddrs = new BasicIPAddr(1,2);
+        ps.setObject(22, ipaddrs);
+        BasicInt128 int128 = new BasicInt128(1,2);
+        ps.setObject(23, int128);
+        ps.setObject(24, "TEST BLOB");
+        BasicComplex complexs = new BasicComplex(1,2);
+        ps.setObject(25, complexs);
+        BasicPoint points = new BasicPoint(0,0);
+        ps.setObject(26, points);
+        BasicDecimal32 tmp_decimal32 = new BasicDecimal32("1421.00012",5);
+        ps.setObject(27,tmp_decimal32);
+        BasicDecimal64 tmp_decimal64 = new BasicDecimal64("123421.00012",5);
+        ps.setObject(28,tmp_decimal64);
+        BasicDecimal128 tmp_decimal128 = new BasicDecimal128("123421.00012",5);
+        ps.setObject(29,tmp_decimal128);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getBoolean("col2"), true);
+        org.junit.Assert.assertEquals(rs.getByte("col3"), 12);
+        org.junit.Assert.assertEquals(rs.getShort("col4"), 12);
+        org.junit.Assert.assertEquals(rs.getInt("col5"), 100);
+        org.junit.Assert.assertEquals(rs.getLong("col6"), 12);
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2021,1,1)),rs.getDate("col7"));
+        org.junit.Assert.assertEquals(YearMonth.of(2021, 1),rs.getObject("col8"));
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(1,1,1)),rs.getTime("col9"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1),rs.getObject("col10"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1),rs.getObject("col11"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col12"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col13"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1,1),rs.getObject("col14"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject("col15"));
+        org.junit.Assert.assertEquals((float) 12.23,rs.getFloat("col16"),4);
+        org.junit.Assert.assertEquals((Double) 12.23,rs.getDouble("col17"),4);
+        org.junit.Assert.assertEquals("test1",rs.getString("col18"));
+        org.junit.Assert.assertEquals("test1",rs.getString("col19"));
+        org.junit.Assert.assertEquals(UUID.fromString("00000000-0000-0001-0000-000000000002"),rs.getObject("col20"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,0),rs.getObject("col21"));
+        org.junit.Assert.assertEquals("0::1:0:0:0:2",rs.getObject("col22"));
+        org.junit.Assert.assertEquals("00000000000000010000000000000002",rs.getObject("col23"));
+        org.junit.Assert.assertEquals("TEST BLOB",rs.getString("col24"));
+        org.junit.Assert.assertEquals("1.0+2.0i",rs.getObject("col25"));
+        org.junit.Assert.assertEquals("(0.0, 0.0)",rs.getObject("col26"));
+        org.junit.Assert.assertEquals("1421.00",rs.getObject("col27").toString());
+        org.junit.Assert.assertEquals("123421.0001200",rs.getObject("col28").toString());
+        org.junit.Assert.assertEquals("123421.0001200000000000000",rs.getObject("col29").toString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_all_dateType_2() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,col28,col29) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        ps.setInt(1,1000);
+        ps.setBoolean(2,true);
+        ps.setByte(3, (byte) 12);
+        ps.setShort(4, (short) 12);
+        ps.setInt(5,100);
+        ps.setLong(6, (long) 12);
+        ps.setDate(7, Date.valueOf(LocalDate.of(2021,1,1)));
+        BasicMonth tmp_month = new BasicMonth(YearMonth.of(2021,1));
+        ps.setObject(8, tmp_month);
+        ps.setTime(9, Time.valueOf(LocalTime.of(1,1,1)));
+        BasicMinute tmp_minute = new BasicMinute(LocalTime.of(1,1));
+        ps.setObject(10, tmp_minute);
+        BasicSecond tmp_second = new BasicSecond(LocalTime.of(1,1,1));
+        ps.setObject(11, tmp_second);
+        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(2021,1,1,1,1,1));
+        ps.setObject(12, tmp_datetime);
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(13, tmp_timestamp);
+        BasicNanoTime tmp_nanotime = new BasicNanoTime(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(14, tmp_nanotime);
+        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(15, tmp_nanotimestamp);
+        ps.setFloat(16, (float) 12.23);
+        ps.setDouble(17, (double) 12.23);
+        ps.setString(18, "test1");
+        ps.setString(19, "test1");
+        BasicUuid uuids = new BasicUuid(1,2);
+        ps.setObject(20, uuids);
+        BasicDateHour tmp_datehour = new BasicDateHour(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(21, tmp_datehour);
+        BasicIPAddr ipaddrs = new BasicIPAddr(1,2);
+        ps.setObject(22, ipaddrs);
+        BasicInt128 int128 = new BasicInt128(1,2);
+        ps.setObject(23, int128);
+        ps.setObject(24, "TEST BLOB");
+        BasicComplex complexs = new BasicComplex(1,2);
+        ps.setObject(25, complexs);
+        BasicPoint points = new BasicPoint(0,0);
+        ps.setObject(26, points);
+        ps.setObject(27,123421.00012,37,4);
+        ps.setObject(28,123421.00012,38,4);
+        ps.setObject(29,"123421.00012",39,4);
+        ps.addBatch();
+        ps.executeBatch();
+        //JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        //BasicTable bt = (BasicTable) rs.getResult();
+        //System.out.println(bt.getString());
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getBoolean("col2"), true);
+        org.junit.Assert.assertEquals(rs.getByte("col3"), 12);
+        org.junit.Assert.assertEquals(rs.getShort("col4"), 12);
+        org.junit.Assert.assertEquals(rs.getInt("col5"), 100);
+        org.junit.Assert.assertEquals(rs.getLong("col6"), 12);
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2021,1,1)),rs.getDate("col7"));
+        org.junit.Assert.assertEquals(YearMonth.of(2021, 1),rs.getObject("col8"));
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(1,1,1)),rs.getTime("col9"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1),rs.getObject("col10"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1),rs.getObject("col11"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col12"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col13"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1,1),rs.getObject("col14"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject("col15"));
+        org.junit.Assert.assertEquals((float) 12.23,rs.getFloat("col16"),4);
+        org.junit.Assert.assertEquals((Double) 12.23,rs.getDouble("col17"),4);
+        org.junit.Assert.assertEquals("test1",rs.getString("col18"));
+        org.junit.Assert.assertEquals("test1",rs.getString("col19"));
+        org.junit.Assert.assertEquals(UUID.fromString("00000000-0000-0001-0000-000000000002"),rs.getObject("col20"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,0),rs.getObject("col21"));
+        org.junit.Assert.assertEquals("0::1:0:0:0:2",rs.getObject("col22"));
+        org.junit.Assert.assertEquals("00000000000000010000000000000002",rs.getObject("col23"));
+        org.junit.Assert.assertEquals("TEST BLOB",rs.getString("col24"));
+        org.junit.Assert.assertEquals("1.0+2.0i",rs.getObject("col25"));
+        org.junit.Assert.assertEquals("(0.0, 0.0)",rs.getObject("col26"));
+        org.junit.Assert.assertEquals("123421.0001",rs.getObject("col27").toString());
+        org.junit.Assert.assertEquals("123421.0001",rs.getObject("col28").toString());
+        org.junit.Assert.assertEquals("123421.0001",rs.getObject("col29").toString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_all_dateType_3() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col21,col22,col23,col24,col25,col26,col27,col28,col29,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        BasicDateHour tmp_datehour = new BasicDateHour(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(1, tmp_datehour);
+        BasicIPAddr ipaddrs = new BasicIPAddr(1,2);
+        ps.setObject(2, ipaddrs);
+        BasicInt128 int128 = new BasicInt128(1,2);
+        ps.setObject(3, int128);
+        ps.setObject(4, "TEST BLOB");
+        BasicComplex complexs = new BasicComplex(1,2);
+        ps.setObject(5, complexs);
+        BasicPoint points = new BasicPoint(0,0);
+        ps.setObject(6, points);
+        ps.setObject(7,123421.00012,37,4);
+        ps.setObject(8,123421.00012,38,4);
+        ps.setObject(9,"123421.00012",39,4);
+        ps.setInt(10,1000);
+        ps.setBoolean(11,true);
+        ps.setByte(12, (byte) 12);
+        ps.setShort(13, (short) 12);
+        ps.setInt(14,100);
+        ps.setLong(15, (long) 12);
+        ps.setDate(16, Date.valueOf(LocalDate.of(2021,1,1)));
+        BasicMonth tmp_month = new BasicMonth(YearMonth.of(2021,1));
+        ps.setObject(17, tmp_month);
+        ps.setTime(18, Time.valueOf(LocalTime.of(1,1,1)));
+        BasicMinute tmp_minute = new BasicMinute(LocalTime.of(1,1));
+        ps.setObject(19, tmp_minute);
+        BasicSecond tmp_second = new BasicSecond(LocalTime.of(1,1,1));
+        ps.setObject(20, tmp_second);
+        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(2021,1,1,1,1,1));
+        ps.setObject(21, tmp_datetime);
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(22, tmp_timestamp);
+        BasicNanoTime tmp_nanotime = new BasicNanoTime(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(23, tmp_nanotime);
+        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(24, tmp_nanotimestamp);
+        ps.setFloat(25, (float) 12.23);
+        ps.setDouble(26, (double) 12.23);
+        ps.setString(27, "test1");
+        ps.setString(28, "test1");
+        BasicUuid uuids = new BasicUuid(1,2);
+        ps.setObject(29, uuids);
+        ps.addBatch();
+        ps.executeBatch();
+        //JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        //BasicTable bt = (BasicTable) rs.getResult();
+        //System.out.println(bt.getString());
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getBoolean("col2"), true);
+        org.junit.Assert.assertEquals(rs.getByte("col3"), 12);
+        org.junit.Assert.assertEquals(rs.getShort("col4"), 12);
+        org.junit.Assert.assertEquals(rs.getInt("col5"), 100);
+        org.junit.Assert.assertEquals(rs.getLong("col6"), 12);
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2021,1,1)),rs.getDate("col7"));
+        org.junit.Assert.assertEquals(YearMonth.of(2021, 1),rs.getObject("col8"));
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(1,1,1)),rs.getTime("col9"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1),rs.getObject("col10"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1),rs.getObject("col11"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col12"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col13"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1,1),rs.getObject("col14"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject("col15"));
+        org.junit.Assert.assertEquals((float) 12.23,rs.getFloat("col16"),4);
+        org.junit.Assert.assertEquals((Double) 12.23,rs.getDouble("col17"),4);
+        org.junit.Assert.assertEquals("test1",rs.getString("col18"));
+        org.junit.Assert.assertEquals("test1",rs.getString("col19"));
+        org.junit.Assert.assertEquals(UUID.fromString("00000000-0000-0001-0000-000000000002"),rs.getObject("col20"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,0),rs.getObject("col21"));
+        org.junit.Assert.assertEquals("0::1:0:0:0:2",rs.getObject("col22"));
+        org.junit.Assert.assertEquals("00000000000000010000000000000002",rs.getObject("col23"));
+        org.junit.Assert.assertEquals("TEST BLOB",rs.getString("col24"));
+        org.junit.Assert.assertEquals("1.0+2.0i",rs.getObject("col25"));
+        org.junit.Assert.assertEquals("(0.0, 0.0)",rs.getObject("col26"));
+        org.junit.Assert.assertEquals("123421.00",rs.getObject("col27").toString());
+        org.junit.Assert.assertEquals("123421.0001200",rs.getObject("col28").toString());
+        org.junit.Assert.assertEquals("123421.0001200000000000000",rs.getObject("col29").toString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_all_dateType4() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        ps.setInt(1,1000);
+        ps.setBoolean(2,true);
+        ps.setByte(3, (byte) 12);
+        ps.setShort(4, (short) 12);
+        ps.setInt(5,100);
+        ps.setLong(6, (long) 12);
+        ps.setDate(7, Date.valueOf(LocalDate.of(2021,1,1)));
+        ps.setObject(8, LocalDate.of(2021,1,1));
+        ps.setTime(9, Time.valueOf(LocalTime.of(1,1,1)));
+        ps.setObject(10, LocalTime.of(1,1));
+        ps.setObject(11, LocalTime.of(1,1,1));
+        ps.setObject(12, LocalDateTime.of(2021,1,1,1,1,1));
+        ps.setObject(13, LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(14, LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(15, LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setFloat(16, (float) 12.23);
+        ps.setDouble(17, (double) 12.23);
+        ps.setString(18, "test1");
+        ps.setString(19, "test1");
+        ps.setObject(20, "00000000-0000-0001-0000-000000000002");
+        ps.setObject(21, LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(22, "0::1:0:0:0:2");
+        ps.setObject(23, "00000000000000010000000000000002");
+        ps.setObject(24, "TEST BLOB");
+        Entity complexs = new BasicComplex(1,2);
+        ps.setObject(25, complexs);
+        Entity points = new BasicPoint(0,0);
+        ps.setObject(26, points);
+        ps.setObject(27,123421.00012,37,4);
+        ps.setObject(28,123421.00012,38,4);
+        ps.setObject(29,"123421.00012",39,4);
+        ps.addBatch();
+        ps.executeBatch();
+        //JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        //BasicTable bt = (BasicTable) rs.getResult();
+        //System.out.println(bt.getString());
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getBoolean("col2"), true);
+        org.junit.Assert.assertEquals(rs.getByte("col3"), 12);
+        org.junit.Assert.assertEquals(rs.getShort("col4"), 12);
+        org.junit.Assert.assertEquals(rs.getInt("col5"), 100);
+        org.junit.Assert.assertEquals(rs.getLong("col6"), 12);
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2021,1,1)),rs.getDate("col7"));
+        org.junit.Assert.assertEquals(YearMonth.of(2021, 1),rs.getObject("col8"));
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(1,1,1)),rs.getTime("col9"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1),rs.getObject("col10"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1),rs.getObject("col11"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col12"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col13"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1,1),rs.getObject("col14"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject("col15"));
+        org.junit.Assert.assertEquals((float) 12.23,rs.getFloat("col16"),4);
+        org.junit.Assert.assertEquals((Double) 12.23,rs.getDouble("col17"),4);
+        org.junit.Assert.assertEquals("test1",rs.getString("col18"));
+        org.junit.Assert.assertEquals("test1",rs.getString("col19"));
+        org.junit.Assert.assertEquals(UUID.fromString("00000000-0000-0001-0000-000000000002"),rs.getObject("col20"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,0),rs.getObject("col21"));
+        org.junit.Assert.assertEquals("0::1:0:0:0:2",rs.getObject("col22"));
+        org.junit.Assert.assertEquals("00000000000000010000000000000002",rs.getObject("col23"));
+        org.junit.Assert.assertEquals("TEST BLOB",rs.getString("col24"));
+        org.junit.Assert.assertEquals("1.0+2.0i",rs.getObject("col25"));
+        org.junit.Assert.assertEquals("(0.0, 0.0)",rs.getObject("col26"));
+        org.junit.Assert.assertEquals("123421.00",rs.getObject("col27").toString());
+        org.junit.Assert.assertEquals("123421.0001200",rs.getObject("col28").toString());
+        org.junit.Assert.assertEquals("123421.0001200000000000000",rs.getObject("col29").toString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_all_dateType_mul() throws SQLException {
+        createPartitionTable1();
+        long start = System.nanoTime();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        for(int i =1;i<=10000;i++) {
+            ps.setInt(1, i);
+            ps.setBoolean(2, true);
+            ps.setByte(3, (byte) 12);
+            ps.setShort(4, (short) 12);
+            ps.setInt(5, 100);
+            ps.setLong(6, (long) 12);
+            ps.setDate(7, Date.valueOf(LocalDate.of(2021, 1, 1)));
+            BasicMonth tmp_month = new BasicMonth(YearMonth.of(2021, 1));
+            ps.setObject(8, tmp_month);
+            ps.setTime(9, Time.valueOf(LocalTime.of(1, 1, 1)));
+            BasicMinute tmp_minute = new BasicMinute(LocalTime.of(1, 1));
+            ps.setObject(10, tmp_minute);
+            BasicSecond tmp_second = new BasicSecond(LocalTime.of(1, 1, 1));
+            ps.setObject(11, tmp_second);
+            BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(2021, 1, 1, 1, 1, 1));
+            ps.setObject(12, tmp_datetime);
+            BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021, 1, 1, 1, 1, 1, 001));
+            ps.setObject(13, tmp_timestamp);
+            BasicNanoTime tmp_nanotime = new BasicNanoTime(LocalDateTime.of(2021, 1, 1, 1, 1, 1, 001));
+            ps.setObject(14, tmp_nanotime);
+            BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(2021, 1, 1, 1, 1, 1, 123456));
+            ps.setObject(15, tmp_nanotimestamp);
+            ps.setFloat(16, (float) 12.23);
+            ps.setDouble(17, (double) 12.23);
+            ps.setString(18, "test1");
+            ps.setString(19, "test1");
+            BasicUuid uuids = new BasicUuid(1, 2);
+            ps.setObject(20, uuids);
+            BasicDateHour tmp_datehour = new BasicDateHour(LocalDateTime.of(2021, 1, 1, 1, 1, 1, 123456));
+            ps.setObject(21, tmp_datehour);
+            BasicIPAddr ipaddrs = new BasicIPAddr(1, 2);
+            ps.setObject(22, ipaddrs);
+            BasicInt128 int128 = new BasicInt128(1, 2);
+            ps.setObject(23, int128);
+            ps.setObject(24, "TEST BLOB");
+            BasicComplex complexs = new BasicComplex(1, 2);
+            ps.setObject(25, complexs);
+            BasicPoint points = new BasicPoint(0, 0);
+            ps.setObject(26, points);
+            ps.setObject(27, 123421.00012, 37, 4);
+            ps.setObject(28, 123421.00012, 38, 4);
+            ps.setObject(29, "123421.00012", 39, 4);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        long end = System.nanoTime();
+        System.out.println("耗费时间："+ ((end - start) / 1000000000.0) + "秒");
+        JDBCResultSet rs1 = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        BasicTable bt = (BasicTable) rs1.getResult();
+        System.out.println("数据量:"+bt.rows());
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        while (rs.next()) {
+            org.junit.Assert.assertEquals(rs.getBoolean("col2"), true);
+            org.junit.Assert.assertEquals(rs.getByte("col3"), 12);
+            org.junit.Assert.assertEquals(rs.getShort("col4"), 12);
+            org.junit.Assert.assertEquals(rs.getInt("col5"), 100);
+            org.junit.Assert.assertEquals(rs.getLong("col6"), 12);
+            org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2021, 1, 1)), rs.getDate("col7"));
+            org.junit.Assert.assertEquals(YearMonth.of(2021, 1), rs.getObject("col8"));
+            org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(1, 1, 1)), rs.getTime("col9"));
+            org.junit.Assert.assertEquals(LocalTime.of(1, 1), rs.getObject("col10"));
+            org.junit.Assert.assertEquals(LocalTime.of(1, 1, 1), rs.getObject("col11"));
+            org.junit.Assert.assertEquals(LocalDateTime.of(2021, 1, 1, 1, 1, 1), rs.getObject("col12"));
+            org.junit.Assert.assertEquals(LocalDateTime.of(2021, 1, 1, 1, 1, 1), rs.getObject("col13"));
+            org.junit.Assert.assertEquals(LocalTime.of(1, 1, 1, 1), rs.getObject("col14"));
+            org.junit.Assert.assertEquals(LocalDateTime.of(2021, 1, 1, 1, 1, 1, 123456), rs.getObject("col15"));
+            org.junit.Assert.assertEquals((float) 12.23, rs.getFloat("col16"), 4);
+            org.junit.Assert.assertEquals((Double) 12.23, rs.getDouble("col17"), 4);
+            org.junit.Assert.assertEquals("test1", rs.getString("col18"));
+            org.junit.Assert.assertEquals("test1", rs.getString("col19"));
+            org.junit.Assert.assertEquals(UUID.fromString("00000000-0000-0001-0000-000000000002"), rs.getObject("col20"));
+            org.junit.Assert.assertEquals(LocalDateTime.of(2021, 1, 1, 1, 0), rs.getObject("col21"));
+            org.junit.Assert.assertEquals("0::1:0:0:0:2", rs.getObject("col22"));
+            org.junit.Assert.assertEquals("00000000000000010000000000000002", rs.getObject("col23"));
+            org.junit.Assert.assertEquals("TEST BLOB", rs.getString("col24"));
+            org.junit.Assert.assertEquals("1.0+2.0i", rs.getObject("col25"));
+            org.junit.Assert.assertEquals("(0.0, 0.0)", rs.getObject("col26"));
+            org.junit.Assert.assertEquals("123421.00",rs.getObject("col27").toString());
+            org.junit.Assert.assertEquals("123421.0001200",rs.getObject("col28").toString());
+            org.junit.Assert.assertEquals("123421.0001200000000000000",rs.getObject("col29").toString());
+        }
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector() throws SQLException {
+        createPartitionTable_Array();
+//        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,,,,,,,,,,,,,,,,,,,,,,,,,)");
+        ps.setInt(1,1000);
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_dimension_all_dateType() throws SQLException {
+        createTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        ps.setInt(1,1000);
+        ps.setBoolean(2,true);
+        ps.setByte(3, (byte) 12);
+        ps.setShort(4, (short) 12);
+        ps.setInt(5,100);
+        ps.setLong(6, (long) 12);
+        ps.setDate(7, Date.valueOf(LocalDate.of(2021,1,1)));
+        BasicMonth tmp_month = new BasicMonth(YearMonth.of(2021,1));
+        ps.setObject(8, tmp_month);
+        ps.setTime(9, Time.valueOf(LocalTime.of(1,1,1)));
+        BasicMinute tmp_minute = new BasicMinute(LocalTime.of(1,1));
+        ps.setObject(10, tmp_minute);
+        BasicSecond tmp_second = new BasicSecond(LocalTime.of(1,1,1));
+        ps.setObject(11, tmp_second);
+        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(2021,1,1,1,1,1));
+        ps.setObject(12, tmp_datetime);
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(13, tmp_timestamp);
+        BasicNanoTime tmp_nanotime = new BasicNanoTime(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(14, tmp_nanotime);
+        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(15, tmp_nanotimestamp);
+        ps.setFloat(16, (float) 12.23);
+        ps.setDouble(17, (double) 12.23);
+        ps.setString(18, "test1");
+        ps.setString(19, "test1");
+        BasicUuid uuids = new BasicUuid(1,2);
+        ps.setObject(20, uuids);
+        BasicDateHour tmp_datehour = new BasicDateHour(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(21, tmp_datehour);
+        BasicIPAddr ipaddrs = new BasicIPAddr(1,2);
+        ps.setObject(22, ipaddrs);
+        BasicInt128 int128 = new BasicInt128(1,2);
+        ps.setObject(23, int128);
+        ps.setObject(24, "TEST BLOB");
+        BasicComplex complexs = new BasicComplex(1,2);
+        ps.setObject(25, complexs);
+        BasicPoint points = new BasicPoint(0,0);
+        ps.setObject(26, points);
+        ps.setObject(27,123421.00012,37,4);
+        ps.setObject(28,123421.00012,38,4);
+        ps.setObject(29,"123421.00012",39,4);
+        ps.addBatch();
+        ps.executeBatch();
+        //JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        //BasicTable bt = (BasicTable) rs.getResult();
+        //System.out.println(bt.getString());
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getBoolean("col2"), true);
+        org.junit.Assert.assertEquals(rs.getByte("col3"), 12);
+        org.junit.Assert.assertEquals(rs.getShort("col4"), 12);
+        org.junit.Assert.assertEquals(rs.getInt("col5"), 100);
+        org.junit.Assert.assertEquals(rs.getLong("col6"), 12);
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2021,1,1)),rs.getDate("col7"));
+        org.junit.Assert.assertEquals(YearMonth.of(2021, 1),rs.getObject("col8"));
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(1,1,1)),rs.getTime("col9"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1),rs.getObject("col10"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1),rs.getObject("col11"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col12"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col13"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1,1),rs.getObject("col14"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject("col15"));
+        org.junit.Assert.assertEquals((float) 12.23,rs.getFloat("col16"),4);
+        org.junit.Assert.assertEquals((Double) 12.23,rs.getDouble("col17"),4);
+        org.junit.Assert.assertEquals("test1",rs.getString("col18"));
+        org.junit.Assert.assertEquals("test1",rs.getString("col19"));
+        org.junit.Assert.assertEquals(UUID.fromString("00000000-0000-0001-0000-000000000002"),rs.getObject("col20"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,0),rs.getObject("col21"));
+        org.junit.Assert.assertEquals("0::1:0:0:0:2",rs.getObject("col22"));
+        org.junit.Assert.assertEquals("00000000000000010000000000000002",rs.getObject("col23"));
+        org.junit.Assert.assertEquals("TEST BLOB",rs.getString("col24"));
+        org.junit.Assert.assertEquals("1.0+2.0i",rs.getObject("col25"));
+        org.junit.Assert.assertEquals("(0.0, 0.0)",rs.getObject("col26"));
+        org.junit.Assert.assertEquals("123421.00",rs.getObject("col27").toString());
+        org.junit.Assert.assertEquals("123421.0001200",rs.getObject("col28").toString());
+        org.junit.Assert.assertEquals("123421.0001200000000000000",rs.getObject("col29").toString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_wideTable() throws SQLException, IOException {
+        createWideTable("dfs://test_append_wideTable",1000,1000);
+        long start = System.nanoTime();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_wideTable','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021, 1, 1, 1, 1, 1, 001));
+        ps.setObject(1, tmp_timestamp);
+        ps.setString(2, "test1");
+        for(int i =3;i<=1002;i++) {
+            ps.setInt(i, i);
+        }
+        for(int i =1003;i<=2002;i++) {
+            ps.setDouble(i, (double) i);
+        }
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_wideTable','pt')");
+        while (rs.next()) {
+            org.junit.Assert.assertEquals(LocalDateTime.of(2021, 1, 1, 1, 1, 1), rs.getObject(1));
+            org.junit.Assert.assertEquals("test1", rs.getString(2));
+            for(int i =3;i<=1002;i++) {
+                org.junit.Assert.assertEquals(i, rs.getInt(i));
+            }
+            for(int i =1003;i<=2002;i++) {
+                org.junit.Assert.assertEquals((double) i, rs.getDouble(i), 4);
+            }
+        }
+    }
+    @Test
+    public void test_PreparedStatement_delete_dimension_all_dateType() throws SQLException {
+        createTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        ps.setInt(1,1000);
+        ps.setBoolean(2,true);
+        ps.setByte(3, (byte) 12);
+        ps.setShort(4, (short) 12);
+        ps.setInt(5,100);
+        ps.setLong(6, (long) 12);
+        ps.setDate(7, Date.valueOf(LocalDate.of(2021,1,1)));
+        BasicMonth tmp_month = new BasicMonth(YearMonth.of(2021,1));
+        ps.setObject(8, tmp_month);
+        ps.setTime(9, Time.valueOf(LocalTime.of(1,1,1)));
+        BasicMinute tmp_minute = new BasicMinute(LocalTime.of(1,1));
+        ps.setObject(10, tmp_minute);
+        BasicSecond tmp_second = new BasicSecond(LocalTime.of(1,1,1));
+        ps.setObject(11, tmp_second);
+        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(2021,1,1,1,1,1));
+        ps.setObject(12, tmp_datetime);
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(13, tmp_timestamp);
+        BasicNanoTime tmp_nanotime = new BasicNanoTime(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(14, tmp_nanotime);
+        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(15, tmp_nanotimestamp);
+        ps.setFloat(16, (float) 12.23);
+        ps.setDouble(17, (double) 12.23);
+        ps.setString(18, "test1");
+        ps.setString(19, "test1");
+        BasicUuid uuids = new BasicUuid(1,2);
+        ps.setObject(20, uuids);
+        BasicDateHour tmp_datehour = new BasicDateHour(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(21, tmp_datehour);
+        BasicIPAddr ipaddrs = new BasicIPAddr(1,2);
+        ps.setObject(22, ipaddrs);
+        BasicInt128 int128 = new BasicInt128(1,2);
+        ps.setObject(23, int128);
+        ps.setObject(24, "TEST BLOB");
+        BasicComplex complexs = new BasicComplex(1,2);
+        ps.setObject(25, complexs);
+        BasicPoint points = new BasicPoint(0,0);
+        ps.setObject(26, points);
+        ps.setObject(27,123421.00012,37,4);
+        ps.setObject(28,123421.00012,38,4);
+        ps.setObject(29,"123421.00012",39,4);
+        ps.addBatch();
+        ps.executeBatch();
+        //JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        //BasicTable bt = (BasicTable) rs.getResult();
+        //System.out.println(bt.getString());
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getBoolean("col2"), true);
+        org.junit.Assert.assertEquals(rs.getByte("col3"), 12);
+        org.junit.Assert.assertEquals(rs.getShort("col4"), 12);
+        org.junit.Assert.assertEquals(rs.getInt("col5"), 100);
+        org.junit.Assert.assertEquals(rs.getLong("col6"), 12);
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2021,1,1)),rs.getDate("col7"));
+        org.junit.Assert.assertEquals(YearMonth.of(2021, 1),rs.getObject("col8"));
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(1,1,1)),rs.getTime("col9"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1),rs.getObject("col10"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1),rs.getObject("col11"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col12"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col13"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1,1),rs.getObject("col14"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject("col15"));
+        org.junit.Assert.assertEquals((float) 12.23,rs.getFloat("col16"),4);
+        org.junit.Assert.assertEquals((Double) 12.23,rs.getDouble("col17"),4);
+        org.junit.Assert.assertEquals("test1",rs.getString("col18"));
+        org.junit.Assert.assertEquals("test1",rs.getString("col19"));
+        org.junit.Assert.assertEquals(UUID.fromString("00000000-0000-0001-0000-000000000002"),rs.getObject("col20"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,0),rs.getObject("col21"));
+        org.junit.Assert.assertEquals("0::1:0:0:0:2",rs.getObject("col22"));
+        org.junit.Assert.assertEquals("00000000000000010000000000000002",rs.getObject("col23"));
+        org.junit.Assert.assertEquals("TEST BLOB",rs.getString("col24"));
+        org.junit.Assert.assertEquals("1.0+2.0i",rs.getObject("col25"));
+        org.junit.Assert.assertEquals("(0.0, 0.0)",rs.getObject("col26"));
+        //org.junit.Assert.assertEquals("123421.0001",rs.getObject("col27").toString());
+        //org.junit.Assert.assertEquals("123421.0001",rs.getObject("col28").toString());
+        //org.junit.Assert.assertEquals("123421.0001",rs.getObject("col29").toString());
+        //PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col1 = 1000");
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt')");
+
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        System.out.println(bt1.rows());
+    }
+    @Test
+    public void TestNull() throws Exception {
+        System.out.println("Decimal64:");
+        Scalar scalar64 = (Scalar) TypeCast.nullScalar(Entity.DATA_TYPE.DT_DECIMAL64);
+        org.junit.Assert.assertEquals(true,scalar64.isNull());
+        System.out.println(scalar64.isNull());
+        BasicDecimal64Vector basicDecimal64Vector = new BasicDecimal64Vector(0,0);
+        basicDecimal64Vector.Append(scalar64);
+        System.out.println(((Scalar)(basicDecimal64Vector.get(0))).isNull());
+        org.junit.Assert.assertEquals(true,((Scalar)(basicDecimal64Vector.get(0))).isNull());
+
+
+        System.out.println("Decimal32:");
+        Scalar scalar32 = (Scalar) TypeCast.nullScalar(Entity.DATA_TYPE.DT_DECIMAL32);
+        System.out.println(scalar32.isNull());
+        org.junit.Assert.assertEquals(true,scalar32.isNull());
+
+        BasicDecimal32Vector basicDecimal32Vector = new BasicDecimal32Vector(0,0);
+        basicDecimal32Vector.Append(scalar32);
+        System.out.println(((Scalar)(basicDecimal32Vector.get(0))).isNull());
+
+        System.out.println("Decimal128:");
+        Scalar scalar128 = (Scalar) TypeCast.nullScalar(Entity.DATA_TYPE.DT_DECIMAL128);
+        System.out.println(scalar128.isNull());
+        BasicDecimal128Vector basicDecimal128Vector = new BasicDecimal128Vector(0,0);
+        basicDecimal128Vector.Append(scalar128);
+        System.out.println(((Scalar)(basicDecimal128Vector.get(0))).isNull());
     }
     @After
     public void Destroy(){
