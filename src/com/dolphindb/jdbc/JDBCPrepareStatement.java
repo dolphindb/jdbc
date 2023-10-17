@@ -79,7 +79,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				for (int i = 0; i < names.rows(); i++) {
 					String colName = names.getString(i);
 					int typeInt = colDefsTypeInt.getInt(i);
-					Entity.DATA_TYPE type = Entity.DATA_TYPE.values()[typeInt];
+					Entity.DATA_TYPE type = Entity.DATA_TYPE.valueOf(typeInt);
 					int extra = extraInt.getInt(i);
 					ColumnBindValue columnBindValue = new ColumnBindValue(i, colName, type, extra);
 					columnBindValues.add(columnBindValue);

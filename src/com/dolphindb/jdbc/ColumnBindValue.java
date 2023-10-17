@@ -1,5 +1,6 @@
 package com.dolphindb.jdbc;
 
+import com.xxdb.data.BasicArrayVector;
 import com.xxdb.data.BasicEntityFactory;
 import com.xxdb.data.Entity;
 import com.xxdb.data.Vector;
@@ -31,7 +32,11 @@ public class ColumnBindValue implements Comparable<ColumnBindValue> {
 		this.colName = colName;
 		this.type = type;
 		this.scale = scale;
-		this.bindValues = BasicEntityFactory.instance().createVectorWithDefaultValue(type, 0, scale);
+		if (type.getValue() >= 65){
+			this.bindValues = new BasicArrayVector(type, 0, scale);
+		} else {
+			this.bindValues = BasicEntityFactory.instance().createVectorWithDefaultValue(type, 0, scale);
+		}
 	}
 
 	int getIndex() {
