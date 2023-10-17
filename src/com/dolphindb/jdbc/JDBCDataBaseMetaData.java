@@ -181,7 +181,6 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 schema = (BasicDictionary) connection.run("schema(" + tableNamePattern + ");");
 
             Entity columnNameEntity = schema.get("partitionColumnName");
-            Entity sortColumnsEntity = schema.get("sortColumns");
 
             // get 'partitonColumn'
             if (Objects.nonNull(columnNameEntity)) {
@@ -191,22 +190,6 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 } else if (columnNameEntity.isVector()) {
                     BasicStringVector columnNameVec = (BasicStringVector) columnNameEntity;
                     columnIndexList.addAll(Arrays.asList(columnNameVec.getdataArray()));
-                }
-            }
-
-            // get 'sortColumn'
-            if (Objects.nonNull(sortColumnsEntity)) {
-                if (sortColumnsEntity.isScalar()) {
-                    BasicString sortColumn = (BasicString) sortColumnsEntity;
-                    columnIndexList.add(sortColumn.getString());
-                } else if (sortColumnsEntity.isVector()) {
-                    BasicStringVector sortColumnsVec = (BasicStringVector) sortColumnsEntity;
-                    String[] sortColumnsArr = sortColumnsVec.getdataArray();
-                    if (sortColumnsArr.length > 1) {
-                        // if sortColumns > 1, drop last element.
-                        sortColumnsArr = Arrays.copyOfRange(sortColumnsArr, 0, sortColumnsArr.length - 1);
-                    }
-                    columnIndexList.addAll(Arrays.asList(sortColumnsArr));
                 }
             }
         } catch (Exception e) {
@@ -227,7 +210,6 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         Arrays.stream(nameArr)
                 .map(str -> columnIndexList.contains(str) ? "NO" : "YES")
                 .forEach(isNullableStrList::add);
-
         colDefs.addColumn("IS_NULLABLE", new BasicStringVector(isNullableStrList));
 
         // set 'ORDINAL_POSITION'
