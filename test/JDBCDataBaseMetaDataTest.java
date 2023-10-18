@@ -817,4 +817,28 @@ public class JDBCDataBaseMetaDataTest {
         stmt.close();
         conn.close();
     }
+    @Test
+    public void test_DatabaseMetaData_getCatalogs() throws Exception {
+        DBConnection connDB = new DBConnection();
+        connDB.connect(HOST,PORT,"admin","123456");
+        connDB.run("login(`admin, `123456); \nif(existsDatabase('dfs://test_append_type_tsdb1234')) \n{ dropDatabase('dfs://test_append_type_tsdb1234')}");
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        rs = metaData.getCatalogs();
+        //printData1(rs);
+        Assert.assertEquals(false,printData1(rs).contains("dfs://test_append_type_tsdb1234"));
+
+        createTable1("dfs://test_append_type_tsdb1234");
+        DatabaseMetaData metaData1 = conn.getMetaData();
+        rs = metaData1.getCatalogs();
+        //printData1(rs);
+        Assert.assertEquals(true,printData1(rs).contains("dfs://test_append_type_tsdb1234"));
+        stmt.close();
+        conn.close();
+    }
 }
