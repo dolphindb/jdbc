@@ -166,17 +166,23 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		return index;
 	}
 
-	private void bindNull(int paramIndex, Object obj) throws SQLException {
+	private void bindNull(int paramIndex) throws SQLException {
+		int index = getDataIndexBySQLIndex(paramIndex);
 		if (this.sqlDmlType == Utils.DML_INSERT) {
-			int index = getDataIndexBySQLIndex(paramIndex);
 			Vector column = this.columnBindValues.get(index).getBindValues();
 			try {
-				column.Append((Scalar) BasicEntityFactory.createScalar(column.getDataType(), obj, this.columnBindValues.get(index).getScale()));
+				int typeValue = column.getDataType().getValue();
+				if (typeValue < 65){
+					column.Append((Scalar)TypeCast.nullScalar(columnBindValues.get(index).getType()));
+				}else{
+					Vector tmp = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.valueOf(typeValue - 64), 0, 0);
+					column.Append(tmp);
+				}
 			}catch (Exception e){
 				throw new SQLException(e);
 			}
 		} else
-			bufferArea[paramIndex - 1] = new BindValue(obj,false);
+			bufferArea[paramIndex - 1] = new BindValue(TypeCast.nullScalar(columnBindValues.get(index).getType()),false);
 	}
 
 	private void flushBufferArea(int rows) throws SQLException { //todo:rename
@@ -185,7 +191,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				if(column.getBindValues().rows() != rows) {
 					Vector columnCol = column.getBindValues();
 					try {
-						columnCol.Append((Scalar) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
+						if (columnCol.getDataType().getValue() < 65) {
+							columnCol.Append((Scalar) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
+						}else{
+							columnCol.Append((Vector) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
+						}
 					}catch (Exception e){
 						throw new SQLException(e);
 					}
@@ -320,7 +330,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public void setNull(int parameterIndex, int sqlType) throws SQLException {
 		if (this.sqlDmlType == Utils.DML_INSERT) {
 			int index = getDataIndexBySQLIndex(parameterIndex);
-			bindNull(parameterIndex, TypeCast.nullScalar(columnBindValues.get(index).getType()));
+			bindNull(parameterIndex);
 		}else{
 			bufferArea[parameterIndex - 1] = new BindValue("", true);
 		}
