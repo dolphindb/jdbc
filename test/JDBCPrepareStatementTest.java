@@ -3359,6 +3359,14 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals("123421.0001200000000000000",rs.getObject("col29").toString());
     }
     @Test
+    public void test_PreparedStatement_insert_into_DFS_all_dateType5() throws SQLException {
+        createPartitionTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,)");
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        org.junit.Assert.assertEquals(rs.next(), true);
+    }
+    @Test
     public void test_PreparedStatement_insert_into_DFS_all_dateType_mul() throws SQLException {
         createPartitionTable1();
         long start = System.nanoTime();
@@ -3450,8 +3458,10 @@ public class JDBCPrepareStatementTest {
     public void test_PreparedStatement_insert_into_DFS_arrayVector() throws SQLException {
         createPartitionTable_Array();
 //        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,,,,,,,,,,,,,,,,,,,,,,,,,)");
-        ps.setInt(1,1000);
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(1,,,,,,,,,,,,,,,,,,,,,,,,,)");
+//        ps.setInt(1,1000);
+//        ps.addBatch();
+        ps.executeUpdate();
     }
     @Test
     public void test_PreparedStatement_insert_into_dimension_all_dateType() throws SQLException {
@@ -3564,93 +3574,59 @@ public class JDBCPrepareStatementTest {
         }
     }
     @Test
-    public void test_PreparedStatement_delete_dimension_all_dateType() throws SQLException {
-        createTable1();
+    public void test_PreparedStatement_delete_dimension_all_dateType() throws SQLException, IOException {
+        String script = "login(`admin, `123456); \n"+
+                "if(existsDatabase('dfs://test_append_type_tsdb1'))" +
+                "{ dropDatabase('dfs://test_append_type_tsdb1')} \n"+
+                "colNames=\"col\"+string(1..29);\n" +
+                "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
+                "t=table(1:0,colNames,colTypes);\n" +
+                "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(9999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                "insert into t values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
+                "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
+                "pt=db.createTable(t, `pt,,`col1)\n" +
+                "pt.append!(t)\n";
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT);
+        db.run(script);
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-        ps.setInt(1,1000);
-        ps.setBoolean(2,true);
-        ps.setByte(3, (byte) 12);
-        ps.setShort(4, (short) 12);
-        ps.setInt(5,100);
-        ps.setLong(6, (long) 12);
-        ps.setDate(7, Date.valueOf(LocalDate.of(2021,1,1)));
-        BasicMonth tmp_month = new BasicMonth(YearMonth.of(2021,1));
-        ps.setObject(8, tmp_month);
-        ps.setTime(9, Time.valueOf(LocalTime.of(1,1,1)));
-        BasicMinute tmp_minute = new BasicMinute(LocalTime.of(1,1));
-        ps.setObject(10, tmp_minute);
-        BasicSecond tmp_second = new BasicSecond(LocalTime.of(1,1,1));
-        ps.setObject(11, tmp_second);
-        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(2021,1,1,1,1,1));
-        ps.setObject(12, tmp_datetime);
-        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021,1,1,1,1,1,001));
-        ps.setObject(13, tmp_timestamp);
-        BasicNanoTime tmp_nanotime = new BasicNanoTime(LocalDateTime.of(2021,1,1,1,1,1,001));
-        ps.setObject(14, tmp_nanotime);
-        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(2021,1,1,1,1,1,123456));
-        ps.setObject(15, tmp_nanotimestamp);
-        ps.setFloat(16, (float) 12.23);
-        ps.setDouble(17, (double) 12.23);
-        ps.setString(18, "test1");
-        ps.setString(19, "test1");
-        BasicUuid uuids = new BasicUuid(1,2);
-        ps.setObject(20, uuids);
-        BasicDateHour tmp_datehour = new BasicDateHour(LocalDateTime.of(2021,1,1,1,1,1,123456));
-        ps.setObject(21, tmp_datehour);
-        BasicIPAddr ipaddrs = new BasicIPAddr(1,2);
-        ps.setObject(22, ipaddrs);
-        BasicInt128 int128 = new BasicInt128(1,2);
-        ps.setObject(23, int128);
-        ps.setObject(24, "TEST BLOB");
-        BasicComplex complexs = new BasicComplex(1,2);
-        ps.setObject(25, complexs);
-        BasicPoint points = new BasicPoint(0,0);
-        ps.setObject(26, points);
-        ps.setObject(27,123421.00012,37,4);
-        ps.setObject(28,123421.00012,38,4);
-        ps.setObject(29,"123421.00012",39,4);
-        ps.addBatch();
+        for(int i =3;i<=10000;i++) {
+            ps.setInt(1, i);
+            ps.addBatch();
+        }
         ps.executeBatch();
-        //JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
-        //BasicTable bt = (BasicTable) rs.getResult();
-        //System.out.println(bt.getString());
-        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
-        rs.next();
-        org.junit.Assert.assertEquals(rs.getBoolean("col2"), true);
-        org.junit.Assert.assertEquals(rs.getByte("col3"), 12);
-        org.junit.Assert.assertEquals(rs.getShort("col4"), 12);
-        org.junit.Assert.assertEquals(rs.getInt("col5"), 100);
-        org.junit.Assert.assertEquals(rs.getLong("col6"), 12);
-        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2021,1,1)),rs.getDate("col7"));
-        org.junit.Assert.assertEquals(YearMonth.of(2021, 1),rs.getObject("col8"));
-        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(1,1,1)),rs.getTime("col9"));
-        org.junit.Assert.assertEquals(LocalTime.of(1,1),rs.getObject("col10"));
-        org.junit.Assert.assertEquals(LocalTime.of(1,1,1),rs.getObject("col11"));
-        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col12"));
-        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col13"));
-        org.junit.Assert.assertEquals(LocalTime.of(1,1,1,1),rs.getObject("col14"));
-        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject("col15"));
-        org.junit.Assert.assertEquals((float) 12.23,rs.getFloat("col16"),4);
-        org.junit.Assert.assertEquals((Double) 12.23,rs.getDouble("col17"),4);
-        org.junit.Assert.assertEquals("test1",rs.getString("col18"));
-        org.junit.Assert.assertEquals("test1",rs.getString("col19"));
-        org.junit.Assert.assertEquals(UUID.fromString("00000000-0000-0001-0000-000000000002"),rs.getObject("col20"));
-        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,0),rs.getObject("col21"));
-        org.junit.Assert.assertEquals("0::1:0:0:0:2",rs.getObject("col22"));
-        org.junit.Assert.assertEquals("00000000000000010000000000000002",rs.getObject("col23"));
-        org.junit.Assert.assertEquals("TEST BLOB",rs.getString("col24"));
-        org.junit.Assert.assertEquals("1.0+2.0i",rs.getObject("col25"));
-        org.junit.Assert.assertEquals("(0.0, 0.0)",rs.getObject("col26"));
-        //org.junit.Assert.assertEquals("123421.0001",rs.getObject("col27").toString());
-        //org.junit.Assert.assertEquals("123421.0001",rs.getObject("col28").toString());
-        //org.junit.Assert.assertEquals("123421.0001",rs.getObject("col29").toString());
-        //PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col1 = 1000");
-        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt')");
-
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        BasicTable bt = (BasicTable) rs.getResult();
+        System.out.println(bt.rows());
+        org.junit.Assert.assertEquals(10000,bt.rows());
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col1 = 1000");
         ps1.execute();
-        JDBCResultSet rs1 = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
         BasicTable bt1 = (BasicTable) rs1.getResult();
         System.out.println(bt1.rows());
+        org.junit.Assert.assertEquals(9999,bt1.rows());
+        PreparedStatement ps2 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col1 = ?");
+        ps2.setInt(1,1);
+        ps2.execute();
+        JDBCResultSet rs2 = (JDBCResultSet)ps2.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        BasicTable bt2 = (BasicTable) rs2.getResult();
+        System.out.println(bt2.rows());
+        org.junit.Assert.assertEquals(9998,bt2.rows());
+        PreparedStatement ps3 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col1 < ? and col1 > ?");
+        ps3.setInt(1,1000);
+        ps3.setInt(2,100);
+        ps3.execute();
+        JDBCResultSet rs3 = (JDBCResultSet)ps3.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        BasicTable bt3 = (BasicTable) rs3.getResult();
+        System.out.println(bt3.rows());
+        org.junit.Assert.assertEquals(9099,bt3.rows());
+        PreparedStatement ps4 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col2 = ? ");
+        ps4.setNull(1,Types.BOOLEAN);
+        ps4.execute();
+        JDBCResultSet rs4 = (JDBCResultSet)ps4.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        BasicTable bt4 = (BasicTable) rs4.getResult();
+        System.out.println(bt4.rows());
+        org.junit.Assert.assertEquals(1,bt4.rows());
     }
     @Test
     public void TestNull() throws Exception {
@@ -3663,7 +3639,6 @@ public class JDBCPrepareStatementTest {
         System.out.println(((Scalar)(basicDecimal64Vector.get(0))).isNull());
         org.junit.Assert.assertEquals(true,((Scalar)(basicDecimal64Vector.get(0))).isNull());
 
-
         System.out.println("Decimal32:");
         Scalar scalar32 = (Scalar) TypeCast.nullScalar(Entity.DATA_TYPE.DT_DECIMAL32);
         System.out.println(scalar32.isNull());
@@ -3672,13 +3647,18 @@ public class JDBCPrepareStatementTest {
         BasicDecimal32Vector basicDecimal32Vector = new BasicDecimal32Vector(0,0);
         basicDecimal32Vector.Append(scalar32);
         System.out.println(((Scalar)(basicDecimal32Vector.get(0))).isNull());
+        org.junit.Assert.assertEquals(true,((Scalar)(basicDecimal32Vector.get(0))).isNull());
 
         System.out.println("Decimal128:");
         Scalar scalar128 = (Scalar) TypeCast.nullScalar(Entity.DATA_TYPE.DT_DECIMAL128);
         System.out.println(scalar128.isNull());
+        org.junit.Assert.assertEquals(true,scalar128.isNull());
+
         BasicDecimal128Vector basicDecimal128Vector = new BasicDecimal128Vector(0,0);
         basicDecimal128Vector.Append(scalar128);
         System.out.println(((Scalar)(basicDecimal128Vector.get(0))).isNull());
+        org.junit.Assert.assertEquals(true,((Scalar)(basicDecimal128Vector.get(0))).isNull());
+
     }
     @After
     public void Destroy(){
