@@ -3574,6 +3574,67 @@ public class JDBCPrepareStatementTest {
         }
     }
     @Test
+    public void test_PreparedStatement_insert_into_DFS_fail() throws SQLException, IOException {
+        DBConnection db = null;
+        String script = "login(`admin, `123456); \n"+
+                    "if(existsDatabase('dfs://test_append_type'))" +
+                    "{ dropDatabase('dfs://test_append_type')} \n"+
+                    "t = table(10:0,`id`dataType,[INT,DATETIME]) \n"+
+                    "db=database('dfs://test_append_type', VALUE, 1 2 3,,'TSDB') \n"+
+                    "db.createPartitionedTable(t, `pt, `id,,`id`dataType) \n";
+            db = new DBConnection();
+            db.connect(HOST, PORT);
+            db.run(script);
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2, LocalDateTime.of(2021,1,1,1,1,1));
+        ps.addBatch();
+        ps.setNull(1,Types.INTEGER);
+        ps.setObject(2, LocalDateTime.of(2021,1,1,1,1,1));
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setObject(2, LocalDateTime.of(2021,1,1,1,1,1));
+        ps.addBatch();
+        try{
+            ps.executeBatch();
+        }catch(Exception e){
+            System.out.println(e.getMessage());
+        }
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable re = (BasicTable)rs.getResult();
+        System.out.println(re.rows());
+        org.junit.Assert.assertEquals(0,re.rows());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_fail_1() throws SQLException, IOException {
+        DBConnection db = null;
+        String script = "login(`admin, `123456); \n"+
+                "if(existsDatabase('dfs://test_append_type'))" +
+                "{ dropDatabase('dfs://test_append_type')} \n"+
+                "t = table(10:0,`id`dataType,[INT,DATETIME]) \n"+
+                "db=database('dfs://test_append_type', RANGE, 1 20 30,,'TSDB') \n"+
+                "db.createPartitionedTable(t, `pt, `id,,`id`dataType) \n";
+        db = new DBConnection();
+        db.connect(HOST, PORT);
+        db.run(script);
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2, LocalDateTime.of(2021,1,1,1,1,1));
+        ps.addBatch();
+        ps.setNull(1,Types.INTEGER);
+        ps.setObject(2, LocalDateTime.of(2021,1,1,1,1,1));
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setObject(2, LocalDateTime.of(2021,1,1,1,1,1));
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable re = (BasicTable)rs.getResult();
+        System.out.println(re.rows());
+        org.junit.Assert.assertEquals(2,re.rows());
+    }
+
+    @Test
     public void test_PreparedStatement_delete_dimension_all_dateType() throws SQLException, IOException {
         String script = "login(`admin, `123456); \n"+
                 "if(existsDatabase('dfs://test_append_type_tsdb1'))" +
