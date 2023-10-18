@@ -226,7 +226,7 @@ public class JDBCResultSet implements ResultSet{
 
                     BasicTable tempTable = (BasicTable) this.reader.read();
                     globalRows += tempTable.rows();
-                    if (this.globalRows > this.maxRows) {
+                    if ((this.maxRows != -1) && (this.globalRows > this.maxRows)) {
                         this.table = (BasicTable) tempTable.getSubTable(0, this.globalRows - this.maxRows - 1);
                         offsetRows = this.globalRows - this.maxRows;
                         return false;
