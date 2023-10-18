@@ -65,7 +65,7 @@ public class JDBCConnectionTest {
 				"db.createPartitionedTable(t, `pt1, `id).append!(t) \n";
 		String script1 = "login(`admin, `123456); \n"+
 				"if(existsDatabase('dfs://db_testDriverManager1')){ dropDatabase('dfs://db_testDriverManager1')} \n"+
-				"t = table(1..10000 as id, take(1, 10000) as val) \n"+
+				"t = table(1..9000 as id, take(1, 9000) as val) \n"+
 				"db=database('dfs://db_testDriverManager1', RANGE, 1 2001 4001 6001 8001 10001) \n"+
 				"db.createPartitionedTable(t, `pt, `id).append!(t) \n"+
 				"db.createPartitionedTable(t, `pt1, `id).append!(t) \n";
@@ -153,9 +153,21 @@ public class JDBCConnectionTest {
 		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
 		conn = new JDBCConnection(url,prop);
 		System.out.println(conn.getCatalog());
-		org.junit.Assert.assertNotEquals("dfs://db_testDriverManager1",conn.getCatalog());
+		org.junit.Assert.assertEquals(true,conn.getCatalog().contains("dfs://db_testDriverManager1"));
+		conn.setCatalog("dfs://db_testDriverManager");
+		org.junit.Assert.assertEquals("dfs://db_testDriverManager",conn.getCatalog());
+		Statement stm = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select * from pt");
+		BasicTable re = (BasicTable)rs.getResult();
+		System.out.println(re.rows());
+		org.junit.Assert.assertEquals(10000,re.rows());
 		conn.setCatalog("dfs://db_testDriverManager1");
 		org.junit.Assert.assertEquals("dfs://db_testDriverManager1",conn.getCatalog());
+		Statement stm1 = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stm1.executeQuery("select * from pt");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		System.out.println(re1.rows());
+		org.junit.Assert.assertEquals(9000,re1.rows());
 	}
 	@Test
 	public void Test_setCatalog_database_not_exist() throws SQLException, IOException {
@@ -187,19 +199,6 @@ public class JDBCConnectionTest {
 		System.out.println(conn.getCatalog());
 		conn.setCatalog("eeeeeee1");
 		org.junit.Assert.assertEquals(true,conn.getCatalog().contains("dfs://db_testDriverManager1"));
-	}
-	@Test
-	public void Test_getCatalog() throws SQLException {
-		prop.setProperty("hostName",HOST);
-		prop.setProperty("port",String.valueOf(PORT));
-		prop.setProperty("databases","big_table1");
-		prop.setProperty("user","admin");
-		prop.setProperty("password","123456");
-		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
-		conn = new JDBCConnection(url,prop);
-		conn.setCatalog("dfs://value.uuyu");
-		conn.getCatalog();
-		System.out.println(conn.getCatalog());
 	}
 	@Test
 	public void Test_setTransactionIsolation() throws SQLException {
