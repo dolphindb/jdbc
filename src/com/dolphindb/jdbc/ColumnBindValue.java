@@ -19,7 +19,7 @@ public class ColumnBindValue implements Comparable<ColumnBindValue> {
 	private Entity.DATA_TYPE type;
 
 	/* values would be inserted */
-	private final Vector bindValues;
+	private Vector bindValues;
 
 //	/** has this parameter been set? */
 //	private boolean isSet;  // check by bindValues size
@@ -53,6 +53,14 @@ public class ColumnBindValue implements Comparable<ColumnBindValue> {
 
 	Entity.DATA_TYPE getType() {
 		return type;
+	}
+
+	void clear(){
+		if (type.getValue() >= 65){
+			this.bindValues = new BasicArrayVector(type, 0, scale);
+		} else {
+			this.bindValues = BasicEntityFactory.instance().createVectorWithDefaultValue(type, 0, scale);
+		}
 	}
 
 //	boolean isSet() {
