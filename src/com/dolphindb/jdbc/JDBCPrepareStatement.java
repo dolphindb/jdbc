@@ -2,7 +2,7 @@ package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
-
+import com.xxdb.data.Void;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -329,10 +329,20 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	@Override
 	public void setNull(int parameterIndex, int sqlType) throws SQLException {
 		if (this.sqlDmlType == Utils.DML_INSERT) {
-			int index = getDataIndexBySQLIndex(parameterIndex);
 			bindNull(parameterIndex);
-		}else{
-			bufferArea[parameterIndex - 1] = new BindValue("", true);
+		} else {
+			Object bindValue;
+			switch (sqlType) {
+				case Types.VARCHAR:
+					bindValue = "";
+					break;
+				case Types.OTHER:
+					bindValue = new Void();
+					break;
+				default:
+					bindValue = new Void();
+			}
+			bufferArea[parameterIndex - 1] = new BindValue(bindValue, true);
 		}
 	}
 

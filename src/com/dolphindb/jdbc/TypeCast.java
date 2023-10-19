@@ -300,6 +300,8 @@ public class TypeCast {
                 double a = ((BasicPoint)o).getX();
                 double b = ((BasicPoint)o).getY();
                 return "point(" + a + "," + b + ")";
+            case BASIC_VOID:
+                return "NULL";
             default:
                 return null;
         }
