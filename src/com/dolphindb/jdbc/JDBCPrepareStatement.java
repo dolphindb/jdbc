@@ -283,6 +283,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			return value;
 		} catch (Exception e) {
 			throw new SQLException(e);
+		}finally {
+			for (ColumnBindValue columnBindValue : columnBindValues) {
+				columnBindValue.clear();
+			}
 		}
 	}
 
