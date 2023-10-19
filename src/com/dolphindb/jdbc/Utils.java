@@ -20,14 +20,14 @@ public class Utils {
     public static final int DML_DELETE = 3;
     public static final int DML_EXEC = 4;
 
-    public static final Pattern INSERT_PATTERN = Pattern.compile("insert\\sinto\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\svalues\\s*\\(.+\\)");
-    public static final Pattern INSERT_WITH_COLUMN_PATTERN = Pattern.compile("insert\\sinto\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\s+(.+?)\\svalues\\s*\\(.+\\)");
-    public static final Pattern INSERT_LOADTABLE_WITH_PARAM_PATTERN = Pattern.compile("insert\\s+into\\s+loadTable(.+?)\\s*(.+?)\\s*values\\s*(.+?)");
-    public static final Pattern INSERT_LOADTABLE_WITHOUT_PARAM_PATTERN = Pattern.compile("insert\\s+into\\s+loadTable(.+?)\\s+values\\s*(.+?)");
-    public static final Pattern DELETE_PATTERN  = Pattern.compile("delete\\sfrom\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\s(where\\s(.+=.+)+)?");
+    public static final Pattern INSERT_PATTERN = Pattern.compile("insert\\s+into\\s+[a-zA-Z]{1}[a-zA-Z\\d_]*\\s+values\\s*\\([\\s?,]+\\)");
+    public static final Pattern INSERT_WITH_COLUMN_PATTERN = Pattern.compile("insert\\s+into\\s+[a-zA-Z]{1}[a-zA-Z\\d_]*\\s*[()a-zA-Z\\d_\\,\\s]+?\\s+values\\s*\\([\\s?,]+\\)");
+    public static final Pattern INSERT_LOADTABLE_WITH_PARAM_PATTERN = Pattern.compile("insert\\s+into\\s+loadTable(.+?)\\s*[()a-zA-Z\\d_\\,\\s]+?\\s+values\\s*\\([\\s?,]+\\)");
+    public static final Pattern INSERT_LOADTABLE_WITHOUT_PARAM_PATTERN = Pattern.compile("insert\\s+into\\s+loadTable(.+?)\\s+values\\s*\\([\\s?,]+\\)");
+    public static final Pattern DELETE_PATTERN  = Pattern.compile("delete\\s+from\\s+[a-zA-Z]{1}[a-zA-Z\\d_]*\\s+(where\\s+(.+=.+)+)?");
 
-    public static final Pattern DELETE_LOADTABLE_PATTERN = Pattern.compile("delete\\sfrom\\sloadTable(.+?)\\s+(where\\s(.+=.+)+)?");
-    public static final Pattern UPDATE_PATTERN = Pattern.compile("update\\s[a-zA-Z]{1}[a-zA-Z\\d_]*\\sset\\s(.+=.+)+(\\swhere\\s(.+=.+)+)?");
+    public static final Pattern DELETE_LOADTABLE_PATTERN = Pattern.compile("delete\\s+from\\s+loadTable(.+?)\\s+(where\\s+(.+=.+)+)?");
+    public static final Pattern UPDATE_PATTERN = Pattern.compile("update\\s+[a-zA-Z]{1}[a-zA-Z\\d_]*\\s+set\\s+(.+=.+)+(\\s+where\\s+(.+=.+)+)?");
 
     public static final Pattern ASSIGN_PATTERN = Pattern.compile("[a-zA-Z]{1}[a-zA-Z\\d_]*[\\s]*=");
     public static Set<String> sqlWareHouse = new HashSet<>();
