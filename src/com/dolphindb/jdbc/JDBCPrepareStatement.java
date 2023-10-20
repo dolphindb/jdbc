@@ -217,9 +217,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	private void checkBindsLegal() throws SQLException {
 		if(indexSQLToDDB.size() == 0) {
-			for (ColumnBindValue columnBindValue : columnBindValues) {
-				if(columnBindValue.getBindValues().rows() != batchSize)
-					throw new SQLException("The column " + columnBindValue.getColName() + " is not set.");
+			if(columnBindValues != null) {
+				for (ColumnBindValue columnBindValue : columnBindValues) {
+					if (columnBindValue.getBindValues().rows() != batchSize)
+						throw new SQLException("The column " + columnBindValue.getColName() + " is not set.");
+				}
 			}
 		}else{
 			for (Integer index : indexSQLToDDB.keySet()){
@@ -262,6 +264,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private int[] tableAppend() throws SQLException {
+		checkBindsLegal();
 		List<Vector> arguments = createDFSArguments();
 		List<String> colNames = new ArrayList<>();
 		columnBindValues.forEach(e -> colNames.add(e.getColName()));
