@@ -15,7 +15,7 @@ import java.util.Set;
 
 public class JDBCPrepareStatement extends JDBCStatement implements PreparedStatement {
 	private String sql;
-	private final String tableName;
+	private String tableName = null;
 	private final int sqlDmlType;
 	private List<ColumnBindValue> columnBindValues;
 
@@ -33,11 +33,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.sql = processSql(sql);
 		String[] sqlSplit = sql.split(";");
 		this.sql = sqlSplit[sqlSplit.length - 1].trim();
-		this.tableName = Utils.getTableName(sql);
 		this.sqlDmlType = Utils.getDml(sql);
 		this.sqlBuffer = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
 		if (this.sqlDmlType == Utils.DML_INSERT) {
+			this.tableName = Utils.getTableName(sql);
 			initColumnBindValues(this.tableName);
 			Utils.checkInsertSQLValid(sql, columnBindValues.size());
 
@@ -125,10 +125,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				switch (this.sqlDmlType){
 					case Utils.DML_UPDATE:
 					case Utils.DML_DELETE:
-						if(tableName != null)
-							executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
-						else
-							throw new SQLException("check the SQL " + sqlBuffer.get(i));
+						executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
 						break;
 					case Utils.DML_SELECT:
 					case Utils.DML_EXEC:
@@ -226,16 +223,13 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			switch (this.sqlDmlType) {
 				case Utils.DML_INSERT:
 					 tableAppend();
-					 return 0; // TODO: executeUpdate result
+					 return 0;
 				case Utils.DML_UPDATE:
 				case Utils.DML_DELETE:
-					if (tableName != null) {
-						String sql = sqlBuffer.get(0);
-						sqlBuffer.clear();
-						connection.run(sql);
-						return 0; // TODO: executeUpdate result
-					} else
-						throw new SQLException("check the SQL " + sql);
+					String sql = sqlBuffer.get(0);
+					sqlBuffer.clear();
+					connection.run(sql);
+					return 0;
 				case Utils.DML_SELECT:
 				case Utils.DML_EXEC:
 					throw new SQLException("can not produces ResultSet");
@@ -280,44 +274,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 	}
 
-//	private List<Entity> createMemArguments(int idx) throws Exception {
-//		List<Entity> arguments = new ArrayList<>();
-//		arguments.add(new BasicString(tableName));
-//		for (ColumnBindValue columnBindValue : columnBindValues)
-//			arguments.add(createColVectorFromBindValue(columnBindValue,idx));
-//
-//		return arguments;
-//	}
-
 	private List<Vector> createDFSArguments() {
 		List<Vector> arguments = new ArrayList<>();
 		for (ColumnBindValue columnBindValue : columnBindValues)
 			arguments.add(columnBindValue.getBindValues());
 		return arguments;
-	}
-
-//	private Vector createColVectorFromBindValue(ColumnBindValue columnBindValue, int idx) throws Exception {
-//		Vector col = BasicEntityFactory.instance().createVectorWithDefaultValue(columnBindValue.getType(), 0, columnBindValue.getScale());
-//		if (columnBindValue.getType().equals(Entity.DATA_TYPE.DT_DECIMAL32) && (columnBindValue.getScale() < 0 || columnBindValue.getScale() > 9)) {
-//			throw new IllegalArgumentException("The size of the Decimal32 type should be in the range 0-9");
-//		} else if (columnBindValue.getType().equals(Entity.DATA_TYPE.DT_DECIMAL64) && (columnBindValue.getScale() < 0 || columnBindValue.getScale() > 18)) {
-//			throw new IllegalArgumentException("The size of the Decimal64 type should be in the range 0-18");
-//		} else if (columnBindValue.getType().equals(Entity.DATA_TYPE.DT_DECIMAL128) && (columnBindValue.getScale() < 0 || columnBindValue.getScale() > 38)) {
-//			throw new IllegalArgumentException("The size of the Decimal128 type should be in the range 0-38");
-//		}
-//
-//		BindValue bindValue = columnBindValue.getBindValues().get(idx);
-//		// todo: decimal64 has a bug, see JAVAOS-184.
-//		col.Append((Scalar) BasicEntityFactory.createScalar(columnBindValue.getType(), bindValue.getValue(), columnBindValue.getScale()));
-//		return col;
-//	}
-
-	private String getTableType() throws IOException {
-		if (tableTypeCache != null)
-			return tableTypeCache;
-
-		tableTypeCache = connection.run("typestr " + tableName).getString();
-		return tableTypeCache;
 	}
 
 	@Override

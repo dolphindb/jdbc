@@ -18,7 +18,7 @@ public class Utils {
     public static final int DML_DELETE = 3;
     public static final int DML_EXEC = 4;
 
-    static String INSERT_STRING = "((?i)insert)\\s+((?i)into)\\s+";
+    static String INSERT_STRING = "(INSERT|insert)\\s+(INTO|into)\\s+";
 
     static String MEM_TABLE_NAME = "([a-zA-Z]{1}[a-zA-Z\\d_]*)";
 
@@ -26,13 +26,13 @@ public class Utils {
 
     static String TABLE_NAME_STRING = MEM_TABLE_NAME + "|" + LOAD_TABLE_NAME;
 
-    static String VALUE_STRING = "\\s+((?i)values)\\s*\\(([\\s?,]+)\\)";
+    static String VALUE_STRING = "\\s+(VALUES|values)\\s*\\(([\\s?,]+)\\)";
 
     static String COLNAME_STRING = "\\s*\\([a-zA-Z\\d_\\,\\s]+?\\)";
 
-    static String DELETE_STRING = "((?i)delete)|\\s+((?i)from)\\s+";
+    static String DELETE_STRING = "(DELETE|delete)|\\s+((?i)from)\\s+";
 
-    static String DELETE_WHERE_STRING = "\\s+(((?i)where)\\s+(.+=.+)+)?";
+    static String DELETE_WHERE_STRING = "\\s+((WHERE|where)\\s+(.+=.+)+)?";
 
     static String INSERT_TABLE_NAME_COLUMN_STRING = "(" + LOAD_TABLE_NAME + "*" + MEM_TABLE_NAME + "*" + ")\\s*(\\((.+?)\\))*";
 
@@ -245,6 +245,9 @@ public class Utils {
                 }else {
                     tableName = sql.substring(sql.indexOf("from") + "from".length()).replaceAll(";", "").trim();
                 }
+        }
+        if (tableName == null) {
+            throw new SQLException("check the SQl " + sql);
         }
         return tableName;
     }
