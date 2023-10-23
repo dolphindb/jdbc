@@ -37,7 +37,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.sqlBuffer = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
 		if (this.sqlDmlType == Utils.DML_INSERT) {
-			this.tableName = Utils.getTableName(sql);
+			this.tableName = Utils.getTableName(sql, true);
 			initColumnBindValues(this.tableName);
 			Utils.checkInsertSQLValid(sql, columnBindValues.size());
 
@@ -383,7 +383,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void clearParameters() throws SQLException {
-		Arrays.fill(bufferArea, null);
+//		Arrays.fill(bufferArea, null);
 	}
 
 	@Override
