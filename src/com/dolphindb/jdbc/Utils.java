@@ -2,10 +2,8 @@ package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
+import java.sql.*;
 import java.sql.Date;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.time.YearMonth;
 import java.util.*;
 import java.util.Set;
@@ -746,6 +744,41 @@ public class Utils {
             if (columnParams.length != QuestionMarks.length) {
                 throw new RuntimeException("The number of columns and the number of values do not match! Please check the SQL!");
             }
+        }
+    }
+
+    public static int transferColDefsTypesToSqlTypes(String type) {
+        switch (type){
+            case "BOOL":
+                return Types.BOOLEAN;
+            case "BYTE":
+                return Types.CHAR;
+            case "SHORT":
+                return Types.TINYINT;
+            case "INT":
+                return Types.INTEGER;
+            case "LONG":
+                return Types.BIGINT;
+            case "DATE":
+                return Types.DATE;
+            case "TIME":
+                return Types.TIME;
+            case "DATETIME":
+            case "TIMESTAMP":
+                return Types.TIMESTAMP;
+            case "FLOAT":
+                return Types.FLOAT;
+            case "DOUBLE":
+                return Types.DOUBLE;
+            case "DECIMAL32":
+            case "DECIMAL64":
+            case "DECIMAL128":
+                return Types.DECIMAL;
+            case "STRING":
+            case "BLOB":
+                return Types.VARCHAR;
+            default:
+                return Types.VARCHAR;
         }
     }
 }
