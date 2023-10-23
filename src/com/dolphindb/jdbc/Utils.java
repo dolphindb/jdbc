@@ -20,14 +20,32 @@ public class Utils {
     public static final int DML_DELETE = 3;
     public static final int DML_EXEC = 4;
 
-    public static final Pattern INSERT_PATTERN = Pattern.compile("insert\\s+into\\s+[a-zA-Z]{1}[a-zA-Z\\d_]*\\s+values\\s*\\([\\s?,]+\\)");
-    public static final Pattern INSERT_WITH_COLUMN_PATTERN = Pattern.compile("insert\\s+into\\s+[a-zA-Z]{1}[a-zA-Z\\d_]*\\s*[()a-zA-Z\\d_\\,\\s]+?\\s+values\\s*\\([\\s?,]+\\)");
-    public static final Pattern INSERT_LOADTABLE_WITH_PARAM_PATTERN = Pattern.compile("insert\\s+into\\s+loadTable(.+?)\\s*[()a-zA-Z\\d_\\,\\s]+?\\s+values\\s*\\([\\s?,]+\\)");
-    public static final Pattern INSERT_LOADTABLE_WITHOUT_PARAM_PATTERN = Pattern.compile("insert\\s+into\\s+loadTable(.+?)\\s+values\\s*\\([\\s?,]+\\)");
-    public static final Pattern DELETE_PATTERN  = Pattern.compile("delete\\s+from\\s+[a-zA-Z]{1}[a-zA-Z\\d_]*\\s+(where\\s+(.+=.+)+)?");
+    static String INSERT_STRING = "((?i)insert)\\s+((?i)into)\\s+";
 
-    public static final Pattern DELETE_LOADTABLE_PATTERN = Pattern.compile("delete\\s+from\\s+loadTable(.+?)\\s+(where\\s+(.+=.+)+)?");
-    public static final Pattern UPDATE_PATTERN = Pattern.compile("update\\s+[a-zA-Z]{1}[a-zA-Z\\d_]*\\s+set\\s+(.+=.+)+(\\s+where\\s+(.+=.+)+)?");
+    static String MEM_TABLE_NAME = "([a-zA-Z]{1}[a-zA-Z\\d_]*)";
+
+    static String LOAD_TABLE_NAME = "(loadTable\\(.+?\\))";
+
+    static String TABLE_NAME_STRING = MEM_TABLE_NAME + "|" + LOAD_TABLE_NAME;
+
+    static String VALUE_STRING = "\\s+((?i)values)\\s*\\(([\\s?,]+)\\)";
+
+    static String COLNAME_STRING = "\\s*\\([a-zA-Z\\d_\\,\\s]+?\\)";
+
+    static String DELETE_STRING = "((?i)delete)|\\s+((?i)from)\\s+";
+
+    static String DELETE_WHERE_STRING = "\\s+(((?i)where)\\s+(.+=.+)+)?";
+
+    static String INSERT_TABLE_NAME_COLUMN_STRING = "(" + LOAD_TABLE_NAME + "*" + MEM_TABLE_NAME + "*" + ")\\s*(\\((.+?)\\))*";
+
+    public static final Pattern INSERT_PATTERN = Pattern.compile(INSERT_STRING + MEM_TABLE_NAME + VALUE_STRING);
+    public static final Pattern INSERT_WITH_COLUMN_PATTERN = Pattern.compile(INSERT_STRING + MEM_TABLE_NAME + COLNAME_STRING + VALUE_STRING);
+        public static final Pattern INSERT_LOADTABLE_WITH_PARAM_PATTERN = Pattern.compile(INSERT_STRING + LOAD_TABLE_NAME + VALUE_STRING);
+    public static final Pattern INSERT_LOADTABLE_WITHOUT_PARAM_PATTERN = Pattern.compile(INSERT_STRING + MEM_TABLE_NAME + VALUE_STRING);
+    public static final Pattern DELETE_PATTERN  = Pattern.compile( DELETE_STRING + MEM_TABLE_NAME + DELETE_WHERE_STRING);
+
+    public static final Pattern DELETE_LOADTABLE_PATTERN = Pattern.compile(DELETE_STRING + LOAD_TABLE_NAME + DELETE_WHERE_STRING);
+    public static final Pattern UPDATE_PATTERN = Pattern.compile("update|UPDATE\\s+[a-zA-Z]{1}[a-zA-Z\\d_]*\\s+set|(SET)\\s+(.+=.+)+(\\s+where|WHERE\\s+(.+=.+)+)?");
 
     public static final Pattern ASSIGN_PATTERN = Pattern.compile("[a-zA-Z]{1}[a-zA-Z\\d_]*[\\s]*=");
     public static Set<String> sqlWareHouse = new HashSet<>();
@@ -173,7 +191,7 @@ public class Utils {
         return substr.compareToIgnoreCase(key)==0;
     }
     public static int getDml(String sql){
-        String sqlBackup = sql;
+        String sqlBackup = sql.toLowerCase();
         if(startsWith(sqlBackup,"select")){
             return DML_SELECT;
         }else if(sqlBackup.startsWith("insert") || sqlBackup.startsWith("tableInsert")){
@@ -191,29 +209,20 @@ public class Utils {
 
     public static String getTableName(String sql) throws SQLException{
         String tableName = null;
-        if(sql.startsWith("insert")){
-            Matcher matcher = INSERT_PATTERN.matcher(sql);
+        if(sql.startsWith("insert") || sql.startsWith("INSERT")){
+            Pattern pattern = Pattern.compile(INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + VALUE_STRING);
+            Matcher matcher = pattern.matcher(sql);
             if(matcher.find()){
-                tableName = sql.substring(sql.indexOf("into") + "into".length(), sql.indexOf("values"));
+                tableName = matcher.group(3);
+                if(tableName != null && !tableName.isEmpty()){
+                    return tableName;
+                }else{
+                    throw new SQLException("check the SQl " + sql);
+                }
             }else {
-                Matcher matcher1 = INSERT_WITH_COLUMN_PATTERN.matcher(sql);
-                if(matcher1.find()) {
-                    tableName = sql.substring(sql.indexOf("into") + "into".length(), sql.indexOf("("));
-                }
-                else {
-                    Matcher matcher2 = INSERT_LOADTABLE_WITH_PARAM_PATTERN.matcher(sql);
-                    if(matcher2.find()){
-                        tableName = sql.substring(sql.indexOf("loadTable") , sql.indexOf(")")+1);
-                    } else {
-                        Matcher matcher3 = INSERT_LOADTABLE_WITHOUT_PARAM_PATTERN.matcher(sql);
-                        if(matcher3.find()){
-                            tableName = sql.substring(sql.indexOf("loadTable") , sql.indexOf(")")+1);
-                        }else{
-                            throw new SQLException("check the SQL " + sql);
-                        }
-                    }
-                }
+                throw new SQLException("check the SQl " + sql);
             }
+
         }else if(sql.startsWith("tableInsert")){
             tableName = sql.substring(sql.indexOf("(") + "(".length(), sql.indexOf(","));
         }else if(sql.startsWith("append!")){
@@ -687,29 +696,56 @@ public class Utils {
         }
     }
 
-    public static Map<String, Integer> getColumnParamInSql(String sql,String tableName){
+    public static String getInsertColumnString(String sql) {
+        Pattern pattern = Pattern.compile(Utils.INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + Utils.VALUE_STRING);
+        Matcher matcher = pattern.matcher(sql);
+        if (matcher.find()) {
+            String columnParam = matcher.group(7);
+            if (columnParam != null){
+                return columnParam;
+            }
+        }
+        return "";
+    }
+
+    public static String getInsertValueQuestionString(String sql) {
+        Pattern pattern = Pattern.compile(Utils.INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + Utils.VALUE_STRING);
+        Matcher matcher = pattern.matcher(sql);
+        if (matcher.find()) {
+            String columnParam = matcher.group(9);
+            if (columnParam != null){
+                return columnParam;
+            }
+        }
+        return "";
+    }
+
+    public static Map<String, Integer> getInsertColumnParamInSql(String sql){
         Map<String,Integer> map = new HashMap<>();
-        // insert into loadTable(...) *(col1,col2,...)* values (?,?,...)
-        String columnParam = sql.substring(sql.indexOf(tableName) + tableName.length(), sql.indexOf("values")).trim(); // TODO: table可能会出现在字符串中。 应该用正则取出列名。
-        if(columnParam.isEmpty()){
-            return map;
-        }else {
-            String[] columnParams = columnParam.substring(1, columnParam.length() - 1).split(",");
+        String columnParam = getInsertColumnString(sql);
+        if (!columnParam.isEmpty()) {
+            String[] columnParams = columnParam.split(",");
             for (int i = 0; i < columnParams.length; i++) {
                 map.put(columnParams[i].trim(), i);
             }
             return map;
+        }else{
+            return map;
         }
     }
 
-    public static void checkSQLValid(String sql, String tableName){
-        String columnParam = sql.substring(sql.indexOf(tableName) + tableName.length(), sql.indexOf("values")).trim(); // TODO: table可能会出现在字符串中。 应该用正则取出列名。
-        if(columnParam.isEmpty()) return;
-        String[] columnParams = columnParam.substring(1,columnParam.length()-1).split(",");
-        String QuestionMark = sql.substring(sql.indexOf("values") + "values".length()).trim();
-        String[] QuestionMarks = QuestionMark.substring(1,QuestionMark.length()-1).split(",");
-        if(columnParams.length != QuestionMarks.length){
-            throw new RuntimeException("The number of columns and the number of values do not match! Please check the SQL!");
+    public static void checkInsertSQLValid(String sql, int columnSize){
+        String columnParam = getInsertColumnString(sql);
+        String[] columnParams = columnParam.split(",");
+        String QuestionMark = getInsertValueQuestionString(sql);
+        String[] QuestionMarks = QuestionMark.split(",");
+        if(columnParam.isEmpty()) {
+            if(QuestionMarks.length != columnSize)
+                throw new RuntimeException("The number of table columns and the number of values do not match! Please check the SQL!");
+        }else {
+            if (columnParams.length != QuestionMarks.length) {
+                throw new RuntimeException("The number of columns and the number of values do not match! Please check the SQL!");
+            }
         }
     }
 }
