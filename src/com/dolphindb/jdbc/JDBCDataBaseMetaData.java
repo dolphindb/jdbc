@@ -111,6 +111,16 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             throw new SQLException("The param 'tableNamePattern' cannot be null.");
 
         BasicTable colDefs = null;
+        // 1、get columns origin meta data.
+        colDefs = getColumnsOriginMetaData(catalog, schemaPattern, tableNamePattern, columnNamePattern);
+        // 2、assemble some columns' data
+        assembleColumnsMetaData(colDefs, catalog, tableNamePattern, columnNamePattern);
+
+        return new JDBCResultSet(connection,statement, colDefs,"");
+    }
+
+    private BasicTable getColumnsOriginMetaData(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) {
+        BasicTable colDefs = null;
         if (Objects.nonNull(catalog) && !catalog.isEmpty()) {
             // specify tableName for dfs table
             String script;
@@ -118,7 +128,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 // specify columnNamePattern for dfs table
                 if (Objects.nonNull(columnNamePattern) && !columnNamePattern.isEmpty() && !columnNamePattern.equals("%")) {
                     script = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); " +
-                             "select * from schema(handle).colDefs where name = '%s'";
+                            "select * from schema(handle).colDefs where name = '%s'";
                     script = String.format(script, columnNamePattern);
                     colDefs = (BasicTable) connection.run(script);
                 } else {
@@ -171,6 +181,10 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             }
         }
 
+        return colDefs;
+    }
+
+    private void assembleColumnsMetaData(BasicTable colDefs, String catalog, String tableNamePattern, String columnNamePattern) {
         // set 'IS_NULLABLE'
         List<String> columnIndexList = new ArrayList<>();
         try {
@@ -204,6 +218,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         newColumnNames.add("REMARKS");
         colDefs.setColName(newColumnNames);
 
+        // set 'IS_NULLABLE'
         List<String> isNullableStrList = new ArrayList<>();
         BasicStringVector nameColumn = (BasicStringVector) colDefs.getColumn(0);
         String[] nameArr = nameColumn.getdataArray();
@@ -241,8 +256,24 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             colDefs.addColumn("ORDINAL_POSITION", posColVector);
         }
 
-        return new JDBCResultSet(connection,statement, colDefs,"");
+        // transfer 'DATA_TYPE' value
+        try {
+            BasicStringVector typeStringColumn = (BasicStringVector) colDefs.getColumn(1);
+            BasicIntVector typeIntColumn = (BasicIntVector) colDefs.getColumn(2);
+            for (int i = 0; i < typeStringColumn.rows(); i ++)
+                typeIntColumn.set(i, new BasicInt(Utils.transferColDefsTypesToSqlTypes(typeStringColumn.get(i).getString())));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        // set 'SQL_DATA_TYPES'
+        BasicStringVector typeStringColumn = (BasicStringVector) colDefs.getColumn(1);
+        List<Integer> sqlDataTypesList = Arrays.stream(typeStringColumn.getdataArray()).map(Utils::transferColDefsTypesToSqlTypes).collect(Collectors.toList());
+        BasicIntVector sqlDataTypesColumn = new BasicIntVector(sqlDataTypesList);
+        colDefs.addColumn("SQL_DATA_TYPES", sqlDataTypesColumn);
     }
+
+
 
     @Override
     public Connection getConnection() {
