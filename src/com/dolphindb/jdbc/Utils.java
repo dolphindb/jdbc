@@ -18,7 +18,7 @@ public class Utils {
     public static final int DML_DELETE = 3;
     public static final int DML_EXEC = 4;
 
-    static String INSERT_STRING = "((?i)insert)\\s+((?i)into)\\s+";
+    static String INSERT_STRING = "(insert)\\s+(into)\\s+";
 
     static String MEM_TABLE_NAME = "([a-zA-Z]{1}[a-zA-Z\\d_]*)";
 
@@ -26,24 +26,22 @@ public class Utils {
 
     static String TABLE_NAME_STRING = MEM_TABLE_NAME + "|" + LOAD_TABLE_NAME;
 
-    static String VALUE_STRING = "\\s+((?i)values)\\s*\\(([\\s?,]+)\\)";
+    static String VALUE_WITH_QUESTION_STRING= "\\s+(values)\\s*\\(([\\s?,]+)\\)";
+
+    static String VALUE_STRING = "\\s+(values)\\s*\\((.+)\\)";
 
     static String COLNAME_STRING = "\\s*\\([a-zA-Z\\d_\\,\\s]+?\\)";
 
-    static String DELETE_STRING = "((?i)delete)|\\s+((?i)from)\\s+";
+    static String DELETE_STRING = "(delete)|\\s+((?i)from)\\s+";
 
-    static String DELETE_WHERE_STRING = "\\s+(((?i)where)\\s+(.+=.+)+)?";
+    static String DELETE_WHERE_STRING = "\\s+((where)\\s+(.+=.+)+)?";
 
     static String INSERT_TABLE_NAME_COLUMN_STRING = "(" + LOAD_TABLE_NAME + "*" + MEM_TABLE_NAME + "*" + ")\\s*(\\((.+?)\\))*";
 
-    public static final Pattern INSERT_PATTERN = Pattern.compile(INSERT_STRING + MEM_TABLE_NAME + VALUE_STRING);
-    public static final Pattern INSERT_WITH_COLUMN_PATTERN = Pattern.compile(INSERT_STRING + MEM_TABLE_NAME + COLNAME_STRING + VALUE_STRING);
-        public static final Pattern INSERT_LOADTABLE_WITH_PARAM_PATTERN = Pattern.compile(INSERT_STRING + LOAD_TABLE_NAME + VALUE_STRING);
-    public static final Pattern INSERT_LOADTABLE_WITHOUT_PARAM_PATTERN = Pattern.compile(INSERT_STRING + MEM_TABLE_NAME + VALUE_STRING);
     public static final Pattern DELETE_PATTERN  = Pattern.compile( DELETE_STRING + MEM_TABLE_NAME + DELETE_WHERE_STRING);
 
     public static final Pattern DELETE_LOADTABLE_PATTERN = Pattern.compile(DELETE_STRING + LOAD_TABLE_NAME + DELETE_WHERE_STRING);
-    public static final Pattern UPDATE_PATTERN = Pattern.compile("update|UPDATE\\s+[a-zA-Z]{1}[a-zA-Z\\d_]*\\s+set|(SET)\\s+(.+=.+)+(\\s+where|WHERE\\s+(.+=.+)+)?");
+    public static final Pattern UPDATE_PATTERN = Pattern.compile("update\\s+[a-zA-Z]{1}[a-zA-Z\\d_]*\\s+set\\s+(.+=.+)+(\\s+where\\s+(.+=.+)+)?");
 
     public static final Pattern ASSIGN_PATTERN = Pattern.compile("[a-zA-Z]{1}[a-zA-Z\\d_]*[\\s]*=");
     public static Set<String> sqlWareHouse = new HashSet<>();
@@ -189,26 +187,26 @@ public class Utils {
         return substr.compareToIgnoreCase(key)==0;
     }
     public static int getDml(String sql){
-        String sqlBackup = sql.toLowerCase();
-        if(startsWith(sqlBackup,"select")){
+        if(startsWith(sql,"select") || startsWith(sql,"SELECT") ){
             return DML_SELECT;
-        }else if(sqlBackup.startsWith("insert") || sqlBackup.startsWith("tableInsert")){
+        }else if(sql.startsWith("insert") || sql.startsWith("INSERT")){
             return DML_INSERT;
-        }else if(sqlBackup.startsWith("update")){
+        }else if(sql.startsWith("update") || sql.startsWith("UPDATE")){
             return DML_UPDATE;
-        }else if(sqlBackup.startsWith("delete")) {
+        }else if(sql.startsWith("delete") || sql.startsWith("DELETE")) {
             return DML_DELETE;
-        }else if(sqlBackup.startsWith("exec")){
+        }else if(sql.startsWith("exec") || sql.startsWith("EXEC")){
             return DML_EXEC;
         }else{
             return DML_OTHER;
         }
     }
 
-    public static String getTableName(String sql) throws SQLException{
+    public static String getTableName(String sql, boolean isPrepareStatement) throws SQLException{
         String tableName = null;
         if(sql.startsWith("insert") || sql.startsWith("INSERT")){
-            Pattern pattern = Pattern.compile(INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + VALUE_STRING);
+            String checkString = INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + (isPrepareStatement ? VALUE_WITH_QUESTION_STRING : VALUE_STRING);
+            Pattern pattern = Pattern.compile(checkString);
             Matcher matcher = pattern.matcher(sql);
             if(matcher.find()){
                 tableName = matcher.group(3);
@@ -666,36 +664,8 @@ public class Utils {
         return result;
     }
 
-    /*
-    * getInsertType:
-    * 1. insert into table values (...)
-    * 2. insert into loadTable(...) (col1, col2, ...) values (...)
-    * 3. insert into loadTable(...) values (...)
-    * 4. UnknownType
-    * */
-    public static InsertType getInsertSqlType(String sql) throws SQLException {
-        Matcher matcher1 = INSERT_PATTERN.matcher(sql);
-        Matcher matcher2 = INSERT_WITH_COLUMN_PATTERN.matcher(sql);
-        Matcher matcher3 = INSERT_LOADTABLE_WITH_PARAM_PATTERN.matcher(sql);
-        Matcher matcher4 = INSERT_LOADTABLE_WITHOUT_PARAM_PATTERN.matcher(sql);
-        if(matcher1.find()) {
-            return InsertType.INSERT;
-        }
-        else if(matcher2.find()) {
-            return InsertType.INSERT_WITH_COLUMN;
-        }
-        else if(matcher3.find()) {
-            return InsertType.INSERT_LOADTABLE_WITH_COLUMN;
-        }
-        else if(matcher4.find()){
-            return InsertType.INSERT_LOADTABLE_WITHOUT_COLUMN;
-        } else {
-            throw new SQLException("check the SQL " + sql);
-        }
-    }
-
     public static String getInsertColumnString(String sql) {
-        Pattern pattern = Pattern.compile(Utils.INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + Utils.VALUE_STRING);
+        Pattern pattern = Pattern.compile(Utils.INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + Utils.VALUE_WITH_QUESTION_STRING);
         Matcher matcher = pattern.matcher(sql);
         if (matcher.find()) {
             String columnParam = matcher.group(7);
@@ -707,7 +677,7 @@ public class Utils {
     }
 
     public static String getInsertValueQuestionString(String sql) {
-        Pattern pattern = Pattern.compile(Utils.INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + Utils.VALUE_STRING);
+        Pattern pattern = Pattern.compile(Utils.INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + Utils.VALUE_WITH_QUESTION_STRING);
         Matcher matcher = pattern.matcher(sql);
         if (matcher.find()) {
             String columnParam = matcher.group(9);
