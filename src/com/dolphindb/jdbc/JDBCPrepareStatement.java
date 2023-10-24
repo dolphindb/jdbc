@@ -97,7 +97,12 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				throw new SQLException("the index of columnBindValues is out of range");
 			Vector column = this.columnBindValues.get(index).getBindValues();
 			try {
-				column.Append((Scalar) BasicEntityFactory.createScalar(column.getDataType(), obj, this.columnBindValues.get(index).getScale()));
+				Entity data = BasicEntityFactory.createScalar(column.getDataType(), obj, this.columnBindValues.get(index).getScale());
+				if (data.isScalar()) {
+					column.Append((Scalar)data);
+				}else{
+					column.Append((Vector) data);
+				}
 			}catch (Exception e){
 				throw new SQLException(e);
 			}
@@ -652,4 +657,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 		return stringBuilder.toString();
 	}
+
+
 }
