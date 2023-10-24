@@ -162,7 +162,7 @@ public class JDBCStatement implements Statement {
         	sql = sql.substring(0, sql.length() - 1);
         String[] strings = sql.split(";");
         String lastStatement = strings[strings.length - 1].trim();
-        String tableName = Utils.getTableName(lastStatement);
+        String tableName = Utils.getTableName(lastStatement, false);
         int dml = Utils.getDml(lastStatement);
 
         String tableType;
