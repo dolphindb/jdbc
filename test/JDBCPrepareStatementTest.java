@@ -3,12 +3,11 @@ import com.dolphindb.jdbc.TypeCast;
 import com.xxdb.DBConnection;
 import com.xxdb.data.*;
 //import java.util.Date;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
+import org.junit.*;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -2006,7 +2005,7 @@ public class JDBCPrepareStatementTest {
     public void test_PreparedStatement_insert_into_Int_2() throws SQLException {
         createPartitionTable("INT");
         stm.execute("pt=loadTable('dfs://test_append_type','pt')");
-        PreparedStatement ps = conn.prepareStatement("INSERT inTO pt Values(?,?)");
+        PreparedStatement ps = conn.prepareStatement("INSERt inTO pt Values(?,?)");
         ps.setInt(1,1);
         ps.setInt(2,100);
         ps.addBatch();
@@ -2053,6 +2052,24 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_Int_5() throws SQLException {
+        createPartitionTable("INT");
+        PreparedStatement ps = conn.prepareStatement("inSERT iNto loadTable('dfs://test_append_type','pt') ValUes(?,?)");
+        ps.setInt(1,1);
+        ps.setInt(2,100);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.INTEGER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
         rs.next();
         org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
         rs.next();
@@ -3831,20 +3848,458 @@ public class JDBCPrepareStatementTest {
         String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
-        BasicBooleanVector tmp_bool = new BasicBooleanVector(new boolean[]{true,true,false,false,false,true,true,false,true});
-        ps.setObject(2,tmp_bool);
+        ps.setObject(2,new boolean[]{true,true,false});
         ps.addBatch();
         ps.setInt(1,2);
         ps.setNull(2,Types.BOOLEAN);
         ps.addBatch();
+        ps.setInt(1,3);
+        ps.setObject(2,new Boolean[]{true,false});
+        ps.addBatch();
         ps.executeBatch();
-        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        rs.next();
-        org.junit.Assert.assertEquals(rs.getObject(2).toString(), true);
-        rs.next();
-        rs.getBoolean("dataType");
-        org.junit.Assert.assertTrue(rs.wasNull());
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[true,true,false]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        Assert.assertEquals("[true,false]",re1.getColumn(1).get(2).getString());
     }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_CHAR() throws SQLException, IOException {
+        createPartitionTable_Array("CHAR");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new byte[]{'A','F'});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.CHAR);
+        ps.addBatch();
+        ps.setInt(1,3);
+        ps.setObject(2,new Byte[]{'A','C'});
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("['A','F']",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        Assert.assertEquals("['A','C']",re1.getColumn(1).get(2).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_SHORT() throws SQLException, IOException {
+        createPartitionTable_Array("SHORT");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new short[]{(short)555,(short)-1,0});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.CHAR);
+        ps.addBatch();
+        ps.setInt(1,3);
+        ps.setObject(2,new Short[]{(short)1555,(short)-111,0});
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[555,-1,0]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        Assert.assertEquals("[1555,-111,0]",re1.getColumn(1).get(2).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_INT() throws SQLException, IOException {
+        createPartitionTable_Array("INT");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new int[]{12121,-11111,0});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.CHAR);
+        ps.addBatch();
+        ps.setInt(1,3);
+        ps.setObject(2,new Integer[]{-12121,0,11111});
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[12121,-11111,0]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        Assert.assertEquals("[-12121,0,11111]",re1.getColumn(1).get(2).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_LONG() throws SQLException, IOException {
+        createPartitionTable_Array("LONG");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new long[]{(long)1233,(long)-1233,(long)0});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.CHAR);
+        ps.addBatch();
+        ps.setInt(1,3);
+        ps.setObject(2,new Long[]{(long)-133,(long)13003,(long)0});
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[1233,-1233,0]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        Assert.assertEquals("[-133,13003,0]",re1.getColumn(1).get(2).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_DATE() throws SQLException, IOException {
+        createPartitionTable_Array("DATE");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new java.util.Date[]{Date.valueOf(LocalDate.of(2008,1,12)),Date.valueOf(LocalDate.of(1969,1,1))});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.DATE);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[2008.01.12,1969.01.01]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_MONTH() throws SQLException, IOException {
+        createPartitionTable_Array("MONTH");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new LocalDate[]{LocalDate.of(1969,1,10),LocalDate.of(2021,1,10)});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[1969.01M,2021.01M]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_TIME() throws SQLException, IOException {
+        createPartitionTable_Array("TIME");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new Time[]{Time.valueOf(LocalTime.of(1,1,1)),Time.valueOf(LocalTime.of(23,59,59))});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.TIME);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[01:01:01.000,23:59:59.000]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_MINUTE() throws SQLException, IOException {
+        createPartitionTable_Array("MINUTE");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new LocalTime[]{LocalTime.of(0,1),LocalTime.of(23,59)});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[00:01m,23:59m]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_SECOND() throws SQLException, IOException {
+        createPartitionTable_Array("SECOND");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new LocalTime[]{LocalTime.of(1,1,1),LocalTime.of(23,59,59)});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[01:01:01,23:59:59]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_DATETIME() throws SQLException, IOException {
+        createPartitionTable_Array("DATETIME");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new LocalDateTime[]{LocalDateTime.of(2038,1,1,1,1,1),LocalDateTime.of(1969,12,31,23,59,59)});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[2038.01.01T01:01:01,1969.12.31T23:59:59]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_TIMESTAMP() throws SQLException, IOException {
+        createPartitionTable_Array("TIMESTAMP");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new LocalDateTime[]{LocalDateTime.of(2030,12,31,23,59,59,999999999),LocalDateTime.of(1969,1,1,1,1,1,001)});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[2030.12.31T23:59:59.999,1969.01.01T01:01:01.000]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_NANOTIME() throws SQLException, IOException {
+        createPartitionTable_Array("NANOTIME");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new LocalDateTime[]{LocalDateTime.of(2030,12,31,23,59,59,999999999),LocalDateTime.of(1969,1,1,1,1,1,001)});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[23:59:59.999999999,01:01:01.000000001]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_NANOTIMESTAMP() throws SQLException, IOException {
+        createPartitionTable_Array("NANOTIMESTAMP");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new LocalDateTime[]{LocalDateTime.of(2030,12,31,23,59,59,999999999),LocalDateTime.of(1969,1,1,1,1,1,001)});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[2030.12.31T23:59:59.999999999,1969.01.01T01:01:01.000000001]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_FLOAT() throws SQLException, IOException {
+        createPartitionTable_Array("FLOAT");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new float[]{(float)11.11,(float)-343411.11,0});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.FLOAT);
+        ps.addBatch();
+        ps.setInt(1,3);
+        ps.setObject(2,new Float[]{(float)11.11,(float)-34411.11, Float.valueOf(0)});
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[11.10999966,-343411.125,0]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        Assert.assertEquals("[11.10999966,-34411.109375,0]",re1.getColumn(1).get(2).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_DOUBLE() throws SQLException, IOException {
+        createPartitionTable_Array("DOUBLE");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new double[]{11.11,-343411.11,0});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.DOUBLE);
+        ps.addBatch();
+        ps.setInt(1,3);
+        ps.setObject(2,new Double[]{11.11,-34341.11, Double.valueOf(0)});
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[11.11,-343411.11,0]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        Assert.assertEquals("[11.11,-34341.11,0]",re1.getColumn(1).get(2).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_UUID() throws SQLException, IOException {
+        createPartitionTable_Array("UUID");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+//        ps.setObject(2,new UUID[]{UUID.fromString("00000000-0000-0001-0000-000000000002")});
+        ps.setObject(2,new String[]{"00000000-0000-0001-0000-000000000002"});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[00000000-0000-0001-0000-000000000002]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_DATEHOUR() throws SQLException, IOException {
+        createPartitionTable_Array("DATEHOUR");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new LocalDateTime[]{LocalDateTime.of(1967,1,1,1,1,1,123456),LocalDateTime.of(2099,1,1,1,1,1,123456)});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[1967.01.01T01,2099.01.01T01]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_IPADDR() throws SQLException, IOException {
+        createPartitionTable_Array("IPADDR");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new String[]{"0::1:0:0:0:2","11::222:0:0:0:109"});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0::1:0:0:0:2,11::222:0:0:0:109]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[0.0.0.0]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_INT128() throws SQLException, IOException {
+        createPartitionTable_Array("INT128");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new String[]{"00000000000000010000000000000002","e1671797c52e15f763380b45e841ec32"});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[00000000000000010000000000000002,e1671797c52e15f763380b45e841ec32]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Ignore//NOT SUPPORT JAVAOS-147
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_COMPLEX() throws SQLException, IOException {
+        createPartitionTable_Array("COMPLEX");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new String[]{"1.0+2.0i","11111.0+22222.0i"});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[1.0+2.0i,11111.0+22222.0i]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Ignore//NOT SUPPORT JAVAOS-147
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_POINT() throws SQLException, IOException {
+        createPartitionTable_Array("POINT");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new String[]{"(0.0, 0.0)","(0.0, 0.0)"});
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("['(0.0, 0.0)','(0.0, 0.0)']",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_DECIMAL32() throws SQLException, IOException {
+        createPartitionTable_Array("DECIMAL32(5)");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+//        ps.setObject(2,new BigDecimal[]{new BigDecimal(1.11),new BigDecimal(-1.11)},37,4);
+        ps.setObject(2,new Double[] {0.0,-123.00432,132.204234,100.0},37,2);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_DECIMAL64() throws SQLException, IOException {
+        createPartitionTable_Array("DECIMAL64(5)");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new Double[] {0.0,-123.00432,132.204234,100.0},38,4);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_DECIMAL128() throws SQLException, IOException {
+        createPartitionTable_Array("DECIMAL128(5)");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new String[] {"0.0","-123.00432","132.204234","100.0"},39,4);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+
     @Test
     public void test_PreparedStatement_insert_into_DFS_arrayVector_not_support_1() throws SQLException {
         createPartitionTable_Array("INT");
