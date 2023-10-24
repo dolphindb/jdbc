@@ -14,7 +14,7 @@ import java.util.*;
 import java.util.Set;
 
 public class JDBCPrepareStatement extends JDBCStatement implements PreparedStatement {
-	private String sql;
+	private String sqlParam;
 	private String tableName = null;
 	private final int sqlDmlType;
 	private List<ColumnBindValue> columnBindValues;
@@ -30,18 +30,18 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		super(conn);
 		this.batchSize = 0;
 		this.connection = conn;
-		this.sql = processSql(sql);
-		String[] sqlSplit = sql.split(";");
-		this.sql = sqlSplit[sqlSplit.length - 1].trim();
-		this.sqlDmlType = Utils.getDml(sql);
+		this.sqlParam = processSql(sql);
+		String[] sqlSplit = sqlParam.split(";");
+		this.sqlParam = sqlSplit[sqlSplit.length - 1].trim();
+		this.sqlDmlType = Utils.getDml(sqlParam);
 		this.sqlBuffer = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
 		if (this.sqlDmlType == Utils.DML_INSERT) {
-			this.tableName = Utils.getTableName(sql, true);
+			this.tableName = Utils.getTableName(sqlParam, true);
 			initColumnBindValues(this.tableName);
-			Utils.checkInsertSQLValid(sql, columnBindValues.size());
+			Utils.checkInsertSQLValid(sqlParam, columnBindValues.size());
 
-			Map<String, Integer> columnParamInSql = Utils.getInsertColumnParamInSql(sql);
+			Map<String, Integer> columnParamInSql = Utils.getInsertColumnParamInSql(sqlParam);
 			for(ColumnBindValue value : columnBindValues){
 				String colName = value.getColName();
 				if(columnParamInSql.containsKey(colName)){
@@ -57,8 +57,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			this.bufferArea = new BindValue[this.columnBindValues.size()];
 		} else {
 			int size = 0;
-			for (int i = 0; i < sql.length(); i++) {
-				char ch = sql.charAt(i);
+			for (int i = 0; i < sqlParam.length(); i++) {
+				char ch = sqlParam.charAt(i);
 				if(ch == '?')
 					size++;
 			}
@@ -621,7 +621,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public void close() throws SQLException {
 		super.close();
 		this.columnBindValues = null;
-		this.sql = null;
+		this.sqlParam = null;
 		this.bufferArea = null;
 		this.tableTypeCache = null;
 	}
@@ -639,7 +639,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private String generateSQL() throws SQLException {
-		String[] sqlSplitByQuestionMark = this.sql.split("\\?");
+		String[] sqlSplitByQuestionMark = this.sqlParam.split("\\?");
 		StringBuilder stringBuilder = new StringBuilder();
 		if(this.bufferArea.length > sqlSplitByQuestionMark.length)
 			throw new SQLException("error size of bufferArea. ");

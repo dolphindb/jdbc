@@ -18,7 +18,7 @@ public class Utils {
     public static final int DML_DELETE = 3;
     public static final int DML_EXEC = 4;
 
-    static String INSERT_STRING = "(INSERT|insert)\\s+(INTO|into)\\s+";
+    static String INSERT_STRING = "(insert)\\s+(into)\\s+";
 
     static String MEM_TABLE_NAME = "([a-zA-Z]{1}[a-zA-Z\\d_]*)";
 
@@ -26,22 +26,22 @@ public class Utils {
 
     static String TABLE_NAME_STRING = MEM_TABLE_NAME + "|" + LOAD_TABLE_NAME;
 
-    static String VALUE_WITH_QUESTION_STRING= "\\s+(VALUES|values)\\s*\\(([\\s?,]+)\\)";
+    static String VALUE_WITH_QUESTION_STRING= "\\s+(values)\\s*\\(([\\s?,]+)\\)";
 
-    static String VALUE_STRING = "\\s+(VALUES|values)\\s*\\((.+)\\)";
+    static String VALUE_STRING = "\\s+(values)\\s*\\((.+)\\)";
 
     static String COLNAME_STRING = "\\s*\\([a-zA-Z\\d_\\,\\s]+?\\)";
 
-    static String DELETE_STRING = "(DELETE|delete)|\\s+((?i)from)\\s+";
+    static String DELETE_STRING = "(delete)|\\s+((?i)from)\\s+";
 
-    static String DELETE_WHERE_STRING = "\\s+((WHERE|where)\\s+(.+=.+)+)?";
+    static String DELETE_WHERE_STRING = "\\s+((where)\\s+(.+=.+)+)?";
 
     static String INSERT_TABLE_NAME_COLUMN_STRING = "(" + LOAD_TABLE_NAME + "*" + MEM_TABLE_NAME + "*" + ")\\s*(\\((.+?)\\))*";
 
     public static final Pattern DELETE_PATTERN  = Pattern.compile( DELETE_STRING + MEM_TABLE_NAME + DELETE_WHERE_STRING);
 
     public static final Pattern DELETE_LOADTABLE_PATTERN = Pattern.compile(DELETE_STRING + LOAD_TABLE_NAME + DELETE_WHERE_STRING);
-    public static final Pattern UPDATE_PATTERN = Pattern.compile("update|UPDATE\\s+[a-zA-Z]{1}[a-zA-Z\\d_]*\\s+set|(SET)\\s+(.+=.+)+(\\s+where|WHERE\\s+(.+=.+)+)?");
+    public static final Pattern UPDATE_PATTERN = Pattern.compile("update\\s+[a-zA-Z]{1}[a-zA-Z\\d_]*\\s+set\\s+(.+=.+)+(\\s+where\\s+(.+=.+)+)?");
 
     public static final Pattern ASSIGN_PATTERN = Pattern.compile("[a-zA-Z]{1}[a-zA-Z\\d_]*[\\s]*=");
     public static Set<String> sqlWareHouse = new HashSet<>();
