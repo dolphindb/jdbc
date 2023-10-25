@@ -746,8 +746,10 @@ public class Utils {
             case "DECIMAL128":
                 return Types.DECIMAL;
             case "STRING":
-            case "BLOB":
+            case "SYMBOL":
                 return Types.VARCHAR;
+            case "BLOB":
+                return Types.BLOB;
             default:
                 return Types.OTHER;
         }
