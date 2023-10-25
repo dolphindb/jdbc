@@ -3589,7 +3589,7 @@ public class JDBCPrepareStatementTest {
         createPartitionTable1();
         long start = System.nanoTime();
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-        for(int i =1;i<=10000;i++) {
+        for(int i =1;i<=100000;i++) {
             ps.setInt(1, i);
             ps.setBoolean(2, true);
             ps.setByte(3, (byte) 12);
@@ -3639,7 +3639,7 @@ public class JDBCPrepareStatementTest {
         System.out.println("耗费时间："+ ((end - start) / 1000000000.0) + "秒");
         JDBCResultSet rs1 = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
         BasicTable bt = (BasicTable) rs1.getResult();
-        System.out.println("数据量:"+bt.rows());
+        org.junit.Assert.assertEquals(100000, bt.rows());
         ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
         while (rs.next()) {
             org.junit.Assert.assertEquals(rs.getBoolean("col2"), true);
@@ -3671,6 +3671,24 @@ public class JDBCPrepareStatementTest {
             org.junit.Assert.assertEquals("123421.0001200",rs.getObject("col28").toString());
             org.junit.Assert.assertEquals("123421.0001200000000000000",rs.getObject("col29").toString());
         }
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_memoryTable() throws SQLException {
+        stm.execute("pt=table(1:0,`col1`dataType,[INT,INT])");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
+        ps.setInt(1,1);
+        ps.setInt(2,100);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.INTEGER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
     }
     @Test
     public void test_PreparedStatement_insert_into_dimension_all_dateType() throws SQLException {
