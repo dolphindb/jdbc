@@ -4690,6 +4690,24 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals(1,bt4.rows());
     }
     @Test
+    public void test_PreparedStatement_delete_keyword_case_mixing() throws SQLException, IOException {
+        createPartitionTable_insert();
+        PreparedStatement ps1 = conn.prepareStatement("dElete frOm loadTable('dfs://test_append_type_tsdb1','pt') WHEre col3 = ?");
+        ps1.setByte(1, (byte) 'a');
+        ps1.executeUpdate();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        System.out.println(bt1.rows());
+        org.junit.Assert.assertEquals(1,bt1.rows());
+        PreparedStatement ps2 = conn.prepareStatement("\nDELETE\n FROM \n\n\n\nloadTable('dfs://test_append_type_tsdb1','pt')\nWHERE\n\ncol3 =\n ?");
+        ps2.setNull(1,Types.CHAR);
+        ps2.executeUpdate();
+        JDBCResultSet rs2 = (JDBCResultSet)ps2.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        BasicTable bt2 = (BasicTable) rs2.getResult();
+        System.out.println(bt2.rows());
+        org.junit.Assert.assertEquals(0,bt2.rows());
+    }
+    @Test
     public void test_PreparedStatement_delete_char() throws SQLException, IOException {
         createPartitionTable_insert();
         PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col3 = ?");
