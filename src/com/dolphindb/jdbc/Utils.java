@@ -718,10 +718,11 @@ public class Utils {
     }
 
     public static int transferColDefsTypesToSqlTypes(String type) {
+        type = type.replaceAll("\\(.*?\\)", "");
         switch (type){
             case "BOOL":
                 return Types.BOOLEAN;
-            case "BYTE":
+            case "CHAR":
                 return Types.CHAR;
             case "SHORT":
                 return Types.TINYINT;
@@ -748,7 +749,7 @@ public class Utils {
             case "BLOB":
                 return Types.VARCHAR;
             default:
-                return Types.VARCHAR;
+                return Types.OTHER;
         }
     }
 }
