@@ -146,7 +146,6 @@ public class JDBCPrepareStatementTest {
             }
             return success;
         }
-
     }
     public static boolean createPartitionTable_insert() {
         boolean success = false;
