@@ -120,31 +120,18 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public int[] executeBatch() throws SQLException {
-		switch (this.sqlDmlType){
-			case Utils.DML_INSERT:
-				return tableAppend();
+		if (this.sqlDmlType == Utils.DML_INSERT){
+			return tableAppend();
 		}
 		int[] executeRes = new int[this.batchSize];
 		try {
 			for (int i = 0; i < this.batchSize; i++){
-				switch (this.sqlDmlType){
-					case Utils.DML_UPDATE:
-					case Utils.DML_DELETE:
+				try {
 						executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
-						break;
-					case Utils.DML_SELECT:
-					case Utils.DML_EXEC:
-						throw new SQLException("can not produces ResultSet");
-					default:
-						Entity entity = connection.run(sqlBuffer.get(i));
-						if (entity instanceof BasicTable)
-							throw new SQLException("can not produces ResultSet");
-						executeRes[i] = 0;
-						sqlBuffer.clear();
+					} catch (Exception e) {
+					throw new BatchUpdateException(e.getMessage(), Arrays.copyOf(executeRes, i));
 				}
 			}
-		} catch (Exception e){
-			throw new SQLException(e);
 		} finally {
 			sqlBuffer.clear();
 		}
@@ -225,28 +212,20 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public int executeUpdate() throws SQLException {
 		try {
 			flushBufferArea(false);
-			switch (this.sqlDmlType) {
-				case Utils.DML_INSERT:
-					 tableAppend();
-					 return 0;
-				case Utils.DML_UPDATE:
-				case Utils.DML_DELETE:
-					String sql = sqlBuffer.get(0);
-					sqlBuffer.clear();
-					connection.run(sql);
+			if (this.sqlDmlType == Utils.DML_INSERT) {
+				int[] ret = tableAppend();
+				if (ret[0] == SUCCESS_NO_INFO) {
+					return 1;
+				} else {
 					return 0;
-				case Utils.DML_SELECT:
-				case Utils.DML_EXEC:
-					throw new SQLException("can not produces ResultSet");
-				default:
-					Entity entity = connection.run(sqlBuffer.get(0));
-					sqlBuffer.clear();
-					if (entity instanceof BasicTable)
-						throw new SQLException("can not produces ResultSet");
-					return 0;
+				}
+			} else {
+				return super.executeUpdate(sqlBuffer.get(0));
 			}
-		} catch (Exception e ) {
+		} catch (Exception e) {
 			throw new SQLException(e);
+		} finally {
+			sqlBuffer.clear();
 		}
 	}
 
