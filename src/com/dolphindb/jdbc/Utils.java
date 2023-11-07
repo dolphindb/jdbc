@@ -180,43 +180,43 @@ public class Utils {
         }
         return properties;
     }
+
     private static boolean startsWith(String sentence,String key){
         if(sentence.length()<key.length())
             return false;
         String substr=sentence.substring(0,key.length());
         return substr.compareToIgnoreCase(key)==0;
     }
-    public static int getDml(String sql){
-        if(startsWith(sql,"select") || startsWith(sql,"SELECT") ){
+
+    public static int getDml(String sql) {
+        if (startsWith(sql,"select") || startsWith(sql,"SELECT"))
             return DML_SELECT;
-        }else if(sql.startsWith("insert") || sql.startsWith("INSERT")){
+        else if(sql.startsWith("insert") || sql.startsWith("INSERT"))
             return DML_INSERT;
-        }else if(sql.startsWith("update") || sql.startsWith("UPDATE")){
+        else if(sql.startsWith("update") || sql.startsWith("UPDATE"))
             return DML_UPDATE;
-        }else if(sql.startsWith("delete") || sql.startsWith("DELETE")) {
+        else if(sql.startsWith("delete") || sql.startsWith("DELETE"))
             return DML_DELETE;
-        }else if(sql.startsWith("exec") || sql.startsWith("EXEC")){
+        else if(sql.startsWith("exec") || sql.startsWith("EXEC"))
             return DML_EXEC;
-        }else{
+        else
             return DML_OTHER;
-        }
     }
 
     public static String getTableName(String sql, boolean isPrepareStatement) throws SQLException{
         String tableName = null;
-        if(sql.startsWith("insert") || sql.startsWith("INSERT")){
+        if (sql.startsWith("insert") || sql.startsWith("INSERT")) {
             String checkString = INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + (isPrepareStatement ? VALUE_WITH_QUESTION_STRING : VALUE_STRING);
             Pattern pattern = Pattern.compile(checkString);
             Matcher matcher = pattern.matcher(sql);
-            if(matcher.find()){
+            if (matcher.find()) {
                 tableName = matcher.group(3);
-                if(tableName != null && !tableName.isEmpty()){
+                if (tableName != null && !tableName.isEmpty())
                     return tableName;
-                }else{
-                    throw new SQLException("check the SQl " + sql);
-                }
-            }else {
-                throw new SQLException("check the SQl " + sql);
+                else
+                    throw new SQLException("Please check your SQL format: " + sql);
+            } else {
+                throw new SQLException("Please check your SQL format: " + sql);
             }
 
         }else if(sql.startsWith("tableInsert")){
@@ -693,11 +693,11 @@ public class Utils {
         String columnParam = getInsertColumnString(sql);
         if (!columnParam.isEmpty()) {
             String[] columnParams = columnParam.split(",");
-            for (int i = 0; i < columnParams.length; i++) {
+            for (int i = 0; i < columnParams.length; i++)
                 map.put(columnParams[i].trim(), i);
-            }
+
             return map;
-        }else{
+        } else {
             return map;
         }
     }

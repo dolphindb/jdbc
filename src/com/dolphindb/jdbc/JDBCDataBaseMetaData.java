@@ -7,6 +7,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
@@ -111,9 +112,9 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             throw new SQLException("The param 'tableNamePattern' cannot be null.");
 
         BasicTable colDefs = null;
-        // 1、get columns origin meta data.
+        // get columns origin meta data.
         colDefs = getColumnsOriginMetaData(catalog, schemaPattern, tableNamePattern, columnNamePattern);
-        // 2、assemble some columns' data
+        // reassemble some columns' data.
         assembleColumnsMetaData(colDefs, catalog, tableNamePattern, columnNamePattern);
 
         return new JDBCResultSet(connection,statement, colDefs,"");
@@ -185,7 +186,6 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
     }
 
     private void assembleColumnsMetaData(BasicTable colDefs, String catalog, String tableNamePattern, String columnNamePattern) {
-        // set 'IS_NULLABLE'
         List<String> columnIndexList = new ArrayList<>();
         try {
             BasicDictionary schema = null;
@@ -256,7 +256,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             colDefs.addColumn("ORDINAL_POSITION", posColVector);
         }
 
-        // transfer 'DATA_TYPE' value
+        // transfer 'DATA_TYPE' to java.sql.Types
         try {
             BasicStringVector typeStringColumn = (BasicStringVector) colDefs.getColumn(1);
             BasicIntVector typeIntColumn = (BasicIntVector) colDefs.getColumn(2);
@@ -580,9 +580,8 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     String dfsTableHandle = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); handle;";
                     connection.run(dfsTableHandle);
                     String[] values = {catalog, tableNamePattern, null, "TABLE", null};
-                    for (String value : values) {
+                    for (String value : values)
                         cols.add(new BasicStringVector(new String[]{value}));
-                    }
                 } else {
                     // not specify tableName for dfs table
                     String script = "handle=database(\"" + catalog + "\"); getTables(handle);";
@@ -599,9 +598,9 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
                     for (int j = 0; j < valuesList.get(0).length; j++) {
                         List<String> columnValues = new ArrayList<>();
-                        for (String[] values : valuesList) {
+                        for (String[] values : valuesList)
                             columnValues.add(values[j]);
-                        }
+
                         cols.add(new BasicStringVector(columnValues));
                     }
                 }
@@ -660,12 +659,9 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     }
                 }
 
-
-                cols.add(new BasicStringVector(tableCatVal));
-                cols.add(new BasicStringVector(tableNameVal));
-                cols.add(new BasicStringVector(tableSchemVal));
-                cols.add(new BasicStringVector(tableTypeVal));
-                cols.add(new BasicStringVector(remarksVal));
+                Stream.of(tableCatVal, tableNameVal, tableSchemVal, tableTypeVal, remarksVal)
+                        .map(BasicStringVector::new)
+                        .forEach(cols::add);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -673,11 +669,9 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             // memory table
             try {
                 BasicTable memTable = (BasicTable) connection.run(tableNamePattern + ";");
-                cols.add(new BasicStringVector(new String[]{null}));
-                cols.add(new BasicStringVector(new String[]{tableNamePattern}));
-                cols.add(new BasicStringVector(new String[]{null}));
-                cols.add(new BasicStringVector(new String[]{"TABLE"}));
-                cols.add(new BasicStringVector(new String[]{null}));
+                Stream.of(new String[]{null}, new String[]{tableNamePattern}, new String[]{null}, new String[]{"TABLE"}, new String[]{null})
+                        .map(BasicStringVector::new)
+                        .forEach(cols::add);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

@@ -28,9 +28,9 @@ public class JDBCStatement implements Statement {
 
     public JDBCStatement(JDBCConnection cnn){
         this.connection = cnn;
-        objectQueue = new LinkedList<>();
-        resultSets = new LinkedList<>();
-        batch = new StringBuilder();
+        this.objectQueue = new LinkedList<>();
+        this.resultSets = new LinkedList<>();
+        this.batch = new StringBuilder();
     }
 
     @Override
