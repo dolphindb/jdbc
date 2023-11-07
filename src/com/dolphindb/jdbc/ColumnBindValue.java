@@ -9,22 +9,32 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ColumnBindValue implements Comparable<ColumnBindValue> {
-	/* current column index */
+	/**
+	 *  current column index
+	 */
 	private int index;
 
-	/* current column name */
+	/**
+	 * current column name
+	 */
 	private String colName;
 
-	/* current column type */
+	/**
+	 * current column type
+	 */
 	private Entity.DATA_TYPE type;
 
-	/* values would be inserted */
+	/**
+	 * actual values would be inserted
+	 */
 	private Vector bindValues;
 
 //	/** has this parameter been set? */
 //	private boolean isSet;  // check by bindValues size
 
-	/** scale of Decimal */
+	/**
+	 * scale of Decimal
+	 */
 	private int scale = 0;
 
 	public ColumnBindValue(int index, String colName, Entity.DATA_TYPE type, int scale) {
@@ -32,11 +42,10 @@ public class ColumnBindValue implements Comparable<ColumnBindValue> {
 		this.colName = colName;
 		this.type = type;
 		this.scale = scale;
-		if (type.getValue() >= 65){
+		if (type.getValue() >= 65)
 			this.bindValues = new BasicArrayVector(type, 0, scale);
-		} else {
+		else
 			this.bindValues = BasicEntityFactory.instance().createVectorWithDefaultValue(type, 0, scale);
-		}
 	}
 
 	int getIndex() {
@@ -55,7 +64,7 @@ public class ColumnBindValue implements Comparable<ColumnBindValue> {
 		return type;
 	}
 
-	void clear(){
+	void clear() {
 		if (type.getValue() >= 65){
 			this.bindValues = new BasicArrayVector(type, 0, scale);
 		} else {
@@ -99,7 +108,9 @@ public class ColumnBindValue implements Comparable<ColumnBindValue> {
 
 
 class BindValue {
-	/** The value to store */
+	/**
+	 * The value to store
+	 */
 	private Object value;
 
 	private boolean isNull;
@@ -119,6 +130,6 @@ class BindValue {
 
 
 	public boolean isNull() {
-		return isNull;
+		return this.isNull;
 	}
 }

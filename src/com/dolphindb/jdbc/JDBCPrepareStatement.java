@@ -11,54 +11,52 @@ import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
 import java.util.*;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 public class JDBCPrepareStatement extends JDBCStatement implements PreparedStatement {
-	private String sqlParam;
+	private String preProcessedSql;
 	private String tableName = null;
 	private final int sqlDmlType;
 	private List<ColumnBindValue> columnBindValues;
-
 	private Map<Integer, Integer> insertIndexSQLToDDB;
-
 	private BindValue[] bufferArea;
-	String tableTypeCache;
+	private String tableTypeCache;
 	private int batchSize;
-	List<String> sqlBuffer;
+	private List<String> sqlBuffer;
 
 	public JDBCPrepareStatement(JDBCConnection conn, String sql) throws SQLException {
 		super(conn);
 		this.batchSize = 0;
 		this.connection = conn;
-		this.sqlParam = processSql(sql);
-		String[] sqlSplit = sqlParam.split(";");
-		this.sqlParam = sqlSplit[sqlSplit.length - 1].trim();
-		this.sqlDmlType = Utils.getDml(sqlParam);
+		this.preProcessedSql = preProcessSql(sql);
+		String[] sqlSplit = preProcessedSql.split(";");
+		this.preProcessedSql = sqlSplit[sqlSplit.length - 1].trim();
+		this.sqlDmlType = Utils.getDml(preProcessedSql);
 		this.sqlBuffer = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
 		if (this.sqlDmlType == Utils.DML_INSERT) {
-			this.tableName = Utils.getTableName(sqlParam, true);
+			this.tableName = Utils.getTableName(preProcessedSql, true);
 			initColumnBindValues(this.tableName);
-			Utils.checkInsertSQLValid(sqlParam, columnBindValues.size());
+			Utils.checkInsertSQLValid(preProcessedSql, columnBindValues.size());
 
-			Map<String, Integer> columnParamInSql = Utils.getInsertColumnParamInSql(sqlParam);
+			Map<String, Integer> columnParamInSql = Utils.getInsertColumnParamInSql(preProcessedSql);
 			for(ColumnBindValue value : columnBindValues){
 				String colName = value.getColName();
-				if(columnParamInSql.containsKey(colName)){
+				if (columnParamInSql.containsKey(colName)) {
 					insertIndexSQLToDDB.put(columnParamInSql.get(colName), value.getIndex());
 					columnParamInSql.remove(colName);
 				}
 			}
-			if(columnParamInSql.size() != 0){
+			if (columnParamInSql.size() != 0) {
 				for (String key : columnParamInSql.keySet())
-					throw new SQLException("the column name " + key + " does not exist in table. ");
+					throw new SQLException("The column name " + key + " does not exist in table. ");
 			}
 
 			this.bufferArea = new BindValue[this.columnBindValues.size()];
 		} else {
 			int size = 0;
-			for (int i = 0; i < sqlParam.length(); i++) {
-				char ch = sqlParam.charAt(i);
+			for (int i = 0; i < preProcessedSql.length(); i++) {
+				char ch = preProcessedSql.charAt(i);
 				if(ch == '?')
 					size++;
 			}
@@ -82,7 +80,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					Entity.DATA_TYPE type = Entity.DATA_TYPE.valueOf(typeInt);
 					int extra = extraInt.getInt(i);
 					ColumnBindValue columnBindValue = new ColumnBindValue(i, colName, type, extra);
-					columnBindValues.add(columnBindValue);
+					this.columnBindValues.add(columnBindValue);
 				}
 			} catch (IOException e) {
 				throw new SQLException(e);
@@ -94,47 +92,49 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		if (this.sqlDmlType == Utils.DML_INSERT) {
 			int index = getDataIndexBySQLIndex(paramIndex);
 			if(index >= this.columnBindValues.size())
-				throw new SQLException("the index of columnBindValues is out of range");
+				throw new SQLException("The index of columnBindValues is out of range.");
+
 			Vector column = this.columnBindValues.get(index).getBindValues();
 			try {
 				Entity data = BasicEntityFactory.createScalar(column.getDataType(), obj, this.columnBindValues.get(index).getScale());
-				if (data.isScalar()) {
+				if (data.isScalar())
 					column.Append((Scalar)data);
-				}else{
+				else
 					column.Append((Vector) data);
-				}
-			}catch (Exception e){
+			} catch (Exception e) {
 				throw new SQLException(e);
 			}
-		} else
+		} else {
 			bufferArea[paramIndex - 1] = new BindValue(obj, false);
+		}
 	}
 
 	@Override
 	public void clearBatch() throws SQLException {
 		super.clearBatch();
-		batchSize = 0;
-		sqlBuffer.clear();
+		this.batchSize = 0;
+		this.sqlBuffer.clear();
 		clearParameters();
 	}
 
 	@Override
 	public int[] executeBatch() throws SQLException {
-		if (this.sqlDmlType == Utils.DML_INSERT){
+		if (this.sqlDmlType == Utils.DML_INSERT)
 			return tableAppend();
-		}
+
 		int[] executeRes = new int[this.batchSize];
 		try {
-			for (int i = 0; i < this.batchSize; i++){
+			for (int i = 0; i < this.batchSize; i++) {
 				try {
-						executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
-					} catch (Exception e) {
+					executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
+				} catch (Exception e) {
 					throw new BatchUpdateException(e.getMessage(), Arrays.copyOf(executeRes, i));
 				}
 			}
 		} finally {
 			sqlBuffer.clear();
 		}
+
 		return executeRes;
 	}
 
@@ -149,6 +149,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				throw new SQLException("paramIndex is out of range");
 			index = insertIndexSQLToDDB.get(index);
 		}
+
 		return index;
 	}
 
@@ -158,17 +159,18 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			Vector column = this.columnBindValues.get(index).getBindValues();
 			try {
 				int typeValue = column.getDataType().getValue();
-				if (typeValue < 65){
+				if (typeValue < 65) {
 					column.Append((Scalar)TypeCast.nullScalar(columnBindValues.get(index).getType()));
 				}else{
 					Vector tmp = BasicEntityFactory.instance().createVectorWithDefaultValue(Entity.DATA_TYPE.valueOf(typeValue - 64), 0, 0);
 					column.Append(tmp);
 				}
-			}catch (Exception e){
+			} catch (Exception e){
 				throw new SQLException(e);
 			}
-		} else
-			bufferArea[paramIndex - 1] = new BindValue(TypeCast.nullScalar(columnBindValues.get(index).getType()),false);
+		} else {
+			bufferArea[paramIndex - 1] = new BindValue(TypeCast.nullScalar(columnBindValues.get(index).getType()), false);
+		}
 	}
 
 	private void flushBufferArea(boolean isBatch) throws SQLException { //todo:rename
@@ -178,11 +180,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				if (column.getBindValues().rows() != batchSize) {
 					Vector columnCol = column.getBindValues();
 					try {
-						if (columnCol.getDataType().getValue() < 65) {
+						if (columnCol.getDataType().getValue() < 65)
 							columnCol.Append((Scalar) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
-						} else {
+						else
 							columnCol.Append((Vector) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
-						}
 					} catch (Exception e) {
 						throw new SQLException(e);
 					}
@@ -214,11 +215,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			flushBufferArea(false);
 			if (this.sqlDmlType == Utils.DML_INSERT) {
 				int[] ret = tableAppend();
-				if (ret[0] == SUCCESS_NO_INFO) {
+				if (ret[0] == SUCCESS_NO_INFO)
 					return 1;
-				} else {
+				else
 					return 0;
-				}
 			} else {
 				return super.executeUpdate(sqlBuffer.get(0));
 			}
@@ -239,30 +239,22 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		try {
 			int size = ((Scalar)connection.run("tableInsert{" + tableName + "}", param)).getNumber().intValue();
 			int[] value = new int[size];
-			if(arguments.get(0).rows() != size){
-				for(int i = 0; i < size; ++i){
-					value[i] = EXECUTE_FAILED;
-				}
-			}else{
-				for(int i = 0; i < size; ++i){
-					value[i] = SUCCESS_NO_INFO;
-				}
-			}
+			if (arguments.get(0).rows() != size)
+				Arrays.fill(value, EXECUTE_FAILED);
+			else
+				Arrays.fill(value, SUCCESS_NO_INFO);
 			return value;
 		} catch (Exception e) {
 			throw new SQLException(e);
-		}finally {
-			for (ColumnBindValue columnBindValue : columnBindValues) {
-				columnBindValue.clear();
-			}
+		} finally {
+			columnBindValues.forEach(ColumnBindValue::clear);
 		}
 	}
 
 	private List<Vector> createDFSArguments() {
-		List<Vector> arguments = new ArrayList<>();
-		for (ColumnBindValue columnBindValue : columnBindValues)
-			arguments.add(columnBindValue.getBindValues());
-		return arguments;
+		return columnBindValues.stream()
+				.map(ColumnBindValue::getBindValues)
+				.collect(Collectors.toList());
 	}
 
 	@Override
@@ -383,7 +375,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	@Override
 	public boolean execute() throws SQLException {
 		try {
-			switch (sqlDmlType){
+			switch (this.sqlDmlType){
 				case Utils.DML_SELECT:
 				case Utils.DML_EXEC: {
 					ResultSet resultSet_ = executeQuery();
@@ -421,7 +413,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void addBatch() throws SQLException {
-		batchSize++;
+		this.batchSize++;
 		flushBufferArea(true);
 	}
 
@@ -605,12 +597,12 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public void close() throws SQLException {
 		super.close();
 		this.columnBindValues = null;
-		this.sqlParam = null;
+		this.preProcessedSql = null;
 		this.bufferArea = null;
 		this.tableTypeCache = null;
 	}
 
-	private String processSql(String sql){
+	private String preProcessSql(String sql) {
 		sql = Utils.changeCase(sql);
 		sql = sql.trim();
 		while (sql.endsWith(";"))
@@ -623,19 +615,19 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private String generateSQL() throws SQLException {
-		String[] sqlSplitByQuestionMark = this.sqlParam.split("\\?");
+		String[] sqlSplitByQuestionMark = this.preProcessedSql.split("\\?");
 		StringBuilder stringBuilder = new StringBuilder();
 		if(this.bufferArea.length > sqlSplitByQuestionMark.length)
 			throw new SQLException("error size of bufferArea. ");
+
 		for (int i = 0; i < this.bufferArea.length; i++) {
 			if (this.bufferArea[i] == null || this.bufferArea[i].getValue() == null)
 				throw new SQLException("No value specified for parameter " + (i + 1));
+
 			stringBuilder.append(sqlSplitByQuestionMark[i]);
 			stringBuilder.append(TypeCast.castDbString(this.bufferArea[i].getValue()));
  		}
 
 		return stringBuilder.toString();
 	}
-
-
 }

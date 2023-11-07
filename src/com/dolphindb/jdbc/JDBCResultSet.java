@@ -42,7 +42,7 @@ public class JDBCResultSet implements ResultSet{
         this.statement = statement;
         if(entity.isTable()){
             this.table = (BasicTable) entity;
-            offsetRows = this.table.rows();
+            this.offsetRows = this.table.rows();
             findColumnHashMap = new HashMap<>(this.table.columns());
             for(int i=0; i<this.table.columns(); ++i){
                 findColumnHashMap.put(this.table.getColumnName(i),i+1);
@@ -66,7 +66,7 @@ public class JDBCResultSet implements ResultSet{
                 }
                 cols.add(vector);
                 this.table = new BasicTable(colNames,cols);
-                offsetRows = this.table.rows();
+                this.offsetRows = this.table.rows();
                 findColumnHashMap = new HashMap<>(this.table.columns());
                 for(int i=0; i<this.table.columns(); ++i){
                     findColumnHashMap.put(this.table.getColumnName(i),i+1);
@@ -199,7 +199,7 @@ public class JDBCResultSet implements ResultSet{
         }else{
             throw new SQLException("ResultSet data is null");
         }
-        offsetRows = this.table.rows();
+        this.offsetRows = this.table.rows();
         findColumnHashMap = new HashMap<>(this.table.columns());
         for(int i=0; i<this.table.columns(); ++i){
             findColumnHashMap.put(this.table.getColumnName(i),i+1);
@@ -219,7 +219,7 @@ public class JDBCResultSet implements ResultSet{
     public boolean next() throws SQLException {
         if (this.getFetchSize() != 0) {
             // When no segments of the large table have been read or when the number of rows read from a segment exceeds the limit, an attempt is made to read the next segment.
-            if(this.table == null || currentRow >= offsetRows - 1) {
+            if (this.table == null || this.currentRow >= this.offsetRows - 1) {
                 try {
                     if (!this.reader.hasNext())
                         return false;
@@ -228,11 +228,11 @@ public class JDBCResultSet implements ResultSet{
                     globalRows += tempTable.rows();
                     if ((this.maxRows != -1) && (this.globalRows > this.maxRows)) {
                         this.table = (BasicTable) tempTable.getSubTable(0, this.globalRows - this.maxRows - 1);
-                        offsetRows = this.globalRows - this.maxRows;
+                        this.offsetRows = this.globalRows - this.maxRows;
                         return false;
                     } else {
                         this.table = tempTable;
-                        offsetRows = this.table.rows();
+                        this.offsetRows = this.table.rows();
                     }
 
                     currentRow = -1;
@@ -244,7 +244,7 @@ public class JDBCResultSet implements ResultSet{
 
         checkClosed();
         currentRow++;
-        return currentRow <= offsetRows -1;
+        return currentRow <= this.offsetRows -1;
     }
 
     @Override
@@ -687,7 +687,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public boolean isAfterLast() throws SQLException {
-        return currentRow >= offsetRows;
+        return currentRow >= this.offsetRows;
     }
 
     @Override
@@ -697,7 +697,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public boolean isLast() throws SQLException {
-        return currentRow == offsetRows -1;
+        return currentRow == this.offsetRows -1;
     }
 
     @Override
@@ -707,19 +707,19 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void afterLast() throws SQLException {
-        currentRow = offsetRows;
+        currentRow = this.offsetRows;
     }
 
     @Override
     public boolean first() throws SQLException {
         currentRow = 0;
-        return offsetRows > 0;
+        return this.offsetRows > 0;
     }
 
     @Override
     public boolean last() throws SQLException {
-        currentRow = offsetRows - 1;
-        return offsetRows > 0;
+        currentRow = this.offsetRows - 1;
+        return this.offsetRows > 0;
     }
 
     @Override
@@ -732,14 +732,14 @@ public class JDBCResultSet implements ResultSet{
         if (columnIndex >= 0)
             currentRow = columnIndex - 1;
         else
-            currentRow = offsetRows + columnIndex;
-        return currentRow < offsetRows;
+            currentRow = this.offsetRows + columnIndex;
+        return currentRow < this.offsetRows;
     }
 
     @Override
     public boolean relative(int columnIndex) throws SQLException {
         currentRow += columnIndex;
-        return  currentRow >= 0 && currentRow < offsetRows;
+        return  currentRow >= 0 && currentRow < this.offsetRows;
     }
 
     @Override
@@ -996,7 +996,7 @@ public class JDBCResultSet implements ResultSet{
                 createArguments();
                 conn.run("tableInsert",arguments);
                 table = loadTable();
-                offsetRows = table.rows();
+                this.offsetRows = table.rows();
             }
             arguments.clear();
             insertRowMap.clear();
@@ -1013,7 +1013,7 @@ public class JDBCResultSet implements ResultSet{
         if(updateRow == currentRow){
             updateRun();
             table = loadTable();
-            offsetRows = table.rows();
+            this.offsetRows = table.rows();
         }
         insertRowMap.clear();
     }
@@ -1029,7 +1029,7 @@ public class JDBCResultSet implements ResultSet{
         String sql = sb.toString();
         run(sql);
         table = loadTable();
-        offsetRows = table.rows();
+        this.offsetRows = table.rows();
     }
 
     @Override
