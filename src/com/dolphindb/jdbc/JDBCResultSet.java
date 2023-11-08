@@ -121,7 +121,6 @@ public class JDBCResultSet implements ResultSet{
 
                 cols.add(vector);
                 this.table = new BasicTable(colNames, cols);
-                table.getSubTable(0, 3);
                 this.offsetRows = this.table.rows();
                 this.findColumnHashMap = new HashMap<>(this.table.columns());
                 for (int i=0; i<this.table.columns(); ++i)
