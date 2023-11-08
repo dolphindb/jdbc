@@ -620,13 +620,18 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		if(this.bufferArea.length > sqlSplitByQuestionMark.length)
 			throw new SQLException("error size of bufferArea. ");
 
-		for (int i = 0; i < this.bufferArea.length; i++) {
-			if (this.bufferArea[i] == null || this.bufferArea[i].getValue() == null)
-				throw new SQLException("No value specified for parameter " + (i + 1));
+		if (this.bufferArea.length != 0) {
+			for (int i = 0; i < this.bufferArea.length; i++) {
+				if (this.bufferArea[i] == null || this.bufferArea[i].getValue() == null)
+					throw new SQLException("No value specified for parameter " + (i + 1));
 
-			stringBuilder.append(sqlSplitByQuestionMark[i]);
-			stringBuilder.append(TypeCast.castDbString(this.bufferArea[i].getValue()));
- 		}
+				stringBuilder.append(sqlSplitByQuestionMark[i]);
+				stringBuilder.append(TypeCast.castDbString(this.bufferArea[i].getValue()));
+			}
+		} else {
+			// no placeholder
+			stringBuilder.append(sqlSplitByQuestionMark[0]);
+		}
 
 		return stringBuilder.toString();
 	}
