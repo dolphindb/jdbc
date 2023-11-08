@@ -238,7 +238,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		param.add(basicTable);
 		try {
 			int size = ((Scalar)connection.run("tableInsert{" + tableName + "}", param)).getNumber().intValue();
-			int[] value = new int[size];
+			int[] value = new int[arguments.get(0).rows()];
 			if (arguments.get(0).rows() != size)
 				Arrays.fill(value, EXECUTE_FAILED);
 			else
