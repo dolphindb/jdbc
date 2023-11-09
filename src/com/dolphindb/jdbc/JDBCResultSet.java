@@ -676,7 +676,19 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
-        return (BigDecimal) getObject(findColumn(columnLabel));
+        Object object = getObject(findColumn(columnLabel));
+        if (object instanceof BigDecimal)
+            return (BigDecimal) object;
+        else if (object instanceof String)
+            return new BigDecimal((String) object);
+        else if (object instanceof Double)
+            return BigDecimal.valueOf((Double) object);
+        else if (object instanceof Integer)
+            return new BigDecimal((Integer) object);
+        else if(object instanceof Long)
+            return new BigDecimal((Long) object);
+        else
+            return null;
     }
 
     @Override
