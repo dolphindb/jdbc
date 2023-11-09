@@ -172,6 +172,8 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 if (Objects.nonNull(columnNamePattern) && !columnNamePattern.isEmpty()) {
                     String script = "select * from schema(" + tableNamePattern + ").colDefs where name = '" + columnNamePattern + "';";
                     colDefs = (BasicTable) connection.run(script);
+                    if (colDefs.getColumn(0).rows() == 0)
+                        throw new RuntimeException("The column: '" + columnNamePattern + "' doesn't exist in table: '" + tableNamePattern + "'.");
                 } else {
                     // get all columns for specify mem table
                     BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableNamePattern + ");");
