@@ -3686,7 +3686,8 @@ public class JDBCPrepareStatementTest {
         }catch(Exception e){
             re = e.getMessage();
         }
-        org.junit.Assert.assertEquals(true, re.contains("check the SQl insert into loadTable"));
+        System.out.println(re);
+        org.junit.Assert.assertEquals(true, re.contains("Please check your SQL format: insert into loadTable"));
     }
     @Test  //1212eeee
     public void test_PreparedStatement_insert_into_DFS_all_dateType_mul() throws SQLException {
@@ -4431,7 +4432,7 @@ public class JDBCPrepareStatementTest {
         }catch(Exception e){
             re = e.getMessage();
         }
-        org.junit.Assert.assertEquals("check the SQl insert into loadTable('dfs://test_append_array_tsdb1','pt') values(1,)", re);
+        org.junit.Assert.assertEquals("Please check your SQL format: insert into loadTable('dfs://test_append_array_tsdb1','pt') values(1,)", re);
     }
     @Test
     public void test_PreparedStatement_insert_into_DFS_arrayVector_not_support_2() throws SQLException {
