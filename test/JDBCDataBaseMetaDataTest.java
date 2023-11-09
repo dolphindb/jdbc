@@ -424,9 +424,13 @@ public class JDBCDataBaseMetaDataTest {
         DatabaseMetaData metaData = conn.getMetaData();
         String results = null;
         stmt.execute("dfsptfdfd时代的 =  table(1..10 as id)");
-        rs = metaData.getColumns("","", "dfsptfdfd时代的", "  ds时代的     ");
-        rs.getRow();
-        Assert.assertEquals(0,rs.getRow());
+        String re = null;
+        try{
+            rs = metaData.getColumns("","", "dfsptfdfd时代的", "  ds时代的     ");
+        }catch(Exception ex){
+            re = ex.getMessage();
+        }
+        Assert.assertEquals("The column: '  ds时代的     ' doesn't exist in table: 'dfsptfdfd时代的'.",re);
         stmt.close();
         conn.close();
     }
@@ -586,7 +590,7 @@ public class JDBCDataBaseMetaDataTest {
         String results1 = getTablesData(rs);
         Assert.assertFalse(results1.isEmpty());
         Assert.assertTrue(results1.contains("dfsptfdfd时代的"));
-        Assert.assertTrue(results1.contains("dfs://test_append_type_tsdb"));
+        Assert.assertTrue(results1.contains("dfs://test_append_type_tsdb1"));
         Assert.assertTrue(results1.contains("shareTable1234"));
 
         stmt.close();
@@ -609,7 +613,7 @@ public class JDBCDataBaseMetaDataTest {
         String results1 = getTablesData(rs);
         Assert.assertFalse(results1.isEmpty());
         Assert.assertTrue(results1.contains("dfsptfdfd时代的"));
-        Assert.assertTrue(results1.contains("dfs://test_append_type_tsdb"));
+        Assert.assertTrue(results1.contains("dfs://test_append_type_tsdb1"));
         stmt.close();
         conn.close();
     }

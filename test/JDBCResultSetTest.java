@@ -832,6 +832,26 @@ public class JDBCResultSetTest {
 		TestCase.assertEquals(null, rs.getWarnings());
 		//System.out.println(rs.getCursorName());
 	}
+	@Test
+	public void Test_ResultSet_getBigDecimal() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String script = "k=string(0 -2 301111111 NULL);\n" +
+				"t= table(k as str);\n" +"select * from t ";
+		rs = stmt.executeQuery(script);
+		rs.next();
+		TestCase.assertEquals("0", rs.getBigDecimal("str" ).toString());
+		rs.next();
+		TestCase.assertEquals("-2", rs.getBigDecimal("str" ).toString());
+		rs.next();
+		TestCase.assertEquals("301111111", rs.getBigDecimal("str" ).toString());
+		rs.next();
+		TestCase.assertEquals(null, rs.getBigDecimal("str" ));
+		rs.clearWarnings();
+		TestCase.assertEquals(null, rs.getWarnings());
+		//System.out.println(rs.getCursorName());
+	}
 
 	@Test
 	public void Test_ResultSet_getObject_decimal32() throws Exception {
