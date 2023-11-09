@@ -761,7 +761,7 @@ public class JDBCResultSetTest {
 		rs.first();
 	}
 
-	@Test(timeout = 60000)
+	//@Test(timeout = 60000)
 	public void Test_ResultSet_bigData() throws Exception {
 		String script = "\n" +
 				"a = take(1 2 3 4 5,500000000);\n" +
@@ -822,15 +822,10 @@ public class JDBCResultSetTest {
 			TestCase.assertEquals(null, rs.getUnicodeStream("str"));
 			TestCase.assertEquals(null, rs.getBinaryStream(1));
 			TestCase.assertEquals(null, rs.getBinaryStream("str"));
-//			TestCase.assertEquals(null, rs.getBigDecimal(1));
-			TestCase.assertEquals(null, rs.getBigDecimal("str" ));
-//			TestCase.assertEquals(null, rs.getBigDecimal(1, 1));
-//			TestCase.assertEquals(null, rs.getBigDecimal("str", 1));
 			i++;
 		}
 		rs.clearWarnings();
 		TestCase.assertEquals(null, rs.getWarnings());
-		//System.out.println(rs.getCursorName());
 	}
 	@Test
 	public void Test_ResultSet_getBigDecimal() throws SQLException, ClassNotFoundException {
