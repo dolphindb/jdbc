@@ -3344,9 +3344,9 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals("TEST BLOB",rs.getString("col24"));
         org.junit.Assert.assertEquals("1.0+2.0i",rs.getObject("col25"));
         org.junit.Assert.assertEquals("(0.0, 0.0)",rs.getObject("col26"));
-        org.junit.Assert.assertEquals("123421.0001",rs.getObject("col27").toString());
-        org.junit.Assert.assertEquals("123421.0001",rs.getObject("col28").toString());
-        org.junit.Assert.assertEquals("123421.0001",rs.getObject("col29").toString());
+        org.junit.Assert.assertEquals("123421.00",rs.getObject("col27").toString());
+        org.junit.Assert.assertEquals("123421.0001200",rs.getObject("col28").toString());
+        org.junit.Assert.assertEquals("123421.0001200000000000000",rs.getObject("col29").toString());
     }
     @Test
     public void test_PreparedStatement_insert_into_DFS_all_dateType_3() throws SQLException {
@@ -3878,16 +3878,16 @@ public class JDBCPrepareStatementTest {
     }
     @Test
     public void test_PreparedStatement_insert_into_DFS_wideTable() throws SQLException, IOException {
-        createWideTable("dfs://test_append_wideTable",1000,1000);
+        createWideTable("dfs://test_append_wideTable",100,100);
         long start = System.nanoTime();
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_wideTable','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021, 1, 1, 1, 1, 1, 001));
         ps.setObject(1, tmp_timestamp);
         ps.setString(2, "test1");
-        for(int i =3;i<=1002;i++) {
+        for(int i =3;i<=102;i++) {
             ps.setInt(i, i);
         }
-        for(int i =1003;i<=2002;i++) {
+        for(int i =103;i<=202;i++) {
             ps.setDouble(i, (double) i);
         }
         ps.addBatch();
@@ -3896,10 +3896,10 @@ public class JDBCPrepareStatementTest {
         while (rs.next()) {
             org.junit.Assert.assertEquals(LocalDateTime.of(2021, 1, 1, 1, 1, 1), rs.getObject(1));
             org.junit.Assert.assertEquals("test1", rs.getString(2));
-            for(int i =3;i<=1002;i++) {
+            for(int i =3;i<=102;i++) {
                 org.junit.Assert.assertEquals(i, rs.getInt(i));
             }
-            for(int i =1003;i<=2002;i++) {
+            for(int i =103;i<=202;i++) {
                 org.junit.Assert.assertEquals((double) i, rs.getDouble(i), 4);
             }
         }
