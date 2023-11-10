@@ -653,7 +653,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     }
                 }
 
-                BasicStringVector form = (BasicStringVector) memTables.getColumn("form");
+                AbstractVector form = (AbstractVector) memTables.getColumn("form");
                 if (Objects.nonNull(form)) {
                     for (int i = 0; i < form.rows(); i ++) {
                         BasicString memForm = (BasicString) form.get(i);
