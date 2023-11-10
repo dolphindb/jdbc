@@ -178,16 +178,18 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private void flushBufferArea(boolean isBatch) throws SQLException { //todo:rename
 		if (sqlDmlType == Utils.DML_INSERT) {
 			checkInsertBindsLegal(isBatch);
-			for (ColumnBindValue column : columnBindValues) {
-				if (column.getBindValues().rows() != batchSize) {
-					Vector columnCol = column.getBindValues();
-					try {
-						if (columnCol.getDataType().getValue() < 65)
-							columnCol.Append((Scalar) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
-						else
-							columnCol.Append((Vector) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
-					} catch (Exception e) {
-						throw new SQLException(e);
+			if(isBatch) {
+				for (ColumnBindValue column : columnBindValues) {
+					if (column.getBindValues().rows() != batchSize) {
+						Vector columnCol = column.getBindValues();
+						try {
+							if (columnCol.getDataType().getValue() < 65)
+								columnCol.Append((Scalar) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
+							else
+								columnCol.Append((Vector) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
+						} catch (Exception e) {
+							throw new SQLException(e);
+						}
 					}
 				}
 			}
@@ -205,9 +207,16 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	private void checkInsertBindsLegal(boolean isBatch) throws SQLException {
 		int rows = isBatch ? batchSize : 1;
-		for (Integer index : insertIndexSQLToDDB.keySet()) {
-			if (this.columnBindValues.get(insertIndexSQLToDDB.get(index)).getBindValues().rows() != rows)
-				throw new SQLException("The column " + this.columnBindValues.get(insertIndexSQLToDDB.get(index)).getColName() + " is not set.");
+		if (insertIndexSQLToDDB.size() == 0) {
+			for (ColumnBindValue bindValue : columnBindValues){
+				if(bindValue.getBindValues().rows() != rows)
+					throw new SQLException("The column " + bindValue.getColName() + " is not set.");
+			}
+		}else {
+			for (Integer index : insertIndexSQLToDDB.keySet()) {
+				if (this.columnBindValues.get(insertIndexSQLToDDB.get(index)).getBindValues().rows() != rows)
+					throw new SQLException("The column " + this.columnBindValues.get(insertIndexSQLToDDB.get(index)).getColName() + " is not set.");
+			}
 		}
 	}
 
