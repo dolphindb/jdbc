@@ -13,6 +13,7 @@ import java.sql.Date;
 import java.util.*;
 import java.util.stream.Collectors;
 
+
 public class JDBCPrepareStatement extends JDBCStatement implements PreparedStatement {
 	private String preProcessedSql;
 	private String tableName = null;
@@ -20,7 +21,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private List<ColumnBindValue> columnBindValues;
 	private Map<Integer, Integer> insertIndexSQLToDDB;
 	private BindValue[] bufferArea;
-	private String tableTypeCache;
 	private int batchSize;
 	private List<String> sqlBuffer;
 
@@ -30,11 +30,13 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.connection = conn;
 		this.preProcessedSql = preProcessSql(sql);
 		String[] sqlSplit = preProcessedSql.split(";");
-		this.preProcessedSql = sqlSplit[sqlSplit.length - 1].trim();
-		this.sqlDmlType = Utils.getDml(preProcessedSql);
+		String lastStatement  = sqlSplit.length == 0 ? "" : sqlSplit[sqlSplit.length - 1].trim();
+		this.sqlDmlType = Utils.getDml(lastStatement);
 		this.sqlBuffer = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
 		if (this.sqlDmlType == Utils.DML_INSERT) {
+			if (sqlSplit.length != 1)
+				throw new SQLException("The INSERT statement must be a standalone statement.");
 			this.tableName = Utils.getTableName(preProcessedSql, true);
 			initColumnBindValues(this.tableName);
 			Utils.checkInsertSQLValid(preProcessedSql, columnBindValues.size());
@@ -599,7 +601,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.columnBindValues = null;
 		this.preProcessedSql = null;
 		this.bufferArea = null;
-		this.tableTypeCache = null;
 	}
 
 	private String preProcessSql(String sql) {
