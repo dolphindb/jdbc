@@ -365,7 +365,9 @@ public class JDBCConnectionTest {
 		try{
 			stmt.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
-		{}
+		{
+			System.out.println(ex.getMessage());
+		}
 		stmt.execute(" sleep(500)");
 		conn1 = DriverManager.getConnection(url);
 		conn1.equals(true);
@@ -377,8 +379,10 @@ public class JDBCConnectionTest {
 		try{
 			stmt.execute("startDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
-		{}
-		stmt.execute(" sleep(5000)");
+		{
+			System.out.println(ex.getMessage());
+		}
+		stmt.execute(" sleep(50000)");
 		conn1 = DriverManager.getConnection(url);
 		//conn1.equals(true);
 		conn1.close();
