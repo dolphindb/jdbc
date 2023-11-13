@@ -38,48 +38,10 @@ public class JDBCResultSet implements ResultSet{
     private EntityBlockReader reader;
 
     public JDBCResultSet(JDBCConnection conn, JDBCStatement statement, Entity entity, String sql) throws SQLException {
-        this.conn = conn;
-        this.statement = statement;
-        if(entity.isTable()){
-            this.table = (BasicTable) entity;
-            this.offsetRows = this.table.rows();
-            findColumnHashMap = new HashMap<>(this.table.columns());
-            for(int i=0; i<this.table.columns(); ++i){
-                findColumnHashMap.put(this.table.getColumnName(i),i+1);
-            }
-            this.isUpdatable = false;
-            if (this.isUpdatable){
-                insertRowMap = new HashMap<>(this.table.columns()+1);
-            }
-        }else{
-            this.entity = entity;
-            if(sql!=null&&sql.contains("select 1 as ")){
-                List<String> colNames = new ArrayList<>(1);
-                colNames.add(Utils.getSelectOneColName(sql));
-                List<Vector> cols = new ArrayList<>(1);
-                Vector vector = new BasicIntVector(1);
-                Scalar scalar = new BasicInt(1);
-                try {
-                    vector.set(0,scalar);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-                cols.add(vector);
-                this.table = new BasicTable(colNames,cols);
-                this.offsetRows = this.table.rows();
-                findColumnHashMap = new HashMap<>(this.table.columns());
-                for(int i=0; i<this.table.columns(); ++i){
-                    findColumnHashMap.put(this.table.getColumnName(i),i+1);
-                }
-                this.isUpdatable = false;
-                if (this.isUpdatable){
-                    insertRowMap = new HashMap<>(this.table.columns()+1);
-                }
-            }
-        }
+        this(conn, statement, entity, sql, -1);
     }
 
-    protected JDBCResultSet(JDBCConnection conn, JDBCStatement statement, Entity entity, String sql, int maxRows) throws SQLException {
+    public JDBCResultSet(JDBCConnection conn, JDBCStatement statement, Entity entity, String sql, int maxRows) throws SQLException {
         this.conn = conn;
         this.statement = statement;
         if (entity.isTable()) {
@@ -134,7 +96,7 @@ public class JDBCResultSet implements ResultSet{
         }
     }
 
-    protected JDBCResultSet(JDBCConnection conn, JDBCStatement statement, EntityBlockReader reader, String sql, int maxRows) throws SQLException{
+    public JDBCResultSet(JDBCConnection conn, JDBCStatement statement, EntityBlockReader reader, String sql, int maxRows) throws SQLException{
         this.conn = conn;
         this.statement = statement;
         this.reader = reader;
@@ -181,32 +143,7 @@ public class JDBCResultSet implements ResultSet{
     }
 
     public JDBCResultSet(JDBCConnection conn, JDBCStatement statement, EntityBlockReader reader, String sql) throws SQLException{
-        this.conn = conn;
-        this.statement = statement;
-        this.reader = reader;
-        if(!reader.hasNext()) {
-            throw new SQLException("ResultSet data is null");
-        }
-        BasicTable entity = null;
-        try {
-            entity = (BasicTable)reader.read();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        if(entity.isTable()){
-            this.table = entity;
-        }else{
-            throw new SQLException("ResultSet data is null");
-        }
-        this.offsetRows = this.table.rows();
-        findColumnHashMap = new HashMap<>(this.table.columns());
-        for(int i=0; i<this.table.columns(); ++i){
-            findColumnHashMap.put(this.table.getColumnName(i),i+1);
-        }
-        this.isUpdatable = false;
-        if (this.isUpdatable){
-            insertRowMap = new HashMap<>(this.table.columns()+1);
-        }
+        this(conn, statement, reader, sql, -1);
     }
 
 
@@ -228,7 +165,6 @@ public class JDBCResultSet implements ResultSet{
                     if ((this.maxRows != -1) && (this.globalRows > this.maxRows)) {
                         this.table = (BasicTable) tempTable.getSubTable(0, this.globalRows - this.maxRows - 1);
                         this.offsetRows = this.globalRows - this.maxRows;
-                        return false;
                     } else {
                         this.table = tempTable;
                         this.offsetRows = this.table.rows();
