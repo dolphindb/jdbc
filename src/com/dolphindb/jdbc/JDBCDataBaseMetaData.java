@@ -142,31 +142,6 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        } else if (tableNamePattern.matches("%+")) {
-            // get all tables of catalog's.
-            try {
-                String script = "getClusterDFSTables();";
-                AbstractVector allTablesVec = (AbstractVector) connection.run(script);
-
-                for (int i = 0; i < allTablesVec.rows(); i ++) {
-                    String tempDbAndTableName = allTablesVec.getString(i);
-                    // tempTableName
-                    int lastSlashIndex = tempDbAndTableName.lastIndexOf("/");
-                    if (lastSlashIndex != -1) {
-                        String dbName = tempDbAndTableName.substring(0, lastSlashIndex);
-                        String tempTableName = tempDbAndTableName.substring(lastSlashIndex + 1);
-                        String dfsTableHandle = "handle=loadTable(\"" + dbName + "\", `" + tempTableName + "); schema(handle);";
-                        BasicDictionary schema = (BasicDictionary) connection.run(dfsTableHandle);
-                        BasicTable tempColDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-                        if (Objects.nonNull(colDefs))
-                            colDefs = colDefs.combine(tempColDefs);
-                        else
-                            colDefs = tempColDefs;
-                    }
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         } else {
             // memory table
             try {
