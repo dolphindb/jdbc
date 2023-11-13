@@ -76,7 +76,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         List<Vector> cols = new ArrayList<>();
 
         try {
-            BasicStringVector dbs = (BasicStringVector) connection.run("getClusterDFSDatabases()");
+            AbstractVector dbs = (AbstractVector) connection.run("getClusterDFSDatabases()");
             cols.add(dbs);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -136,6 +136,8 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     script = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); schema(handle);";
                     BasicDictionary schema = (BasicDictionary) connection.run(script);
                     colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+                    if (colDefs.getColumn(0).rows() == 0)
+                        throw new RuntimeException("The column: '" + columnNamePattern + "' doesn't exist in table: '" + tableNamePattern + "'.");
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -144,7 +146,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             // get all tables of catalog's.
             try {
                 String script = "getClusterDFSTables();";
-                BasicStringVector allTablesVec = (BasicStringVector) connection.run(script);
+                AbstractVector allTablesVec = (AbstractVector) connection.run(script);
 
                 for (int i = 0; i < allTablesVec.rows(); i ++) {
                     String tempDbAndTableName = allTablesVec.getString(i);
@@ -204,8 +206,9 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     BasicString columnName = (BasicString) columnNameEntity;
                     columnIndexList.add(columnName.getString());
                 } else if (columnNameEntity.isVector()) {
-                    BasicStringVector columnNameVec = (BasicStringVector) columnNameEntity;
-                    columnIndexList.addAll(Arrays.asList(columnNameVec.getdataArray()));
+                    AbstractVector columnNameVec = (AbstractVector) columnNameEntity;
+                    if (columnNameVec instanceof BasicStringVector)
+                        columnIndexList.addAll(Arrays.asList(((BasicStringVector) columnNameVec).getdataArray()));
                 }
             }
         } catch (Exception e) {
@@ -222,12 +225,15 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
         // set 'IS_NULLABLE'
         List<String> isNullableStrList = new ArrayList<>();
-        BasicStringVector nameColumn = (BasicStringVector) colDefs.getColumn(0);
-        String[] nameArr = nameColumn.getdataArray();
-        Arrays.stream(nameArr)
-                .map(str -> columnIndexList.contains(str) ? "NO" : "YES")
-                .forEach(isNullableStrList::add);
-        colDefs.addColumn("IS_NULLABLE", new BasicStringVector(isNullableStrList));
+        AbstractVector nameColumn = (AbstractVector) colDefs.getColumn(0);
+        String[] nameArr = null;
+        if (nameColumn instanceof BasicStringVector) {
+            nameArr = ((BasicStringVector) nameColumn).getdataArray();
+            Arrays.stream(nameArr)
+                    .map(str -> columnIndexList.contains(str) ? "NO" : "YES")
+                    .forEach(isNullableStrList::add);
+            colDefs.addColumn("IS_NULLABLE", new BasicStringVector(isNullableStrList));
+        }
 
         // set 'ORDINAL_POSITION'
         if (Objects.nonNull(columnNamePattern) && !columnNamePattern.isEmpty() && !columnNamePattern.equals("%")) {
@@ -241,12 +247,15 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     // mem
                     script = String.format("schema(%s).colDefs;", tableNamePattern);
                 BasicTable tempColDefs = (BasicTable) connection.run(script);
-                BasicStringVector tempNameColumn = (BasicStringVector) tempColDefs.getColumn(0);
-                List<String> nameColumnList = Arrays.asList(tempNameColumn.getdataArray());
-                int pos = nameColumnList.indexOf(columnNamePattern);
-                List<Integer> ordinalPositionList =  new ArrayList<>();
-                ordinalPositionList.add(pos + 1);
-                colDefs.addColumn("ORDINAL_POSITION", new BasicIntVector(ordinalPositionList));
+                AbstractVector tempNameColumn = (AbstractVector) tempColDefs.getColumn(0);
+                List<String> nameColumnList = null;
+                if (tempNameColumn instanceof BasicStringVector) {
+                    nameColumnList = Arrays.asList(((BasicStringVector) tempNameColumn).getdataArray());
+                    int pos = nameColumnList.indexOf(columnNamePattern);
+                    List<Integer> ordinalPositionList =  new ArrayList<>();
+                    ordinalPositionList.add(pos + 1);
+                    colDefs.addColumn("ORDINAL_POSITION", new BasicIntVector(ordinalPositionList));
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -260,7 +269,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
         // transfer 'DATA_TYPE' to java.sql.Types
         try {
-            BasicStringVector typeStringColumn = (BasicStringVector) colDefs.getColumn(1);
+            AbstractVector typeStringColumn = (AbstractVector) colDefs.getColumn(1);
             BasicIntVector typeIntColumn = (BasicIntVector) colDefs.getColumn(2);
             for (int i = 0; i < typeStringColumn.rows(); i ++)
                 typeIntColumn.set(i, new BasicInt(Utils.transferColDefsTypesToSqlTypes(typeStringColumn.get(i).getString())));
@@ -269,8 +278,10 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         }
 
         // set 'SQL_DATA_TYPES'
-        BasicStringVector typeStringColumn = (BasicStringVector) colDefs.getColumn(1);
-        List<Integer> sqlDataTypesList = Arrays.stream(typeStringColumn.getdataArray()).map(Utils::transferColDefsTypesToSqlTypes).collect(Collectors.toList());
+        AbstractVector typeStringColumn = (AbstractVector) colDefs.getColumn(1);
+        List<Integer> sqlDataTypesList = null;
+        if (typeStringColumn instanceof BasicStringVector)
+                sqlDataTypesList = Arrays.stream(((BasicStringVector) typeStringColumn).getdataArray()).map(Utils::transferColDefsTypesToSqlTypes).collect(Collectors.toList());
         BasicIntVector sqlDataTypesColumn = new BasicIntVector(sqlDataTypesList);
         colDefs.addColumn("SQL_DATA_TYPES", sqlDataTypesColumn);
     }
@@ -519,7 +530,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             if (db == null){
                 List<String> table = new ArrayList<>();
                 List<String> database = new ArrayList<>();
-                Vector dbs = (BasicStringVector) connection.run("getClusterDFSDatabases()");
+                AbstractVector dbs = (AbstractVector) connection.run("getClusterDFSDatabases()");
                 for (index = 0; index<dbs.rows(); index++){
                     BasicTable tb = (BasicTable) connection.run("listTables(\"" + dbs.getString(index) + "\")");
                     Vector tbs = tb.getColumn("tableName");
@@ -587,7 +598,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 } else {
                     // not specify tableName for dfs table
                     String script = "handle=database(\"" + catalog + "\"); getTables(handle);";
-                    BasicStringVector vector = (BasicStringVector) connection.run(script);
+                    AbstractVector vector = (AbstractVector) connection.run(script);
                     List<String[]> valuesList = new ArrayList<>();
                     for (int i = 0; i < vector.rows(); i++) {
                         String tableName = vector.getString(i);
@@ -614,7 +625,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             try {
                 // get all dfs table
                 String script = "getClusterDFSTables();";
-                BasicStringVector allTables = (BasicStringVector) connection.run(script);
+                AbstractVector allTables = (AbstractVector) connection.run(script);
 
                 List<String> tableCatVal = new ArrayList<>();
                 List<String> tableNameVal = new ArrayList<>();
@@ -641,8 +652,8 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 }
 
                 // get all mem table
-                BasicTable memTables = (BasicTable) connection.run("objs(true)");
-                BasicStringVector name = (BasicStringVector) memTables.getColumn("name");
+                BasicTable memTables = (BasicTable) connection.run("select * from objs(true) where form =\"TABLE\";");
+                AbstractVector name = (AbstractVector) memTables.getColumn("name");
                 if (Objects.nonNull(name)) {
                     for (int i = 0; i < name.rows(); i ++) {
                         BasicString memTableName = (BasicString) name.get(i);
@@ -670,7 +681,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         } else {
             // memory table
             try {
-                BasicTable memTable = (BasicTable) connection.run(tableNamePattern + ";");
+                BasicTable memTable = (BasicTable) connection.run("select * from objs(true) where name = \""+ tableNamePattern + "\" and form = \"TABLE\";");
                 Stream.of(new String[]{null}, new String[]{tableNamePattern}, new String[]{null}, new String[]{"TABLE"}, new String[]{null})
                         .map(BasicStringVector::new)
                         .forEach(cols::add);
