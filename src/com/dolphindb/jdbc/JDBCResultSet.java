@@ -156,21 +156,22 @@ public class JDBCResultSet implements ResultSet{
         if (this.getFetchSize() != 0) {
             // When no segments of the large table have been read or when the number of rows read from a segment exceeds the limit, an attempt is made to read the next segment.
             if (this.table == null || this.currentRow >= this.offsetRows - 1) {
+                if(this.maxRows != -1 && globalRows >= this.maxRows)
+                    return false;
                 try {
                     if (!this.reader.hasNext())
                         return false;
 
                     BasicTable tempTable = (BasicTable) this.reader.read();
-                    globalRows += tempTable.rows();
-                    if ((this.maxRows != -1) && (this.globalRows > this.maxRows)) {
-                        this.table = (BasicTable) tempTable.getSubTable(0, this.globalRows - this.maxRows - 1);
-                        this.offsetRows = this.globalRows - this.maxRows;
-                        return false;
+                    int nextBlockRows = tempTable.rows();
+                    if ((this.maxRows != -1) && (this.globalRows + nextBlockRows > this.maxRows)) {
+                        this.table = (BasicTable) tempTable.getSubTable(0, this.maxRows - this.globalRows - 1);
+                        nextBlockRows = this.table.rows();
                     } else {
                         this.table = tempTable;
-                        this.offsetRows = this.table.rows();
                     }
-
+                    this.globalRows += nextBlockRows;
+                    this.offsetRows = nextBlockRows;
                     currentRow = -1;
                 } catch (IOException e) {
                     throw new RuntimeException(e);
