@@ -209,7 +209,7 @@ public class Utils {
             String checkString = INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + (isPrepareStatement ? VALUE_WITH_QUESTION_STRING : VALUE_STRING);
             Pattern pattern = Pattern.compile(checkString);
             Matcher matcher = pattern.matcher(sql);
-            if (matcher.find()) {
+            if (sql.matches(checkString) && matcher.find()) {
                 tableName = matcher.group(3);
                 if (tableName != null && !tableName.isEmpty())
                     return tableName;
@@ -667,6 +667,9 @@ public class Utils {
     public static String getInsertColumnString(String sql) {
         Pattern pattern = Pattern.compile(Utils.INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + Utils.VALUE_WITH_QUESTION_STRING);
         Matcher matcher = pattern.matcher(sql);
+
+        //(insert)\s+(into)\s+((loadTable\(.+?\))*([a-zA-Z]{1}[a-zA-Z\d_]*)*)\s*(\((.+?)\))*\s+(values)\s*\(([\s?,]+)\)
+        //(1     )   (2   )   ((4               ) (5                      ) )    (7 (6  )  )    (8     )     (9      )
         if (matcher.find()) {
             String columnParam = matcher.group(7);
             if (columnParam != null){
@@ -678,6 +681,8 @@ public class Utils {
 
     public static String getInsertValueQuestionString(String sql) {
         Pattern pattern = Pattern.compile(Utils.INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + Utils.VALUE_WITH_QUESTION_STRING);
+        //(insert)\s+(into)\s+((loadTable\(.+?\))*([a-zA-Z]{1}[a-zA-Z\d_]*)*)\s*(\((.+?)\))*\s+(values)\s*\(([\s?,]+)\)
+        //(1     )   (2)      ((4               ) (5                      ) )   (7 (6  )  )    (8     )     (9      )
         Matcher matcher = pattern.matcher(sql);
         if (matcher.find()) {
             String columnParam = matcher.group(9);
