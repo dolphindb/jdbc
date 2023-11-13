@@ -304,10 +304,7 @@ public class JDBCConnection implements Connection {
 
 		try {
 			this.dbConnection.run("system_db" + " = database(\"" + catalog + "\");\n");
-			if (catalog.trim().startsWith("dfs://"))
-				this.databases = catalog;
-			else
-				return;
+			this.databases = catalog;
 
 			List<String> dbtables=new ArrayList<>();
 
@@ -331,12 +328,11 @@ public class JDBCConnection implements Connection {
 		StringBuilder sb = new StringBuilder();
 		if (databases != null){
 			return databases;
-		}else {
+		} else {
 			try {
-				BasicStringVector dbs = (BasicStringVector) dbConnection.run("getClusterDFSDatabases()");
-				for (int i = 0; i < dbs.rows(); i++){
-					sb.append(dbs.getString(i) + "\n");
-				}
+				AbstractVector dbs = (AbstractVector) dbConnection.run("getClusterDFSDatabases()");
+				for (int i = 0; i < dbs.rows(); i++)
+					sb.append(dbs.getString(i)).append("\n");
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
