@@ -190,7 +190,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		} else {
 			sqlBuffer.add(generateSQL());
 		}
-		clearParameters();
 	}
 
 	@Override
