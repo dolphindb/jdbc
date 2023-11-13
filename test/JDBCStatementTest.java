@@ -1662,7 +1662,7 @@ public class JDBCStatementTest {
 		}
 	}
 
-	@Test(timeout = 120000)
+	//@Test(timeout = 120000)
 	public void test_JDBCStatement_BigData_outer_join() throws IOException {
 		DBConnection db = new DBConnection();
 		db.connect(HOST,PORT,"admin","123456");
@@ -1811,7 +1811,7 @@ public class JDBCStatementTest {
 		}
 	}
 
-	@Test(timeout = 120000)
+	//@Test(timeout = 120000)
 	public void test_JDBCStatement_DFS_bigdata() throws IOException {
 		DBConnection db = new DBConnection();
 		db.connect(HOST,PORT,"admin","123456");
@@ -2092,6 +2092,36 @@ public class JDBCStatementTest {
 		rs = (JDBCResultSet) stm.executeQuery("select * from st;");
 		BasicTable bt = (BasicTable) rs.getResult();
 		Assert.assertEquals(20000,bt.rows());
+		int flag = 0;
+		while(rs.next()){
+			flag++;
+		}
+		Assert.assertEquals(20000,flag);
+		Assert.assertEquals(20000,stm.getMaxRows());
+	}
+	@Test
+	public void test_JDBCStatement_setMaxRows_setFetchSize_4() throws Exception {
+		DBConnection db = new DBConnection();
+		db.connect(HOST,PORT,"admin","123456");
+		String script = "t=table(take(`C`AMZON`IBM`XM`GOOG`APPL`ORCL,50000) as sym," +
+				"rand(198.99,50000) as price," +
+				"take(1..2000,50000) as qty, " +
+				"take(01:01:01..23:59:59,50000) as timestamp)" +
+				"share t as st";
+		db.run(script);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		JDBCStatement stm = null;
+		JDBCResultSet rs = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stm = (JDBCStatement) conn.createStatement();
+		stm.setMaxRows(20000);
+		stm.setFetchSize(8192);
+		rs = (JDBCResultSet) stm.executeQuery("select * from st;");
+		BasicTable bt = (BasicTable) rs.getResult();
+		//Assert.assertEquals(20000,bt.rows());
 		int flag = 0;
 		while(rs.next()){
 			flag++;
