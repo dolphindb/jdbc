@@ -153,7 +153,7 @@ public class JDBCConnectionTest {
 		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
 		conn = new JDBCConnection(url,prop);
 		System.out.println(conn.getCatalog());
-		org.junit.Assert.assertEquals(true,conn.getCatalog().contains("dfs://db_testDriverManager1"));
+		org.junit.Assert.assertEquals(null,conn.getCatalog());
 		conn.setCatalog("dfs://db_testDriverManager");
 		org.junit.Assert.assertEquals("dfs://db_testDriverManager",conn.getCatalog());
 		Statement stm = conn.createStatement();
@@ -196,9 +196,13 @@ public class JDBCConnectionTest {
 		prop.setProperty("password","123456");
 		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
 		conn = new JDBCConnection(url,prop);
-		System.out.println(conn.getCatalog());
-		conn.setCatalog("eeeeeee1");
-		org.junit.Assert.assertEquals(true,conn.getCatalog().contains("dfs://db_testDriverManager1"));
+		String re = null;
+		try{
+			conn.setCatalog("eeeeeee1");
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		org.junit.Assert.assertEquals("The catalog 'eeeeeee1' doesn't exist in server.",re);
 	}
 	@Test
 	public void Test_setTransactionIsolation() throws SQLException {
