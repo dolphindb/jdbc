@@ -368,15 +368,19 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	@Override
+	public void setObject(int parameterIndex, Object x) throws SQLException {
+		bind(parameterIndex, x);
+	}
+
+	@Override
 	public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
 		bind(parameterIndex, x);
 	}
 
 	@Override
-	public void setObject(int parameterIndex, Object x) throws SQLException {
+	public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
 		bind(parameterIndex, x);
 	}
-
 	@Override
 	public boolean execute() throws SQLException {
 		try {
@@ -526,11 +530,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	@Override
 	public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
 		Driver.unused("setSQLXML not implemented");
-	}
-
-	@Override
-	public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
-		Driver.unused("setObject not implemented");
 	}
 
 	@Override
