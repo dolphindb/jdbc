@@ -19,7 +19,7 @@ public class JDBCConnection implements Connection {
 	private final String hostName;
 	private final int port;
 	private boolean success;
-	private String databases;
+	private String database;
 	private Vector tables;
 	private final String url;
 	private DatabaseMetaData metaData;
@@ -167,7 +167,7 @@ public class JDBCConnection implements Connection {
 			this.dbConnection.run("system_db" + " = database(\"" + valueName[0] + "\");\n");
 			if (valueName[0].trim().startsWith("dfs://")) {
 				//this.isDFS = true;
-				this.databases = valueName[0];
+				this.database = valueName[0];
 				List<String> dbtables=new ArrayList<>();
 				// if set specific tableanme to load
 				if (Utils.isNotEmpty(prop.getProperty("tableName"))) {
@@ -178,7 +178,7 @@ public class JDBCConnection implements Connection {
 						if (!tableName.isEmpty())
 							dbtables.add(tableName);
 					}
-					String script=loadTables(this.databases,dbtables,false);
+					String script=loadTables(this.database,dbtables,false);
 					sbInitScript.append(script);
 				} else {
 					// if not specific tableanme, load all tables; but need to authenticate every table.
@@ -186,7 +186,7 @@ public class JDBCConnection implements Connection {
 					for (int i = 0; i < vector.rows(); i++) {
 						dbtables.add(vector.getString(i));
 					}
-					String script=loadTables(this.databases,dbtables,true);
+					String script=loadTables(this.database,dbtables,true);
 					sbInitScript.append(script);
 				}
 				this.tables = new BasicStringVector(dbtables);
@@ -304,16 +304,20 @@ public class JDBCConnection implements Connection {
 
 		try {
 			this.dbConnection.run("system_db" + " = database(\"" + catalog + "\");\n");
-			this.databases = catalog;
 
 			List<String> dbtables=new ArrayList<>();
 
 			// if not specific tableanme, load all tables; but need to authenticate every table.
 			Vector vector = (Vector) this.dbConnection.run("getTables(system_db)");
-			for (int i = 0; i < vector.rows(); i++)
-				dbtables.add(vector.getString(i));
+			if (vector.rows() != 0) {
+				for (int i = 0; i < vector.rows(); i++)
+					dbtables.add(vector.getString(i));
+				this.database = catalog;
+			} else {
+				throw new SQLException("The catalog '" + catalog + "' doesn't exist in server.");
+			}
 
-			String script = loadTables(this.databases, dbtables,true);
+			String script = loadTables(this.database, dbtables,true);
 			sbInitScript.append(script);
 			this.tables = new BasicStringVector(dbtables);
 			this.dbConnection.run(sbInitScript.toString());
@@ -325,19 +329,7 @@ public class JDBCConnection implements Connection {
 
 	@Override
 	public String getCatalog() throws SQLException {
-		StringBuilder sb = new StringBuilder();
-		if (databases != null){
-			return databases;
-		} else {
-			try {
-				AbstractVector dbs = (AbstractVector) dbConnection.run("getClusterDFSDatabases()");
-				for (int i = 0; i < dbs.rows(); i++)
-					sb.append(dbs.getString(i)).append("\n");
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			return sb.toString();
-		}
+		return this.database;
 	}
 
 	@Override
@@ -611,6 +603,6 @@ public class JDBCConnection implements Connection {
 	}
 
 	public String getDatabase() {
-		return databases;
+		return database;
 	}
 }
