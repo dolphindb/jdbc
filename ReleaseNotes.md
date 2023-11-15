@@ -2,6 +2,22 @@
 
 ## New Features
 
+- Added the following new methods to the `JDBCDataBaseMetaData` class(**1.30.22.5**):
+  - `setCatalog` to set the database catalog name to select a subspace of the Connection object's database in which to work.
+  - `getCatalogs` to get the database catalogs.
+  - `getTables` to get information of specific tables.
+  - `getColumns` to get information of specific columns. 
+
+- Added `getBigDecimal` method to the `JDBCResult` class to retrieve the value of specified column as BigDecimal type. It can be called in two ways(**1.30.22.5**):
+
+  ```
+  BigDecimal getBigDecimal(int columnIndex) throws SQLException;
+  BigDecimal getBigDecimal(String columnLabel) throws SQLException;
+  ```
+
+- Added method `setMaxRows` to the `JDBCStatement` class to set the upper limit for the number of records that a `ResultSet` object can contain.(**1.30.22.5**)
+- Added method `getMaxRows` to the `JDBCStatement` class to get the specified upper limit for the number of records applied to the `ResultSet` object.(**1.30.22.5**)
+- The `insert into` clause of `JDBCPrepareStatement` class now supports inserting data to specific columns, and null values are written to the rest columns.(**1.30.22.5**)
 - Added support for returning data of primitive Java types. (**1.30.22.4**)
 - Added configuration parameter _tableAlias_ to access tables via aliases. (**1.30.22.2**)
 - The configuration parameter _highAvailablitySites_ now supports input values separated by comma (",") delimiters. (**1.30.22.2**)
@@ -13,6 +29,8 @@
 
 ## Improvements
 
+- The `insert into` clause of `JDBCPrepareStatement` class now writes data in batches instead of by record.(**1.30.22.5**)
+- The `commit()` and `rollback()` methods of `JDBCConnection` class do not support transactions at user level and return null by default.(**1.30.22.5**)
 - Reduced the JAR file size for DolphinDB JDBC dependencies. (**1.30.22.4**)
 - Added support for JDBC driver 4.0 version. Users no longer need to specify `Class.forName("com.dolphindb.jdbc.Driver")` when establishing connections. (**1.30.22.4**)
 - If only one node of a cluster is connected and high availability is not enabled, automatic reconnection is attempted in case of connection failure or disconnection caused by network issues. (**1.30.21.1**)
