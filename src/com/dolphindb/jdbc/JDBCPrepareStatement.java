@@ -631,6 +631,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 				stringBuilder.append(sqlSplitByQuestionMark[i]);
 				stringBuilder.append(TypeCast.castDbString(this.bufferArea[i].getValue()));
+				if (sqlSplitByQuestionMark.length > this.bufferArea.length
+						&& i == this.bufferArea.length - 1 && Objects.nonNull(sqlSplitByQuestionMark[i+1]))
+					stringBuilder.append(sqlSplitByQuestionMark[i+1]);
 			}
 		} else {
 			// no placeholder
