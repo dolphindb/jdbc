@@ -360,7 +360,14 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
-        return (BigDecimal) getObject(columnIndex);
+        Object x = getObject(columnIndex);
+        if (x instanceof Float)
+            return BigDecimal.valueOf((Float) x);
+        else if (x instanceof Double) {
+            return BigDecimal.valueOf((Double) x);
+        } else {
+            return (BigDecimal) x;
+        }
     }
 
     @Deprecated
