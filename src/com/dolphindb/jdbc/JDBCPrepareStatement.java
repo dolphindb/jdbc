@@ -76,7 +76,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			BasicIntVector colDefsTypeInt = (BasicIntVector) colDefs.getColumn("typeInt");
 			BasicIntVector extraInt = (BasicIntVector) colDefs.getColumn("extra");
 			for (int i = 0; i < names.rows(); i++) {
-				String colName = names.getString(i);
+				String colName = names.getString(i).toLowerCase();
 				int typeInt = colDefsTypeInt.getInt(i);
 				Entity.DATA_TYPE type = Entity.DATA_TYPE.valueOf(typeInt);
 				int extra = extraInt.getInt(i);

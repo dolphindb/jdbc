@@ -699,7 +699,7 @@ public class Utils {
         if (!columnParam.isEmpty()) {
             String[] columnParams = columnParam.split(",");
             for (int i = 0; i < columnParams.length; i++)
-                map.put(columnParams[i].trim(), i);
+                map.put(columnParams[i].trim().toLowerCase(), i);
 
             return map;
         } else {
