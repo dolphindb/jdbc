@@ -65,22 +65,26 @@ public class JDBCConnection implements Connection {
 
 	/**
 	 * build connect to port
-	 * 
+	 *
 	 * @param hostname
 	 * @param port
 	 * @param prop
+	 * @param appendInitScript
 	 * @throws IOException
 	 * @throws SQLException
 	 */
 	private void connect(String hostname, int port, Properties prop, String appendInitScript) throws IOException, SQLException {
-		String userId = prop.getProperty("user");
-		String password = prop.getProperty("password");
-		String initialScript = prop.getProperty("initialScript");
-		initialScript = Utils.changeCase(initialScript);
-		if (initialScript!=null&&initialScript.equals("select 1"))
+		String userId = Optional.ofNullable(prop.getProperty("user")).orElse("");
+		String password = Optional.ofNullable(prop.getProperty("password")).orElse("");
+		String initialScript = Optional.ofNullable(prop.getProperty("initialScript"))
+				.map(Utils::changeCase)
+				.orElse("");
+
+		if (initialScript.equals("select 1"))
 			initialScript = "select 1 as val";
+
 		if(appendInitScript != null) {
-			if(initialScript!=null)
+			if(!initialScript.isEmpty())
 				initialScript = appendInitScript + "\n" + initialScript;
 			else
 				initialScript = appendInitScript;
@@ -88,50 +92,48 @@ public class JDBCConnection implements Connection {
 
 		String highAvailabilityStr = prop.getProperty("highAvailability");
 		String enableHighAvailabilityStr = prop.getProperty("enableHighAvailability");
-		Boolean highAvailability = false;
-		if(highAvailabilityStr == null){
-			highAvailability = Boolean.valueOf(enableHighAvailabilityStr);
-		}else if(enableHighAvailabilityStr == null){
-			highAvailability = Boolean.valueOf(highAvailabilityStr);
-		}else{
-			Boolean param1 = Boolean.valueOf(highAvailabilityStr);
-			Boolean param2 = Boolean.valueOf(enableHighAvailabilityStr);
+		boolean highAvailability;
+		if (highAvailabilityStr == null) {
+			highAvailability = Boolean.parseBoolean(enableHighAvailabilityStr);
+		} else if (enableHighAvailabilityStr == null){
+			highAvailability = Boolean.parseBoolean(highAvailabilityStr);
+		} else {
+			boolean param1 = Boolean.parseBoolean(highAvailabilityStr);
+			boolean param2 = Boolean.parseBoolean(enableHighAvailabilityStr);
 			if(param1 != param2)
 				throw new SQLException("The values of the \"highAvailability\" and \"enableHighAvailability\" parameters in the URL must be the same if both are configured. ");
 			highAvailability = param1;
 		}
 
-		String rowHighAvailabilitySites = prop.getProperty("highAvailabilitySites");
+		boolean reconnect = !highAvailability;
+
+		String highAvailabilitySitesStr = prop.getProperty("highAvailabilitySites");
 		String[] highAvailabilitySites = null;
-		if (rowHighAvailabilitySites != null) {
-			if (rowHighAvailabilitySites.contains(",")) {
-				highAvailabilitySites = rowHighAvailabilitySites.split(",");
+		if (highAvailabilitySitesStr != null) {
+			if (highAvailabilitySitesStr.contains(",")) {
+				highAvailabilitySites = highAvailabilitySitesStr.split(",");
 				highAvailabilitySites = Arrays.stream(highAvailabilitySites).map(String::trim).toArray(String[]::new);
 			} else {
-				highAvailabilitySites = rowHighAvailabilitySites.split(" ");
+				highAvailabilitySites = highAvailabilitySitesStr.split(" ");
 			}
 		}
 
-		String tableAliasValue = prop.getProperty("tableAlias");
-		if (Utils.isNotEmpty(tableAliasValue)) {
-			String tableAliasScript = Utils.parseTableAliasPropToScript(tableAliasValue);
-			if (Objects.nonNull(initialScript)) {
+		String tableAliasStr = prop.getProperty("tableAlias");
+		if (Utils.isNotEmpty(tableAliasStr)) {
+			String tableAliasScript = Utils.parseTableAliasPropToScript(tableAliasStr);
+			if (!initialScript.isEmpty())
 				initialScript = initialScript + "\n" + tableAliasScript;
-			} else {
+			else
 				initialScript = tableAliasScript;
-			}
 		}
 
-		if(userId != null && password != null){
-			if (highAvailability){
-				success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
-			}else {
-				success = dbConnection.connect(hostname, port, userId, password, initialScript,false,null,true);
-			}
-		}else if(initialScript != null && highAvailabilitySites != null){
-			success = dbConnection.connect(hostname, port, initialScript, highAvailabilitySites);
-		}else {
-			success = dbConnection.connect(hostName, port,"","",null,false,null,true);
+		String enableLoadBalanceStr = prop.getProperty("enableLoadBalance");
+
+		if (Objects.nonNull(enableLoadBalanceStr)) {
+			boolean enableLoadBalance = Boolean.parseBoolean(enableLoadBalanceStr);
+			success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites, reconnect, enableLoadBalance);
+		} else {
+			success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites, reconnect);
 		}
 	}
 
