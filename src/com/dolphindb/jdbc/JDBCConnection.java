@@ -105,8 +105,6 @@ public class JDBCConnection implements Connection {
 			highAvailability = param1;
 		}
 
-		boolean reconnect = !highAvailability;
-
 		String highAvailabilitySitesStr = prop.getProperty("highAvailabilitySites");
 		String[] highAvailabilitySites = null;
 		if (highAvailabilitySitesStr != null) {
@@ -131,9 +129,9 @@ public class JDBCConnection implements Connection {
 
 		if (Objects.nonNull(enableLoadBalanceStr)) {
 			boolean enableLoadBalance = Boolean.parseBoolean(enableLoadBalanceStr);
-			success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites, reconnect, enableLoadBalance);
+			success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites, false, enableLoadBalance);
 		} else {
-			success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites, reconnect);
+			success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
 		}
 	}
 
