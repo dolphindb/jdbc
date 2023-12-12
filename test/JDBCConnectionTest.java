@@ -870,4 +870,33 @@ public class JDBCConnectionTest {
 		System.out.println("-----------");
 
 	}
+	@Test
+	public void Test_getConnection_reconnect_default_false_1() throws SQLException, ClassNotFoundException {
+		String url = "jdbc:dolphindb://192.168.11.111:18911?user=admin&password=123456&enableHighAvailability=false";
+		String url1 = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url);
+		}catch(Exception e){
+			re = e.getMessage();
+		}
+		assertEquals(true,re.contains("Connection is failed"));
+	}
+	@Test
+	public void Test_getConnection_reconnect_default_false_2() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://192.168.11.111:18911";
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url,info);
+		}catch(Exception e){
+			re = e.getMessage();
+		}
+		assertEquals(true,re.contains("Connection is failed"));
+	}
 }
