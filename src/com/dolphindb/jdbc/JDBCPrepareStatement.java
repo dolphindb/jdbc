@@ -92,17 +92,18 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public void clearBatch() throws SQLException {
 		super.clearBatch();
 		this.batchSize = 0;
-		this.sqlBuffer.clear();
-		clearParameters();
+		if(this.sqlBuffer != null)
+			this.sqlBuffer.clear();
+		if(this.columnBindValues != null)
+			this.columnBindValues.forEach(ColumnBindValue::clear);
 	}
 
 	@Override
 	public int[] executeBatch() throws SQLException {
-		if (this.sqlDmlType == Utils.DML_INSERT)
-			return tableAppend();
-
 		int[] executeRes = new int[this.batchSize];
 		try {
+			if (this.sqlDmlType == Utils.DML_INSERT)
+				return tableAppend();
 			for (int i = 0; i < this.batchSize; i++) {
 				try {
 					executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
@@ -111,7 +112,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				}
 			}
 		} finally {
-			sqlBuffer.clear();
+			clearBatch();
 		}
 
 		return executeRes;
@@ -195,7 +196,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	@Override
 	public ResultSet executeQuery() throws SQLException {
 		combineOneRowData(false);
-		return super.executeQuery(sqlBuffer.get(0));
+		try{
+			return super.executeQuery(sqlBuffer.get(0));
+		}finally{
+			clearBatch();
+		}
 	}
 
 	private void checkInsertBindsLegal(boolean isBatch) throws SQLException {
@@ -229,7 +234,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		} catch (Exception e) {
 			throw new SQLException(e);
 		} finally {
-			sqlBuffer.clear();
+			clearBatch();
 		}
 	}
 
@@ -250,8 +255,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			return value;
 		} catch (Exception e) {
 			throw new SQLException(e);
-		} finally {
-			columnBindValues.forEach(ColumnBindValue::clear);
 		}
 	}
 
@@ -404,7 +407,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						resultSets.offerLast(resultSet_);
 						objectQueue.offer(resultSet_);
 					}
-					sqlBuffer.clear();
+					clearBatch();	
 				}
 			}
 		} catch (Exception e){
