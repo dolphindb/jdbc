@@ -5538,6 +5538,37 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals(null, rs1.getObject("col2"));
     }
     @Test
+    public void test_PreparedStatement_executeBatch_many_time() throws SQLException {
+        createPartitionTable("SHORT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setShort(2, (short) 12);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ps.setInt(1,1);
+        ps.setShort(2, (short) 12);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getShort("dataType"), 12);
+        rs.next();
+        rs.getShort("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getShort("dataType"), 12);
+        rs.next();
+        rs.getShort("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+        org.junit.Assert.assertFalse(rs.next());
+    }
+    @Test
     public void TestNull() throws Exception {
         System.out.println("Decimal64:");
         Scalar scalar64 = (Scalar) TypeCast.nullScalar(Entity.DATA_TYPE.DT_DECIMAL64);
