@@ -16,42 +16,50 @@ import java.util.concurrent.Executor;
 
 public class JDBCConnection implements Connection {
 	private DBConnection dbConnection;
-	private final String hostName;
-	private final int port;
+	private String hostName;
+	private int port;
 	private boolean success;
 	private String database;
 	private Vector tables;
-	private final String url;
+	private String url;
 	private DatabaseMetaData metaData;
 	private String user;
 	private String password;
 
 	public JDBCConnection(String url, Properties prop) throws SQLException {
+		Driver.createConnection(url, prop);
+	}
+
+	protected JDBCConnection(Properties prop, String url) throws SQLException {
 		this.url = url;
-		String sqlStdProp = prop.getProperty("sqlStd");
-		if (Objects.nonNull(sqlStdProp)) {
-			SqlStdEnum sqlStd = SqlStdEnum.getByName(sqlStdProp);
-			dbConnection = new DBConnection(sqlStd);
-		} else {
-			dbConnection = new DBConnection();
-		}
-		hostName = prop.getProperty("hostName");
-		port = Integer.parseInt(prop.getProperty("port"));
-		setUser(null);
-		setPassword(null);
-        clientInfo = prop;
+		this.clientInfo = prop;
+		this.hostName = this.clientInfo.getProperty("hostName");
+		this.port = Integer.parseInt(this.clientInfo.getProperty("port"));
+		setUser(Optional.ofNullable(this.clientInfo.getProperty("user")).orElse(""));
+
+		initDBConnectionInternal(prop);
+
 		try {
-			open(hostName, port, prop);
+			connectInternal(this.hostName, this.port, this.clientInfo);
 		} catch (IOException e) {
 			e.printStackTrace();
-			String s = e.getMessage();
-			if (s.contains("Connection refused")) {
-				throw new SQLException(MessageFormat.format("{0}  ==> hostName = {1}, port = {2}", s, hostName, port));
-			} else {
+			String msg = e.getMessage();
+			if (msg.contains("Connection refused"))
+				throw new SQLException(MessageFormat.format("{0}  ==> hostName = {1}, port = {2}", msg, this.hostName, this.port));
+			else
 				throw new SQLException(e);
-			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+	private void initDBConnectionInternal(Properties clientInfo) {
+		String sqlStdProp = this.clientInfo.getProperty("sqlStd");
+		if (Objects.nonNull(sqlStdProp)) {
+			SqlStdEnum sqlStd = SqlStdEnum.getByName(sqlStdProp);
+			this.dbConnection = new DBConnection(sqlStd);
+		} else {
+			this.dbConnection = new DBConnection();
 		}
 	}
 	
@@ -155,11 +163,17 @@ public class JDBCConnection implements Connection {
 		return sbInitScript.toString();
 	}
 
-	private void open(String hostname, int port, Properties prop) throws SQLException, IOException{
+	private void connectInternal(String hostname, int port, Properties prop) throws SQLException, IOException{
 		this.connect(hostname, port, prop,null);
-		if (!this.success) {
+		if (!this.success)
 			throw new SQLException("Connection is failed");
-		}
+
+		StringBuffer sbInitScript = buildInitialScript(prop);
+		if(sbInitScript.length()>0)
+			this.connect(hostname, port, prop, sbInitScript.toString());
+	}
+
+	private StringBuffer buildInitialScript(Properties prop) throws IOException {
 		StringBuffer sbInitScript=new StringBuffer();
 		String[] key = new String[]{"databasePath"};
 		String[] valueName = Utils.getProperties(prop, key);
@@ -201,8 +215,8 @@ public class JDBCConnection implements Connection {
 				}
 			}
 		}
-		if(sbInitScript.length()>0)
-			this.connect(hostname, port, prop, sbInitScript.toString());
+
+		return sbInitScript;
 	}
 
 	@Override
@@ -587,17 +601,19 @@ public class JDBCConnection implements Connection {
 	}
 
 	public String getUser() {
-		return user;
+		return this.user;
 	}
 
 	public void setUser(String user) {
 		this.user = user;
 	}
 
+	@Deprecated
 	public String getPassword() {
 		return password;
 	}
 
+	@Deprecated
 	public void setPassword(String password) {
 		this.password = password;
 	}
