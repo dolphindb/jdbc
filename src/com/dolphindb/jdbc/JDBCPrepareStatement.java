@@ -188,8 +188,65 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					}
 				}
 			}
+		} else if (sqlDmlType == Utils.DML_DELETE) {
+			if(Utils.isEmpty(this.preProcessedSql))
+				throw new SQLException("preProcessedSql is null. ");
+
+			StringBuilder stringBuilder = new StringBuilder();
+			String[] splitSqls = this.preProcessedSql.split("where");
+
+			if (!this.sqlBuffer.isEmpty()) {
+				String preDeleteSql = this.sqlBuffer.get(this.sqlBuffer.size() - 1);
+				stringBuilder.append(preDeleteSql);
+				combineBindValueWithConditionSql(stringBuilder, splitSqls[1], splitSqls[0], false);
+			} else {
+				stringBuilder.append(splitSqls[0]);
+				combineBindValueWithConditionSql(stringBuilder, splitSqls[1], splitSqls[0], true);
+				this.sqlBuffer.add(stringBuilder.toString());
+			}
 		} else {
-			sqlBuffer.add(generateSQL());
+			this.sqlBuffer.add(generateSQL());
+		}
+	}
+
+	private void combineBindValueWithConditionSql(StringBuilder stringBuilder, String conditionSqlPart, String dmlSqlPart, boolean newSqlTag) throws SQLException {
+		StringBuilder tempBuilder = new StringBuilder();
+		String[] conditionSqlSplitByQuestionMark = conditionSqlPart.replaceAll(";", "").trim().split("\\?");
+		if (this.bufferArea.length != 0) {
+			tempBuilder.append(" (");
+			for (int i = 0; i < this.bufferArea.length; i++) {
+				if (this.bufferArea[i] == null || this.bufferArea[i].getValue() == null)
+					throw new SQLException("No value specified for parameter " + (i + 1));
+
+				tempBuilder.append(conditionSqlSplitByQuestionMark[i]);
+				tempBuilder.append(TypeCast.castDbString(this.bufferArea[i].getValue()));
+
+				if (conditionSqlSplitByQuestionMark.length > this.bufferArea.length
+						&& i == this.bufferArea.length - 1 && Objects.nonNull(conditionSqlSplitByQuestionMark[i+1]))
+					tempBuilder.append(conditionSqlSplitByQuestionMark[i+1]);
+			}
+
+			tempBuilder.append(") ");
+
+			// check if combined sql's length rather than 65535;
+			if (stringBuilder.toString().length() + tempBuilder.toString().length() <= 65535) {
+				if (newSqlTag)
+					stringBuilder.append("where ");
+				else
+					stringBuilder.append(" or ");
+				stringBuilder.append(tempBuilder);
+			} else if (dmlSqlPart.length() + tempBuilder.toString().length() > 65535) {
+				throw new RuntimeException("The delete sql's length rather than 65535 and where condition part is too long, cannot split into multi sqls to run.");
+			} else if (stringBuilder.toString().length() + tempBuilder.toString().length() > 65535) {
+				this.sqlBuffer.set(this.sqlBuffer.size() - 1, stringBuilder.toString());
+				StringBuilder newSqlBuilder = new StringBuilder();
+				newSqlBuilder.append(dmlSqlPart);
+				combineBindValueWithConditionSql(newSqlBuilder, conditionSqlPart, dmlSqlPart, true);
+				this.sqlBuffer.add(newSqlBuilder.toString());
+			}
+		} else {
+			// no placeholder
+			stringBuilder.append(" where ").append(conditionSqlSplitByQuestionMark[0]);
 		}
 	}
 
