@@ -100,15 +100,29 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public int[] executeBatch() throws SQLException {
-		int[] executeRes = new int[this.batchSize];
+		int[] executeRes;
 		try {
-			if (this.sqlDmlType == Utils.DML_INSERT)
-				return tableAppend();
-			for (int i = 0; i < this.batchSize; i++) {
-				try {
-					executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
-				} catch (Exception e) {
-					throw new BatchUpdateException(e.getMessage(), Arrays.copyOf(executeRes, i));
+			if (this.sqlDmlType == Utils.DML_INSERT) {
+				executeRes = tableAppend();
+			} else if (this.sqlDmlType == Utils.DML_DELETE) {
+				executeRes = new int[this.sqlBuffer.size()];
+				for (int i = 0; i < this.sqlBuffer.size(); i++ ) {
+					try {
+						System.out.println("Current execute sql sqlBuffer[i]: " + sqlBuffer.get(i));
+						executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
+					} catch (Exception e) {
+						throw new BatchUpdateException(e.getMessage(), Arrays.copyOf(executeRes, i));
+					}
+					// todo
+				}
+			} else {
+				executeRes = new int[this.batchSize];
+				for (int i = 0; i < this.batchSize; i++) {
+					try {
+						executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
+					} catch (Exception e) {
+						throw new BatchUpdateException(e.getMessage(), Arrays.copyOf(executeRes, i));
+					}
 				}
 			}
 		} finally {
