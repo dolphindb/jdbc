@@ -213,6 +213,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				String preDeleteSql = this.sqlBuffer.get(this.sqlBuffer.size() - 1);
 				stringBuilder.append(preDeleteSql);
 				combineBindValueWithConditionSql(stringBuilder, splitSqls[1], splitSqls[0], false);
+				this.sqlBuffer.set(this.sqlBuffer.size() - 1, stringBuilder.toString());
 			} else {
 				stringBuilder.append(splitSqls[0]);
 				combineBindValueWithConditionSql(stringBuilder, splitSqls[1], splitSqls[0], true);
