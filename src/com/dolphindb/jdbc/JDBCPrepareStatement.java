@@ -213,11 +213,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				String preDeleteSql = this.sqlBuffer.get(this.sqlBuffer.size() - 1);
 				stringBuilder.append(preDeleteSql);
 				combineBindValueWithConditionSql(stringBuilder, splitSqls[1], splitSqls[0], false);
-				this.sqlBuffer.set(this.sqlBuffer.size() - 1, stringBuilder.toString());
 			} else {
 				stringBuilder.append(splitSqls[0]);
 				combineBindValueWithConditionSql(stringBuilder, splitSqls[1], splitSqls[0], true);
-				this.sqlBuffer.add(stringBuilder.toString());
 			}
 		} else {
 			this.sqlBuffer.add(generateSQL());
@@ -246,18 +244,15 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			// check if combined sql's length rather than 65535;
 			if (stringBuilder.toString().length() + tempBuilder.toString().length() <= 65535) {
 				if (newSqlTag)
-					stringBuilder.append("where ");
+					this.sqlBuffer.add(stringBuilder.append("where ").append(tempBuilder).toString());
 				else
-					stringBuilder.append(" or ");
-				stringBuilder.append(tempBuilder);
+					this.sqlBuffer.set(this.sqlBuffer.size() - 1, stringBuilder.append(" or ").append(tempBuilder).toString());
 			} else if (dmlSqlPart.length() + tempBuilder.toString().length() > 65535) {
 				throw new RuntimeException("The delete sql's length rather than 65535 and where condition part is too long, cannot split into multi sqls to run.");
 			} else if (stringBuilder.toString().length() + tempBuilder.toString().length() > 65535) {
-				this.sqlBuffer.set(this.sqlBuffer.size() - 1, stringBuilder.toString());
 				StringBuilder newSqlBuilder = new StringBuilder();
 				newSqlBuilder.append(dmlSqlPart);
 				combineBindValueWithConditionSql(newSqlBuilder, conditionSqlPart, dmlSqlPart, true);
-				this.sqlBuffer.add(newSqlBuilder.toString());
 			}
 		} else {
 			// no placeholder
