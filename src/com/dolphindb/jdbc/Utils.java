@@ -9,6 +9,7 @@ import java.util.*;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class Utils {
     public static final int DML_OTHER = -1;
@@ -201,6 +202,25 @@ public class Utils {
             return DML_EXEC;
         else
             return DML_OTHER;
+    }
+
+    public static JDBCPrepareStatement.PrepareStatementDeleteStrategy getPrepareStmtDeleteSqlExecuteBatchStrategy(int sqlDmlType, String preProcessedSql) {
+        if (sqlDmlType == Utils.DML_DELETE) {
+            String[] splitSqls = null;
+            splitSqls = preProcessedSql.split("\\s*(?=[><=]|between|and|or|in)\\s*|\\s*(?<=[><=]|between|and|or|in)\\s*");
+            List<String> partsList = Arrays.stream(splitSqls)
+                    .filter(str -> !str.isEmpty())
+                    .collect(Collectors.toList());
+
+            if (partsList.contains(">") || partsList.contains("<")
+                    || partsList.contains("between") || partsList.contains("in") || partsList.contains("or")) {
+                return JDBCPrepareStatement.PrepareStatementDeleteStrategy.CONCAT_SQL_CONDITION_WITH_OR;
+            } else {
+                return JDBCPrepareStatement.PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_MAKEKEY;
+            }
+        } else {
+            return null;
+        }
     }
 
     public static String getTableName(String sql, boolean isPrepareStatement) throws SQLException{
@@ -705,6 +725,30 @@ public class Utils {
         } else {
             return map;
         }
+    }
+
+    public static Map<String, Integer> getDeleteColumnParamInSql(String preProcessedSql) {
+        Map<String,Integer> map = new HashMap<>();
+        // parse col names in delete sql
+        String[] splitSqls = null;
+        splitSqls = preProcessedSql.split("\\s*(?=[><=]|between|and|or|in)\\s*|\\s*(?<=[><=]|between|and|or|in)\\s*");
+        List<String> partsList = Arrays.stream(splitSqls)
+                .filter(str -> !str.isEmpty())
+                .collect(Collectors.toList());
+
+        int indexInDeleteSql = 0;
+        for (int i = 0; i < partsList.size(); i++ ) {
+            String sqlPart = partsList.get(i);
+            sqlPart = sqlPart.trim();
+            if (!sqlPart.equals("?") && !sqlPart.equals("=") && !sqlPart.equals("and")) {
+                String[] words = sqlPart.split("\\s+");
+                String lastWord = words[words.length - 1];
+                map.put(lastWord.toLowerCase(), indexInDeleteSql);
+                indexInDeleteSql ++;
+            }
+        }
+
+        return map;
     }
 
     public static void checkInsertSQLValid(String sql, int columnSize){

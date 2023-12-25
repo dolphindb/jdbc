@@ -20,9 +20,14 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private final int sqlDmlType;
 	private List<ColumnBindValue> columnBindValues;
 	private Map<Integer, Integer> insertIndexSQLToDDB;
+	private Map<Integer, Integer> deleteIndexSQLToDDB;
 	private BindValue[] bufferArea;
 	private int batchSize;
 	private List<String> sqlBuffer;
+	private int deleteSqlCombinedNum;
+	private List<String> varNames;
+	private List<Vector> deleteSqlMakeKeyStrategyVarVectorList;
+	private PrepareStatementDeleteStrategy deleteExecuteBatchStrategy;
 
 	public JDBCPrepareStatement(JDBCConnection conn, String sql) throws SQLException {
 		super(conn);
@@ -33,7 +38,12 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		String lastStatement  = sqlSplit.length == 0 ? "" : sqlSplit[sqlSplit.length - 1].trim();
 		this.sqlDmlType = Utils.getDml(lastStatement);
 		this.sqlBuffer = new ArrayList<>();
+		this.deleteSqlCombinedNum = 0;
+		this.deleteSqlMakeKeyStrategyVarVectorList = new ArrayList<>();
+		this.varNames = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
+		this.deleteIndexSQLToDDB = new HashMap<>();
+		this.deleteExecuteBatchStrategy = Utils.getPrepareStmtDeleteSqlExecuteBatchStrategy(this.sqlDmlType, this.preProcessedSql);
 		if (this.sqlDmlType == Utils.DML_INSERT) {
 			if (sqlSplit.length != 1)
 				throw new SQLException("The INSERT statement must be a standalone statement.");
@@ -49,6 +59,25 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					columnParamInSql.remove(colName);
 				}
 			}
+			if (columnParamInSql.size() != 0) {
+				for (String key : columnParamInSql.keySet())
+					throw new SQLException("The column name " + key + " does not exist in table. ");
+			}
+
+			this.bufferArea = new BindValue[this.columnBindValues.size()];
+		} else if (this.sqlDmlType == Utils.DML_DELETE) {
+			this.tableName = Utils.getTableName(preProcessedSql, true);
+			initColumnBindValues(this.tableName);
+
+			Map<String, Integer> columnParamInSql = Utils.getDeleteColumnParamInSql(preProcessedSql);
+			for(ColumnBindValue value : columnBindValues){
+				String colName = value.getColName();
+				if (columnParamInSql.containsKey(colName)) {
+					deleteIndexSQLToDDB.put(columnParamInSql.get(colName), value.getIndex());
+					columnParamInSql.remove(colName);
+				}
+			}
+
 			if (columnParamInSql.size() != 0) {
 				for (String key : columnParamInSql.keySet())
 					throw new SQLException("The column name " + key + " does not exist in table. ");
@@ -92,6 +121,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public void clearBatch() throws SQLException {
 		super.clearBatch();
 		this.batchSize = 0;
+		this.deleteSqlCombinedNum = 0;
+		if (!varNames.isEmpty())
+			this.varNames.clear();
+		if (!deleteSqlMakeKeyStrategyVarVectorList.isEmpty())
+			this.deleteSqlMakeKeyStrategyVarVectorList.clear();
 		if(this.sqlBuffer != null)
 			this.sqlBuffer.clear();
 		if(this.columnBindValues != null)
@@ -106,14 +140,21 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				executeRes = tableAppend();
 			} else if (this.sqlDmlType == Utils.DML_DELETE) {
 				executeRes = new int[this.sqlBuffer.size()];
+				if (!this.varNames.isEmpty()
+						&& !this.deleteSqlMakeKeyStrategyVarVectorList.isEmpty() && this.varNames.size() == this.deleteSqlMakeKeyStrategyVarVectorList.size()) {
+					Map<String, Entity> map = new HashMap<>();
+					for (int i = 0; i < this.varNames.size(); i++)
+						map.put(this.varNames.get(i), this.deleteSqlMakeKeyStrategyVarVectorList.get(i));
+
+					this.connection.upload(map);
+				}
+
 				for (int i = 0; i < this.sqlBuffer.size(); i++ ) {
 					try {
-						System.out.println("Current execute sql sqlBuffer[i]: " + sqlBuffer.get(i));
 						executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
 					} catch (Exception e) {
 						throw new BatchUpdateException(e.getMessage(), Arrays.copyOf(executeRes, i));
 					}
-					// todo
 				}
 			} else {
 				executeRes = new int[this.batchSize];
@@ -125,6 +166,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					}
 				}
 			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		} finally {
 			clearBatch();
 		}
@@ -133,7 +176,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private void bind(int paramIndex, Object obj) throws SQLException {
-		if (this.sqlDmlType == Utils.DML_INSERT) {
+		if (this.sqlDmlType == Utils.DML_INSERT ||
+				(this.sqlDmlType == Utils.DML_DELETE && Objects.nonNull(this.deleteExecuteBatchStrategy) && this.deleteExecuteBatchStrategy.equals(PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_MAKEKEY))) {
 			int index = getDataIndexBySQLIndex(paramIndex);
 			if(index >= this.columnBindValues.size())
 				throw new SQLException("The index of columnBindValues is out of range.");
@@ -155,10 +199,18 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	private int getDataIndexBySQLIndex(int paramIndex) throws SQLException {
 		int index = paramIndex - 1;
-		if (insertIndexSQLToDDB.size() != 0) {
-			if(!insertIndexSQLToDDB.containsKey(index))
-				throw new SQLException("paramIndex is out of range");
-			index = insertIndexSQLToDDB.get(index);
+		if (this.sqlDmlType == Utils.DML_INSERT) {
+			if (insertIndexSQLToDDB.size() != 0) {
+				if(!insertIndexSQLToDDB.containsKey(index))
+					throw new SQLException("paramIndex is out of range");
+				index = insertIndexSQLToDDB.get(index);
+			}
+		} else if (this.sqlDmlType == Utils.DML_DELETE) {
+			if (deleteIndexSQLToDDB.size() != 0) {
+				if(!deleteIndexSQLToDDB.containsKey(index))
+					throw new SQLException("paramIndex is out of range");
+				index = deleteIndexSQLToDDB.get(index);
+			}
 		}
 
 		return index;
@@ -184,7 +236,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 	}
 
-	private void combineOneRowData(boolean isBatch) throws SQLException {
+	private void combineOneRowData(boolean isBatch) throws Exception {
 		if (sqlDmlType == Utils.DML_INSERT) {
 			checkInsertBindsLegal(isBatch);
 			if(isBatch) {
@@ -206,16 +258,69 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			if(Utils.isEmpty(this.preProcessedSql))
 				throw new SQLException("preProcessedSql is null. ");
 
-			StringBuilder stringBuilder = new StringBuilder();
-			String[] splitSqls = this.preProcessedSql.split("where");
+			String[] splitSqls = null;
+			if (Objects.nonNull(this.deleteExecuteBatchStrategy)) {
+				if (this.deleteExecuteBatchStrategy.equals(PrepareStatementDeleteStrategy.CONCAT_SQL_CONDITION_WITH_OR)) {
+					StringBuilder stringBuilder = new StringBuilder();
+					splitSqls = this.preProcessedSql.split("where");
 
-			if (!this.sqlBuffer.isEmpty()) {
-				String preDeleteSql = this.sqlBuffer.get(this.sqlBuffer.size() - 1);
-				stringBuilder.append(preDeleteSql);
-				combineBindValueWithConditionSql(stringBuilder, splitSqls[1], splitSqls[0], false);
+					if (!this.sqlBuffer.isEmpty()) {
+						String preDeleteSql = this.sqlBuffer.get(this.sqlBuffer.size() - 1);
+						stringBuilder.append(preDeleteSql);
+						combineBindValueWithConditionSql(stringBuilder, splitSqls[1], splitSqls[0], false);
+					} else {
+						stringBuilder.append(splitSqls[0]);
+						combineBindValueWithConditionSql(stringBuilder, splitSqls[1], splitSqls[0], true);
+					}
+				} else {
+					splitSqls = this.preProcessedSql.split("where");
+					List<String> sqlColNames = new ArrayList<>();
+					StringBuilder builder = new StringBuilder();
+					builder.append(splitSqls[0]).append(" where makeKey(");
+
+					List<String> partsList = Arrays.stream(this.preProcessedSql.split("\\s*(?=[><=]|between|and|or|in)\\s*|\\s*(?<=[><=]|between|and|or|in)\\s*"))
+							.filter(str -> !str.isEmpty())
+							.collect(Collectors.toList());
+					for (int i = 0; i < partsList.size(); i++ ) {
+						String sqlPart = partsList.get(i);
+						sqlPart = sqlPart.trim();
+						if (!sqlPart.equals("?") && !sqlPart.equals("=") && !sqlPart.equals("and")) {
+							if (!sqlColNames.isEmpty())
+								builder.append(", ");
+							String[] words = sqlPart.split("\\s+");
+							String lastWord = words[words.length - 1];
+							sqlColNames.add(lastWord);
+							builder.append(lastWord);
+						}
+					}
+					builder.append(") in makeKey(");
+
+					if (deleteSqlCombinedNum == 0) {
+						for (ColumnBindValue column : columnBindValues) {
+							if (column.getBindValues().rows() != 0)
+								deleteSqlMakeKeyStrategyVarVectorList.add(column.getBindValues());
+						}
+					}
+
+					if (deleteSqlCombinedNum == 0) {
+						for (int i = 0; i < deleteSqlMakeKeyStrategyVarVectorList.size(); i ++) {
+							String tempVar = "javaapi" + System.currentTimeMillis() + "_var" + i;
+							varNames.add(tempVar);
+							builder.append(tempVar);
+							if (i != deleteSqlMakeKeyStrategyVarVectorList.size() - 1) {
+								builder.append(", ");
+							} else {
+								builder.append(");");
+							}
+						}
+					}
+
+					if (deleteSqlCombinedNum == 0)
+						this.sqlBuffer.add(builder.toString());
+					deleteSqlCombinedNum ++;
+				}
 			} else {
-				stringBuilder.append(splitSqls[0]);
-				combineBindValueWithConditionSql(stringBuilder, splitSqls[1], splitSqls[0], true);
+				this.sqlBuffer.add(generateSQL());
 			}
 		} else {
 			this.sqlBuffer.add(generateSQL());
@@ -262,7 +367,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public ResultSet executeQuery() throws SQLException {
-		combineOneRowData(false);
+		try {
+			combineOneRowData(false);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 		try{
 			return super.executeQuery(sqlBuffer.get(0));
 		}finally{
@@ -492,7 +601,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	@Override
 	public void addBatch() throws SQLException {
 		this.batchSize++;
-		combineOneRowData(true);
+		try {
+			combineOneRowData(true);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
@@ -712,5 +825,35 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 
 		return stringBuilder.toString();
+	}
+
+	public enum PrepareStatementDeleteStrategy {
+		CONCAT_SQL_CONDITION_WITH_OR("CONCAT_SQL_CONDITION_WITH_OR", 0),
+		COMBINE_SQL_WITH_MAKEKEY("COMBINE_SQL_WITH_MAKEKEY", 1);
+
+		private String name;
+		private Integer code;
+
+		PrepareStatementDeleteStrategy(String name, Integer code) {
+			this.name = name;
+			this.code = code;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public Integer getCode() {
+			return code;
+		}
+
+		public static PrepareStatementDeleteStrategy getByName(String name) {
+			for (PrepareStatementDeleteStrategy strategy : PrepareStatementDeleteStrategy.values()) {
+				if (strategy.getName().equals(name)) {
+					return strategy;
+				}
+			}
+			throw new IllegalArgumentException("No matching PrepareStatementDeleteStrategy constant found for name: " + name);
+		}
 	}
 }
