@@ -204,7 +204,7 @@ public class Utils {
             return DML_OTHER;
     }
 
-    public static JDBCPrepareStatement.PrepareStatementDeleteStrategy getPrepareStmtDeleteSqlExecuteBatchStrategy(int sqlDmlType, String preProcessedSql) {
+    public static JDBCPrepareStatement.PrepareStatementDeleteStrategy getPrepareStmtDeleteSqlExecuteBatchStrategy(int sqlDmlType, String preProcessedSql, Map<Integer, Integer> deleteIndexSQLToDDB) {
         if (sqlDmlType == Utils.DML_DELETE) {
             String[] splitSqls = null;
             splitSqls = preProcessedSql.split("\\s*(?=[><=]|between|and|or|in)\\s*|\\s*(?<=[><=]|between|and|or|in)\\s*");
@@ -216,7 +216,10 @@ public class Utils {
                     || partsList.contains("between") || partsList.contains("in") || partsList.contains("or")) {
                 return JDBCPrepareStatement.PrepareStatementDeleteStrategy.CONCAT_SQL_CONDITION_WITH_OR;
             } else {
-                return JDBCPrepareStatement.PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_MAKEKEY;
+                if (deleteIndexSQLToDDB.size() == 1)
+                    return JDBCPrepareStatement.PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_IN;
+                else
+                    return JDBCPrepareStatement.PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_MAKEKEY;
             }
         } else {
             return null;
