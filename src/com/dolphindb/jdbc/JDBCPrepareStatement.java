@@ -271,6 +271,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				if (this.deleteExecuteBatchStrategy.equals(PrepareStatementDeleteStrategy.CONCAT_SQL_CONDITION_WITH_OR)) {
 					StringBuilder stringBuilder = new StringBuilder();
 					splitSqls = this.preProcessedSql.split("where");
+					// if this.preProcessedSql has sub SQL, every time a value is binded, one SQL statement is produced.
+					if (splitSqls.length > 2) {
+						this.sqlBuffer.add(generate_single_execute_delete_sql());
+						return;
+					}
 
 					if (!this.sqlBuffer.isEmpty()) {
 						String preDeleteSql = this.sqlBuffer.get(this.sqlBuffer.size() - 1);
