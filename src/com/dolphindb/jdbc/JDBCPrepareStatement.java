@@ -83,7 +83,14 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			}
 
 			this.deleteExecuteBatchStrategy = Utils.getPrepareStmtDeleteSqlExecuteBatchStrategy(this.sqlDmlType, this.preProcessedSql, this.deleteIndexSQLToDDB);
-			this.bufferArea = new BindValue[this.columnBindValues.size()];
+			int size = 0;
+			for (int i = 0; i < preProcessedSql.length(); i++) {
+				char ch = preProcessedSql.charAt(i);
+				if(ch == '?')
+					size++;
+			}
+
+			this.bufferArea = new BindValue[size];
 		} else {
 			int size = 0;
 			for (int i = 0; i < preProcessedSql.length(); i++) {
