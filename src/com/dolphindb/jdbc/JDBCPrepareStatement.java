@@ -273,6 +273,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					splitSqls = this.preProcessedSql.split("where");
 					// if this.preProcessedSql has sub SQL, every time a value is binded, one SQL statement is produced.
 					if (splitSqls.length > 2) {
+						this.deleteExecuteBatchStrategy = PrepareStatementDeleteStrategy.DEFAULT_DELETE_SQL_EXECUTE_STRATEGY;
 						this.sqlBuffer.add(generate_single_execute_delete_sql());
 						return;
 					}
@@ -897,7 +898,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public enum PrepareStatementDeleteStrategy {
 		CONCAT_SQL_CONDITION_WITH_OR("CONCAT_SQL_CONDITION_WITH_OR", 0),
 		COMBINE_SQL_WITH_IN("COMBINE_SQL_WITH_IN", 1),
-		COMBINE_SQL_WITH_MAKEKEY("COMBINE_SQL_WITH_MAKEKEY", 2);
+		COMBINE_SQL_WITH_MAKEKEY("COMBINE_SQL_WITH_MAKEKEY", 2),
+		DEFAULT_DELETE_SQL_EXECUTE_STRATEGY("DEFAULT_DELETE_SQL_EXECUTE_STRATEGY", 3);
 
 		private String name;
 		private Integer code;
