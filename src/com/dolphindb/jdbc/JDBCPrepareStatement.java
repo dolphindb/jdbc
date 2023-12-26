@@ -194,6 +194,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			} catch (Exception e) {
 				throw new SQLException(e);
 			}
+
+			bufferArea[paramIndex - 1] = new BindValue(obj, false);
 		} else {
 			bufferArea[paramIndex - 1] = new BindValue(obj, false);
 		}
@@ -257,11 +259,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				}
 			}
 		} else if (sqlDmlType == Utils.DML_DELETE) {
-			if(Utils.isEmpty(this.preProcessedSql))
-				throw new SQLException("preProcessedSql is null. ");
-
-			String[] splitSqls = null;
-			if (Objects.nonNull(this.deleteExecuteBatchStrategy)) {
+			if (isBatch && Objects.nonNull(this.deleteExecuteBatchStrategy)) {
+				String[] splitSqls = null;
 				if (this.deleteExecuteBatchStrategy.equals(PrepareStatementDeleteStrategy.CONCAT_SQL_CONDITION_WITH_OR)) {
 					StringBuilder stringBuilder = new StringBuilder();
 					splitSqls = this.preProcessedSql.split("where");
@@ -332,7 +331,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					deleteSqlCombinedNum ++;
 				}
 			} else {
-				this.sqlBuffer.add(generateSQL());
+				this.sqlBuffer.add(generate_single_execute_delete_sql());
 			}
 		} else {
 			this.sqlBuffer.add(generateSQL());
@@ -829,6 +828,50 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 				if (sqlSplitByQuestionMark.length > this.bufferArea.length
 						&& i == this.bufferArea.length - 1 && Objects.nonNull(sqlSplitByQuestionMark[i+1]))
+					stringBuilder.append(sqlSplitByQuestionMark[i+1]);
+			}
+		} else {
+			// no placeholder
+			stringBuilder.append(sqlSplitByQuestionMark[0]);
+		}
+
+		return stringBuilder.toString();
+	}
+
+	/**
+	 * generate prepareStatement to-execute single delete sql
+	 *
+	 * @return
+	 * @throws SQLException
+	 */
+	private String generate_single_execute_delete_sql() throws SQLException {
+		if(Utils.isEmpty(this.preProcessedSql))
+			throw new SQLException("preProcessedSql is null. ");
+		String[] sqlSplitByQuestionMark = this.preProcessedSql.split("\\?");
+		StringBuilder stringBuilder = new StringBuilder();
+		int size = 0;
+		for (int i = 0; i < preProcessedSql.length(); i++) {
+			char ch = preProcessedSql.charAt(i);
+			if(ch == '?')
+				size++;
+		}
+
+		// generate new bufferArea
+		BindValue[] newBufferArea = new BindValue[size];
+		System.arraycopy(this.bufferArea, 0, newBufferArea, 0, size);
+		if(newBufferArea.length > sqlSplitByQuestionMark.length)
+			throw new SQLException("error size of bufferArea. ");
+
+		if (newBufferArea.length != 0) {
+			for (int i = 0; i < newBufferArea.length; i++) {
+				if (newBufferArea[i] == null || newBufferArea[i].getValue() == null)
+					throw new SQLException("No value specified for parameter " + (i + 1));
+
+				stringBuilder.append(sqlSplitByQuestionMark[i]);
+				stringBuilder.append(TypeCast.castDbString(newBufferArea[i].getValue()));
+
+				if (sqlSplitByQuestionMark.length > newBufferArea.length
+						&& i == newBufferArea.length - 1 && Objects.nonNull(sqlSplitByQuestionMark[i+1]))
 					stringBuilder.append(sqlSplitByQuestionMark[i+1]);
 			}
 		} else {

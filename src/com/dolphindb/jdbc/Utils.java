@@ -743,9 +743,11 @@ public class Utils {
         for (int i = 0; i < partsList.size(); i++ ) {
             String sqlPart = partsList.get(i);
             sqlPart = sqlPart.trim();
-            if (!sqlPart.equals("?") && !sqlPart.equals("=") && !sqlPart.equals("and")) {
+            if (!sqlPart.equals("?") && !sqlPart.equals("=") && !sqlPart.equals("and") && !sqlPart.equals(">") && !sqlPart.equals("<")) {
                 String[] words = sqlPart.split("\\s+");
                 String lastWord = words[words.length - 1];
+                if (i != 0 && partsList.get(i - 1).trim().equals("="))
+                    continue;
                 map.put(lastWord.toLowerCase(), indexInDeleteSql);
                 indexInDeleteSql ++;
             }
