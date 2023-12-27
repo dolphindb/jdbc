@@ -286,6 +286,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						stringBuilder.append(splitSqls[0]);
 						combineBindValueWithConditionSql(stringBuilder, splitSqls[1], splitSqls[0], true);
 					}
+				} else if (this.deleteExecuteBatchStrategy.equals(PrepareStatementDeleteStrategy.DEFAULT_DELETE_SQL_EXECUTE_STRATEGY)) {
+					this.sqlBuffer.add(generate_single_execute_delete_sql());
 				} else {
 					splitSqls = this.preProcessedSql.split("where");
 					List<String> sqlColNames = new ArrayList<>();
