@@ -734,7 +734,7 @@ public class Utils {
         Map<String,Integer> map = new HashMap<>();
         // parse col names in delete sql
         String[] splitSqls = null;
-        splitSqls = preProcessedSql.split("\\s*(?=[><=]|between|and|or|in)\\s*|\\s*(?<=[><=]|between|and|or|in)\\s*");
+        splitSqls = preProcessedSql.split("\\s*(?=[!=><]|between|and|or|in|(?<!=)=)\\s*|\\s*(?<=[!=><]|between|and|or|in|=(?!=))\\s*");
         List<String> partsList = Arrays.stream(splitSqls)
                 .filter(str -> !str.isEmpty())
                 .collect(Collectors.toList());
