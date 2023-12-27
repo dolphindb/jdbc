@@ -292,14 +292,19 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					StringBuilder builder = new StringBuilder();
 					if (this.deleteExecuteBatchStrategy.equals(PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_IN)) {
 						builder.append(splitSqls[0]).append(" where ");
-						builder.append(Utils.getDeleteColumnParamInSql(preProcessedSql).keySet().iterator().next());
+						String colName = Utils.getDeleteColumnParamInSql(preProcessedSql).keySet().iterator().next();
+						builder.append(colName);
 						builder.append(" in ");
 
 						if (deleteSqlCombinedNum == 0) {
-							deleteSqlMakeKeyStrategyVarVectorList.add(columnBindValues.get(0).getBindValues());
-							String tempVar = "javaapi" + System.currentTimeMillis() + "_var" + 0;
-							varNames.add(tempVar);
-							builder.append(tempVar);
+							for (ColumnBindValue bindValue : this.columnBindValues) {
+								if (bindValue.getColName().equals(colName)) {
+									deleteSqlMakeKeyStrategyVarVectorList.add(bindValue.getBindValues());
+									String tempVar = "javaapi" + System.currentTimeMillis() + "_var" + 0;
+									varNames.add(tempVar);
+									builder.append(tempVar);
+								}
+							}
 						}
 					} else {
 						builder.append(splitSqls[0]).append(" where makeKey(");
