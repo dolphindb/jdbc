@@ -746,7 +746,7 @@ public class Utils {
             if (!sqlPart.equals("?") && !sqlPart.equals("=") && !sqlPart.equals("and") && !sqlPart.equals("or") && !sqlPart.equals(">") && !sqlPart.equals("<") && !sqlPart.equals("in")) {
                 String[] words = sqlPart.split("\\s+");
                 String lastWord = words[words.length - 1];
-                if (i != 0 && partsList.get(i - 1).trim().equals("="))
+                if (words.length == 1)
                     continue;
                 map.put(lastWord.toLowerCase(), indexInDeleteSql);
                 indexInDeleteSql ++;
