@@ -229,7 +229,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	private void bindNull(int paramIndex) throws SQLException {
 		int index = getDataIndexBySQLIndex(paramIndex);
-		if (this.sqlDmlType == Utils.DML_INSERT) {
+		if (this.sqlDmlType == Utils.DML_INSERT || this.sqlDmlType == Utils.DML_DELETE) {
 			Vector column = this.columnBindValues.get(index).getBindValues();
 			try {
 				int typeValue = column.getDataType().getValue();
@@ -466,7 +466,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setNull(int parameterIndex, int sqlType) throws SQLException {
-		if (this.sqlDmlType == Utils.DML_INSERT) {
+		if (this.sqlDmlType == Utils.DML_INSERT || this.sqlDmlType == Utils.DML_DELETE) {
 			bindNull(parameterIndex);
 		} else {
 			Object bindValue;
