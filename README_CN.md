@@ -1,4 +1,4 @@
-# DolphinDB JDBC API
+# DolphinDB JDBC 连接器
 
 DolphinDB 提供 JDBC 的接口的实现，可以让支持 JDBC 接口的客户端程序直接接入 DolphinDB。DolphinDB 的 JDBC 接口基于 DolphinDB Java API 的包实现。
 
