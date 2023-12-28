@@ -229,7 +229,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	private void bindNull(int paramIndex) throws SQLException {
 		int index = getDataIndexBySQLIndex(paramIndex);
-		if (this.sqlDmlType == Utils.DML_INSERT || this.sqlDmlType == Utils.DML_DELETE) {
+		if (this.sqlDmlType == Utils.DML_INSERT ||
+				(this.sqlDmlType == Utils.DML_DELETE && Objects.nonNull(this.deleteExecuteBatchStrategy)
+						&& (this.deleteExecuteBatchStrategy.equals(PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_MAKEKEY)
+						|| this.deleteExecuteBatchStrategy.equals(PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_IN)))) {
+
 			Vector column = this.columnBindValues.get(index).getBindValues();
 			try {
 				int typeValue = column.getDataType().getValue();
@@ -473,7 +477,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setNull(int parameterIndex, int sqlType) throws SQLException {
-		if (this.sqlDmlType == Utils.DML_INSERT || this.sqlDmlType == Utils.DML_DELETE) {
+		if (this.sqlDmlType == Utils.DML_INSERT ||
+				(this.sqlDmlType == Utils.DML_DELETE && Objects.nonNull(this.deleteExecuteBatchStrategy)
+						&& (this.deleteExecuteBatchStrategy.equals(PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_MAKEKEY)
+						|| this.deleteExecuteBatchStrategy.equals(PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_IN)))) {
 			bindNull(parameterIndex);
 		} else {
 			Object bindValue;
