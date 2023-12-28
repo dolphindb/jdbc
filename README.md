@@ -1,8 +1,8 @@
-#  DolphinDB JDBC API
+#  DolphinDB JDBC Connector
 
 The DolphinDB JDBC interface enables compatible clients to connect to DolphinDB. The JDBC interface is implemented based on DolphinDB Java API package.
 
-- [DolphinDB JDBC API](#dolphindb-jdbc-api)
+- [DolphinDB JDBC Connector](#dolphindb-jdbc-connector)
   - [1. Configure JDBC Connection to DolphinDB](#1-configure-jdbc-connection-to-dolphindb)
   - [2. Operations on In-Memory Tables](#2-operations-on-in-memory-tables)
     - [2.1 Create a Template Table](#21-create-a-template-table)
@@ -65,7 +65,7 @@ It supports the following properties:
 
 - Starting from version 1.30.22.1, JDBC supports parameter *sqlStd*. You can pass it through url (see example 1), or specify the connection property for the constructor JDBCConnection (see example 2).
 
-- Starting from version 1.30.21.1, DolphinDB JDBC API supports *enableHighAvailability* property for connection strings, and the original *highAvailability* can be used as an alias. Configuration conflicts are reported if inconsistencies occur.
+- Starting from version 1.30.21.1, DolphinDB JDBC Connector supports *enableHighAvailability* property for connection strings, and the original *highAvailability* can be used as an alias. Configuration conflicts are reported if inconsistencies occur.
 
 - To create a `JDBCCallableStatement` object, you must specify the property *allowMultiQueries*=true for the connection strings.
 
@@ -350,8 +350,8 @@ public static void DFSAddTest(Properties info, String database, String tableName
 
 - You can use the `execute` method to execute all DolphinDB SQL statements with JDBC interface. For details, see [DolphinDB SQL](https://www.dolphindb.com/help/SQLStatements/index.html).
 
-- The method `executeUpdate(sql)` returns the number of records updated by the SQL statements in JDBC, while with DolphinDB JDBC API, `executeUpdate(sql)` does not return the number of records involved in delete, update or append statements.
+- The method `executeUpdate(sql)` returns the number of records updated by the SQL statements in JDBC, while with DolphinDB JDBC Connector, `executeUpdate(sql)` does not return the number of records involved in delete, update or append statements.
 
-- Since DolphinDB does not support BigDecimal type, the JDBC API converts the BigDecimal data to the DOUBLE type.
+- Since DolphinDB does not support BigDecimal type, the JDBC Connector converts the BigDecimal data to the DOUBLE type.
 
 - Download [sample code](sample.txt).
