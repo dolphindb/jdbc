@@ -207,7 +207,8 @@ public class Utils {
     public static JDBCPrepareStatement.PrepareStatementDeleteStrategy getPrepareStmtDeleteSqlExecuteBatchStrategy(int sqlDmlType, String preProcessedSql, Map<Integer, Integer> deleteIndexSQLToDDB) {
         if (sqlDmlType == Utils.DML_DELETE) {
             String[] splitSqls = null;
-            splitSqls = preProcessedSql.split("\\s*(?=[><=]|between|and|or|in)\\s*|\\s*(?<=[><=]|between|and|or|in)\\s*");
+            splitSqls = preProcessedSql.split("\\s*(?=[!=><]|(?<!\\w)between\\b|(?<!\\w)and\\b|(?<!\\w)or\\b|(?<!\\w)in\\b(?!\\()|(?<!=)=)\\s*|\\s*(?<=[!=><]|(?<!\\w)between\\b|(?<!\\w)and\\b|(?<!\\w)or\\b|(?<!\\w)in\\b(?!\\()|=(?!=))\\s*");
+            // splitSqls = preProcessedSql.split("\\s*(?=[><=]|between|and|or|in)\\s*|\\s*(?<=[><=]|between|and|or|in)\\s*");
             List<String> partsList = Arrays.stream(splitSqls)
                     .filter(str -> !str.isEmpty())
                     .collect(Collectors.toList());
@@ -734,7 +735,8 @@ public class Utils {
         Map<String,Integer> map = new HashMap<>();
         // parse col names in delete sql
         String[] splitSqls = null;
-        splitSqls = preProcessedSql.split("\\s*(?=[!=><]|between|and|or|in|(?<!=)=)\\s*|\\s*(?<=[!=><]|between|and|or|in|=(?!=))\\s*");
+//        splitSqls = preProcessedSql.split("\\s*(?=[!=><]|between|and|or|in|(?<!=)=)\\s*|\\s*(?<=[!=><]|between|and|or|in|=(?!=))\\s*");
+        splitSqls = preProcessedSql.split("\\s*(?=[!=><]|(?<!\\w)between\\b|(?<!\\w)and\\b|(?<!\\w)or\\b|(?<!\\w)in\\b(?!\\()|(?<!=)=)\\s*|\\s*(?<=[!=><]|(?<!\\w)between\\b|(?<!\\w)and\\b|(?<!\\w)or\\b|(?<!\\w)in\\b(?!\\()|=(?!=))\\s*");
         List<String> partsList = Arrays.stream(splitSqls)
                 .filter(str -> !str.isEmpty())
                 .collect(Collectors.toList());
@@ -743,10 +745,13 @@ public class Utils {
         for (int i = 0; i < partsList.size(); i++ ) {
             String sqlPart = partsList.get(i);
             sqlPart = sqlPart.trim();
-            if (!sqlPart.equals("?") && !sqlPart.equals("=") && !sqlPart.equals("and") && !sqlPart.equals("or") && !sqlPart.equals(">") && !sqlPart.equals("<") && !sqlPart.equals("in")) {
-                String[] words = sqlPart.split("\\s+");
+            if (!sqlPart.equals("?") && !sqlPart.equals("=") && !sqlPart.equals("and") && !sqlPart.equals("or") && !sqlPart.equals(">") && !sqlPart.equals("<") && !sqlPart.equals("in") && !sqlPart.equals("!")) {
+//                String[] words = sqlPart.split("\\s+");
+                String[] words = sqlPart.split("[\\s,]+");
                 String lastWord = words[words.length - 1];
-                if (words.length == 1 || lastWord.contains("?"))
+//                if (words.length == 1 || lastWord.contains("?") || lastWord.equals("where"))
+//                if (lastWord.contains("?") || lastWord.equals("where"))
+                if ((!lastWord.equals("?") && (i > 0) && partsList.get(i-1).equals("=") && words.length == 1) || lastWord.contains("?") || lastWord.equals("where"))
                     continue;
                 map.put(lastWord.toLowerCase(), indexInDeleteSql);
                 indexInDeleteSql ++;

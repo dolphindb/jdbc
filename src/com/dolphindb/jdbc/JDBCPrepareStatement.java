@@ -314,17 +314,23 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						}
 					} else {
 						builder.append(splitSqls[0]).append(" where makeKey(");
-						List<String> partsList = Arrays.stream(this.preProcessedSql.split("\\s*(?=[><=]|between|and|or|in)\\s*|\\s*(?<=[><=]|between|and|or|in)\\s*"))
+//						List<String> partsList = Arrays.stream(this.preProcessedSql.split("\\s*(?=[><=]|between|and|or|in)\\s*|\\s*(?<=[><=]|between|and|or|in)\\s*"))
+						List<String> partsList = Arrays.stream(preProcessedSql.split("\\s*(?=[!=><]|(?<!\\w)between\\b|(?<!\\w)and\\b|(?<!\\w)or\\b|(?<!\\w)in\\b(?!\\()|(?<!=)=)\\s*|\\s*(?<=[!=><]|(?<!\\w)between\\b|(?<!\\w)and\\b|(?<!\\w)or\\b|(?<!\\w)in\\b(?!\\()|=(?!=))\\s*"))
 								.filter(str -> !str.isEmpty())
 								.collect(Collectors.toList());
 						for (int i = 0; i < partsList.size(); i++ ) {
 							String sqlPart = partsList.get(i);
 							sqlPart = sqlPart.trim();
 							if (!sqlPart.equals("?") && !sqlPart.equals("=") && !sqlPart.equals("and")) {
+//								String[] words = sqlPart.split("\\s+");
+								String[] words = sqlPart.split("[\\s,]+");
+								String lastWord = words[words.length - 1];
+//								if (words.length == 1 || lastWord.contains("?"))
+//								if (lastWord.contains("?") || lastWord.equals("where"))
+								if ((!lastWord.equals("?") && (i > 0) && partsList.get(i-1).equals("=") && words.length == 1) || lastWord.contains("?") || lastWord.equals("where"))
+									continue;
 								if (!sqlColNames.isEmpty())
 									builder.append(", ");
-								String[] words = sqlPart.split("\\s+");
-								String lastWord = words[words.length - 1];
 								sqlColNames.add(lastWord);
 								builder.append(lastWord);
 							}
@@ -482,6 +488,20 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						&& (this.deleteExecuteBatchStrategy.equals(PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_MAKEKEY)
 						|| this.deleteExecuteBatchStrategy.equals(PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_IN)))) {
 			bindNull(parameterIndex);
+
+			// prepare NULL data for non-bath preparedStatement delete sql
+			Object bindValue;
+			switch (sqlType) {
+				case Types.VARCHAR:
+					bindValue = "";
+					break;
+				case Types.OTHER:
+					bindValue = new Void();
+					break;
+				default:
+					bindValue = new Void();
+			}
+			bufferArea[parameterIndex - 1] = new BindValue(bindValue, true);
 		} else {
 			Object bindValue;
 			switch (sqlType) {
