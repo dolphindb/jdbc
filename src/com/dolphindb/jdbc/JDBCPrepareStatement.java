@@ -158,12 +158,22 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 				for (int i = 0; i < this.sqlBuffer.size(); i++ ) {
 					try {
-						executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
+						super.executeUpdate(sqlBuffer.get(i));
 					} catch (Exception e) {
+						for (int j = 0; j < executeRes.length; j ++) {
+							if (j < i)
+								executeRes[j] = SUCCESS_NO_INFO;
+							else
+								executeRes[j] = EXECUTE_FAILED;
+						}
+
 						throw new BatchUpdateException(e.getMessage(), Arrays.copyOf(executeRes, i));
 					}
 				}
+
+				Arrays.fill(executeRes, SUCCESS_NO_INFO);
 			} else {
+				// other dml executeBatch
 				executeRes = new int[this.batchSize];
 				for (int i = 0; i < this.batchSize; i++) {
 					try {
