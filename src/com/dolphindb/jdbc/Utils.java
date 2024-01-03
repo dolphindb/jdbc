@@ -761,7 +761,7 @@ public class Utils {
                 String lastWord = words[words.length - 1];
 //                if (words.length == 1 || lastWord.contains("?") || lastWord.equals("where"))
 //                if (lastWord.contains("?") || lastWord.equals("where"))
-                if ((!lastWord.equals("?") && (i > 0) && partsList.get(i-1).equals("=") && words.length == 1) || lastWord.contains("?") || lastWord.equals("where"))
+                if ((!lastWord.equals("?") && (i > 0) && partsList.get(i-1).equals("=") && words.length == 1) || lastWord.contains("?") || lastWord.equals("where") || lastWord.equals(")"))
                     continue;
                 map.put(lastWord.toLowerCase(), indexInDeleteSql);
                 indexInDeleteSql ++;
