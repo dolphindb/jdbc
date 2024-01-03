@@ -219,8 +219,18 @@ public class Utils {
             } else {
                 if (deleteIndexSQLToDDB.size() == 1)
                     return JDBCPrepareStatement.PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_IN;
-                else
+                else {
+                    if (deleteIndexSQLToDDB.size() > 128 || deleteIndexSQLToDDB.size() < 2)
+                        return JDBCPrepareStatement.PrepareStatementDeleteStrategy.DEFAULT_DELETE_SQL_EXECUTE_STRATEGY;
+
+                    for (int i = 0; i < partsList.size(); i++ ) {
+                        // if cols's values in delete sql is not all placeholder, use defalue-strategy
+                        if (i != 0 && partsList.get(i-1).trim().equals("=") && !partsList.get(i).contains("?"))
+                            return JDBCPrepareStatement.PrepareStatementDeleteStrategy.DEFAULT_DELETE_SQL_EXECUTE_STRATEGY;
+                    }
+
                     return JDBCPrepareStatement.PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_MAKEKEY;
+                }
             }
         } else {
             return null;
@@ -751,7 +761,7 @@ public class Utils {
                 String lastWord = words[words.length - 1];
 //                if (words.length == 1 || lastWord.contains("?") || lastWord.equals("where"))
 //                if (lastWord.contains("?") || lastWord.equals("where"))
-                if ((!lastWord.equals("?") && (i > 0) && partsList.get(i-1).equals("=") && words.length == 1) || lastWord.contains("?") || lastWord.equals("where"))
+                if ((!lastWord.equals("?") && (i > 0) && partsList.get(i-1).equals("=") && words.length == 1) || lastWord.contains("?") || lastWord.equals("where") || lastWord.equals(")"))
                     continue;
                 map.put(lastWord.toLowerCase(), indexInDeleteSql);
                 indexInDeleteSql ++;
