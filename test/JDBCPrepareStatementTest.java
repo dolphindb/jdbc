@@ -677,6 +677,56 @@ public class JDBCPrepareStatementTest {
         }
     }
     @Test
+    public void Test_prepareStatement_inmemory_query_setDate_1() throws Exception {
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
+        Connection conn = null;
+        Statement stmt = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        try {
+            Class.forName(JDBC_DRIVER);
+            conn = DriverManager.getConnection(url);
+            stmt = conn.createStatement();
+            stmt.execute("t=table(1..3 as id,[2020.08.01,2020.08.02,2020.08.03] as date)");
+            //setDate
+            pstmt = conn.prepareStatement("insert into t values(?,?)");
+            pstmt.setInt(1, 4);
+            Date date = Date.valueOf("2020-08-04");
+            System.out.println(date.getTime());
+            pstmt.setDate(2,new java.sql.Date(date.getTime()));
+            pstmt.executeUpdate();
+            pstmt = conn.prepareStatement("select * from t");
+            rs = pstmt.executeQuery();
+            rs.absolute(4);
+            org.junit.Assert.assertEquals(rs.getDate(2), date);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+    @Test
     public void Test_prepareStatement_inmemory_query_setShort() throws Exception {
         String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
         String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
@@ -5599,6 +5649,869 @@ public class JDBCPrepareStatementTest {
         System.out.println(((Scalar)(basicDecimal128Vector.get(0))).isNull());
         org.junit.Assert.assertEquals(true,((Scalar)(basicDecimal128Vector.get(0))).isNull());
 
+        System.out.println("Duration:");
+        Scalar scalardur = (Scalar) TypeCast.nullScalar(Entity.DATA_TYPE.DT_DURATION);
+        System.out.println(scalardur.isNull());
+        org.junit.Assert.assertEquals(true,scalardur.isNull());
+
+        BasicDurationVector basicDurationVector = new BasicDurationVector(1);
+        basicDurationVector.Append(scalardur);
+        System.out.println(((Scalar)(basicDurationVector.get(0))).isNull());
+        org.junit.Assert.assertEquals(true,((Scalar)(basicDurationVector.get(1))).isNull());
+    }
+    @Test
+    public void test_PreparedStatement_delete_setDate() throws SQLException, IOException {
+        createPartitionTable("DATE");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setDate(2, Date.valueOf(LocalDate.of(2021,1,1)));
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.DATE);
+        ps.addBatch();
+        ps.executeBatch();
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id = ? and dataType = ?");
+        ps1.setInt(1,1);
+        Date date = Date.valueOf("2021-01-01");
+        ps1.setDate(2,new java.sql.Date(date.getTime()));
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(1,bt1.rows());
+        org.junit.Assert.assertEquals("2",bt1.getColumn(0).getString(0));
+        org.junit.Assert.assertEquals("",bt1.getColumn(1).getString(0));
+    }
+    @Test
+    public void test_PreparedStatement_delete_one_col() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id = ? ");
+        ps.setInt(1,1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(9,bt.rows());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9,10]",bt.getColumn(0).getString());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9,]",bt.getColumn(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where dataType = ? ");
+        ps1.setNull(1,3);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(8,bt1.rows());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9]",bt1.getColumn(0).getString());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9]",bt1.getColumn(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where dataType = ? ");
+        for(int i = 2;i<=4;i++) {
+            ps2.setInt(1,i);
+            ps2.addBatch();
+        }
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet)ps2.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt2 = (BasicTable) rs2.getResult();
+        org.junit.Assert.assertEquals(5,bt2.rows());
+        org.junit.Assert.assertEquals("[5,6,7,8,9]",bt2.getColumn(0).getString());
+        org.junit.Assert.assertEquals("[5,6,7,8,9]",bt2.getColumn(1).getString());
+    }
+
+    @Test
+    public void test_PreparedStatement_delete_one_col_bool() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("BOOL");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,take(true false,9) join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where dataType = ? ");
+        ps.setBoolean(1,true);
+        ps.addBatch();
+        ps.setNull(1,Types.BOOLEAN);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(4,bt.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_one_col_UUID() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("UUID");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,take(uuid(\"00000000-0000-0001-0000-000000000002\") uuid(\"00000000-0000-0001-0000-000000000003\"),9) join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where dataType = ? ");
+        BasicUuid uuids = new BasicUuid(1,2);
+        ps.setObject(1, uuids);
+        ps.addBatch();
+        ps.setNull(1,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(4,bt.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_one_col_STRING() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("STRING");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,take(\"12121\" \"qqqqq\",9) join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where dataType = ? ");
+        ps.setObject(1, "12121");
+        ps.addBatch();
+        ps.setNull(1,Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(4,bt.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_one_col_100000() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..1000001 as id,1..1000000 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(1000001,re.rows());
+        PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id = ? ");
+        for(int i = 1;i<=100000;i++) {
+            ps.setInt(1,i);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        for(int i = 100001;i<=200000;i++) {
+            ps.setInt(1,i);
+            ps.addBatch();
+        }
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(800001,bt.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_one_col_in() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id in (?,?)");
+        ps.setInt(1,1);
+        ps.setInt(2,2);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(8,bt.rows());
+
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id in (?)");
+        ps1.setInt(1,3);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(7,bt1.rows());
+
+        PreparedStatement ps2 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id in (?)");
+        ps2.setInt(1,4);
+        ps2.addBatch();
+        ps2.setInt(1,5);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet)ps2.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt2 = (BasicTable) rs2.getResult();
+        org.junit.Assert.assertEquals(5,bt2.rows());
+
+        PreparedStatement ps3 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id in (?,?)");
+        ps3.setInt(1,6);
+        ps3.setInt(2,6);
+        ps3.addBatch();
+        ps3.setInt(1,10);
+        ps3.setNull(2,Types.INTEGER);
+        ps3.addBatch();
+        ps3.executeBatch();
+        JDBCResultSet rs3 = (JDBCResultSet)ps3.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt3 = (BasicTable) rs3.getResult();
+        org.junit.Assert.assertEquals(5,bt3.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_one_col_in_STRING() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("STRING");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,take(\"12121\" \"qqqqq\",9) join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where dataType in(?, ?) ");
+        ps.setObject(1, "12121");
+        ps.setNull(1,Types.VARCHAR);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(4,bt.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_one_col_in_STRING_1() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("STRING");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,take(\"12121\" \"qqqqq\",9) join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where dataType in [\"12121\",?] ");
+        ps.setObject(1, "qqqqq");
+        //ps.setNull(1,Types.VARCHAR);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(1,bt.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_one_col_in_select() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id in (select id from loadTable('dfs://test_append_type','pt') where id = ?)");
+        ps1.setInt(1,1);
+        ps1.addBatch();
+        ps1.setInt(1,2);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(8,bt1.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_one_col_not_equal() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id != ?");
+        ps1.setInt(1,1);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(1,bt1.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_one_col_not_equal_1() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id < ?");
+        ps1.setInt(1,3);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(8,bt1.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_two_col() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id = ? , dataType = ?");
+        ps.setInt(1,1);
+        ps.setInt(2,1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(9,bt.rows());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9,10]",bt.getColumn(0).getString());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9,]",bt.getColumn(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id = ? , dataType = ? ");
+        ps1.setNull(2, Types.INTEGER);
+        ps1.setInt(1,10);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(8,bt1.rows());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9]",bt1.getColumn(0).getString());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9]",bt1.getColumn(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id = ? , dataType = ? ");
+        for(int i = 2;i<=4;i++) {
+            ps2.setInt(1,i);
+            ps2.setInt(2,i);
+            ps2.addBatch();
+        }
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet)ps2.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt2 = (BasicTable) rs2.getResult();
+        org.junit.Assert.assertEquals(5,bt2.rows());
+        org.junit.Assert.assertEquals("[5,6,7,8,9]",bt2.getColumn(0).getString());
+        org.junit.Assert.assertEquals("[5,6,7,8,9]",bt2.getColumn(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_delete_two_col_1() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id = ? , dataType = 1");
+        ps.setInt(1,1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(9,bt.rows());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9,10]",bt.getColumn(0).getString());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9,]",bt.getColumn(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id = 10 , dataType = ? ");
+        ps1.setNull(1, Types.INTEGER);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(8,bt1.rows());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9]",bt1.getColumn(0).getString());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9]",bt1.getColumn(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id = 2 , dataType = 2 ");
+        ps2.execute();
+        JDBCResultSet rs2 = (JDBCResultSet)ps2.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt2 = (BasicTable) rs2.getResult();
+        org.junit.Assert.assertEquals(6,bt2.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_two_col_and() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id = ? and dataType = ?");
+        ps.setInt(1,1);
+        ps.setInt(2,1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(9,bt.rows());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9,10]",bt.getColumn(0).getString());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9,]",bt.getColumn(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id = ? and dataType = ? ");
+        ps1.setNull(2, Types.INTEGER);
+        ps1.setInt(1,10);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(8,bt1.rows());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9]",bt1.getColumn(0).getString());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9]",bt1.getColumn(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id = ? and dataType = ? ");
+        for(int i = 2;i<=4;i++) {
+            ps2.setInt(1,i);
+            ps2.setInt(2,i);
+            ps2.addBatch();
+        }
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet)ps2.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt2 = (BasicTable) rs2.getResult();
+        org.junit.Assert.assertEquals(5,bt2.rows());
+        org.junit.Assert.assertEquals("[5,6,7,8,9]",bt2.getColumn(0).getString());
+        org.junit.Assert.assertEquals("[5,6,7,8,9]",bt2.getColumn(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_delete_two_col_or() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id = ? or dataType = ?");
+        ps1.setInt(1,1);
+        ps1.setInt(2, 3);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(8,bt1.rows());
+        org.junit.Assert.assertEquals("[2,4,5,6,7,8,9,10]",bt1.getColumn(0).getString());
+        org.junit.Assert.assertEquals("[2,4,5,6,7,8,9,]",bt1.getColumn(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_delete_two_col_in() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id in (?,?)  or dataType = ?");
+        ps1.setInt(1,1);
+        ps1.setInt(2,2);
+        ps1.setInt(3, 3);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(7,bt1.rows());
+        org.junit.Assert.assertEquals("[4,5,6,7,8,9,10]",bt1.getColumn(0).getString());
+        org.junit.Assert.assertEquals("[4,5,6,7,8,9,]",bt1.getColumn(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_delete_two_col_not_equal() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id != ?  or dataType != ?");
+        ps1.setInt(1,1);
+        ps1.setInt(2, 3);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(0,bt1.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_two_col_not_equal_1() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id != ?  and dataType != ?");
+        ps1.setInt(1,1);
+        ps1.setInt(2, 3);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(8,bt1.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_two_col_not_equal_2() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id > ?  or dataType > ?");
+        ps1.setInt(1,3);
+        ps1.setInt(2, 4);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(3,bt1.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_two_col_not_equal_3() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id > ?  or dataType > ?");
+        ps1.setInt(1,3);
+        ps1.setInt(2, 4);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(3,bt1.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_select() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id select id from loadTable('dfs://test_append_type','pt') where id =?)");
+        ps1.setInt(1,1);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(9,bt1.rows());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9,10]",bt1.getColumn(0).getString());
+        org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9,]",bt1.getColumn(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_delete_many_col_one_row() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable1();
+        db.run("pt = loadTable('dfs://test_append_type_tsdb1','pt');\n" +
+                "colNames=\"col\"+string(1..29);\n" +
+                "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
+                "t=table(1:0,colNames,colTypes);\n" +
+                "insert into t values(1,true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"00000000-0000-0001-0000-000000000002\"),datehour(2012.06.13 13:30:10),ipaddr(\"0::1:0:0:0:2\"),int128(\"00000000000000010000000000000002\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                "insert into t values(2,false,'a',2333h,22222,-1111111111222222l,1969.12.06,1969.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,23333f,244444.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1969.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1222222.1,2),decimal64(3333333331.1,7),decimal128(133333333333333.1,19));\n" +
+                "insert into t values(3,true,'a',-23332h,-55555,1111111111222222l,1969.12.06,1969.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,-22222f,-222222.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1969.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(-1222222.1,2),decimal64(-3333333331.1,7),decimal128(-133333333333333.1,19));\n" +
+                "insert into t values(4,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
+                "pt.append!(t)");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type_tsdb1','pt') ");
+        org.junit.Assert.assertEquals(4,re.rows());
+        PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col1 =? and col2 = ? and col3 = ? and col4 = ? and col5 = ? and col6 =? and col7 = ? and col8 = ? and col9 = ? and col10 = ?  and col11 =? and col12 = ? and col13 = ? and col14 = ? and col15 = ? and col16 =? and col17 = ? and col18 = ? and col19 = ? and col20 = ? and col21 = ? and col22 = ? and col23 = ? and col24 = ? and col25 = ? and col26 = ? and col27 = ? and col28 = ? and col29 = ?");
+        ps.setInt(1, 4);
+        ps.setNull(2, Types.BOOLEAN);
+        ps.setNull(3, Types.CHAR);
+        ps.setNull(4, Types.TINYINT);
+        ps.setNull(5, Types.INTEGER);
+        ps.setNull(6, Types.BIGINT);
+        ps.setNull(7, Types.OTHER);
+        ps.setNull(8, Types.OTHER);
+        ps.setNull(9, Types.OTHER);
+        ps.setNull(10, Types.OTHER);
+        ps.setNull(11, Types.OTHER);
+        ps.setNull(12, Types.OTHER);
+        ps.setNull(13, Types.OTHER);
+        ps.setNull(14, Types.OTHER);
+        ps.setNull(15, Types.OTHER);
+        ps.setNull(16, Types.OTHER);
+        ps.setNull(17, Types.OTHER);
+        ps.setNull(18, Types.OTHER);
+        ps.setNull(19, Types.OTHER);
+        ps.setNull(20, Types.OTHER);
+        ps.setNull(21, Types.OTHER);
+        ps.setNull(22, Types.OTHER);
+        ps.setNull(23, Types.OTHER);
+        ps.setNull(24, Types.OTHER);
+        ps.setNull(25, Types.OTHER);
+        ps.setNull(26, Types.OTHER);
+        ps.setNull(27, Types.OTHER);
+        ps.setNull(28, Types.OTHER);
+        ps.setNull(29, Types.OTHER);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt') where col1 =4");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(0,bt.rows());
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col1 =? and col2 = ? and col3 = ? and col4 = ? and col5 = ? and col6 =? and col7 = ? and col8 = ? and col9 = ? and col10 = ?  and col11 =? and col12 = ? and col13 = ? and col14 = ? and col15 = ? and col16 =? and col17 = ? and col18 = ? and col19 = ? and col20 = ? and col21 = ? and col22 = ? and col23 = ? and col24 = ? and col25 = ? and col26 = ? and col27 = ? and col28 = ? and col29 = ?");
+        BasicInt tmp_int = new BasicInt(1);
+        ps1.setObject(1,tmp_int);
+        BasicBoolean tmp_Boolean = new BasicBoolean(true);
+        ps1.setObject(2,tmp_Boolean);
+        BasicByte tmp_Byte = new BasicByte((byte) 97);
+        ps1.setObject(3, tmp_Byte);
+        BasicShort tmp_Short = new BasicShort((short) 2);
+        ps1.setObject(4, tmp_Short);
+        BasicInt tmp_int1 = new BasicInt(2);
+        ps1.setObject(5,tmp_int1);
+        BasicLong tmp_Long = new BasicLong((long) 22);
+        ps1.setObject(6, tmp_Long);
+        BasicDate tmp_Date = new BasicDate(LocalDate.of(2012,12,6));
+        ps1.setObject(7, tmp_Date);
+        BasicMonth tmp_month = new BasicMonth(YearMonth.of(2012,6));
+        ps1.setObject(8, tmp_month);
+        BasicTime tmp_Time = new BasicTime(LocalTime.of(12,30,0,8000000));
+        ps1.setObject(9, tmp_Time);
+        BasicMinute tmp_minute = new BasicMinute(LocalTime.of(12,30));
+        ps1.setObject(10, tmp_minute);
+        BasicSecond tmp_second = new BasicSecond(LocalTime.of(12,30,0));
+        ps1.setObject(11, tmp_second);
+        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(2012,6,12,12,30,00));
+        ps1.setObject(12, tmp_datetime);
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2012,6,12,12,30,00,8000000));
+        ps1.setObject(13, tmp_timestamp);
+        BasicNanoTime tmp_nanotime = new BasicNanoTime(LocalDateTime.of(2012,6,13,13,30,10,8007006));
+        ps1.setObject(14, tmp_nanotime);
+        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(2012,6,13,13,30,10,8007006));
+        ps1.setObject(15, tmp_nanotimestamp);
+        BasicFloat tmp_Float = new BasicFloat((float) 2.1);
+        ps1.setObject(16, tmp_Float);
+        BasicDouble tmp_Double = new BasicDouble((double) 2.1);
+        ps1.setObject(17, tmp_Double);
+        BasicString tmp_String = new BasicString("hello");
+        ps1.setObject(18, tmp_String);
+        BasicString tmp_Symbol = new BasicString("world");
+        ps1.setObject(19, tmp_Symbol);
+        BasicUuid uuids = new BasicUuid(1,2);
+        ps1.setObject(20, uuids);
+        BasicDateHour tmp_datehour = new BasicDateHour(LocalDateTime.of(2012,6,13,13,30,10));
+        ps1.setObject(21, tmp_datehour);
+        BasicIPAddr ipaddrs = new BasicIPAddr(1,2);
+        ps1.setObject(22, ipaddrs);
+        BasicInt128 int128 = new BasicInt128(1,2);
+        ps1.setObject(23, int128);
+        ps1.setObject(24, "123");
+        BasicComplex complexs = new BasicComplex(111,1);
+        ps1.setObject(25, complexs);
+        BasicPoint points = new BasicPoint(1,2);
+        ps1.setObject(26, points);
+        BasicDecimal32 tmp_decimal32 = new BasicDecimal32("1.1",2);
+        ps1.setObject(27,tmp_decimal32);
+        BasicDecimal64 tmp_decimal64 = new BasicDecimal64("1.1",7);
+        ps1.setObject(28,tmp_decimal64);
+        BasicDecimal128 tmp_decimal128 = new BasicDecimal128("1.1",19);
+        ps1.setObject(29,tmp_decimal128);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt') where col1 =1");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(0,bt1.rows());
+    }
+
+    @Test
+    public void test_PreparedStatement_delete_many_col_two_rows() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable1();
+        db.run("pt = loadTable('dfs://test_append_type_tsdb1','pt');\n" +
+                "colNames=\"col\"+string(1..29);\n" +
+                "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
+                "t=table(1:0,colNames,colTypes);\n" +
+                "insert into t values(1,true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"00000000-0000-0001-0000-000000000002\"),datehour(2012.06.13 13:30:10),ipaddr(\"0::1:0:0:0:2\"),int128(\"00000000000000010000000000000002\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                "insert into t values(2,false,'a',2333h,22222,-1111111111222222l,1969.12.06,1969.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,23333f,244444.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1969.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1222222.1,2),decimal64(3333333331.1,7),decimal128(133333333333333.1,19));\n" +
+                "insert into t values(3,true,'a',-23332h,-55555,1111111111222222l,1969.12.06,1969.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,-22222f,-222222.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1969.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(-1222222.1,2),decimal64(-3333333331.1,7),decimal128(-133333333333333.1,19));\n" +
+                "insert into t values(4,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
+                "pt.append!(t)");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type_tsdb1','pt') ");
+        org.junit.Assert.assertEquals(4,re.rows());
+        PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col1 =? and col2 = ? and col3 = ? and col4 = ? and col5 = ? and col6 =? and col7 = ? and col8 = ? and col9 = ? and col10 = ?  and col11 =? and col12 = ? and col13 = ? and col14 = ? and col15 = ? and col16 =? and col17 = ? and col18 = ? and col19 = ? and col20 = ? and col21 = ? and col22 = ? and col23 = ? and col24 = ? and col25 = ? and col26 = ? and col27 = ? and col28 = ? and col29 = ?");
+        ps.setInt(1, 4);
+        ps.setNull(2, Types.BOOLEAN);
+        ps.setNull(3, Types.CHAR);
+        ps.setNull(4, Types.TINYINT);
+        ps.setNull(5, Types.INTEGER);
+        ps.setNull(6, Types.BIGINT);
+        ps.setNull(7, Types.OTHER);
+        ps.setNull(8, Types.OTHER);
+        ps.setNull(9, Types.OTHER);
+        ps.setNull(10, Types.OTHER);
+        ps.setNull(11, Types.OTHER);
+        ps.setNull(12, Types.OTHER);
+        ps.setNull(13, Types.OTHER);
+        ps.setNull(14, Types.OTHER);
+        ps.setNull(15, Types.OTHER);
+        ps.setNull(16, Types.OTHER);
+        ps.setNull(17, Types.OTHER);
+        ps.setNull(18, Types.OTHER);
+        ps.setNull(19, Types.OTHER);
+        ps.setNull(20, Types.OTHER);
+        ps.setNull(21, Types.OTHER);
+        ps.setNull(22, Types.OTHER);
+        ps.setNull(23, Types.OTHER);
+        ps.setNull(24, Types.OTHER);
+        ps.setNull(25, Types.OTHER);
+        ps.setNull(26, Types.OTHER);
+        ps.setNull(27, Types.OTHER);
+        ps.setNull(28, Types.OTHER);
+        ps.setNull(29, Types.OTHER);
+        ps.addBatch();
+        BasicInt tmp_int = new BasicInt(1);
+        ps.setObject(1,tmp_int);
+        BasicBoolean tmp_Boolean = new BasicBoolean(true);
+        ps.setObject(2,tmp_Boolean);
+        BasicByte tmp_Byte = new BasicByte((byte) 97);
+        ps.setObject(3, tmp_Byte);
+        BasicShort tmp_Short = new BasicShort((short) 2);
+        ps.setObject(4, tmp_Short);
+        BasicInt tmp_int1 = new BasicInt(2);
+        ps.setObject(5,tmp_int1);
+        BasicLong tmp_Long = new BasicLong((long) 22);
+        ps.setObject(6, tmp_Long);
+        BasicDate tmp_Date = new BasicDate(LocalDate.of(2012,12,6));
+        ps.setObject(7, tmp_Date);
+        BasicMonth tmp_month = new BasicMonth(YearMonth.of(2012,6));
+        ps.setObject(8, tmp_month);
+        BasicTime tmp_Time = new BasicTime(LocalTime.of(12,30,0,8000000));
+        ps.setObject(9, tmp_Time);
+        BasicMinute tmp_minute = new BasicMinute(LocalTime.of(12,30));
+        ps.setObject(10, tmp_minute);
+        BasicSecond tmp_second = new BasicSecond(LocalTime.of(12,30,0));
+        ps.setObject(11, tmp_second);
+        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(2012,6,12,12,30,00));
+        ps.setObject(12, tmp_datetime);
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2012,6,12,12,30,00,8000000));
+        ps.setObject(13, tmp_timestamp);
+        BasicNanoTime tmp_nanotime = new BasicNanoTime(LocalDateTime.of(2012,6,13,13,30,10,8007006));
+        ps.setObject(14, tmp_nanotime);
+        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(2012,6,13,13,30,10,8007006));
+        ps.setObject(15, tmp_nanotimestamp);
+        BasicFloat tmp_Float = new BasicFloat((float) 2.1);
+        ps.setObject(16, tmp_Float);
+        BasicDouble tmp_Double = new BasicDouble((double) 2.1);
+        ps.setObject(17, tmp_Double);
+        BasicString tmp_String = new BasicString("hello");
+        ps.setObject(18, tmp_String);
+        BasicString tmp_Symbol = new BasicString("world");
+        ps.setObject(19, tmp_Symbol);
+        BasicUuid uuids = new BasicUuid(1,2);
+        ps.setObject(20, uuids);
+        BasicDateHour tmp_datehour = new BasicDateHour(LocalDateTime.of(2012,6,13,13,30,10));
+        ps.setObject(21, tmp_datehour);
+        BasicIPAddr ipaddrs = new BasicIPAddr(1,2);
+        ps.setObject(22, ipaddrs);
+        BasicInt128 int128 = new BasicInt128(1,2);
+        ps.setObject(23, int128);
+        ps.setObject(24, "123");
+        BasicComplex complexs = new BasicComplex(111,1);
+        ps.setObject(25, complexs);
+        BasicPoint points = new BasicPoint(1,2);
+        ps.setObject(26, points);
+        BasicDecimal32 tmp_decimal32 = new BasicDecimal32("1.1",2);
+        ps.setObject(27,tmp_decimal32);
+        BasicDecimal64 tmp_decimal64 = new BasicDecimal64("1.1",7);
+        ps.setObject(28,tmp_decimal64);
+        BasicDecimal128 tmp_decimal128 = new BasicDecimal128("1.1",19);
+        ps.setObject(29,tmp_decimal128);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt') ");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(2,bt.rows());
+    }
+    @Test
+    public void test_PreparedStatement_delete_65536() throws SQLException, IOException {
+        String script = " if(existsDatabase('dfs://delete')) dropDatabase('dfs://delete');\n"+
+                "db = database('dfs://delete', RANGE, 0 10000 20000 30001,,'TSDB');\n" +
+                "n=100000;\n" +
+                "id = int(take(1..30000, n));\n" +
+                "boolv = bool(rand([true, false, NULL], n));\n" +
+                "charv = char(rand(rand(-100..100, 1000) join take(char(), 4), n));\n" +
+                "shortv = short(rand(rand(-100..100, 1000) join take(short(), 4), n));\n" +
+                "intv = int(rand(rand(-1000..1000, 1000) join take(int(), 4), n));\n" +
+                "longv = long(rand(rand(-100..100, 1000) join take(long(), 4), n));\n" +
+                "doublev = double(rand(rand(-100..100, 1000)*0.23 join take(double(), 4), n));\n" +
+                "floatv = float(rand(rand(-100..100, 1000)*0.23 join take(float(), 4), n));\n" +
+                "datev = date(rand(rand(-100..100, 1000) join take(date(), 4), n));\n" +
+                "monthv = month(rand(1967.12M+rand(-100..100, 1000) join take(month(), 4), n));\n" +
+                "timev = time(rand(rand(0..100, 1000) join take(time(), 4), n));\n" +
+                "minutev = minute(rand(12:13m+rand(-100..100, 1000) join take(minute(), 4), n));\n" +
+                "secondv = second(rand(12:13:12+rand(-100..100, 1000) join take(second(), 4), n));\n" +
+                "datetimev = datetime(rand(1969.12.23+rand(-100..100, 1000) join take(datetime(), 4), n));\n" +
+                "timestampv = timestamp(rand(1970.01.01T00:00:00.023+rand(-100..100, 1000) join take(timestamp(), 4), n));\n" +
+                "nanotimev = nanotime(rand(12:23:45.452623154+rand(-100..100, 1000) join take(nanotime(), 4), n));\n" +
+                "nanotimestampv = nanotimestamp(rand(rand(-100..100, 1000) join take(nanotimestamp(), 4), n));\n" +
+                "symbolv = rand((\"syms\"+string(rand(100, 1000))) join take(string(), 4), n);\n" +
+                "stringv = rand((\"stringv\"+string(rand(100, 1000))) join take(string(), 4), n);\n" +
+                "uuidv = rand(rand(uuid(), 1000) join take(uuid(), 4), n);\n" +
+                "datehourv = datehour(rand(datehour(1969.12.31T12:45:12)+rand(-100..100, 1000) join take(datehour(), 4), n));\n" +
+                "ippaddrv = rand(rand(ipaddr(), 1000) join take(ipaddr(), 4), n);\n" +
+                "int128v = rand(rand(int128(), 1000) join take(int128(), 4), n);\n" +
+                "blobv = blob(string(rand((\"blob\"+string(rand(100, 1000))) join take(\"\", 4), n)));\n" +
+                "complexv = rand(complex(rand(100, 1000), rand(100, 1000)) join NULL, n);\n" +
+                "pointv = rand(point(rand(100, 1000), rand(100, 1000)) join NULL, n);\n" +
+                "decimal32v = decimal32(rand(rand(-100..100, 1000)*0.23 join take(double(), 4), n), 3);\n" +
+                "decimal64v = decimal64(rand(rand(-100..100, 1000)*0.23 join take(double(), 4), n), 3);\n" +
+                "t = table(id,boolv, charv,shortv, intv,  longv, floatv, doublev, datev, monthv, timev, minutev, secondv, datetimev, timestampv, nanotimev, nanotimestampv, symbolv, stringv, uuidv, datehourv, ippaddrv, int128v, blobv);\n" +
+                "db.createPartitionedTable(t,'t1', 'id',,'id').append!(t); \n";
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        db.run(script);
+        BasicLong re = (BasicLong) db.run("exec count(*) from loadTable('dfs://delete','t1')");
+        org.junit.Assert.assertEquals(100000,re.getLong());
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://delete','t1') where id =?");
+        for(int i = 1;i<=65536;i++){
+            ps1.setInt(1,i);
+            ps1.addBatch();
+        }
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("exec count(*) from loadTable('dfs://delete','t1')");
+        BasicLong bt1 = (BasicLong) rs1.getResult();
+        System.out.println(bt1.getString());
+        org.junit.Assert.assertEquals(34464,bt1.getString());
+    }
+    @Test
+    public void test_PreparedStatement_delete_wideTable() throws SQLException, IOException {
+        createWideTable("dfs://test_append_wideTable",200,0);
+        long start = System.nanoTime();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_wideTable','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021, 1, 1, 1, 1, 1, 001));
+        ps.setObject(1, tmp_timestamp);
+        ps.setString(2, "test1");
+        for(int i =3;i<=202;i++) {
+            ps.setInt(i, i+1);
+        }
+        ps.addBatch();
+        BasicTimestamp tmp_timestamp1 = new BasicTimestamp(LocalDateTime.of(2022, 1, 1, 1, 1, 1, 001));
+        ps.setObject(1, tmp_timestamp1);
+        ps.setString(2, "test11");
+        for(int i =3;i<=202;i++) {
+            ps.setInt(i, i+1);
+        }
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_wideTable','pt')");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(2,bt.rows());
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_wideTable','pt') where int_0 = ?,int_1 = ?,int_2 = ?,int_3 = ?,int_4 = ?,int_5 = ?,int_6 = ?,int_7 = ?,int_8 = ?,int_9 = ?,int_10 = ?,int_11 = ?,int_12 = ?,int_13 = ?,int_14 = ?,int_15 = ?,int_16 = ?,int_17 = ?,int_18 = ?,int_19 = ?,int_20 = ?,int_21 = ?,int_22 = ?,int_23 = ?,int_24 = ?,int_25 = ?,int_26 = ?,int_27 = ?,int_28 = ?,int_29 = ?,int_30 = ?,int_31 = ?,int_32 = ?,int_33 = ?,int_34 = ?,int_35 = ?,int_36 = ?,int_37 = ?,int_38 = ?,int_39 = ?,int_40 = ?,int_41 = ?,int_42 = ?,int_43 = ?,int_44 = ?,int_45 = ?,int_46 = ?,int_47 = ?,int_48 = ?,int_49 = ?,int_50 = ?,int_51 = ?,int_52 = ?,int_53 = ?,int_54 = ?,int_55 = ?,int_56 = ?,int_57 = ?,int_58 = ?,int_59 = ?,int_60 = ?,int_61 = ?,int_62 = ?,int_63 = ?,int_64 = ?,int_65 = ?,int_66 = ?,int_67 = ?,int_68 = ?,int_69 = ?,int_70 = ?,int_71 = ?,int_72 = ?,int_73 = ?,int_74 = ?,int_75 = ?,int_76 = ?,int_77 = ?,int_78 = ?,int_79 = ?,int_80 = ?,int_81 = ?,int_82 = ?,int_83 = ?,int_84 = ?,int_85 = ?,int_86 = ?,int_87 = ?,int_88 = ?,int_89 = ?,int_90 = ?,int_91 = ?,int_92 = ?,int_93 = ?,int_94 = ?,int_95 = ?,int_96 = ?,int_97 = ?,int_98 = ?,int_99 = ?,int_100 = ?,int_101 = ?,int_102 = ?,int_103 = ?,int_104 = ?,int_105 = ?,int_106 = ?,int_107 = ?,int_108 = ?,int_109 = ?,int_110 = ?,int_111 = ?,int_112 = ?,int_113 = ?,int_114 = ?,int_115 = ?,int_116 = ?,int_117 = ?,int_118 = ?,int_119 = ?,int_120 = ?,int_121 = ?,int_122 = ?,int_123 = ?,int_124 = ?,int_125 = ?,int_126 = ?,int_127 = ?,int_128 = ?,int_129 = ?,int_130 = ?,int_131 = ?,int_132 = ?,int_133 = ?,int_134 = ?,int_135 = ?,int_136 = ?,int_137 = ?,int_138 = ?,int_139 = ?,int_140 = ?,int_141 = ?,int_142 = ?,int_143 = ?,int_144 = ?,int_145 = ?,int_146 = ?,int_147 = ?,int_148 = ?,int_149 = ?,int_150 = ?,int_151 = ?,int_152 = ?,int_153 = ?,int_154 = ?,int_155 = ?,int_156 = ?,int_157 = ?,int_158 = ?,int_159 = ?,int_160 = ?,int_161 = ?,int_162 = ?,int_163 = ?,int_164 = ?,int_165 = ?,int_166 = ?,int_167 = ?,int_168 = ?,int_169 = ?,int_170 = ?,int_171 = ?,int_172 = ?,int_173 = ?,int_174 = ?,int_175 = ?,int_175 = ?,int_177 = ?,int_178 = ?,int_179 = ?,int_180 = ?,int_181 = ?,int_182 = ?,int_183 = ?,int_184 = ?,int_185 = ?,int_186 = ?,int_187 = ?,int_188 = ?,int_189 = ?,int_190 = ?,int_191 = ?,int_192 = ?,int_193 = ?,int_194 = ?,int_195 = ?,int_196 = ?,int_197 = ?,int_198 = ?,int_199 = ?");
+        for(int i =0;i<200;i++) {
+            ps1.setInt(i, i+3);
+        }
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_wideTable','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(1,bt1.rows());
+    }
+
+    @Test
+    public void test_PreparedStatement_delete_blank_space() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        createPartitionTable("INT");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
+        BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
+        org.junit.Assert.assertEquals(10,re.rows());
+        PreparedStatement ps = conn.prepareStatement(" delete  from  loadTable( 'dfs://test_append_type' , 'pt')  where  id  in  ( ? , ? )");
+        ps.setInt(1,1);
+        ps.setInt(2,2);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt = (BasicTable) rs.getResult();
+        org.junit.Assert.assertEquals(8,bt.rows());
+
+        PreparedStatement ps1 = conn.prepareStatement(" delete  from  loadTable('dfs://test_append_type', 'pt')  where  id  in ( ?  )");
+        ps1.setInt(1,3);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs1.getResult();
+        org.junit.Assert.assertEquals(7,bt1.rows());
     }
     @After
     public void Destroy(){
