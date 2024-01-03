@@ -220,6 +220,9 @@ public class Utils {
                 if (deleteIndexSQLToDDB.size() == 1)
                     return JDBCPrepareStatement.PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_IN;
                 else {
+                    if (deleteIndexSQLToDDB.size() > 128 || deleteIndexSQLToDDB.size() < 2)
+                        return JDBCPrepareStatement.PrepareStatementDeleteStrategy.DEFAULT_DELETE_SQL_EXECUTE_STRATEGY;
+
                     for (int i = 0; i < partsList.size(); i++ ) {
                         // if cols's values in delete sql is not all placeholder, use defalue-strategy
                         if (i != 0 && partsList.get(i-1).trim().equals("=") && !partsList.get(i).contains("?"))
