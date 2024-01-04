@@ -214,7 +214,7 @@ public class Utils {
                     .collect(Collectors.toList());
 
             if (partsList.contains(">") || partsList.contains("<")
-                    || partsList.contains("between") || partsList.contains("in") || partsList.contains("or")) {
+                    || partsList.contains("between") || partsList.contains("in") || partsList.contains("or") || partsList.contains("!")) {
                 return JDBCPrepareStatement.PrepareStatementDeleteStrategy.CONCAT_SQL_CONDITION_WITH_OR;
             } else {
                 if (deleteIndexSQLToDDB.size() == 1)
