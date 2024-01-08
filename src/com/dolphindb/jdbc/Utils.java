@@ -204,39 +204,6 @@ public class Utils {
             return DML_OTHER;
     }
 
-    public static JDBCPrepareStatement.PrepareStatementDeleteStrategy getPrepareStmtDeleteSqlExecuteBatchStrategy(int sqlDmlType, String preProcessedSql, Map<Integer, Integer> deleteIndexSQLToDDB) {
-        if (sqlDmlType == Utils.DML_DELETE) {
-            String[] splitSqls = null;
-            splitSqls = preProcessedSql.split("\\s*(?=[!=><]|(?<!\\w)between\\b|(?<!\\w)and\\b|(?<!\\w)or\\b|(?<!\\w)in\\b(?!\\()|(?<!=)=)\\s*|\\s*(?<=[!=><]|(?<!\\w)between\\b|(?<!\\w)and\\b|(?<!\\w)or\\b|(?<!\\w)in\\b(?!\\()|=(?!=))\\s*");
-            // splitSqls = preProcessedSql.split("\\s*(?=[><=]|between|and|or|in)\\s*|\\s*(?<=[><=]|between|and|or|in)\\s*");
-            List<String> partsList = Arrays.stream(splitSqls)
-                    .filter(str -> !str.isEmpty())
-                    .collect(Collectors.toList());
-
-            if (partsList.contains(">") || partsList.contains("<")
-                    || partsList.contains("between") || partsList.contains("in") || partsList.contains("or") || partsList.contains("!")) {
-                return JDBCPrepareStatement.PrepareStatementDeleteStrategy.CONCAT_SQL_CONDITION_WITH_OR;
-            } else {
-                if (deleteIndexSQLToDDB.size() == 1)
-                    return JDBCPrepareStatement.PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_IN;
-                else {
-                    if (deleteIndexSQLToDDB.size() > 128 || deleteIndexSQLToDDB.size() < 2)
-                        return JDBCPrepareStatement.PrepareStatementDeleteStrategy.DEFAULT_DELETE_SQL_EXECUTE_STRATEGY;
-
-                    for (int i = 0; i < partsList.size(); i++ ) {
-                        // if cols's values in delete sql is not all placeholder, use defalue-strategy
-                        if (i != 0 && partsList.get(i-1).trim().equals("=") && !partsList.get(i).contains("?"))
-                            return JDBCPrepareStatement.PrepareStatementDeleteStrategy.DEFAULT_DELETE_SQL_EXECUTE_STRATEGY;
-                    }
-
-                    return JDBCPrepareStatement.PrepareStatementDeleteStrategy.COMBINE_SQL_WITH_MAKEKEY;
-                }
-            }
-        } else {
-            return null;
-        }
-    }
-
     public static String getTableName(String sql, boolean isPrepareStatement) throws SQLException{
         String tableName = null;
         if (sql.startsWith("insert") || sql.startsWith("INSERT")) {
