@@ -124,9 +124,13 @@ public class JDBCResultSetTest {
 
 	@After
 	public void clean() throws SQLException {
-		rs.close();
-		stmt.close();
-		conn.close();
+		try{
+			rs.close();
+			stmt.close();
+			conn.close();
+		}catch(Exception e){
+		}
+
 	}
 
 	@Test
@@ -2826,6 +2830,164 @@ public class JDBCResultSetTest {
 			TestCase.assertEquals((res8.get(i)), rs.getObject("cstring", java.lang.String.class));
 			i++;
 		}
+	}
+
+	@Test
+	public void Test_ResultSet_getInt() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("intv = int(-2147483648 2147483647 0 -2147483647 -100 100 NULL);\nshortv = short(-32768  32767 0 -32767 -100 100 NULL);\n tt= table(intv,shortv);");
+		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
+		rs.next();
+		Assert.assertEquals(0, rs.getInt(1));
+		Assert.assertEquals(0, rs.getInt(2));
+		rs.next();
+		Assert.assertEquals(2147483647, rs.getInt(1));
+		Assert.assertEquals(32767, rs.getInt(2));
+		rs.next();
+		Assert.assertEquals(0, rs.getInt(1));
+		Assert.assertEquals(0, rs.getInt(2));
+		rs.next();
+		Assert.assertEquals(-2147483647, rs.getInt(1));
+		Assert.assertEquals(-32767, rs.getInt(2));
+		rs.next();
+		Assert.assertEquals(-100, rs.getInt(1));
+		Assert.assertEquals(-100, rs.getInt(2));
+		rs.next();
+		Assert.assertEquals(100, rs.getInt(1));
+		Assert.assertEquals(100, rs.getInt(2));
+		rs.next();
+		Assert.assertEquals(0, rs.getInt(1));
+		Assert.assertEquals(0, rs.getInt(2));
+	}
+	@Test
+	public void Test_ResultSet_getLong() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("intv = int(-2147483648 2147483647 0 -2147483647 -100 100 NULL);\nshortv = short(-32768  32767 0 -32767 -100 100 NULL);\n longv = long(-9223372036854775808  9223372036854775807 0 -9223372036854775807 -100 100 NULL);\n tt= table(intv,shortv,longv);");
+		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
+		rs.next();
+		Assert.assertEquals(0, rs.getLong(1));
+		Assert.assertEquals(0, rs.getLong(2));
+		Assert.assertEquals(0, rs.getLong(3));
+		rs.next();
+		Assert.assertEquals(2147483647, rs.getLong(1));
+		Assert.assertEquals(32767, rs.getLong(2));
+		Assert.assertEquals(9223372036854775807l, rs.getLong(3));
+		rs.next();
+		Assert.assertEquals(0, rs.getLong(1));
+		Assert.assertEquals(0, rs.getLong(2));
+		Assert.assertEquals(0, rs.getLong(3));
+		rs.next();
+		Assert.assertEquals(-2147483647, rs.getLong(1));
+		Assert.assertEquals(-32767, rs.getLong(2));
+		Assert.assertEquals(-9223372036854775807l, rs.getLong(3));
+		rs.next();
+		Assert.assertEquals(-100, rs.getLong(1));
+		Assert.assertEquals(-100, rs.getLong(2));
+		Assert.assertEquals(-100, rs.getLong(3));
+		rs.next();
+		Assert.assertEquals(100, rs.getLong(1));
+		Assert.assertEquals(100, rs.getLong(2));
+		Assert.assertEquals(100, rs.getLong(3));
+		rs.next();
+		Assert.assertEquals(0, rs.getLong(1));
+		Assert.assertEquals(0, rs.getLong(2));
+		Assert.assertEquals(0, rs.getLong(3));
+	}
+	@Test
+	public void Test_ResultSet_getDouble() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("floatv = float(-2.14748364 21474.8364 0 -21474.83 100 NULL);\ndoublev = double(-2.14748364 21474.8364 0 -21474.83 100 NULL);\n tt= table(floatv,doublev);");
+		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
+		rs.next();
+		Assert.assertEquals(-2.14748364, rs.getDouble(1),4);
+		Assert.assertEquals(-2.14748364, rs.getDouble(2),4);
+		rs.next();
+		Assert.assertEquals(21474.8364, rs.getDouble(1),4);
+		Assert.assertEquals(21474.8364, rs.getDouble(2),4);
+		rs.next();
+		Assert.assertEquals(0, rs.getDouble(1),4);
+		Assert.assertEquals(0, rs.getDouble(2),4);
+		rs.next();
+		Assert.assertEquals(-21474.83, rs.getDouble(1),4);
+		Assert.assertEquals(-21474.83, rs.getDouble(2),4);
+		rs.next();
+		Assert.assertEquals(100, rs.getDouble(1),4);
+		Assert.assertEquals(100, rs.getDouble(2),4);
+		rs.next();
+		Assert.assertEquals(0, rs.getDouble(1),4);
+		Assert.assertEquals(0, rs.getDouble(2),4);
+	}
+	@Test
+	public void Test_ResultSet_getBigDecimal_1() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("floatv = float(-2.14748364 21474.8364 0 -21474.83 100 NULL);\ndoublev = double(-2.14748364 21474.8364 0 -21474.83 100 NULL);\n tt= table(floatv,doublev);");
+		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
+		rs.next();
+		Assert.assertEquals("-2.1474835872650146", rs.getBigDecimal(1).toString());
+		Assert.assertEquals("-2.14748364", rs.getBigDecimal(2).toString());
+		rs.next();
+		Assert.assertEquals("21474.8359375", rs.getBigDecimal(1).toString());
+		Assert.assertEquals("21474.8364", rs.getBigDecimal(2).toString());
+		rs.next();
+		Assert.assertEquals("0.0", rs.getBigDecimal(1).toString());
+		Assert.assertEquals("0.0", rs.getBigDecimal(2).toString());
+		rs.next();
+		Assert.assertEquals("-21474.830078125", rs.getBigDecimal(1).toString());
+		Assert.assertEquals("-21474.83", rs.getBigDecimal(2).toString());
+		rs.next();
+		Assert.assertEquals("100.0", rs.getBigDecimal(1).toString());
+		Assert.assertEquals("100.0", rs.getBigDecimal(2).toString());
+		rs.next();
+		Assert.assertEquals(null, rs.getBigDecimal(1));
+		Assert.assertEquals(null, rs.getBigDecimal(2));
+	}
+	@Test
+	public void Test_ResultSet_getString() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("charv = char('1' join char());\n" +
+				"symbolv = symbol(\"syms100\" join string());\n" +
+				"stringv = string(\"stringv100\" join string());\n" +
+				"uuidv = uuid([\"5d212a78-cc48-e3b1-4235-b4d91473ee89\", \"\"]);\n" +
+				"datehourv = take(datehour(-1 join NULL), 2);\n" +
+				"ippaddrv = ipaddr([\"192.168.100.14\", \"\"]);\n" +
+				"int128v = int128([\"e1671797c52e15f763380b45e841ec35\", \"\"]);\n" +
+				"blobv = blob(\"blobv100\" join string());\n" +
+				"complexv = complex(-1, -1) join NULL;\n" +
+				"pointv = point(-1, -1) join NULL;\n" +
+				"tt = table(charv,symbolv,stringv,uuidv,datehourv,ippaddrv,int128v,blobv,complexv,pointv);");
+		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
+		rs.next();
+		Assert.assertEquals("49", rs.getString(1));
+		Assert.assertEquals("syms100", rs.getString(2));
+		Assert.assertEquals("stringv100", rs.getString(3));
+		Assert.assertEquals("5d212a78-cc48-e3b1-4235-b4d91473ee89", rs.getString(4));
+		Assert.assertEquals("1969-12-31T23:00", rs.getString(5));
+		Assert.assertEquals("192.168.100.14", rs.getString(6));
+		Assert.assertEquals("e1671797c52e15f763380b45e841ec35", rs.getString(7));
+		Assert.assertEquals("blobv100", rs.getString(8));
+		Assert.assertEquals("-1.0-1.0i", rs.getString(9));
+		Assert.assertEquals("(-1.0, -1.0)", rs.getString(10));
+		rs.next();
+		Assert.assertEquals(null, rs.getString(1));
+		Assert.assertEquals(null, rs.getString(2));
+		Assert.assertEquals(null, rs.getString(3));
+		Assert.assertEquals(null, rs.getString(4));
+		Assert.assertEquals(null, rs.getString(5));
+		Assert.assertEquals("0.0.0.0", rs.getString(6));
+		Assert.assertEquals(null, rs.getString(7));
+		Assert.assertEquals(null, rs.getString(8));
+		Assert.assertEquals(null, rs.getString(9));
+		Assert.assertEquals("(,)", rs.getString(10));
 	}
 }
 
