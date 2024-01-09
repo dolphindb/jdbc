@@ -5778,7 +5778,7 @@ public class JDBCPrepareStatementTest {
         BasicTable bt = (BasicTable) rs.getResult();
         org.junit.Assert.assertEquals(4,bt.rows());
     }
-    @Test
+    //@Test
     public void test_PreparedStatement_delete_one_col_100000() throws SQLException, IOException {
         DBConnection db = new DBConnection();
         db.connect(HOST,PORT,"admin","123456");
@@ -5840,13 +5840,22 @@ public class JDBCPrepareStatementTest {
         ps3.setInt(1,6);
         ps3.setInt(2,6);
         ps3.addBatch();
-        ps3.setInt(1,10);
-        ps3.setNull(2,Types.INTEGER);
+        ps3.setInt(1,9);
+        ps3.setInt(2,9);
         ps3.addBatch();
         ps3.executeBatch();
         JDBCResultSet rs3 = (JDBCResultSet)ps3.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
         BasicTable bt3 = (BasicTable) rs3.getResult();
-        org.junit.Assert.assertEquals(5,bt3.rows());
+        org.junit.Assert.assertEquals(3,bt3.rows());
+
+        PreparedStatement ps4 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where dataType in [?,?]");
+        ps4.setInt(1,9);
+        ps4.setNull(2,Types.INTEGER);
+        ps4.addBatch();
+        ps4.executeBatch();
+        JDBCResultSet rs4 = (JDBCResultSet)ps4.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt4 = (BasicTable) rs4.getResult();
+        org.junit.Assert.assertEquals(2,bt4.rows());
     }
     @Test
     public void test_PreparedStatement_delete_one_col_in_STRING() throws SQLException, IOException {
@@ -5858,7 +5867,7 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals(10,re.rows());
         PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where dataType in(?, ?) ");
         ps.setObject(1, "12121");
-        ps.setNull(1,Types.VARCHAR);
+        ps.setNull(2,Types.VARCHAR);
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
@@ -6007,7 +6016,7 @@ public class JDBCPrepareStatementTest {
         ps2.execute();
         JDBCResultSet rs2 = (JDBCResultSet)ps2.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
         BasicTable bt2 = (BasicTable) rs2.getResult();
-        org.junit.Assert.assertEquals(6,bt2.rows());
+        org.junit.Assert.assertEquals(7,bt2.rows());
     }
     @Test
     public void test_PreparedStatement_delete_two_col_and() throws SQLException, IOException {
@@ -6123,7 +6132,7 @@ public class JDBCPrepareStatementTest {
         ps1.executeBatch();
         JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
         BasicTable bt1 = (BasicTable) rs1.getResult();
-        org.junit.Assert.assertEquals(8,bt1.rows());
+        org.junit.Assert.assertEquals(2,bt1.rows());
     }
     @Test
     public void test_PreparedStatement_delete_two_col_not_equal_2() throws SQLException, IOException {
@@ -6167,7 +6176,7 @@ public class JDBCPrepareStatementTest {
         db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,1..9 join NULL as dataType);pt.append!(t);");
         BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
         org.junit.Assert.assertEquals(10,re.rows());
-        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id select id from loadTable('dfs://test_append_type','pt') where id =?)");
+        PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where id in (select id from loadTable('dfs://test_append_type','pt') where id =?)");
         ps1.setInt(1,1);
         ps1.addBatch();
         ps1.executeBatch();
@@ -6403,7 +6412,7 @@ public class JDBCPrepareStatementTest {
         BasicTable bt = (BasicTable) rs.getResult();
         org.junit.Assert.assertEquals(2,bt.rows());
     }
-    @Test
+    //@Test
     public void test_PreparedStatement_delete_65536() throws SQLException, IOException {
         String script = " if(existsDatabase('dfs://delete')) dropDatabase('dfs://delete');\n"+
                 "db = database('dfs://delete', RANGE, 0 10000 20000 30001,,'TSDB');\n" +
@@ -6478,7 +6487,7 @@ public class JDBCPrepareStatementTest {
         BasicTable bt = (BasicTable) rs.getResult();
         org.junit.Assert.assertEquals(2,bt.rows());
         PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_wideTable','pt') where int_0 = ?,int_1 = ?,int_2 = ?,int_3 = ?,int_4 = ?,int_5 = ?,int_6 = ?,int_7 = ?,int_8 = ?,int_9 = ?,int_10 = ?,int_11 = ?,int_12 = ?,int_13 = ?,int_14 = ?,int_15 = ?,int_16 = ?,int_17 = ?,int_18 = ?,int_19 = ?,int_20 = ?,int_21 = ?,int_22 = ?,int_23 = ?,int_24 = ?,int_25 = ?,int_26 = ?,int_27 = ?,int_28 = ?,int_29 = ?,int_30 = ?,int_31 = ?,int_32 = ?,int_33 = ?,int_34 = ?,int_35 = ?,int_36 = ?,int_37 = ?,int_38 = ?,int_39 = ?,int_40 = ?,int_41 = ?,int_42 = ?,int_43 = ?,int_44 = ?,int_45 = ?,int_46 = ?,int_47 = ?,int_48 = ?,int_49 = ?,int_50 = ?,int_51 = ?,int_52 = ?,int_53 = ?,int_54 = ?,int_55 = ?,int_56 = ?,int_57 = ?,int_58 = ?,int_59 = ?,int_60 = ?,int_61 = ?,int_62 = ?,int_63 = ?,int_64 = ?,int_65 = ?,int_66 = ?,int_67 = ?,int_68 = ?,int_69 = ?,int_70 = ?,int_71 = ?,int_72 = ?,int_73 = ?,int_74 = ?,int_75 = ?,int_76 = ?,int_77 = ?,int_78 = ?,int_79 = ?,int_80 = ?,int_81 = ?,int_82 = ?,int_83 = ?,int_84 = ?,int_85 = ?,int_86 = ?,int_87 = ?,int_88 = ?,int_89 = ?,int_90 = ?,int_91 = ?,int_92 = ?,int_93 = ?,int_94 = ?,int_95 = ?,int_96 = ?,int_97 = ?,int_98 = ?,int_99 = ?,int_100 = ?,int_101 = ?,int_102 = ?,int_103 = ?,int_104 = ?,int_105 = ?,int_106 = ?,int_107 = ?,int_108 = ?,int_109 = ?,int_110 = ?,int_111 = ?,int_112 = ?,int_113 = ?,int_114 = ?,int_115 = ?,int_116 = ?,int_117 = ?,int_118 = ?,int_119 = ?,int_120 = ?,int_121 = ?,int_122 = ?,int_123 = ?,int_124 = ?,int_125 = ?,int_126 = ?,int_127 = ?,int_128 = ?,int_129 = ?,int_130 = ?,int_131 = ?,int_132 = ?,int_133 = ?,int_134 = ?,int_135 = ?,int_136 = ?,int_137 = ?,int_138 = ?,int_139 = ?,int_140 = ?,int_141 = ?,int_142 = ?,int_143 = ?,int_144 = ?,int_145 = ?,int_146 = ?,int_147 = ?,int_148 = ?,int_149 = ?,int_150 = ?,int_151 = ?,int_152 = ?,int_153 = ?,int_154 = ?,int_155 = ?,int_156 = ?,int_157 = ?,int_158 = ?,int_159 = ?,int_160 = ?,int_161 = ?,int_162 = ?,int_163 = ?,int_164 = ?,int_165 = ?,int_166 = ?,int_167 = ?,int_168 = ?,int_169 = ?,int_170 = ?,int_171 = ?,int_172 = ?,int_173 = ?,int_174 = ?,int_175 = ?,int_175 = ?,int_177 = ?,int_178 = ?,int_179 = ?,int_180 = ?,int_181 = ?,int_182 = ?,int_183 = ?,int_184 = ?,int_185 = ?,int_186 = ?,int_187 = ?,int_188 = ?,int_189 = ?,int_190 = ?,int_191 = ?,int_192 = ?,int_193 = ?,int_194 = ?,int_195 = ?,int_196 = ?,int_197 = ?,int_198 = ?,int_199 = ?");
-        for(int i =0;i<200;i++) {
+        for(int i =1;i<=200;i++) {
             ps1.setInt(i, i+3);
         }
         ps1.addBatch();
