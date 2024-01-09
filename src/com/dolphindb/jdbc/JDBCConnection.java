@@ -602,10 +602,6 @@ public class JDBCConnection implements Connection {
 		return this.dbConnection.run(script, (ProgressListener) null, 4, 2, fetchSize);
 	}
 
-	protected void upload(final Map<String, Entity> variableObjectMap) throws IOException {
-		this.dbConnection.upload(variableObjectMap);
-	}
-
 	public String getUrl() {
 		return url;
 	}
