@@ -73,7 +73,7 @@ public class Driver implements java.sql.Driver {
         if (url.length() == 0 || url.equals("?")){
             prop.setProperty("hostName","localhost");
             prop.setProperty("port","8848");
-            return new JDBCConnection(prop, old_url);
+            return new JDBCConnection(old_url, prop);
         } else {
             String[] strings = url.split("\\?");
             if(strings.length == 1){
@@ -115,7 +115,7 @@ public class Driver implements java.sql.Driver {
                 }
             }
 
-            return new JDBCConnection(prop, old_url);
+            return new JDBCConnection(old_url, prop);
         }
     }
 

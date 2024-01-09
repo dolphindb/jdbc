@@ -27,10 +27,6 @@ public class JDBCConnection implements Connection {
 	private String password;
 
 	public JDBCConnection(String url, Properties prop) throws SQLException {
-		Driver.createConnection(url, prop);
-	}
-
-	protected JDBCConnection(Properties prop, String url) throws SQLException {
 		this.url = url;
 		this.clientInfo = prop;
 		this.hostName = this.clientInfo.getProperty("hostName");
