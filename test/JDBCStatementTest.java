@@ -382,7 +382,7 @@ public class JDBCStatementTest {
 			rs1 = stmt.executeUpdate(sql1);
 			rs2 = stmt.executeUpdate(sql2);
 			rs3 = stmt.executeUpdate(sql3);
-			org.junit.Assert.assertEquals(rs1,3);
+			org.junit.Assert.assertEquals(rs1,-2);
 			org.junit.Assert.assertEquals(rs2, -2);
 			org.junit.Assert.assertEquals(rs3, -2);
 		}

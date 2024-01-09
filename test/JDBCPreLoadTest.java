@@ -1028,7 +1028,7 @@ public class JDBCPreLoadTest {
                 "mvcc13=mvccTable(500:0,`date`id`x,[TIME,INT,DOUBLE],\"work_dir\",`mvcc13);\n" +
                 "mvcc13.append!(t3);\n" ;
         //connection.run(script);
-        conn = DriverManager.getConnection(url+"?tableAlias=mvcc2:mvcc:///home/wsun/Adolphindb/2.00.6/server/work_dir/mvcc12,mvcc1:mvcc1,mvcc3:mvcc://work_dir/mvcc13",info);
+        conn = DriverManager.getConnection(url+"?tableAlias=mvcc2:mvcc:///hdd/wsun/Adolphindb/haserver/con1/server/work_dir/mvcc12,mvcc1:mvcc1,mvcc3:mvcc://work_dir/mvcc13",info);
         Statement stm = conn.createStatement();
         JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select  * from mvcc1");
         JDBCResultSet rs1 = (JDBCResultSet)stm.executeQuery("select  * from mvcc2");
