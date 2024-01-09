@@ -27,6 +27,32 @@ public class JDBCConnection implements Connection {
 	private String password;
 
 	public JDBCConnection(String url, Properties prop) throws SQLException {
+		Map<String, Object> allProp = Driver.parseProp(url, prop);
+		String oldUrl = (String) allProp.get("old_url");
+		Properties newProp = (Properties) allProp.get("prop");
+		this.url = oldUrl;
+		this.clientInfo = newProp;
+		this.hostName = this.clientInfo.getProperty("hostName");
+		this.port = Integer.parseInt(this.clientInfo.getProperty("port"));
+		setUser(Optional.ofNullable(this.clientInfo.getProperty("user")).orElse(""));
+
+		initDBConnectionInternal(prop);
+
+		try {
+			connectInternal(this.hostName, this.port, this.clientInfo);
+		} catch (IOException e) {
+			e.printStackTrace();
+			String msg = e.getMessage();
+			if (msg.contains("Connection refused"))
+				throw new SQLException(MessageFormat.format("{0}  ==> hostName = {1}, port = {2}", msg, this.hostName, this.port));
+			else
+				throw new SQLException(e);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected JDBCConnection(Properties prop, String url) throws SQLException {
 		this.url = url;
 		this.clientInfo = prop;
 		this.hostName = this.clientInfo.getProperty("hostName");
