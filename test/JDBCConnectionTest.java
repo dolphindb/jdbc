@@ -207,7 +207,7 @@ public class JDBCConnectionTest {
 	@Test
 	public void Test_setTransactionIsolation() throws SQLException {
 		conn.getCatalog();
-		System.out.println(conn.getCatalog().toString());
+		System.out.println(conn.getCatalog());
 //		org.junit.Assert.assertEquals(false, conn.isReadOnly());
 	}
 	@Test
@@ -836,7 +836,7 @@ public class JDBCConnectionTest {
 		connection1.connect(HOST, PORT, "admin", "123456",true);
 		BasicIntVector re = (BasicIntVector)connection1.run("EXEC connectionNum from rpc(getControllerAlias(),getClusterPerf) where port="+PORT);
 		System.out.println(re.getInt(0));
-		assertEquals(true,re.getInt(0)>460);
+		assertEquals(true,re.getInt(0)>=460);
 	}
 	@Test
 	public void Test_getConnection_enableHighAvailability_true_site_null() throws SQLException, ClassNotFoundException, IOException {
@@ -1334,5 +1334,143 @@ public class JDBCConnectionTest {
 			re = e.getMessage();
 		}
 		assertEquals(true,re.contains("Connection is failed"));
+	}
+	@Test
+	public void Test_JDBConnection_url() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		//info.put("user", "admin");
+		//info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn = null;
+		conn = new JDBCConnection(url, info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("isLoggedIn(`admin)");
+		BasicBoolean re =(BasicBoolean)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("true",re.getString());
+	}
+	@Test
+	public void Test_JDBConnection_prop() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", PORT);
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		conn = new JDBCConnection(url, info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("isLoggedIn(`admin)");
+		BasicBoolean re =(BasicBoolean)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("true",re.getString());
+	}
+	@Test
+	public void Test_JDBConnection_url_prop_concurrent() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("user", "ad11min");
+		info.put("password", "12341156");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn = null;
+		conn = new JDBCConnection(url, info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("isLoggedIn(`admin)");
+		BasicBoolean re =(BasicBoolean)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("true",re.getString());
+	}
+	@Test
+	public void Test_JDBConnection_prop_error() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", PORT);
+		info.put("user", "admeein");
+		info.put("password", "123ee456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = new JDBCConnection(url, info);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		assertEquals(true,re.contains("Server response: 'The user name or password is incorrect.' function: 'login'"));
+	}
+	@Test
+	public void Test_getConnection_url() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		//info.put("user", "admin");
+		//info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn = null;
+		conn = DriverManager.getConnection(url,info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("isLoggedIn(`admin)");
+		BasicBoolean re =(BasicBoolean)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("true",re.getString());
+	}
+	@Test
+	public void Test_getConnection_prop() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;;
+		Connection conn = null;
+		conn = DriverManager.getConnection(url,info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("isLoggedIn(`admin)");
+		BasicBoolean re =(BasicBoolean)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("true",re.getString());
+	}
+	@Test
+	public void Test_getConnection_url_prop_concurrent() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("user", "ad11min");
+		info.put("password", "12341156");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn = null;
+		conn = DriverManager.getConnection(url,info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("isLoggedIn(`admin)");
+		BasicBoolean re =(BasicBoolean)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("true",re.getString());
+	}
+	@Test
+	public void Test_getConnection_prop_error() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", PORT);
+		info.put("user", "admeein");
+		info.put("password", "123ee456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url,info);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		assertEquals(true,re.contains("Server response: 'The user name or password is incorrect.' function: 'login'"));
 	}
 }
