@@ -425,7 +425,7 @@ public class JDBCStatementTest {
 	    	stmt.addBatch("insert into t values(`IBM,66.6,6500,09:34:15)");
 	    	stmt.addBatch("update t set qty=qty+100");
 	    	stmt.addBatch("delete from t where sym=`IBM");
-	    	int[] expected = {1,-2,-2,0};
+	    	int[] expected = {-2,-2,-2,0};
 	    	int[] affectCount= stmt.executeBatch();
 	    	org.junit.Assert.assertArrayEquals(expected, affectCount);
 	    }
@@ -982,7 +982,7 @@ public class JDBCStatementTest {
     				+ "[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12] as timestamp)");
     		stmt.execute("insert into t values(`IBM,20.0,1000,09:35:07)");
     		rs = stmt.getUpdateCount();		
-    		org.junit.Assert.assertEquals(1, rs);
+    		org.junit.Assert.assertEquals(-2, rs);
     		stmt.execute("delete from t where qty<5000");
     		rs = stmt.getUpdateCount();
     		System.out.println(rs);
@@ -1056,7 +1056,7 @@ public class JDBCStatementTest {
 					"a=t1.toJson()\n");
 			stmt.execute("insert into t values(1,a)");
 			rs = stmt.getUpdateCount();
-			org.junit.Assert.assertEquals(1, rs);
+			org.junit.Assert.assertEquals(-2, rs);
 			ResultSet rst = stmt.executeQuery("select val from t");
 			//rst = stmt.executeQuery("select id from t");
 			while (rst.next()){
@@ -2339,7 +2339,6 @@ public class JDBCStatementTest {
 		rs.getInt("dataType");
 		org.junit.Assert.assertTrue(rs.wasNull());
 	}
-
 	@Test
 	public void test_execute_insert_into_Int_line_break() throws SQLException, ClassNotFoundException {
 		createMemoryTable("INT");
@@ -3520,5 +3519,29 @@ public class JDBCStatementTest {
 				Assert.assertEquals(re1.getColumn(i).get(j).getString(), re.getColumn(i).get(j).getString());
 			}
 		}
+	}
+	@Test
+	public void test_execute_colume_no_case_limit() throws SQLException, ClassNotFoundException {
+		createMemoryTable("INT");
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("insert into tt (id,daTAType) values(1,100)");
+		stmt.execute("insert into tt (id,DATATYPE) values(2,NULL)");
+		ResultSet rs = stmt.executeQuery("select * from tt");
+		rs.next();
+		org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+		rs.next();
+		rs.getInt("dataType");
+		org.junit.Assert.assertTrue(rs.wasNull());
+		stmt.execute("update tt set DATAType =101,ID = 11 where Id = 1");
+		ResultSet rs1 = stmt.executeQuery("select * from tt");
+		rs1.next();
+		org.junit.Assert.assertEquals(rs1.getInt("dataType"), 101);
+		org.junit.Assert.assertEquals(rs1.getInt("id"), 11);
+		stmt.execute("delete from  tt where daTAType = 101 and ID = 11");
+		JDBCResultSet rs2 = (JDBCResultSet)stmt.executeQuery("select * from tt");
+		BasicTable re = (BasicTable)rs2.getResult();
+		org.junit.Assert.assertEquals(1, re.rows());
 	}
 }

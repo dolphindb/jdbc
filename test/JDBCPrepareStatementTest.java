@@ -6522,6 +6522,41 @@ public class JDBCPrepareStatementTest {
         BasicTable bt1 = (BasicTable) rs1.getResult();
         org.junit.Assert.assertEquals(7,bt1.rows());
     }
+    @Test
+    public void test_PreparedStatement_colume_no_case_limit() throws SQLException {
+        createPartitionTable("INT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt')(Id , DAtaTYpe)  ValUes(?,?)");
+        ps.setInt(1,1);
+        ps.setInt(2,100);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.INTEGER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps1 = conn.prepareStatement("update pt set DAtaType = ? where ID = 1");
+        ps1.setInt(1,101);
+        ps1.addBatch();
+        ps1.executeBatch();
+        ResultSet rs1 = ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs1.next();
+        org.junit.Assert.assertEquals(rs1.getInt("dataType"), 101);
+        PreparedStatement ps2 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where iD in (select iD from loadTable('dfs://test_append_type','pt') where Id = ?)");
+        ps2.setInt(1,1);
+        ps2.addBatch();
+        ps2.setInt(1,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        BasicTable bt1 = (BasicTable) rs2.getResult();
+        org.junit.Assert.assertEquals(0,bt1.rows());
+    }
     @After
     public void Destroy(){
         LOGININFO = null;
