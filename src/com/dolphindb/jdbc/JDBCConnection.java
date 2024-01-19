@@ -27,11 +27,9 @@ public class JDBCConnection implements Connection {
 	private String password;
 
 	public JDBCConnection(String url, Properties prop) throws SQLException {
-		Map<String, Object> allProp = Driver.parseProp(url, prop);
-		String oldUrl = (String) allProp.get("old_url");
-		Properties newProp = (Properties) allProp.get("prop");
-		this.url = oldUrl;
-		this.clientInfo = newProp;
+		this.url = url;
+		Driver.parseProp(url, prop);
+		this.clientInfo = prop;
 		this.hostName = this.clientInfo.getProperty("hostName");
 		this.port = Integer.parseInt(this.clientInfo.getProperty("port"));
 		setUser(Optional.ofNullable(this.clientInfo.getProperty("user")).orElse(""));
