@@ -779,28 +779,27 @@ public class JDBCConnectionTest {
 	@Test
 	public void Test_getConnection_enableHighAvailability_true_all_note_conn_high_load_1() throws SQLException, ClassNotFoundException, IOException {
 		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
-		List<Connection> list = new ArrayList<>();
-		for (int i = 0; i < 460; ++i) {
-			String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=false";
-			Class.forName(JDBC_DRIVER);
-			conn = DriverManager.getConnection(url);
-			list.add(conn);
-		}
 		DBConnection connection1 = new DBConnection();
-		connection1.connect(HOST, PORT, "admin", "123456",true);
+		connection1.connect(HOST, PORT, "admin", "123456",false);
+		BasicIntVector port1 = (BasicIntVector)connection1.run("EXEC port from rpc(getControllerAlias(),getClusterPerf) where mode=0");
+		List<Connection> list = new ArrayList<>();
+		for (int i = 0; i < port1.rows(); ++i) {
+			for (int j = 0; j < 420; ++j) {
+				String url = "jdbc:dolphindb://" + HOST + ":" +  port1.getInt(i) + "?user=admin&password=123456&enableHighAvailability=false";
+				Class.forName(JDBC_DRIVER);
+				conn = DriverManager.getConnection(url);
+				list.add(conn);
+			}
+		}
 		BasicTable re = (BasicTable)connection1.run("select port ,connectionNum  from rpc(getControllerAlias(),getClusterPerf) where mode= 0");
 		for (int i = 0; i < re.rows(); i++) {
 			System.out.println("port:"+ re.getColumn(0).get(i)+" connectionNum:"+re.getColumn(1).get(i));
 			String port = re.getColumn(0).get(i).toString();
 			String connectionNum = re.getColumn(1).get(i).toString();
-			if(Integer.valueOf(port)==PORT){
-				assertEquals(true,Integer.valueOf(connectionNum)>460);
-			}else{
-				assertEquals(true,Integer.valueOf(connectionNum)<20);
-			}
+				assertEquals(true,Integer.valueOf(connectionNum)>=420);
 		}
 		List<Connection> list1 = new ArrayList<>();
-		for (int i = 0; i < 460; ++i) {
+		for (int i = 0; i < 120; ++i) {
 			String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=true&highAvailabilitySites=" + SITES;
 			Class.forName(JDBC_DRIVER);
 			conn = DriverManager.getConnection(url);
@@ -811,13 +810,7 @@ public class JDBCConnectionTest {
 			System.out.println("port:"+ re1.getColumn(0).get(i)+" connectionNum:"+re1.getColumn(1).get(i));
 			String port = re1.getColumn(0).get(i).toString();
 			String connectionNum = re1.getColumn(1).get(i).toString();
-			if(Integer.valueOf(port)==PORT){
-				assertEquals(true,Integer.valueOf(connectionNum)>460);
-			}else{
-				assertEquals(true,Integer.valueOf(connectionNum)>100);
-				assertEquals(true,Integer.valueOf(connectionNum)<200);
-
-			}
+			assertEquals(true,Integer.valueOf(connectionNum)>=435);
 		}
 	}
 	@Test

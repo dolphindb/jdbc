@@ -924,6 +924,15 @@ public class JDBCTypeCastTest {
         BigDecimal decimal1281 = (BigDecimal)rs.getObject(29);
         assertEquals(null, decimal1281);
     }
+    @Test
+    public void Test_TypeCast_castDbString() throws SQLException {
+        CreateMemTable_null(HOST, PORT);
+        //读取内存表到RecordSet
+        ResultSet rs = stm.executeQuery("select * from tb_null");
+        rs.next();
+        BigDecimal decimal1281 = (BigDecimal)rs.getObject(29);
+        assertEquals(null, decimal1281);
+    }
 
     @After
     public void Destroy(){

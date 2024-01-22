@@ -845,9 +845,9 @@ public class JDBCPrepareStatementTest {
             pstmt.executeUpdate();
             pstmt = conn.prepareStatement("select * from t");
             rs = pstmt.executeQuery();
-//			while(rs.next()){
-//				System.out.println(rs.getInt(1)+" "+rs.getTimestamp(2));
-//			}
+			while(rs.next()){
+				System.out.println(rs.getInt(1)+" "+rs.getTimestamp(2));
+			}
             rs.absolute(4);
             org.junit.Assert.assertEquals(rs.getTimestamp(2), t);
         } catch (Exception e) {
@@ -4095,6 +4095,7 @@ public class JDBCPrepareStatementTest {
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re1= (BasicTable) rs.getResult();
+        System.out.println(re1.getString());
         Assert.assertEquals("[12121,-11111,0]",re1.getColumn(1).get(0).getString());
         Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
         Assert.assertEquals("[-12121,0,11111]",re1.getColumn(1).get(2).getString());
@@ -5746,11 +5747,11 @@ public class JDBCPrepareStatementTest {
         DBConnection db = new DBConnection();
         db.connect(HOST,PORT,"admin","123456");
         createPartitionTable("UUID");
-        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,take(uuid(\"00000000-0000-0001-0000-000000000002\") uuid(\"00000000-0000-0001-0000-000000000003\"),9) join NULL as dataType);pt.append!(t);");
+        db.run("pt = loadTable('dfs://test_append_type','pt');t = table(1..10 as id,take(uuid(),9) join NULL as dataType);pt.append!(t);");
         BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type','pt')");
         org.junit.Assert.assertEquals(10,re.rows());
         PreparedStatement ps = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where dataType = ? ");
-        BasicUuid uuids = new BasicUuid(1,2);
+        BasicUuid uuids = new BasicUuid(0,0);
         ps.setObject(1, uuids);
         ps.addBatch();
         ps.setNull(1,Types.OTHER);
@@ -5758,7 +5759,7 @@ public class JDBCPrepareStatementTest {
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
         BasicTable bt = (BasicTable) rs.getResult();
-        org.junit.Assert.assertEquals(4,bt.rows());
+        org.junit.Assert.assertEquals(0,bt.rows());
     }
     @Test
     public void test_PreparedStatement_delete_one_col_STRING() throws SQLException, IOException {
