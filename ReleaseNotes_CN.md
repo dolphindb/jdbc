@@ -1,5 +1,26 @@
 # JDBC 发行说明
 
+**注意：为提升用户体验，DolphinDB JDBC 连接器的版本号现已调整。新的版本号与 DolphinDB Server 200 系列对齐。**
+
+## 2.00.11.0
+
+### 新增功能
+
+- `JDBCConnection` 类的 `connect` 方法新增配置参数 *enableLoadBalance*，支持开启或关闭高可用模式下的负载均衡功能。
+
+### 功能优化
+
+-  `JDBCResultSet` 类的 `getInt`、`getLong`、`getDouble` 、`getString`、`getBigDecimal` 方法支持隐式类型转换。
+- `JDBCPrepareStatement` 类执行 `insert` 操作时，兼容列名大小写不一致的场景。
+- 重构新建 `JDBCConnection` 对象时获取连接信息的逻辑。
+- 优化 `JDBCStatement` 类的 `executeUpdate` 方法在执行 `insert into` 内存表时的内部逻辑。
+
+### 故障修复
+
+- 修复在如输错端口号、IP 等情况下，连接服务器失败时出现无限重连的问题。
+- 修复 `JDBCPrepareStatement` 执行 SQL 语句时，若 where 语句中包含括号时报错的问题。
+- 修复 `JDBCPrepareStatement` 类的 `executeBatch` 方法在执行时，*batchsize* 参数未重置的问题。
+
 ## 1.30.22.5
 
 ### 新增功能

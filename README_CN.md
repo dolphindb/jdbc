@@ -57,6 +57,7 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
     |enableHighAvailability 或 highAvailability |高可用参数，布尔类型，默认为 false。指定该参数可以开启或关闭高可用模式。|
     |sqlStd|枚举类型，用于指定传入 SQL 脚本的解析语法。支持三种解析语法：DolphinDB、Oracle、MySQL，其中默认为 DolphinDB 解析。|
     |tableAlias|数据库表别名，用于在建立连接时传入一个或多个别名与数据库的组合。用户可通过别名访问数据库表。|
+    | enableLoadBalance | 布尔类型，支持开启或关闭高可用模式下的负载均衡功能。|
     
     **注：**
 
@@ -174,6 +175,44 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
     ```java
     highAvailabilitySites=192.168.1.111:8841 192.168.1.111:8842 192.168.1.111:8843 192.168.1.111:8844
     ```
+
+  * 自 2.00.11.0 版本起，JDBC 连接提供配置参数 *enableLoadBalance*。
+  
+**高可用与负载均衡**
+
+JDBC 提供高可用模式与负载均衡功能，用户可通过相关参数进行配置。
+
+版本号说明：1.30.22.5 为 JDBC 在 130 系列的最后一个版本，130 系列后即为 200 系列，2.00.11.0 为 JDBC 在 200 系列的第一个版本。
+
+在 130 系列版本中，JDBC 开启高可用后即自动开启负载均衡。其中高可用与负载均衡的处理逻辑如下：
+
+- 若使用 1.30.22.2 之前的版本，JDBC 将选择最低负载节点进行连接；用户也可通过 *highAvailabilitySites* 指定可连接的节点组，此时 JDBC 将从 *highAvailabilitySites* 中随机进行连接。示例如下：
+
+    ```java
+    public void test_enableHighAvailability() throws SQLException {
+	    String SITES = "192.168.0.69:18921 192.168.1.167:18922 192.168.0.69:18923 192.168.0.69:18924";
+	    String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=true&highAvailabilitySites=" + SITES;
+	    Connection connection = DriverManager.getConnection(url);
+    }
+    ```
+- 在 1.30.22.2 版本中，JDBC 新增“低负载节点”概念（判断标准为：内存占用小于80%、连接数小于90% 且节点负载小于80%）。
+- 若使用 1.30.22.2 及之后的版本，开启高可用后，JDBC 将优先随机选择一个低负载节点进行连接，若没有低负载节点，则将随机连接一个可用节点。若用户通过 *highAvailabilitySites* 指定了可连接的节点组，此时 JDBC 将仍优先从 *highAvailabilitySites*  中随机连接一个低负载节点，若无，则随机选择一个 *highAvailabilitySites* 中的可用节点。
+
+在 200 系列版本中，从 2.00.11.0 起，JDBC 支持将高可用与负载均衡进行逻辑分离。用户可以通过 url 或 prop 属性设置配置参数 *enableLoadBalance*，以关闭或开启高可用模式下的负载均衡。详细逻辑如下：
+
+- 若仅开启高可用，不填写 *enableLoadBalance*，则为了兼容先前版本，此时将遵循 1.30.22.2 及之后的 130 系列版本的描述逻辑。
+- 若同时开启高可用和负载均衡（`enableLoadBalance = true`），遵循 1.30.22.2 及之后的 130 系列版本的描述逻辑。
+- 若开启高可用，不开启负载均衡功能（`enableLoadBalance = false`），则将连接 url 中`HOST`与`PORT` 组成的节点或 Properties 中 `hostName`, `localhost` 与 `port` 组成的节点。
+   
+    ```java
+    // 开启高可用、不开启负载均衡使用示例
+    public void test_enableHighAvailability_and_enableLoadBalance() throws SQLException {
+	    String SITES = "192.168.0.69:18921 192.168.1.167:18922 192.168.0.69:18923 192.168.0.69:18924";
+	    String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=true&highAvailabilitySites=" + SITES + "&enableLoadBalance=false";
+	    Connection connection = DriverManager.getConnection(url);
+    }
+    ```
+* 注意：不支持仅开启负载均衡的情况。
 
 ## 2. 内存表的增删改查
 
