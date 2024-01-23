@@ -202,7 +202,7 @@ JDBC 提供高可用模式与负载均衡功能，用户可通过相关参数进
 
 - 若仅开启高可用，不填写 *enableLoadBalance*，则为了兼容先前版本，此时将遵循 1.30.22.2 及之后的 130 系列版本的描述逻辑。
 - 若同时开启高可用和负载均衡（`enableLoadBalance = true`），遵循 1.30.22.2 及之后的 130 系列版本的描述逻辑。
-- 若开启高可用，不开启负载均衡功能（`enableLoadBalance = false`），则将连接 url 中`HOST`与`PORT` 组成的节点或 Properties 中 `hostName`, `localhost` 与 `port` 组成的节点。
+- 若开启高可用，不开启负载均衡功能（`enableLoadBalance = false`），则将连接 url 中`HOST`与`PORT` 配置的节点或 Properties 中 `hostName`, `localhost` 与 `port` 配置的节点。
    
     ```java
     // 开启高可用、不开启负载均衡使用示例
