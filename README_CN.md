@@ -20,13 +20,13 @@ JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallabl
 
 下面通过几个示例程序来展示以上三个对象的使用方法。
 
-使用前，可以通过 maven 引入 JDBC：以 1.30.22.1 版本为例：
+使用前，可以通过 maven 引入 JDBC：以 2.00.11.0 版本为例：
 
 ```xml
 <dependency>
     <groupId>com.dolphindb</groupId>
     <artifactId>jdbc</artifactId>
-    <version>1.30.22.1</version>
+    <version>2.00.11.0</version>
 </dependency>
 ```
 
@@ -395,7 +395,7 @@ jdbc:dolphindb://localhost:8848?databasePath=dfs://valuedb
 
 ### 3.1 创建分区表
 
-使用 Java API 执行创建分区表的语句，以创建示例所需的分区数据库。示例中使用了 VALUE 方式进行数据分区。需要了解其他分区方式，请点击 [DolphinDB 数据库分区教程](https://github.com/dolphindb/Tutorials_CN/blob/master/database.md)。
+使用 Java API 执行创建分区表的语句，以创建示例所需的分区数据库。示例中使用了 VALUE 方式进行数据分区。需要了解其他分区方式，请点击 [DolphinDB 数据库分区教程](https://docs.dolphindb.cn/zh/tutorials/database.html)。
 
 ```java
 public static boolean CreateValueTable(String database, String tableName, String host, String port) {
@@ -467,7 +467,7 @@ public static void DFSAddTest(String database, String tableName) {
 
 ## 参考及附录
 
-* 在 JDBC 接口中，可以使用 `execute` 方法执行所有的 DolphinDB SQL 语句，具体语法参考 [DolphinDB SQL 语法](https://www.dolphindb.cn/cn/help/SQLStatements/index.html)。
+* 在 JDBC 接口中，可以使用 `execute` 方法执行所有的 DolphinDB SQL 语句，具体语法参考 [DolphinDB SQL 语法](https://docs.dolphindb.cn/zh/progr/sql/sql_intro.html)。
 * JDBC 中 `executeUpdate(sql)` 返回 SQL 语句更新的记录数，而在 DolphinDB JDBC 连接器中 `executeUpdate(sql)` 不支持返回 delete, update 和调用 append 的语句所影响的记录数。
 * 由于 DolphinDB 不支持更高精度的 BigDecimal 类型，故 DolphinDB JDBC 连接器将 BigDecimal 类型转换为 DOUBLE 类型。
 * [下载](sample.txt) 示例所有代码。
