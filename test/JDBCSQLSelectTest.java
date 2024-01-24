@@ -1104,5 +1104,34 @@ public class JDBCSQLSelectTest {
 			System.out.print("\n");
 		}
 	}
-	
+	@Test
+	public void Test_select_PreparedStatement_bracket() throws Exception {
+			PreparedStatement ps = null;
+			Statement stmt = null;
+			stmt = conn.createStatement();
+			stmt.execute("trade = loadTable(\""+ dataBase +"\", `" + tableName + ")");
+			String sql ="SELECT id, ticker " +
+					"    FROM trade " +
+					"    WHERE  id = ?  AND ticker = ? " +
+					"      AND id = (" +
+					"          SELECT min(id) " +
+					"              FROM trade " +
+					"              WHERE id = ?  AND ticker = ?)" ;
+			ps = conn.prepareStatement(sql);
+			ps.setObject(1, 1);
+			ps.setObject(2,"C");
+			ps.setObject(3,1);
+			ps.setObject(4,"C");
+			ResultSet rs =ps.executeQuery();
+			ResultSetMetaData resultSetMetaData = rs.getMetaData();
+			int len = resultSetMetaData.getColumnCount();
+			String re = null;
+			while (rs.next()) {
+				for (int i = 1; i <= len; ++i) {
+							re += MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getObject(i));
+				}
+			}
+		System.out.print(re);
+		Assert.assertEquals("nullid: 1,    ticker: C,    ",re);
+	}
 }

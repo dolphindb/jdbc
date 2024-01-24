@@ -172,7 +172,8 @@ public class JDBCStatement implements Statement {
                     tableType = getTableType(tableName);
                     if (tableType.equals(IN_MEMORY_TABLE)) {
                         try {
-                            return tableInsert(tableName, sql).getInt();
+                            connection.run(sql);
+                            return SUCCESS_NO_INFO;
                         } catch (IOException e) {
                             throw new SQLException(e);
                         }

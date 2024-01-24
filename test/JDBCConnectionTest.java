@@ -207,7 +207,7 @@ public class JDBCConnectionTest {
 	@Test
 	public void Test_setTransactionIsolation() throws SQLException {
 		conn.getCatalog();
-		System.out.println(conn.getCatalog().toString());
+		System.out.println(conn.getCatalog());
 //		org.junit.Assert.assertEquals(false, conn.isReadOnly());
 	}
 	@Test
@@ -601,6 +601,501 @@ public class JDBCConnectionTest {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 	}
+	@Test
+	public void Test_getConnection_enableHighAvailability_highAvailability_null() throws SQLException, ClassNotFoundException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
+		String url1 = "jdbc:dolphindb://" + HOST + ":" + COLPORT + "?user=admin&password=123456";
+		Connection conn = null;
+		Connection conn1 = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url1);
+		stmt = conn.createStatement();
+		conn1 = DriverManager.getConnection(url);
+		conn1.equals(true);
+		try {
+			stmt.execute("stopDataNode(\"" + HOST + ":" + PORT + "\")");
+		} catch (Exception ex) {
+		}
+		stmt.execute(" sleep(1000)");
+		Statement s = conn1.createStatement();
+		String re = null;
+		try{
+			s.execute("trade=table(`XOM`GS`AAPL as id, 102.1 33.4 73.6 as x);");
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("java.io.IOException: Failed to read response header from the socket with IO error null",re);
+		stmt = conn.createStatement();
+		try {
+			stmt.execute("startDataNode(\"" + HOST + ":" + PORT + "\")");
+		} catch (Exception ex) {
+		}
+		stmt.execute(" sleep(2000)");
+		conn1 = DriverManager.getConnection(url);
+		//conn1.equals(true);
+		//conn.close();
+		conn1.close();
+	}
+
+	@Test
+	public void Test_getConnection_enableHighAvailability_false_highAvailability_121() throws SQLException, ClassNotFoundException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=false&highAvailability=121";
+		String url1 = "jdbc:dolphindb://" + HOST + ":" + COLPORT + "?user=admin&password=123456";
+		Connection conn = null;
+		Connection conn1 = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url1);
+		stmt = conn.createStatement();
+		conn1 = DriverManager.getConnection(url);
+		conn1.equals(true);
+		try {
+			stmt.execute("stopDataNode(\"" + HOST + ":" + PORT + "\")");
+		} catch (Exception ex) {
+		}
+		stmt.execute(" sleep(500)");
+		Statement s = conn1.createStatement();
+		String re = null;
+		try{
+			s.execute("trade=table(`XOM`GS`AAPL as id, 102.1 33.4 73.6 as x);");
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("java.io.IOException: Failed to read response header from the socket with IO error null",re);
+		stmt = conn.createStatement();
+		try {
+			stmt.execute("startDataNode(\"" + HOST + ":" + PORT + "\")");
+		} catch (Exception ex) {
+		}
+		stmt.execute(" sleep(2000)");
+		conn1 = DriverManager.getConnection(url);
+		//conn1.equals(true);
+		conn.close();
+		conn1.close();
+	}
+
+	@Test
+	public void Test_runOnRandomNode() throws SQLException, RuntimeException, ClassNotFoundException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&runOnRandomNode=true";
+		Connection conn = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		Statement stmt = null;
+		Statement s = conn.createStatement();
+		s.execute("trade=table(`XOM`GS`AAPL as id, 102.1 33.4 73.6 as x);");
+		ResultSet rs1 = s.executeQuery("SElect * fROM trade ;");
+		Assert.assertTrue(rs1.next());
+		conn.close();
+	}
+
+	//@Test//port memory need high load,then connect to SITE1‘s node
+	public void Test_getConnection_enableHighAvailability_true_memory_high_load() throws SQLException, ClassNotFoundException, IOException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		List<Connection> list = new ArrayList<>();
+		for (int i = 0; i < 460; i++) {
+			String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=true&highAvailabilitySites=" + SITE1;
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			list.add(conn);
+		}
+		DBConnection connection1 = new DBConnection();
+		connection1.connect(HOST, PORT, "admin", "123456",true);
+		BasicTable re = (BasicTable)connection1.run("select port ,connectionNum  from rpc(getControllerAlias(),getClusterPerf) where mode= 0");
+
+		for (int i = 0; i < re.rows()-1; ++i) {
+			System.out.println("port:"+ re.getColumn(0).get(i)+" connectionNum:"+re.getColumn(1).get(i));
+		}
+	}
+
+	//@Test//all port memory need high load,then connect to SITES‘s node，loadbanlance
+	public void Test_getConnection_enableHighAvailability_true_all_note_memory_high_load_1() throws SQLException, ClassNotFoundException, IOException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		List<Connection> list = new ArrayList<>();
+		for (int i = 0; i < 460; i++) {
+			String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=true&highAvailabilitySites=" + SITES;
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			list.add(conn);
+		}
+		DBConnection connection1 = new DBConnection();
+		connection1.connect(HOST, PORT, "admin", "123456",true);
+		BasicTable re = (BasicTable)connection1.run("select port ,connectionNum  from rpc(getControllerAlias(),getClusterPerf) where mode= 0");
+
+		for (int i = 0; i < re.rows()-1; ++i) {
+			System.out.println("port:"+ re.getColumn(0).get(i)+" connectionNum:"+re.getColumn(1).get(i));
+		}
+	}
+	@Test
+	public void Test_getConnection_enableHighAvailability_true_conn_high_load() throws SQLException, ClassNotFoundException, IOException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		int PORT1 = Integer.valueOf(SITE1.split(":")[1]);
+		List<Connection> list = new ArrayList<>();
+		for (int i = 0; i < 460; ++i) {
+			String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=false";
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			list.add(conn);
+		}
+		DBConnection connection1 = new DBConnection();
+		connection1.connect(HOST, PORT, "admin", "123456",true);
+		BasicTable re = (BasicTable)connection1.run("select port ,connectionNum  from rpc(getControllerAlias(),getClusterPerf) where mode= 0");
+		for (int i = 0; i < re.rows(); i++) {
+			System.out.println("port:"+ re.getColumn(0).get(i)+" connectionNum:"+re.getColumn(1).get(i));
+			String port = re.getColumn(0).get(i).toString();
+			String connectionNum = re.getColumn(1).get(i).toString();
+			if(Integer.valueOf(port)==PORT){
+				assertEquals(true,Integer.valueOf(connectionNum)>460);
+			}else{
+				assertEquals(true,Integer.valueOf(connectionNum)<20);
+			}
+		}
+		List<Connection> list1 = new ArrayList<>();
+		for (int i = 0; i < 460; ++i) {
+			String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=true&highAvailabilitySites=" + SITE1;
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			list1.add(conn);
+		}
+		BasicTable re1 = (BasicTable)connection1.run("select port ,connectionNum  from rpc(getControllerAlias(),getClusterPerf) where mode= 0");
+		for (int i = 0; i < re1.rows(); i++) {
+			System.out.println("port:"+ re1.getColumn(0).get(i)+" connectionNum:"+re1.getColumn(1).get(i));
+			String port = re1.getColumn(0).get(i).toString();
+			String connectionNum = re1.getColumn(1).get(i).toString();
+			if(Integer.valueOf(port)==PORT||Integer.valueOf(port)==PORT1){
+				System.out.println(Integer.valueOf(connectionNum));
+				assertEquals(true,Integer.valueOf(connectionNum)>=460);
+			}else{
+				assertEquals(true,Integer.valueOf(connectionNum)<20);
+			}
+		}
+	}
+
+	@Test
+	public void Test_getConnection_enableHighAvailability_true_all_note_conn_high_load_1() throws SQLException, ClassNotFoundException, IOException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		DBConnection connection1 = new DBConnection();
+		connection1.connect(HOST, PORT, "admin", "123456",false);
+		BasicIntVector port1 = (BasicIntVector)connection1.run("EXEC port from rpc(getControllerAlias(),getClusterPerf) where mode=0");
+		List<Connection> list = new ArrayList<>();
+		for (int i = 0; i < port1.rows(); ++i) {
+			for (int j = 0; j < 420; ++j) {
+				String url = "jdbc:dolphindb://" + HOST + ":" +  port1.getInt(i) + "?user=admin&password=123456&enableHighAvailability=false";
+				Class.forName(JDBC_DRIVER);
+				conn = DriverManager.getConnection(url);
+				list.add(conn);
+			}
+		}
+		BasicTable re = (BasicTable)connection1.run("select port ,connectionNum  from rpc(getControllerAlias(),getClusterPerf) where mode= 0");
+		for (int i = 0; i < re.rows(); i++) {
+			System.out.println("port:"+ re.getColumn(0).get(i)+" connectionNum:"+re.getColumn(1).get(i));
+			String port = re.getColumn(0).get(i).toString();
+			String connectionNum = re.getColumn(1).get(i).toString();
+				assertEquals(true,Integer.valueOf(connectionNum)>=420);
+		}
+		List<Connection> list1 = new ArrayList<>();
+		for (int i = 0; i < 120; ++i) {
+			String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=true&highAvailabilitySites=" + SITES;
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			list1.add(conn);
+		}
+		BasicTable re1 = (BasicTable)connection1.run("select port ,connectionNum  from rpc(getControllerAlias(),getClusterPerf) where mode= 0");
+		for (int i = 0; i < re1.rows(); i++) {
+			System.out.println("port:"+ re1.getColumn(0).get(i)+" connectionNum:"+re1.getColumn(1).get(i));
+			String port = re1.getColumn(0).get(i).toString();
+			String connectionNum = re1.getColumn(1).get(i).toString();
+			assertEquals(true,Integer.valueOf(connectionNum)>=435);
+		}
+	}
+	@Test
+	public void Test_getConnection_enableHighAvailability_false_1() throws SQLException, ClassNotFoundException, IOException {
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("highAvailability", "false");
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		List<Connection> list = new ArrayList<>();
+		for (int i = 0; i < 460; i++) {
+			Connection conn;
+			conn = new JDBCConnection(url,prop);
+			list.add(conn);
+		}
+		DBConnection connection1 = new DBConnection();
+		connection1.connect(HOST, PORT, "admin", "123456",true);
+		BasicIntVector re = (BasicIntVector)connection1.run("EXEC connectionNum from rpc(getControllerAlias(),getClusterPerf) where port="+PORT);
+		System.out.println(re.getInt(0));
+		assertEquals(true,re.getInt(0)>=460);
+	}
+	@Test
+	public void Test_getConnection_enableHighAvailability_true_site_null() throws SQLException, ClassNotFoundException, IOException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		List<Connection> list1 = new ArrayList<>();
+		for (int i = 0; i < 460; ++i) {
+			String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=true";
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			list1.add(conn);
+		}
+		DBConnection connection1 = new DBConnection();
+		connection1.connect(HOST, PORT, "admin", "123456");
+		BasicTable re1 = (BasicTable)connection1.run("select port ,connectionNum  from rpc(getControllerAlias(),getClusterPerf) where mode= 0");
+		for (int i = 0; i < re1.rows(); i++) {
+			System.out.println("port:"+ re1.getColumn(0).get(i)+" connectionNum:"+re1.getColumn(1).get(i));
+			String port = re1.getColumn(0).get(i).toString();
+			String connectionNum = re1.getColumn(1).get(i).toString();
+			assertEquals(true,Integer.valueOf(connectionNum)>100);
+		}
+	}
+
+
+	@Test
+	public void Test_getConnection_enableHighAvailability_true_site_not_null_1() throws SQLException, ClassNotFoundException, IOException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		List<Connection> list1 = new ArrayList<>();
+		for (int i = 0; i < 460; ++i) {
+			String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=true&highAvailabilitySites=" + SITE1;
+			Class.forName(JDBC_DRIVER);
+			conn = DriverManager.getConnection(url);
+			list1.add(conn);
+		}
+		DBConnection connection1 = new DBConnection();
+		connection1.connect(HOST, PORT, "admin", "123456");
+		BasicTable re1 = (BasicTable)connection1.run("select port ,connectionNum  from rpc(getControllerAlias(),getClusterPerf) where mode= 0");
+		int port1 = Integer.valueOf((SITE1.split(":")[1]));
+		for (int i = 0; i < re1.rows(); i++) {
+			String port = re1.getColumn(0).get(i).toString();
+			String connectionNum = re1.getColumn(1).get(i).toString();
+			if(Integer.valueOf(port)==PORT || Integer.valueOf(port) == port1){
+				assertEquals(true,Integer.valueOf(connectionNum)>200);
+			}else{
+				assertEquals(true,Integer.valueOf(connectionNum)<50);
+			}
+		}
+	}
+	@Test
+	public void Test_getConnection_enableHighAvailability_true_6() throws SQLException, ClassNotFoundException, IOException {
+		DBConnection connection1 = new DBConnection();
+		connection1.connect(HOST, PORT, "admin", "123456",false);
+		BasicIntVector re = (BasicIntVector)connection1.run("EXEC port from rpc(getControllerAlias(),getClusterPerf) where mode=0");
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("enableHighAvailability", "false");
+		List<Connection> list = new ArrayList<>();
+		for(int i = 0; i < re.rows()-1; i++) {
+			for (int j = 0; j < 460; j++) {
+				System.out.println(re.getInt(i));
+				url = "jdbc:dolphindb://" + JDBCTestUtil.HOST + ":" + re.getInt(i);
+				System.out.println(url);
+				conn = DriverManager.getConnection(url, prop);
+				list.add(conn);
+			}
+		}
+		prop.setProperty("enableHighAvailability", "true");
+		List<Connection> list1 = new ArrayList<>();
+		for (int j = 0; j < 200; j++) {
+			url = "jdbc:dolphindb://" + JDBCTestUtil.HOST + ":" + re.getInt(re.rows()-1);
+			Connection conn;
+			conn = new JDBCConnection(url, prop);
+			list1.add(conn);
+		}
+		BasicIntVector re1 = (BasicIntVector)connection1.run("EXEC connectionNum from rpc(getControllerAlias(),getClusterPerf) where port=" + (re.getInt(re.rows()-1)));
+		System.out.println(re1.getInt(0));
+	}
+
+	@Test
+	public void Test_getConnection_enableHighAvailability_true_7() throws SQLException, ClassNotFoundException, IOException {
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("enableHighAvailability", "true");
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		List<Connection> list = new ArrayList<>();
+		for (int i = 0; i < 460; i++) {
+			Connection conn;
+			conn = new JDBCConnection(url,prop);
+			list.add(conn);
+		}
+		DBConnection connection1 = new DBConnection();
+		connection1.connect(HOST, PORT, "admin", "123456",false);
+		BasicIntVector re = (BasicIntVector)connection1.run("EXEC connectionNum from rpc(getControllerAlias(),getClusterPerf) where port="+PORT);
+		System.out.println(re.getInt(0));
+		assertEquals(true,re.getInt(0)<200);
+
+	}
+	@Test
+	public void Test_getConnection_enableHighAvailability_true_enableLoadBalance_false() throws SQLException, ClassNotFoundException, IOException {
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("enableHighAvailability", "true");
+		prop.setProperty("enableLoadBalance", "false");
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		List<Connection> list = new ArrayList<>();
+		for (int i = 0; i < 460; i++) {
+			Connection conn;
+			conn = new JDBCConnection(url,prop);
+			list.add(conn);
+		}
+		DBConnection connection1 = new DBConnection();
+		connection1.connect(HOST, PORT, "admin", "123456",false);
+		BasicIntVector re = (BasicIntVector)connection1.run("EXEC connectionNum from rpc(getControllerAlias(),getClusterPerf) where port="+PORT);
+		System.out.println(re.getInt(0));
+		assertEquals(true,re.getInt(0)>460);
+	}
+	@Test
+	public void Test_getConnection_highAvailability_true_enableLoadBalance_false() throws SQLException, ClassNotFoundException, IOException {
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("highAvailability", "true");
+		prop.setProperty("enableLoadBalance", "false");
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		List<Connection> list = new ArrayList<>();
+		for (int i = 0; i < 460; i++) {
+			Connection conn;
+			conn = new JDBCConnection(url,prop);
+			list.add(conn);
+		}
+		DBConnection connection1 = new DBConnection();
+		connection1.connect(HOST, PORT, "admin", "123456",false);
+		BasicIntVector re = (BasicIntVector)connection1.run("EXEC connectionNum from rpc(getControllerAlias(),getClusterPerf) where port="+PORT);
+		System.out.println(re.getInt(0));
+		assertEquals(true,re.getInt(0)>460);
+	}
+	@Test
+	public void Test_getConnection_enableHighAvailability_true_enableLoadBalance_true() throws SQLException, ClassNotFoundException, IOException {
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("enableHighAvailability", "true");
+		prop.setProperty("enableLoadBalance", "true");
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		List<Connection> list = new ArrayList<>();
+		for (int i = 0; i < 460; i++) {
+			Connection conn;
+			conn = new JDBCConnection(url,prop);
+			list.add(conn);
+		}
+		DBConnection connection1 = new DBConnection();
+		connection1.connect(HOST, PORT, "admin", "123456",true);
+		BasicIntVector re = (BasicIntVector)connection1.run("EXEC connectionNum from rpc(getControllerAlias(),getClusterPerf) where port="+PORT);
+		System.out.println(re.getInt(0));
+		assertEquals(true,re.getInt(0)<200);
+	}
+	@Test
+	public void Test_getConnection_highAvailability_true_enableLoadBalance_true() throws SQLException, ClassNotFoundException, IOException {
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("highAvailability", "true");
+		prop.setProperty("enableLoadBalance", "true");
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		List<Connection> list = new ArrayList<>();
+		for (int i = 0; i < 460; i++) {
+			Connection conn;
+			conn = new JDBCConnection(url,prop);
+			list.add(conn);
+		}
+		DBConnection connection1 = new DBConnection();
+		connection1.connect(HOST, PORT, "admin", "123456",true);
+		BasicIntVector re = (BasicIntVector)connection1.run("EXEC connectionNum from rpc(getControllerAlias(),getClusterPerf) where port="+PORT);
+		System.out.println(re.getInt(0));
+		assertEquals(true,re.getInt(0)<200);
+	}
+	@Test
+	public void Test_getConnection_enableHighAvailability_false_enableLoadBalance_true() throws SQLException, ClassNotFoundException, IOException {
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("enableHighAvailability", "false");
+		prop.setProperty("enableLoadBalance", "true");
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		String re = null;
+		try{
+			conn = new JDBCConnection(url,prop);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("java.lang.RuntimeException: Cannot only enable loadbalance but not enable highAvailablity.",re);
+	}
+	@Test
+	public void Test_getConnection_highAvailability_false_enableLoadBalance_true() throws SQLException, ClassNotFoundException, IOException {
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("highAvailability", "false");
+		prop.setProperty("enableLoadBalance", "true");
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		String re = null;
+		try{
+			conn = new JDBCConnection(url,prop);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("java.lang.RuntimeException: Cannot only enable loadbalance but not enable highAvailablity.",re);
+	}
+	@Test
+	public void Test_getConnection_enableHighAvailability_false_enableLoadBalance_false() throws SQLException, ClassNotFoundException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn1 = null;
+		Statement stmt1 = null;
+		Class.forName(JDBC_DRIVER);
+		conn1 = DriverManager.getConnection(url);
+		stmt1 = conn1.createStatement();
+		conn1.equals(true);
+		try{
+			stmt1.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
+		}catch(Exception ex)
+		{}
+		stmt1.execute(" sleep(500)");
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("enableHighAvailability", "false");
+		prop.setProperty("enableLoadBalance", "false");
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		String re = null;
+		try{
+			conn = new JDBCConnection(url,prop);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("java.sql.SQLException: Connection is failed",re);
+		try{
+			stmt1.execute("startDataNode(\""+HOST+":"+PORT+"\")");
+		}catch(Exception ex)
+		{}
+	}
+	@Test
+	public void Test_getConnection_highAvailability_false_enableLoadBalance_false() throws SQLException, ClassNotFoundException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn1 = null;
+		Statement stmt1 = null;
+		Class.forName(JDBC_DRIVER);
+		conn1 = DriverManager.getConnection(url);
+		stmt1 = conn1.createStatement();
+		conn1.equals(true);
+		try{
+			stmt1.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
+		}catch(Exception ex)
+		{}
+		stmt1.execute(" sleep(500)");
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("highAvailability", "false");
+		prop.setProperty("enableLoadBalance", "false");
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		String re = null;
+		try{
+			conn = new JDBCConnection(url,prop);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("java.sql.SQLException: Connection is failed",re);
+		try{
+			stmt1.execute("startDataNode(\""+HOST+":"+PORT+"\")");
+		}catch(Exception ex)
+		{}
+	}
 	@Test()
 	public void Test_JDBCConnection_in_case_when() throws SQLException, ClassNotFoundException {
 		prop.setProperty("user","admin");
@@ -804,70 +1299,171 @@ public class JDBCConnectionTest {
 		//conn1.equals(true);
 		conn1.close();
 	}
-	@Ignore
-	public void Test_getConnection_enableHighAvailability_true_6() throws SQLException, ClassNotFoundException, IOException {
-		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
-		int count1 = 0;
-		int count2 = 0;
-		int count3 = 0;
-		int count4 = 0;
-		List<DBConnection> list = new ArrayList<>();
-		for (int i = 0; i < 160; i++) {
-			DBConnection connection = new DBConnection();
-			connection.connect("192.168.1.167", 18921, "admin", "123456");
-			list.add(connection);
+	@Test
+	public void Test_getConnection_reconnect_default_false_1() throws SQLException, ClassNotFoundException {
+		String url = "jdbc:dolphindb://192.168.11.111:18911?user=admin&password=123456&enableHighAvailability=false";
+		String url1 = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url);
+		}catch(Exception e){
+			re = e.getMessage();
 		}
-		List<DBConnection> list1 = new ArrayList<>();
-		for (int i = 0; i < 160; i++) {
-			DBConnection connection1 = new DBConnection();
-			connection1.connect("192.168.1.167", 18922, "admin", "123456");
-			list1.add(connection1);
+		assertEquals(true,re.contains("Connection is failed"));
+	}
+	@Test
+	public void Test_getConnection_reconnect_default_false_2() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://192.168.11.111:18911";
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url,info);
+		}catch(Exception e){
+			re = e.getMessage();
 		}
-		List<DBConnection> list2 = new ArrayList<>();
-		for (int i = 0; i < 160; i++) {
-			DBConnection connection2 = new DBConnection();
-			connection2.connect("192.168.1.167", 18923, "admin", "123456");
-			list2.add(connection2);
+		assertEquals(true,re.contains("Connection is failed"));
+	}
+	@Test
+	public void Test_JDBConnection_url() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		//info.put("user", "admin");
+		//info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn = null;
+		conn = new JDBCConnection(url, info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("isLoggedIn(`admin)");
+		BasicBoolean re =(BasicBoolean)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("true",re.getString());
+	}
+	@Test
+	public void Test_JDBConnection_prop() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", PORT);
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		conn = new JDBCConnection(url, info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("isLoggedIn(`admin)");
+		BasicBoolean re =(BasicBoolean)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("true",re.getString());
+	}
+	@Test
+	public void Test_JDBConnection_url_prop_concurrent() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("user", "ad11min");
+		info.put("password", "12341156");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn = null;
+		conn = new JDBCConnection(url, info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("isLoggedIn(`admin)");
+		BasicBoolean re =(BasicBoolean)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("true",re.getString());
+	}
+	@Test
+	public void Test_JDBConnection_prop_error() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", PORT);
+		info.put("user", "admeein");
+		info.put("password", "123ee456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = new JDBCConnection(url, info);
+		}catch(Exception ex){
+			re = ex.getMessage();
 		}
-//		List<DBConnection> list3 = new ArrayList<>();
-//		for (int i = 0; i < 460; i++) {
-//			DBConnection connection3 = new DBConnection();
-//			connection3.connect("192.168.1.167", 18924, "admin", "123456");
-//			list3.add(connection3);
-//		}
-
-		for (int i = 0; i < 10; i++) {
-			for (int x = 3; x >= 0; x--) {
-				String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=true&highAvailabilitySites=" + SITES;
-				Class.forName(JDBC_DRIVER);
-				conn = DriverManager.getConnection(url);
-				Statement stmt = null;
-				Statement s = conn.createStatement();
-				JDBCResultSet rs1 = (JDBCResultSet) s.executeQuery("getNodePort()");
-				int now_port = Integer.valueOf(rs1.getResult().toString());
-				switch (now_port) {
-					case 18921:
-						count1++;
-						break;
-					case 18922:
-						count2++;
-						break;
-					case 18923:
-						count3++;
-						break;
-					case 18924:
-						count4++;
-						break;
-				}
-
-
-			}
+		assertEquals(true,re.contains("Server response: 'The user name or password is incorrect.' function: 'login'"));
+	}
+	@Test
+	public void Test_getConnection_url() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		//info.put("user", "admin");
+		//info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn = null;
+		conn = DriverManager.getConnection(url,info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("isLoggedIn(`admin)");
+		BasicBoolean re =(BasicBoolean)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("true",re.getString());
+	}
+	@Test
+	public void Test_getConnection_prop() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;;
+		Connection conn = null;
+		conn = DriverManager.getConnection(url,info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("isLoggedIn(`admin)");
+		BasicBoolean re =(BasicBoolean)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("true",re.getString());
+	}
+	@Test
+	public void Test_getConnection_url_prop_concurrent() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("user", "ad11min");
+		info.put("password", "12341156");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn = null;
+		conn = DriverManager.getConnection(url,info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("isLoggedIn(`admin)");
+		BasicBoolean re =(BasicBoolean)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("true",re.getString());
+	}
+	@Test
+	public void Test_getConnection_prop_error() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", PORT);
+		info.put("user", "admeein");
+		info.put("password", "123ee456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url,info);
+		}catch(Exception ex){
+			re = ex.getMessage();
 		}
-		System.out.println(count1);
-		System.out.println(count2);
-		System.out.println(count3);
-		System.out.println(count4);
-		System.out.println("-----------");
-
+		assertEquals(true,re.contains("Server response: 'The user name or password is incorrect.' function: 'login'"));
 	}
 }

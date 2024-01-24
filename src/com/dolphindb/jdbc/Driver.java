@@ -1,6 +1,8 @@
 package com.dolphindb.jdbc;
 
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -66,16 +68,14 @@ public class Driver implements java.sql.Driver {
         return url != null && url.toLowerCase().startsWith(URL_PREFIX);
     }
 
-    public Connection createConnection(String url, Properties prop) throws SQLException {
-        if (!isValidURL(url)) new SQLException("url is not valid");
-        String old_url = url;
+    public static void parseProp(String url, Properties prop) throws SQLException {
+        if (!isValidURL(url))
+            throw new SQLException("url is not valid");
         url = url.trim().substring(URL_PREFIX.length());
         if (url.length() == 0 || url.equals("?")){
             prop.setProperty("hostName","localhost");
             prop.setProperty("port","8848");
-            return new JDBCConnection(old_url,prop);
-        }
-        else {
+        } else {
             String[] strings = url.split("\\?");
             if(strings.length == 1){
                 String s = strings[0];
@@ -111,12 +111,18 @@ public class Driver implements java.sql.Driver {
                 }
                 String s2 = strings[1];
                 if (s2.length() > 0) {
-                    // 这一步会解析jdbc连接配置字符串中的属性，并以kv的方式添加到prop里
+                    // parse properties from jdbc url, and put in prop.
                     Utils.parseProperties(s2,prop,"&","=");
                 }
             }
-            return new JDBCConnection(old_url,prop);
         }
+    }
+
+    public static Connection createConnection(String url, Properties prop) throws SQLException {
+        String old_url = url;
+        Driver.parseProp(url, prop);
+
+        return new JDBCConnection(prop, old_url);
     }
 
     public static void unused(String s)throws SQLException{

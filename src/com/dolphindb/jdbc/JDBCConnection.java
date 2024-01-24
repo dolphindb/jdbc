@@ -16,42 +16,70 @@ import java.util.concurrent.Executor;
 
 public class JDBCConnection implements Connection {
 	private DBConnection dbConnection;
-	private final String hostName;
-	private final int port;
+	private String hostName;
+	private int port;
 	private boolean success;
 	private String database;
 	private Vector tables;
-	private final String url;
+	private String url;
 	private DatabaseMetaData metaData;
 	private String user;
 	private String password;
 
 	public JDBCConnection(String url, Properties prop) throws SQLException {
 		this.url = url;
-		String sqlStdProp = prop.getProperty("sqlStd");
-		if (Objects.nonNull(sqlStdProp)) {
-			SqlStdEnum sqlStd = SqlStdEnum.getByName(sqlStdProp);
-			dbConnection = new DBConnection(sqlStd);
-		} else {
-			dbConnection = new DBConnection();
-		}
-		hostName = prop.getProperty("hostName");
-		port = Integer.parseInt(prop.getProperty("port"));
-		setUser(null);
-		setPassword(null);
-        clientInfo = prop;
+		Driver.parseProp(url, prop);
+		this.clientInfo = prop;
+		this.hostName = this.clientInfo.getProperty("hostName");
+		this.port = Integer.parseInt(this.clientInfo.getProperty("port"));
+		setUser(Optional.ofNullable(this.clientInfo.getProperty("user")).orElse(""));
+
+		initDBConnectionInternal(prop);
+
 		try {
-			open(hostName, port, prop);
+			connectInternal(this.hostName, this.port, this.clientInfo);
 		} catch (IOException e) {
 			e.printStackTrace();
-			String s = e.getMessage();
-			if (s.contains("Connection refused")) {
-				throw new SQLException(MessageFormat.format("{0}  ==> hostName = {1}, port = {2}", s, hostName, port));
-			} else {
+			String msg = e.getMessage();
+			if (msg.contains("Connection refused"))
+				throw new SQLException(MessageFormat.format("{0}  ==> hostName = {1}, port = {2}", msg, this.hostName, this.port));
+			else
 				throw new SQLException(e);
-			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+	protected JDBCConnection(Properties prop, String url) throws SQLException {
+		this.url = url;
+		this.clientInfo = prop;
+		this.hostName = this.clientInfo.getProperty("hostName");
+		this.port = Integer.parseInt(this.clientInfo.getProperty("port"));
+		setUser(Optional.ofNullable(this.clientInfo.getProperty("user")).orElse(""));
+
+		initDBConnectionInternal(prop);
+
+		try {
+			connectInternal(this.hostName, this.port, this.clientInfo);
+		} catch (IOException e) {
+			e.printStackTrace();
+			String msg = e.getMessage();
+			if (msg.contains("Connection refused"))
+				throw new SQLException(MessageFormat.format("{0}  ==> hostName = {1}, port = {2}", msg, this.hostName, this.port));
+			else
+				throw new SQLException(e);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	private void initDBConnectionInternal(Properties clientInfo) {
+		String sqlStdProp = this.clientInfo.getProperty("sqlStd");
+		if (Objects.nonNull(sqlStdProp)) {
+			SqlStdEnum sqlStd = SqlStdEnum.getByName(sqlStdProp);
+			this.dbConnection = new DBConnection(sqlStd);
+		} else {
+			this.dbConnection = new DBConnection();
 		}
 	}
 	
@@ -65,22 +93,26 @@ public class JDBCConnection implements Connection {
 
 	/**
 	 * build connect to port
-	 * 
+	 *
 	 * @param hostname
 	 * @param port
 	 * @param prop
+	 * @param appendInitScript
 	 * @throws IOException
 	 * @throws SQLException
 	 */
 	private void connect(String hostname, int port, Properties prop, String appendInitScript) throws IOException, SQLException {
-		String userId = prop.getProperty("user");
-		String password = prop.getProperty("password");
-		String initialScript = prop.getProperty("initialScript");
-		initialScript = Utils.changeCase(initialScript);
-		if (initialScript!=null&&initialScript.equals("select 1"))
+		String userId = Optional.ofNullable(prop.getProperty("user")).orElse("");
+		String password = Optional.ofNullable(prop.getProperty("password")).orElse("");
+		String initialScript = Optional.ofNullable(prop.getProperty("initialScript"))
+				.map(Utils::changeCase)
+				.orElse("");
+
+		if (initialScript.equals("select 1"))
 			initialScript = "select 1 as val";
+
 		if(appendInitScript != null) {
-			if(initialScript!=null)
+			if(!initialScript.isEmpty())
 				initialScript = appendInitScript + "\n" + initialScript;
 			else
 				initialScript = appendInitScript;
@@ -88,50 +120,46 @@ public class JDBCConnection implements Connection {
 
 		String highAvailabilityStr = prop.getProperty("highAvailability");
 		String enableHighAvailabilityStr = prop.getProperty("enableHighAvailability");
-		Boolean highAvailability = false;
-		if(highAvailabilityStr == null){
-			highAvailability = Boolean.valueOf(enableHighAvailabilityStr);
-		}else if(enableHighAvailabilityStr == null){
-			highAvailability = Boolean.valueOf(highAvailabilityStr);
-		}else{
-			Boolean param1 = Boolean.valueOf(highAvailabilityStr);
-			Boolean param2 = Boolean.valueOf(enableHighAvailabilityStr);
+		boolean highAvailability;
+		if (highAvailabilityStr == null) {
+			highAvailability = Boolean.parseBoolean(enableHighAvailabilityStr);
+		} else if (enableHighAvailabilityStr == null){
+			highAvailability = Boolean.parseBoolean(highAvailabilityStr);
+		} else {
+			boolean param1 = Boolean.parseBoolean(highAvailabilityStr);
+			boolean param2 = Boolean.parseBoolean(enableHighAvailabilityStr);
 			if(param1 != param2)
 				throw new SQLException("The values of the \"highAvailability\" and \"enableHighAvailability\" parameters in the URL must be the same if both are configured. ");
 			highAvailability = param1;
 		}
 
-		String rowHighAvailabilitySites = prop.getProperty("highAvailabilitySites");
+		String highAvailabilitySitesStr = prop.getProperty("highAvailabilitySites");
 		String[] highAvailabilitySites = null;
-		if (rowHighAvailabilitySites != null) {
-			if (rowHighAvailabilitySites.contains(",")) {
-				highAvailabilitySites = rowHighAvailabilitySites.split(",");
+		if (highAvailabilitySitesStr != null) {
+			if (highAvailabilitySitesStr.contains(",")) {
+				highAvailabilitySites = highAvailabilitySitesStr.split(",");
 				highAvailabilitySites = Arrays.stream(highAvailabilitySites).map(String::trim).toArray(String[]::new);
 			} else {
-				highAvailabilitySites = rowHighAvailabilitySites.split(" ");
+				highAvailabilitySites = highAvailabilitySitesStr.split(" ");
 			}
 		}
 
-		String tableAliasValue = prop.getProperty("tableAlias");
-		if (Utils.isNotEmpty(tableAliasValue)) {
-			String tableAliasScript = Utils.parseTableAliasPropToScript(tableAliasValue);
-			if (Objects.nonNull(initialScript)) {
+		String tableAliasStr = prop.getProperty("tableAlias");
+		if (Utils.isNotEmpty(tableAliasStr)) {
+			String tableAliasScript = Utils.parseTableAliasPropToScript(tableAliasStr);
+			if (!initialScript.isEmpty())
 				initialScript = initialScript + "\n" + tableAliasScript;
-			} else {
+			else
 				initialScript = tableAliasScript;
-			}
 		}
 
-		if(userId != null && password != null){
-			if (highAvailability){
-				success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
-			}else {
-				success = dbConnection.connect(hostname, port, userId, password, initialScript,false,null,true);
-			}
-		}else if(initialScript != null && highAvailabilitySites != null){
-			success = dbConnection.connect(hostname, port, initialScript, highAvailabilitySites);
-		}else {
-			success = dbConnection.connect(hostName, port,"","",null,false,null,true);
+		String enableLoadBalanceStr = prop.getProperty("enableLoadBalance");
+
+		if (Objects.nonNull(enableLoadBalanceStr)) {
+			boolean enableLoadBalance = Boolean.parseBoolean(enableLoadBalanceStr);
+			success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites, false, enableLoadBalance);
+		} else {
+			success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
 		}
 	}
 
@@ -155,11 +183,17 @@ public class JDBCConnection implements Connection {
 		return sbInitScript.toString();
 	}
 
-	private void open(String hostname, int port, Properties prop) throws SQLException, IOException{
+	private void connectInternal(String hostname, int port, Properties prop) throws SQLException, IOException{
 		this.connect(hostname, port, prop,null);
-		if (!this.success) {
+		if (!this.success)
 			throw new SQLException("Connection is failed");
-		}
+
+		StringBuffer sbInitScript = buildInitialScript(prop);
+		if(sbInitScript.length()>0)
+			this.connect(hostname, port, prop, sbInitScript.toString());
+	}
+
+	private StringBuffer buildInitialScript(Properties prop) throws IOException {
 		StringBuffer sbInitScript=new StringBuffer();
 		String[] key = new String[]{"databasePath"};
 		String[] valueName = Utils.getProperties(prop, key);
@@ -201,8 +235,8 @@ public class JDBCConnection implements Connection {
 				}
 			}
 		}
-		if(sbInitScript.length()>0)
-			this.connect(hostname, port, prop, sbInitScript.toString());
+
+		return sbInitScript;
 	}
 
 	@Override
@@ -587,17 +621,19 @@ public class JDBCConnection implements Connection {
 	}
 
 	public String getUser() {
-		return user;
+		return this.user;
 	}
 
 	public void setUser(String user) {
 		this.user = user;
 	}
 
+	@Deprecated
 	public String getPassword() {
 		return password;
 	}
 
+	@Deprecated
 	public void setPassword(String password) {
 		this.password = password;
 	}

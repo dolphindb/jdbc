@@ -333,20 +333,14 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public int getInt(int columnIndex) throws SQLException {
-        Integer x = (Integer) getObject(columnIndex);
-        if (Objects.isNull(x))
-            return 0;
-        else
-			return x;
+        Object x = getObject(columnIndex);
+        return Objects.nonNull(x) ? ((Number) x).intValue() : 0;
     }
 
     @Override
     public long getLong(int columnIndex) throws SQLException {
-        Long x = (Long) getObject(columnIndex);
-        if (Objects.isNull(x))
-            return 0;
-        else
-			return x;
+        Object x = getObject(columnIndex);
+        return Objects.nonNull(x) ? ((Number) x).longValue() : 0;
     }
 
     @Override
@@ -360,16 +354,20 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public double getDouble(int columnIndex) throws SQLException {
-        Double x = (Double) getObject(columnIndex);
-        if (Objects.isNull(x))
-            return 0;
-        else
-            return x;
+        Object x = getObject(columnIndex);
+        return Objects.nonNull(x) ? ((Number) x).doubleValue() : 0;
     }
 
     @Override
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
-        return (BigDecimal) getObject(columnIndex);
+        Object x = getObject(columnIndex);
+        if (x instanceof Float)
+            return BigDecimal.valueOf((Float) x);
+        else if (x instanceof Double) {
+            return BigDecimal.valueOf((Double) x);
+        } else {
+            return (BigDecimal) x;
+        }
     }
 
     @Deprecated
