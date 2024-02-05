@@ -103,7 +103,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		int[] executeRes = new int[this.batchSize];
 		try {
 			if (this.sqlDmlType == Utils.DML_INSERT)
-				return tableAppend();
+				return tableAppend(true);
 			for (int i = 0; i < this.batchSize; i++) {
 				try {
 					executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
@@ -223,7 +223,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		try {
 			combineOneRowData(false);
 			if (this.sqlDmlType == Utils.DML_INSERT) {
-				int[] ret = tableAppend();
+				int[] ret = tableAppend(false);
 				if (ret[0] == SUCCESS_NO_INFO)
 					return 1;
 				else
@@ -238,8 +238,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 	}
 
-	private int[] tableAppend() throws SQLException {
-		List<Vector> arguments = createDFSArguments();
+	private int[] tableAppend(boolean isBatch) throws SQLException {
+		List<Vector> arguments = createDFSArguments(isBatch);
 		List<String> colNames = new ArrayList<>();
 		columnBindValues.forEach(e -> colNames.add(e.getColName()));
 		BasicTable basicTable = new BasicTable(colNames, arguments);
@@ -258,7 +258,23 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 	}
 
-	private List<Vector> createDFSArguments() {
+	private List<Vector> createDFSArguments(boolean isBatch) throws SQLException {
+		if (!isBatch) {
+			for (ColumnBindValue column : columnBindValues) {
+				if (column.getBindValues().rows() != 1) {
+					Vector columnCol = column.getBindValues();
+					try {
+						if (columnCol.getDataType().getValue() < 65)
+							columnCol.Append((Scalar) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
+						else
+							columnCol.Append((Vector) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
+					} catch (Exception e) {
+						throw new SQLException(e);
+					}
+				}
+			}
+		}
+
 		return columnBindValues.stream()
 				.map(ColumnBindValue::getBindValues)
 				.collect(Collectors.toList());
