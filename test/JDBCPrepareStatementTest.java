@@ -3643,7 +3643,7 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals("123421.0001200000000000000",rs.getObject("col29").toString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_all_part_cols_executeBatch() throws SQLException {
+    public void test_PreparedStatement_insert_into_DFS_part_cols_executeBatch() throws SQLException {
         createPartitionTable1();
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,col28) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         ps.setInt(1,1000);
@@ -6504,6 +6504,85 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals("123421.00",rs.getObject("col27").toString());
         org.junit.Assert.assertEquals("123421.0001200",rs.getObject("col28").toString());
         org.junit.Assert.assertEquals("123421.0001200000000000000",rs.getObject("col29").toString());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_dimension_part_cols_executeUpdate() throws SQLException {
+        createTable1();
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt')(col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,col28) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);");
+        ps.setInt(1,1000);
+        ps.setBoolean(2,true);
+        ps.setByte(3, (byte) 12);
+        ps.setShort(4, (short) 12);
+        ps.setInt(5,100);
+        ps.setLong(6, (long) 12);
+        ps.setDate(7, Date.valueOf(LocalDate.of(2021,1,1)));
+        BasicMonth tmp_month = new BasicMonth(YearMonth.of(2021,1));
+        ps.setObject(8, tmp_month);
+        ps.setTime(9, Time.valueOf(LocalTime.of(1,1,1)));
+        BasicMinute tmp_minute = new BasicMinute(LocalTime.of(1,1));
+        ps.setObject(10, tmp_minute);
+        BasicSecond tmp_second = new BasicSecond(LocalTime.of(1,1,1));
+        ps.setObject(11, tmp_second);
+        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(2021,1,1,1,1,1));
+        ps.setObject(12, tmp_datetime);
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(13, tmp_timestamp);
+        BasicNanoTime tmp_nanotime = new BasicNanoTime(LocalDateTime.of(2021,1,1,1,1,1,001));
+        ps.setObject(14, tmp_nanotime);
+        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(15, tmp_nanotimestamp);
+        ps.setFloat(16, (float) 12.23);
+        ps.setDouble(17, (double) 12.23);
+        ps.setString(18, "test1");
+        ps.setString(19, "test1");
+        BasicUuid uuids = new BasicUuid(1,2);
+        ps.setObject(20, uuids);
+        BasicDateHour tmp_datehour = new BasicDateHour(LocalDateTime.of(2021,1,1,1,1,1,123456));
+        ps.setObject(21, tmp_datehour);
+        BasicIPAddr ipaddrs = new BasicIPAddr(1,2);
+        ps.setObject(22, ipaddrs);
+        BasicInt128 int128 = new BasicInt128(1,2);
+        ps.setObject(23, int128);
+        ps.setObject(24, "TEST BLOB");
+        BasicComplex complexs = new BasicComplex(1,2);
+        ps.setObject(25, complexs);
+        BasicPoint points = new BasicPoint(0,0);
+        ps.setObject(26, points);
+        ps.setObject(27,123421.00012,37,4);
+        ps.setObject(28,123421.00012,38,4);
+        //ps.setObject(29,"123421.00012",39,4);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getBoolean("col2"), true);
+        org.junit.Assert.assertEquals(rs.getByte("col3"), 12);
+        org.junit.Assert.assertEquals(rs.getShort("col4"), 12);
+        org.junit.Assert.assertEquals(rs.getInt("col5"), 100);
+        org.junit.Assert.assertEquals(rs.getLong("col6"), 12);
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2021,1,1)),rs.getDate("col7"));
+        org.junit.Assert.assertEquals(YearMonth.of(2021, 1),rs.getObject("col8"));
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(1,1,1)),rs.getTime("col9"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1),rs.getObject("col10"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1),rs.getObject("col11"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col12"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1),rs.getObject("col13"));
+        org.junit.Assert.assertEquals(LocalTime.of(1,1,1,1),rs.getObject("col14"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,1,1,123456),rs.getObject("col15"));
+        org.junit.Assert.assertEquals((float) 12.23,rs.getFloat("col16"),4);
+        org.junit.Assert.assertEquals((Double) 12.23,rs.getDouble("col17"),4);
+        org.junit.Assert.assertEquals("test1",rs.getString("col18"));
+        org.junit.Assert.assertEquals("test1",rs.getString("col19"));
+        org.junit.Assert.assertEquals(UUID.fromString("00000000-0000-0001-0000-000000000002"),rs.getObject("col20"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2021,1,1,1,0),rs.getObject("col21"));
+        org.junit.Assert.assertEquals("0::1:0:0:0:2",rs.getObject("col22"));
+        org.junit.Assert.assertEquals("00000000000000010000000000000002",rs.getObject("col23"));
+        org.junit.Assert.assertEquals("TEST BLOB",rs.getString("col24"));
+        org.junit.Assert.assertEquals("1.0+2.0i",rs.getObject("col25"));
+        org.junit.Assert.assertEquals("(0.0, 0.0)",rs.getObject("col26"));
+        org.junit.Assert.assertEquals("123421.00",rs.getObject("col27").toString());
+        org.junit.Assert.assertEquals("123421.0001200",rs.getObject("col28").toString());
+        org.junit.Assert.assertEquals(null,rs.getObject("col29"));
     }
     @Test
     public void test_PreparedStatement_insert_into_DFS_wideTable_executeUpdate() throws SQLException, IOException {
