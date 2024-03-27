@@ -744,6 +744,7 @@ public class JDBCConnectionTest {
 		}
 		DBConnection connection1 = new DBConnection();
 		connection1.connect(HOST, PORT, "admin", "123456",true);
+		connection1.run("sleep(2000)");
 		BasicTable re = (BasicTable)connection1.run("select port ,connectionNum  from rpc(getControllerAlias(),getClusterPerf) where mode= 0");
 		for (int i = 0; i < re.rows(); i++) {
 			System.out.println("port:"+ re.getColumn(0).get(i)+" connectionNum:"+re.getColumn(1).get(i));
@@ -762,6 +763,7 @@ public class JDBCConnectionTest {
 			conn = DriverManager.getConnection(url);
 			list1.add(conn);
 		}
+		connection1.run("sleep(2000)");
 		BasicTable re1 = (BasicTable)connection1.run("select port ,connectionNum  from rpc(getControllerAlias(),getClusterPerf) where mode= 0");
 		for (int i = 0; i < re1.rows(); i++) {
 			System.out.println("port:"+ re1.getColumn(0).get(i)+" connectionNum:"+re1.getColumn(1).get(i));
@@ -781,6 +783,7 @@ public class JDBCConnectionTest {
 		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
 		DBConnection connection1 = new DBConnection();
 		connection1.connect(HOST, PORT, "admin", "123456",false);
+		connection1.run("sleep(2000)");
 		BasicIntVector port1 = (BasicIntVector)connection1.run("EXEC port from rpc(getControllerAlias(),getClusterPerf) where mode=0");
 		List<Connection> list = new ArrayList<>();
 		for (int i = 0; i < port1.rows(); ++i) {
@@ -791,6 +794,7 @@ public class JDBCConnectionTest {
 				list.add(conn);
 			}
 		}
+		connection1.run("sleep(2000)");
 		BasicTable re = (BasicTable)connection1.run("select port ,connectionNum  from rpc(getControllerAlias(),getClusterPerf) where mode= 0");
 		for (int i = 0; i < re.rows(); i++) {
 			System.out.println("port:"+ re.getColumn(0).get(i)+" connectionNum:"+re.getColumn(1).get(i));
@@ -805,6 +809,7 @@ public class JDBCConnectionTest {
 			conn = DriverManager.getConnection(url);
 			list1.add(conn);
 		}
+		connection1.run("sleep(2000)");
 		BasicTable re1 = (BasicTable)connection1.run("select port ,connectionNum  from rpc(getControllerAlias(),getClusterPerf) where mode= 0");
 		for (int i = 0; i < re1.rows(); i++) {
 			System.out.println("port:"+ re1.getColumn(0).get(i)+" connectionNum:"+re1.getColumn(1).get(i));
@@ -827,6 +832,7 @@ public class JDBCConnectionTest {
 		}
 		DBConnection connection1 = new DBConnection();
 		connection1.connect(HOST, PORT, "admin", "123456",true);
+		connection1.run("sleep(2000)");
 		BasicIntVector re = (BasicIntVector)connection1.run("EXEC connectionNum from rpc(getControllerAlias(),getClusterPerf) where port="+PORT);
 		System.out.println(re.getInt(0));
 		assertEquals(true,re.getInt(0)>=460);
@@ -865,6 +871,7 @@ public class JDBCConnectionTest {
 		}
 		DBConnection connection1 = new DBConnection();
 		connection1.connect(HOST, PORT, "admin", "123456");
+		connection1.run("sleep(2000)");
 		BasicTable re1 = (BasicTable)connection1.run("select port ,connectionNum  from rpc(getControllerAlias(),getClusterPerf) where mode= 0");
 		int port1 = Integer.valueOf((SITE1.split(":")[1]));
 		for (int i = 0; i < re1.rows(); i++) {
@@ -921,6 +928,7 @@ public class JDBCConnectionTest {
 		}
 		DBConnection connection1 = new DBConnection();
 		connection1.connect(HOST, PORT, "admin", "123456",false);
+		connection1.run("sleep(2000)");
 		BasicIntVector re = (BasicIntVector)connection1.run("EXEC connectionNum from rpc(getControllerAlias(),getClusterPerf) where port="+PORT);
 		System.out.println(re.getInt(0));
 		assertEquals(true,re.getInt(0)<200);
@@ -941,6 +949,7 @@ public class JDBCConnectionTest {
 		}
 		DBConnection connection1 = new DBConnection();
 		connection1.connect(HOST, PORT, "admin", "123456",false);
+		connection1.run("sleep(2000)");
 		BasicIntVector re = (BasicIntVector)connection1.run("EXEC connectionNum from rpc(getControllerAlias(),getClusterPerf) where port="+PORT);
 		System.out.println(re.getInt(0));
 		assertEquals(true,re.getInt(0)>460);
@@ -960,6 +969,7 @@ public class JDBCConnectionTest {
 		}
 		DBConnection connection1 = new DBConnection();
 		connection1.connect(HOST, PORT, "admin", "123456",false);
+		connection1.run("sleep(2000)");
 		BasicIntVector re = (BasicIntVector)connection1.run("EXEC connectionNum from rpc(getControllerAlias(),getClusterPerf) where port="+PORT);
 		System.out.println(re.getInt(0));
 		assertEquals(true,re.getInt(0)>460);
