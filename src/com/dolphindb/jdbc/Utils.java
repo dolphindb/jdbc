@@ -2,6 +2,7 @@ package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
+import java.io.IOException;
 import java.sql.*;
 import java.sql.Date;
 import java.time.YearMonth;
@@ -758,6 +759,22 @@ public class Utils {
                 return Types.BLOB;
             default:
                 return Types.OTHER;
+        }
+    }
+
+    public static boolean checkServerVersionIfSupportCatalog(JDBCConnection connection) {
+        try {
+            String version = connection.run("version()").getString();
+            String[] _ = version.split(" ")[0].split("\\.");
+            int v0 = Integer.parseInt(_[0]);
+            int v1 = Integer.parseInt(_[1]);
+            int v2 = Integer.parseInt(_[2]);
+            if (v0 != 3)
+                return false;
+            else
+                return true;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }
