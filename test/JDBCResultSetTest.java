@@ -921,7 +921,7 @@ public class JDBCResultSetTest {
 		rs = stmt.executeQuery("select * from pt");
 		rs.next();
 		TestCase.assertEquals("class java.math.BigDecimal", rs.getObject("decimal64").getClass().toString());
-		TestCase.assertEquals("9.99999999", rs.getObject("decimal64").toString());
+		TestCase.assertEquals("10.00000000", rs.getObject("decimal64").toString());
 		rs.next();
 		TestCase.assertEquals("9999999999.34339968", rs.getObject("decimal64").toString());
 		rs.next();
@@ -947,7 +947,7 @@ public class JDBCResultSetTest {
 		rs = stmt.executeQuery("select * from pt");
 		rs.next();
 		TestCase.assertEquals("class java.math.BigDecimal", rs.getBigDecimal("decimal64").getClass().toString());
-		TestCase.assertEquals("9.99999999", rs.getBigDecimal("decimal64").toString());
+		TestCase.assertEquals("10.00000000", rs.getBigDecimal("decimal64").toString());
 		rs.next();
 		TestCase.assertEquals("9999999999.34339968", rs.getBigDecimal("decimal64").toString());
 		rs.next();
@@ -973,7 +973,7 @@ public class JDBCResultSetTest {
 		rs = stmt.executeQuery("select * from pt");
 		rs.next();
 		TestCase.assertEquals("class java.math.BigDecimal", rs.getObject("decimal128").getClass().toString());
-		TestCase.assertEquals("9.99999999", rs.getObject("decimal128").toString());
+		TestCase.assertEquals("10.00000000", rs.getObject("decimal128").toString());
 		rs.next();
 		TestCase.assertEquals("9999999999.34339968", rs.getObject("decimal128").toString());
 		rs.next();
@@ -999,7 +999,7 @@ public class JDBCResultSetTest {
 		rs = stmt.executeQuery("select * from pt");
 		rs.next();
 		TestCase.assertEquals("class java.math.BigDecimal", rs.getBigDecimal("decimal128").getClass().toString());
-		TestCase.assertEquals("9.99999999", rs.getBigDecimal("decimal128").toString());
+		TestCase.assertEquals("10.00000000", rs.getBigDecimal("decimal128").toString());
 		rs.next();
 		TestCase.assertEquals("9999999999.34339968", rs.getBigDecimal("decimal128").toString());
 		rs.next();
@@ -1025,7 +1025,7 @@ public class JDBCResultSetTest {
 		rs = stmt.executeQuery("select * from pt");
 		rs.next();
 		TestCase.assertEquals("class java.math.BigDecimal", rs.getBigDecimal(3).getClass().toString());
-		TestCase.assertEquals("9.99999999", rs.getBigDecimal(3).toString());
+		TestCase.assertEquals("10.00000000", rs.getBigDecimal(3).toString());
 		rs.next();
 		TestCase.assertEquals("9999999999.34339968", rs.getBigDecimal(3).toString());
 		rs.next();
