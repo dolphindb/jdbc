@@ -9,12 +9,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import static com.dolphindb.jdbc.Utils.checkServerVersionIfSupportCatalog;
+
 public class JDBCDataBaseMetaDataTest {
     static String HOST = JDBCTestUtil.HOST;
     static int PORT = JDBCTestUtil.PORT;
     Properties LOGININFO = new Properties();
     String JDBC_DRIVER;
     String url;
+    Properties prop = new Properties();
 
     @Before
     public void SetUp() {
@@ -23,6 +26,10 @@ public class JDBCDataBaseMetaDataTest {
         LOGININFO.put("user", "admin");
         LOGININFO.put("password", "123456");
         url = "jdbc:dolphindb://" + HOST + ":" + PORT;
+        prop.setProperty("hostName",HOST);
+        prop.setProperty("port",String.valueOf(PORT));
+        //prop.setProperty("sqlStd", String.valueOf(SqlStdEnum.Oracle));
+        url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
     }
 
     public static boolean createPartitionTable1(String dataBaseName) {
@@ -80,7 +87,6 @@ public class JDBCDataBaseMetaDataTest {
             }
             return success;
         }
-
     }
     public static boolean createPartitionTable_Array1() {
         boolean success = false;
@@ -110,7 +116,95 @@ public class JDBCDataBaseMetaDataTest {
             return success;
         }
     }
-
+    public static boolean createCatalog(String CatalogName) {
+        boolean success = false;
+        DBConnection db = null;
+        try {
+            String script = " login(`admin, `123456); \n" +
+                    "try{\n dropCatalog(\""+ CatalogName +"\")\n }catch(ex){\n }\n" +
+                    "createCatalog(\""+ CatalogName +"\")\n";
+            db = new DBConnection();
+            db.connect(HOST, PORT);
+            db.run(script);
+            success = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            success = false;
+        } finally {
+            if (db != null) {
+                db.close();
+            }
+            return success;
+        }
+    }
+    public static boolean createSchema(String CatalogName,String dbName,String schemaName) {
+        boolean success = false;
+        DBConnection db = null;
+        try {
+            String script = " login(`admin, `123456); \n" +
+                    "dbName = \""+ dbName +"\"\n" +
+                    "if(existsDatabase(dbName)){\n" +
+                    "        dropDatabase(dbName)\n" +
+                    "}\n" +
+                    "n=1000        \n" +
+                    "ID=rand(10, n)\n" +
+                    "x=rand(1.0, n)\n" +
+                    "sys=take(`qq`www`ddd, n)\n" +
+                    "t=table(ID, x);\n" +
+                    "t1=table(ID, x, sys);\n" +
+                    "db=database(dbName,RANGE,  0 5 10)\n" +
+                    "db.createPartitionedTable(t, `pt, `ID).append!(t);\n" +
+                    "db.createTable(t1, `dt).append!(t);" +
+                    "try{\n dropCatalog(\""+ CatalogName +"\")\n }catch(ex){\n }\n" +
+                    "createCatalog(\""+ CatalogName +"\")\n"+
+                    "createSchema(\""+ CatalogName +"\", \""+ dbName +"\", \""+schemaName+"\")\n";
+            db = new DBConnection();
+            db.connect(HOST, PORT);
+            db.run(script);
+            success = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            success = false;
+        } finally {
+            if (db != null) {
+                db.close();
+            }
+            return success;
+        }
+    }
+    public static boolean createTable(String CatalogName,String dbName,String schemaName) {
+        boolean success = false;
+        DBConnection db = null;
+        try {
+            String script = " login(`admin, `123456); \n" +
+                    "dbName = \""+ dbName +"\"\n" +
+                    "if(existsDatabase(dbName)){\n" +
+                    "        dropDatabase(dbName)\n" +
+                    "}\n" +
+                    "n=1000        \n" +
+                    "ID=rand(10, n)\n" +
+                    "x=rand(1.0, n)\n" +
+                    "t=table(ID, x);\n" +
+                    "db=database(dbName,RANGE,  0 5 10)\n" +
+                    "db.createPartitionedTable(t, `pt, `ID).append!(t);\n" +
+                    "db.createTable(t, `dt).append!(t);" +
+                    "try{\n dropCatalog(\"catalog1\")\n }catch(ex){\n }\n" +
+                    "createCatalog(\""+ CatalogName +"\")\n"+
+                    "createSchema(\""+ CatalogName +"\", \""+ dbName +"\", \""+schemaName+"\")\n";
+            db = new DBConnection();
+            db.connect(HOST, PORT);
+            db.run(script);
+            success = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            success = false;
+        } finally {
+            if (db != null) {
+                db.close();
+            }
+            return success;
+        }
+    }
     public static void printData(ResultSet rs) throws SQLException {
         ResultSetMetaData resultSetMetaData = rs.getMetaData();
         int len = resultSetMetaData.getColumnCount();
@@ -132,7 +226,11 @@ public class JDBCDataBaseMetaDataTest {
             }
         }
         System.out.print(result1);
-        result1 = result1.replaceFirst("null","");
+        if (result1 != null) {
+            result1 = result1.replaceFirst("null","");
+        } else {
+            return null;
+        }
         return result1;
     }
     public static String getTablesData(ResultSet rs) throws SQLException {
@@ -144,8 +242,13 @@ public class JDBCDataBaseMetaDataTest {
                 result1 += MessageFormat.format("{0}: {1}    ", resultSetMetaData.getColumnName(i), rs.getObject(i));
             }
         }
-        System.out.print(result1);
-        return result1;
+        if (result1 != null) {
+            System.out.print(result1);
+            return result1;
+        } else {
+            return null;
+        }
+
     }
 
     @Test
@@ -889,4 +992,402 @@ public class JDBCDataBaseMetaDataTest {
         stmt.close();
         conn.close();
     }
+
+    @Test
+    public void test_DatabaseMetaData_getCatalogs_300() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+        DBConnection connDB = new DBConnection();
+        connDB.connect(HOST,PORT,"admin","123456");
+        connDB.run("login(`admin, `123456); \ntry{\n dropCatalog(\"catalog1\")\n }catch(ex){\n }\n ");
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        rs = metaData.getCatalogs();
+        //printData1(rs);
+        Assert.assertFalse(printData1(rs).contains("catalog1"));
+
+        createCatalog("catalog1");
+        createCatalog("aaaatalog1");
+        DatabaseMetaData metaData1 = conn.getMetaData();
+        rs = metaData1.getCatalogs();
+        //printData1(rs);
+        Assert.assertEquals(true,printData1(rs).contains("catalog1"));
+        stmt.close();
+        conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getCatalogs_300");
+        }
+    }
+    @Test
+    public void test_DatabaseMetaData_getSchemas_300() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+        DBConnection connDB = new DBConnection();
+        connDB.connect(HOST,PORT,"admin","123456");
+        connDB.run("login(`admin, `123456); \ntry{\n dropSchema(\"catalog1\",\"schema_test2\")\n }catch(ex){\n }\n ");
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        rs = metaData.getSchemas();
+        //printData1(rs);
+        Assert.assertFalse(printData1(rs).contains("schema_test2"));
+
+        createSchema("catalog1","dfs://db","schema_test2");
+        DatabaseMetaData metaData1 = conn.getMetaData();
+        rs = metaData1.getSchemas();
+        //printData1(rs);
+        Assert.assertEquals(true,printData1(rs).contains("schema_test2"));
+        stmt.close();
+        conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getSchemas_300");
+        }
+    }
+    @Test
+    public void test_DatabaseMetaData_getSchemas_Catalog_300() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+        DBConnection connDB = new DBConnection();
+        connDB.connect(HOST,PORT,"admin","123456");
+        connDB.run("login(`admin, `123456); \ntry{\n dropCatalog(\"catalog1\");createCatalog(\"catalog1\");\n dropSchema(\"catalog1\",\"schema_test\")\n }catch(ex){\n }\n ");
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        rs = metaData.getSchemas("catalog1", "%");
+        //printData1(rs);
+        Assert.assertNull(printData1(rs));
+
+        createSchema("catalog1","dfs://db","schema_test");
+        DatabaseMetaData metaData1 = conn.getMetaData();
+        rs = metaData1.getSchemas("catalog1", "%");
+        //printData1(rs);
+        Assert.assertEquals(true,printData1(rs).contains("schema_test"));
+        stmt.close();
+        conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getSchemas_Catalog_300");
+        }
+    }
+    //@Test//not support
+    public void test_DatabaseMetaData_getSchemas_schemaPattern_null_300() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+        DBConnection connDB = new DBConnection();
+        connDB.connect(HOST,PORT,"admin","123456");
+        connDB.run("login(`admin, `123456); \ntry{\n createCatalog(\"catalog1\");\n dropSchema(\"catalog1\",\"schema_test\")\n }catch(ex){\n }\n ");
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        rs = metaData.getSchemas("catalog1", null);
+        //printData1(rs);
+        Assert.assertNull(printData1(rs));
+
+        createSchema("catalog1","dfs://db","schema_test");
+        DatabaseMetaData metaData1 = conn.getMetaData();
+        rs = metaData1.getSchemas("catalog1", null);
+        //printData1(rs);
+        Assert.assertEquals(true,printData1(rs).contains("schema_test"));
+        stmt.close();
+        conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getSchemas_schemaPattern_null");
+        }
+    }
+    @Test
+    public void test_DatabaseMetaData_getTables_300() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        createSchema("catalog1","dfs://db","schema_test");
+        rs = metaData.getTables("catalog1","%","%", null);
+        String results1 = getTablesData(rs);
+        //printData(rs);
+        Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_NAME: dt    TABLE_SCHEM: schema_test    TABLE_TYPE: TABLE    REMARKS: null    TABLE_CAT: catalog1    TABLE_NAME: pt    TABLE_SCHEM: schema_test    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
+        stmt.close();
+        conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getTables_300");
+        }
+    }
+    @Test
+    public void test_DatabaseMetaData_getTables_catalog_schemaPattern_special_300() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        createSchema("catalog1","dfs://db","schema_test");
+        createSchema("catalog2","dfs://db1","schema_test");
+        DBConnection connDB = new DBConnection();
+        connDB.connect(HOST,PORT,"admin","123456");
+        connDB.run("login(`admin, `123456); \ntry{\n createSchema(\"catalog1\",\"dfs://db1\",\"schema_test1\")\n }catch(ex){\n }\n ");
+
+        rs = metaData.getTables("catalog1","schema_test","%", null);
+        String results1 = getTablesData(rs);
+        //printData(rs);
+        Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_NAME: dt    TABLE_SCHEM: schema_test    TABLE_TYPE: TABLE    REMARKS: null    TABLE_CAT: catalog1    TABLE_NAME: pt    TABLE_SCHEM: schema_test    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
+        stmt.close();
+        conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getTables_300");
+        }
+    }
+    @Test
+    public void test_DatabaseMetaData_getTables_memoryTable_catalog_schemaPattern_null_300() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+        DBConnection connDB = new DBConnection();
+        connDB.connect(HOST,PORT,"admin","123456");
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        connDB.run("share table(1..10 as id) as table1");
+        rs = metaData.getTables(null,null,"%", null);
+        String results1 = getTablesData(rs);
+        //printData(rs);
+        Assert.assertEquals(true,results1.contains("table1"));
+        stmt.close();
+        conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getTables_300");
+        }
+    }
+    @Test
+    public void test_DatabaseMetaData_getTables_catalog_null_300() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        createSchema("catalog1","dfs://db","schema_test");
+        String re = null;
+        try{
+            rs = metaData.getTables("","%","dt", null);
+        }catch(Exception ex){
+            re = ex.getMessage();
+        }
+            Assert.assertEquals("Invalid params in getTables.",re);
+        stmt.close();
+        conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getTables_300");
+        }
+    }
+   // @Test
+    public void test_DatabaseMetaData_getTables_catalog_null_1_300() throws Exception {
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        createSchema("catalog1","dfs://db","schema_test");
+        rs = metaData.getTables("","%","dt", null);
+        String results1 = getTablesData(rs);
+        //printData(rs);
+        Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_NAME: dt    TABLE_SCHEM: schema_test    TABLE_TYPE: TABLE    REMARKS: null   ",results1);
+        stmt.close();
+        conn.close();
+    }
+    //@Test
+    public void test_DatabaseMetaData_getTables_catalog_exist_300() throws Exception {
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        createSchema("catalog1","dfs://db","schema_test");
+        createSchema("catalog2","dfs://db1","schema_test");
+        rs = metaData.getTables("catalog1","%","dt", null);
+        String results1 = getTablesData(rs);
+        //printData(rs);
+        Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_NAME: dt    TABLE_SCHEM: schema_test    TABLE_TYPE: TABLE    REMARKS: null   ",results1);
+        stmt.close();
+        conn.close();
+    }
+   // @Test
+    public void test_DatabaseMetaData_getTables_catalog_not_exist_300() throws Exception {
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        createSchema("catalog2","dfs://db1","schema_test");
+        String re = null;
+        try{
+            rs = metaData.getTables("catalog22","%","dt", null);
+        }catch(Exception ex){
+            re = ex.getMessage();
+        }
+        Assert.assertEquals("catalog catalog22 doesn't exist",re);
+        stmt.close();
+        conn.close();
+    }
+    //@Test// Invalid params in getTables, not support get all tables with no specific catalog and schema.
+    public void test_DatabaseMetaData_getTables_catalog_schemaPattern_all_300() throws Exception {
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        createSchema("catalog1","dfs://db","schema_test");
+        createSchema("catalog2","dfs://db1","schema_test");
+        rs = metaData.getTables("%","%","dt", null);
+        String results1 = getTablesData(rs);
+        //printData(rs);
+        Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_NAME: dt    TABLE_SCHEM: schema_test    TABLE_TYPE: TABLE    REMARKS: null   ",results1);
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
+    public void test_DatabaseMetaData_getTables_catalog_schemaPattern_table_not_exist_300() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+        DBConnection connDB = new DBConnection();
+        connDB.connect(HOST,PORT,"admin","123456");
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        createSchema("catalog1","dfs://db","schema_test");
+        connDB.run("db=database(\"dfs://db\");\n" +
+                "dropTable(db,`pt);\n" +
+                "dropTable(db,`dt);");
+        rs = metaData.getTables("catalog1","schema_test","%", null);
+        String results1 = getTablesData(rs);
+        //printData(rs);
+        Assert.assertNull(results1);
+        stmt.close();
+        conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getTables_catalog_schemaPattern_table_not_exist");
+        }
+    }
+    @Test
+    public void test_DatabaseMetaData_getColumns_300() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        createSchema("catalog1","dfs://db","schema_test");
+        rs = metaData.getColumns("catalog1","schema_test","dt", "%");
+        String results1 = getTablesData(rs);
+        //printData(rs);
+        Assert.assertEquals("nullCOLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    COLUMN_NAME: x    TYPE_NAME: DOUBLE    DATA_TYPE: 8    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 8    COLUMN_NAME: sys    TYPE_NAME: STRING    DATA_TYPE: 12    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 12    ",results1);
+        stmt.close();
+        conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getTables_catalog_schemaPattern_table_not_exist");
+        }
+    }
+    @Test
+    public void test_DatabaseMetaData_getColumns_memoryTable_300() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+        DBConnection connDB = new DBConnection();
+        connDB.connect(HOST,PORT,"admin","123456");
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        connDB.run("share table(1..10 as id) as table1");
+        rs = metaData.getColumns("","","table1", "%");
+        String results1 = getTablesData(rs);
+        //printData(rs);
+        Assert.assertEquals("nullCOLUMN_NAME: id    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    ",results1);
+        stmt.close();
+        conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getTables_catalog_schemaPattern_table_not_exist");
+        }
+    }
+    //@Test not support
+    public void test_DatabaseMetaData_getColumns_columnNamePattern_null_300() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        DatabaseMetaData metaData = conn.getMetaData();
+        String results = null;
+        createSchema("catalog1","dfs://db","schema_test");
+        rs = metaData.getColumns("catalog1","schema_test","dt", null);
+        String results1 = getTablesData(rs);
+        //printData(rs);
+        Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_NAME: dt    TABLE_SCHEM: schema_test    TABLE_TYPE: TABLE    REMARKS: null   ",results1);
+        stmt.close();
+        conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getTables_catalog_schemaPattern_table_not_exist");
+        }
+    }
+
 }

@@ -26,6 +26,7 @@ import com.xxdb.data.Vector;
 import org.junit.*;
 import org.junit.Test;
 
+import static com.dolphindb.jdbc.Utils.checkServerVersionIfSupportCatalog;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -203,6 +204,134 @@ public class JDBCConnectionTest {
 			re = ex.getMessage();
 		}
 		org.junit.Assert.assertEquals("The catalog 'eeeeeee1' doesn't exist in server.",re);
+	}
+	@Test
+	public void Test_setCatalog_Catalog_exist_300() throws SQLException, IOException {
+		JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+		if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+			JDBCDataBaseMetaDataTest.createSchema("catalog2","dfs://db1","schema_test");
+			JDBCDataBaseMetaDataTest.createSchema("catalog3","dfs://db2","schema_test1");
+			prop.setProperty("hostName",HOST);
+			prop.setProperty("port",String.valueOf(PORT));
+			prop.setProperty("user","admin");
+			prop.setProperty("password","123456");
+			prop.setProperty("databasePath","dfs://db1");
+			url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+			conn = new JDBCConnection(url,prop);
+			org.junit.Assert.assertEquals(null,conn.getCatalog());
+			conn.setCatalog("catalog2");
+			org.junit.Assert.assertEquals("catalog2",conn.getCatalog());
+			Statement s = conn.createStatement();
+			JDBCResultSet rs = (JDBCResultSet) s.executeQuery("select  * from schema_test.pt; ");
+			BasicTable re = (BasicTable) rs.getResult();
+			org.junit.Assert.assertEquals(1000,re.rows());
+			org.junit.Assert.assertEquals(2,re.columns());
+
+			Statement stm1 = conn.createStatement();
+			JDBCResultSet rs1 = (JDBCResultSet)stm1.executeQuery("select  * from catalog2.schema_test.dt;");
+			BasicTable re1 = (BasicTable)rs1.getResult();
+			System.out.println(re1.rows());
+			org.junit.Assert.assertEquals(1000,re1.rows());
+			org.junit.Assert.assertEquals(3,re1.columns());
+
+			conn.setCatalog("catalog3");
+			org.junit.Assert.assertEquals("catalog3",conn.getCatalog());
+			Statement stm2 = conn.createStatement();
+			JDBCResultSet rs2 = (JDBCResultSet)stm2.executeQuery("select  * from schema_test1.dt;");
+			BasicTable re2 = (BasicTable)rs1.getResult();
+			System.out.println(re2.rows());
+			org.junit.Assert.assertEquals(1000,re2.rows());
+			org.junit.Assert.assertEquals(3,re2.columns());
+
+			Statement stm3 = conn.createStatement();
+			JDBCResultSet rs3 = (JDBCResultSet)stm3.executeQuery("select  * from catalog2.schema_test.dt;");
+			BasicTable re3 = (BasicTable)rs3.getResult();
+			System.out.println(re3.rows());
+			org.junit.Assert.assertEquals(1000,re3.rows());
+			org.junit.Assert.assertEquals(3,re3.columns());
+
+			Statement stm4 = conn.createStatement();
+			JDBCResultSet rs4 = (JDBCResultSet)stm4.executeQuery("select  * from loadTable(\"dfs://db1\",`dt);");
+			BasicTable re4 = (BasicTable)rs4.getResult();
+			System.out.println(re4.rows());
+			org.junit.Assert.assertEquals(1000,re4.rows());
+			org.junit.Assert.assertEquals(3,re4.columns());
+			conn.setCatalog("catalog3");
+			org.junit.Assert.assertEquals("catalog3",conn.getCatalog());
+		}else{
+			System.out.println("SKIP THIS CASE : Test_setCatalog_Catalog_exist_300");
+		}
+	}
+	@Test
+	public void Test_setCatalog_Catalog_repeat_300() throws SQLException, IOException {
+		JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+		if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+		JDBCDataBaseMetaDataTest.createSchema("catalog2","dfs://db1","schema_test");
+		JDBCDataBaseMetaDataTest.createSchema("catalog3","dfs://db2","schema_test1");
+		prop.setProperty("hostName",HOST);
+		prop.setProperty("port",String.valueOf(PORT));
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		prop.setProperty("databasePath","dfs://db1");
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		conn = new JDBCConnection(url,prop);
+		org.junit.Assert.assertEquals(null,conn.getCatalog());
+		conn.setCatalog("catalog2");
+		org.junit.Assert.assertEquals("catalog2",conn.getCatalog());
+		conn.setCatalog("catalog3");
+		org.junit.Assert.assertEquals("catalog3",conn.getCatalog());
+		conn.setCatalog("catalog2");
+		org.junit.Assert.assertEquals("catalog2",conn.getCatalog());
+		for(int i =0; i<100;i++){
+			conn.setCatalog("catalog2");
+			org.junit.Assert.assertEquals("catalog2",conn.getCatalog());
+		}
+		}else{
+			System.out.println("SKIP THIS CASE : Test_setCatalog_Catalog_repeat_300");
+		}
+	}
+	@Test//报错是否需要修改成jdbc自己的语言
+	public void Test_setCatalog_Catalog_not_valid_300() throws SQLException, IOException {
+		JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+		if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+		prop.setProperty("hostName",HOST);
+		prop.setProperty("port",String.valueOf(PORT));
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		conn = new JDBCConnection(url,prop);
+		System.out.println(conn.getCatalog());
+		String s = null;
+			try{
+			conn.setCatalog("dfs://1");
+		}catch(Exception e){
+			s = e.getMessage();
+		}
+		org.junit.Assert.assertNotNull(s);
+		}else{
+			System.out.println("SKIP THIS CASE : Test_setCatalog_Catalog_not_valid_300");
+		}
+	}
+	@Test
+	public void Test_setCatalog_Catalog_not_exist_300() throws SQLException, IOException {
+		JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+		if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+		prop.setProperty("hostName",HOST);
+		prop.setProperty("port",String.valueOf(PORT));
+		prop.setProperty("user","admin");
+		prop.setProperty("password","123456");
+		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+		conn = new JDBCConnection(url,prop);
+		String re = null;
+		try{
+			conn.setCatalog("eeeeeee1");
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		org.junit.Assert.assertEquals(true,re.contains("The catalog [eeeeeee1] doesn't exist."));
+		}else{
+			System.out.println("SKIP THIS CASE : Test_setCatalog_Catalog_not_exist_300");
+		}
 	}
 	@Test
 	public void Test_setTransactionIsolation() throws SQLException {

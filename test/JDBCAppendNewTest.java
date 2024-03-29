@@ -9,6 +9,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.*;
+import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -103,8 +104,36 @@ public class JDBCAppendNewTest {
         rs.next();
         rs.getBoolean("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
+        org.junit.Assert.assertFalse(rs.next());
     }
-
+    @Test
+    public void testAppend() throws SQLException, IOException {
+            String script = "login(`admin, `123456); \n"+
+                    "dbName = \"dfs://test1\"" +
+                    "if(existsDatabase(dbName)){dropDatabase(dbName)} \n"+
+                    "db = database(dbName, VALUE, string(1..6),,`TSDB) \n"+
+                    "t = table(string(1..6) as id, string(1..6) as val, 1..6 as price) \n"+
+                    "pt = db.createPartitionedTable(t, \"config\", \"id\",,`price) \n";
+            DBConnection db = new DBConnection();
+            db.connect(HOST, PORT);
+            db.run(script);
+        stm.execute("pt=loadTable('dfs://test1','config')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?,?)");
+        ps.setString(1,"2");
+        ps.setString(2,"3");
+        ps.setObject(3,null);
+        ps.execute();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test1','config') limit 100");
+        ResultSetMetaData resultSetMetaData = rs.getMetaData();
+        int len = resultSetMetaData.getColumnCount();
+        while (rs.next()) {
+            for (int i = 1; i <= len; ++i) {
+                System.out.print(
+                        MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getObject(i)));
+            }
+            System.out.print("\n");
+        }
+    }
     @Test
     public void testAppendTypeInt() throws SQLException {
         createPartitionTable("INT");
