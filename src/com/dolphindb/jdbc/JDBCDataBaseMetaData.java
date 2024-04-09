@@ -74,14 +74,12 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
     public ResultSet getCatalogs() throws SQLException {
         List<String> colNames = new ArrayList<>(Collections.singletonList("TABLE_CAT"));
         List<Vector> cols = new ArrayList<>();
-
         try {
-            AbstractVector dbs = (AbstractVector) connection.run("getClusterDFSDatabases()");
-            cols.add(dbs);
+            BasicStringVector allCatalogStringVector = (BasicStringVector) connection.run("getAllCatalogs()");
+            cols.add(allCatalogStringVector);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
         Catalogs = new JDBCResultSet(connection, statement, new BasicTable(colNames, cols), "");
         return Catalogs;
     }
@@ -108,54 +106,55 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-        if (Objects.isNull(tableNamePattern) && tableNamePattern.isEmpty())
-            throw new SQLException("The param 'tableNamePattern' cannot be null.");
+        if (!Utils.checkServerVersionIfSupportCatalog(connection))
+            return null;
 
         BasicTable colDefs = null;
-        // get columns origin meta data.
-        colDefs = getColumnsOriginMetaData(catalog, schemaPattern, tableNamePattern, columnNamePattern);
-        // reassemble some columns' data.
-        assembleColumnsMetaData(colDefs, catalog, tableNamePattern, columnNamePattern);
+        String dbUrl = null;
+        colDefs = getColumnsOriginMetaData(catalog, schemaPattern, tableNamePattern, columnNamePattern, dbUrl);
+        assembleColumnsMetaData(colDefs, catalog, dbUrl, tableNamePattern, columnNamePattern);
 
         return new JDBCResultSet(connection,statement, colDefs,"");
     }
 
-    private BasicTable getColumnsOriginMetaData(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) {
+    private BasicTable getColumnsOriginMetaData(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern, String dbUrl) {
         BasicTable colDefs = null;
-        if (Objects.nonNull(catalog) && !catalog.isEmpty()) {
-            // specify tableName for dfs table
-            String script;
+        if (Utils.isNotEmpty(catalog) && !catalog.equals("%") && Utils.isNotEmpty(schemaPattern) && !schemaPattern.equals("%")
+                && Utils.isNotEmpty(tableNamePattern) && Utils.isNotEmpty(columnNamePattern) && columnNamePattern.equals("%")) {
             try {
-                // specify columnNamePattern for dfs table
-                if (Objects.nonNull(columnNamePattern) && !columnNamePattern.isEmpty() && !columnNamePattern.equals("%")) {
-                    script = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); " +
-                            "select * from schema(handle).colDefs where name = '%s'";
-                    script = String.format(script, columnNamePattern);
-                    colDefs = (BasicTable) connection.run(script);
+                connection.run(catalog + "." + schemaPattern + "." + tableNamePattern);
+                BasicTable schemas = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\")");
+                if (schemas.rows() != 0) {
+                    int pos = -1;
+                    BasicStringVector schemaVector = (BasicStringVector) schemas.getColumn("schema");
+                    for (int i = 0; i < schemas.rows(); i++) {
+                        if (schemaVector.getString(i).equals(schemaPattern))
+                            pos = i;
+                    }
+
+                    if (pos != -1) {
+                        BasicStringVector dbUrlVector = (BasicStringVector) schemas.getColumn("dbUrl");
+                        dbUrl = dbUrlVector.getString(pos);
+
+                        String script = "handle=loadTable(\"" + dbUrl + "\", `" + tableNamePattern + "); schema(handle);";
+                        BasicDictionary schema = (BasicDictionary) connection.run(script);
+                        colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+                        if (colDefs.getColumn(0).rows() == 0)
+                            throw new RuntimeException("The column: '" + columnNamePattern + "' doesn't exist in table: '" + tableNamePattern + "'.");
+                    } else {
+                        throw new RuntimeException("schema" + schemaPattern + "doesn't exist in " + catalog + ".");
+                    }
                 } else {
-                    script = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); schema(handle);";
-                    BasicDictionary schema = (BasicDictionary) connection.run(script);
-                    colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-                    if (colDefs.getColumn(0).rows() == 0)
-                        throw new RuntimeException("The column: '" + columnNamePattern + "' doesn't exist in table: '" + tableNamePattern + "'.");
+                    throw new RuntimeException("Current catalog " + catalog + " doesn't has any schema.");
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        } else {
-            // memory table
+        } else if (Utils.isEmpty(catalog) && Utils.isEmpty(schemaPattern) && Utils.isNotEmpty(tableNamePattern) && !tableNamePattern.equals("%")) {
+            BasicDictionary schema = null;
             try {
-                // specify columnNamePattern for mem table.
-                if (Objects.nonNull(columnNamePattern) && !columnNamePattern.isEmpty()) {
-                    String script = "select * from schema(" + tableNamePattern + ").colDefs where name = '" + columnNamePattern + "';";
-                    colDefs = (BasicTable) connection.run(script);
-                    if (colDefs.getColumn(0).rows() == 0)
-                        throw new RuntimeException("The column: '" + columnNamePattern + "' doesn't exist in table: '" + tableNamePattern + "'.");
-                } else {
-                    // get all columns for specify mem table
-                    BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableNamePattern + ");");
-                    colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-                }
+                schema = (BasicDictionary) connection.run("schema(" + tableNamePattern + ");");
+                colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -164,7 +163,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         return colDefs;
     }
 
-    private void assembleColumnsMetaData(BasicTable colDefs, String catalog, String tableNamePattern, String columnNamePattern) {
+    private void assembleColumnsMetaData(BasicTable colDefs, String catalog, String dbUrl, String tableNamePattern, String columnNamePattern) {
         List<String> columnIndexList = new ArrayList<>();
         try {
             BasicDictionary schema = null;
@@ -217,7 +216,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 String script = null;
                 if (Objects.nonNull(catalog) && !catalog.isEmpty())
                     // dfs
-                    script = String.format("schema(loadTable(\"%s\", `%s)).colDefs;", catalog, tableNamePattern);
+                    script = String.format("schema(loadTable(\"%s\", `%s)).colDefs;", dbUrl, tableNamePattern);
                 else
                     // mem
                     script = String.format("schema(%s).colDefs;", tableNamePattern);
@@ -256,7 +255,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         AbstractVector typeStringColumn = (AbstractVector) colDefs.getColumn(1);
         List<Integer> sqlDataTypesList = null;
         if (typeStringColumn instanceof BasicStringVector)
-                sqlDataTypesList = Arrays.stream(((BasicStringVector) typeStringColumn).getdataArray()).map(Utils::transferColDefsTypesToSqlTypes).collect(Collectors.toList());
+            sqlDataTypesList = Arrays.stream(((BasicStringVector) typeStringColumn).getdataArray()).map(Utils::transferColDefsTypesToSqlTypes).collect(Collectors.toList());
         BasicIntVector sqlDataTypesColumn = new BasicIntVector(sqlDataTypesList);
         colDefs.addColumn("SQL_DATA_TYPES", sqlDataTypesColumn);
     }
@@ -497,47 +496,64 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getSchemas() throws SQLException{
-        int index = 0;
+        if (!Utils.checkServerVersionIfSupportCatalog(connection))
+            return null;
+
+        List<String> colNames = Arrays.asList("TABLE_SCHEM", "TABLE_CATALOG");
+        List<Vector> cols = new ArrayList<>();
+        BasicStringVector schemaVec = new BasicStringVector(0);
+        BasicStringVector catalogVec = new BasicStringVector(0);
+
         try {
-            List<String> colNames = Arrays.asList("TABLE_SCHEM", "TABLE_CATALOG");
-            List<Vector> cols = new ArrayList<>();
-            String db = connection.getDatabase();
-            if (db == null){
-                List<String> table = new ArrayList<>();
-                List<String> database = new ArrayList<>();
-                AbstractVector dbs = (AbstractVector) connection.run("getClusterDFSDatabases()");
-                for (index = 0; index<dbs.rows(); index++){
-                    BasicTable tb = (BasicTable) connection.run("listTables(\"" + dbs.getString(index) + "\")");
-                    Vector tbs = tb.getColumn("tableName");
-                    for (int j = 0; j < tbs.rows() ;j++){
-                        table.add(tbs.getString(j));
-                        database.add(dbs.getString(index));
-                    }
+            BasicStringVector catalogsVec = (BasicStringVector) connection.run("getAllCatalogs();");
+            if (catalogsVec.rows() != 0) {
+                for (int i = 0; i < catalogsVec.rows(); i ++) {
+                    String curCatalog = catalogsVec.getString(i);
+                    BasicTable schemasMapTb = (BasicTable) connection.run("getSchemaByCatalog(\"" + curCatalog + "\");");
+                    BasicStringVector curSchemaVec = (BasicStringVector) schemasMapTb.getColumn("schema");
+                    schemaVec.Append(curSchemaVec);
+                    catalogVec.Append(new BasicStringVector(new ArrayList<>(Collections.nCopies(curSchemaVec.rows(), "\"" + curCatalog + "\""))));
                 }
-                Vector tables = new BasicStringVector(table);
-                Vector databases = new BasicStringVector(database);
-                cols.add(tables);
-                cols.add(databases);
-            }else {
-                List<String> database = new ArrayList<>();
-                database.add(db);
-                Vector databases = new BasicStringVector(database);
-                BasicTable table = (BasicTable)connection.run("listTables(" + db + ")");
-                Vector tables = table.getColumn("tableName");
-                cols.add(tables);
-                cols.add(databases);
+
+                cols.add(schemaVec);
+                cols.add(catalogVec);
+                Schemas = new JDBCResultSet(connection, statement, new BasicTable(colNames, cols),"");
+            } else {
+                Schemas = new JDBCResultSet(connection, statement, null,"");
             }
-            BasicTable basicTable = new BasicTable(colNames, cols);
-            Schemas =  new JDBCResultSet(connection,statement,basicTable,"");
-        }catch (IOException e){
-            throw new SQLException(e.toString());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+
         return Schemas;
     }
 
     @Override
-    public ResultSet getSchemas(String catalog, String schemaPattern) {
-        return null;
+    public ResultSet getSchemas(String catalog, String schemaPattern)  throws SQLException {
+        if (!Utils.checkServerVersionIfSupportCatalog(connection))
+            return null;
+
+        List<String> colNames = Arrays.asList("TABLE_SCHEM", "TABLE_CATALOG");
+        List<Vector> cols = new ArrayList<>();
+        BasicStringVector schemaVec = new BasicStringVector(0);
+        BasicStringVector catalogVec = new BasicStringVector(0);
+        if (Utils.isNotEmpty(catalog) && schemaPattern.equals("%")) {
+            try {
+                BasicTable schemasMapTb = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\");");
+                BasicStringVector curSchemaVec = (BasicStringVector) schemasMapTb.getColumn("schema");
+                schemaVec.Append(curSchemaVec);
+                catalogVec.Append(new BasicStringVector(new ArrayList<>(Collections.nCopies(curSchemaVec.rows(), "\"" + catalog + "\""))));
+                cols.add(schemaVec);
+                cols.add(catalogVec);
+                Schemas = new JDBCResultSet(connection, statement, new BasicTable(colNames, cols),"");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            throw new IllegalArgumentException("Illegal param in getShemas");
+        }
+
+        return Schemas;
     }
 
     @Override
@@ -557,75 +573,87 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String[] types) throws SQLException {
+        if (!Utils.checkServerVersionIfSupportCatalog(connection))
+            return null;
+
         BasicTable colDefs;
         List<String> colNames = new ArrayList<>(Arrays.asList("TABLE_CAT", "TABLE_NAME", "TABLE_SCHEM", "TABLE_TYPE", "REMARKS"));
         List<Vector> cols = new ArrayList<>();
+        List<String> tableCatVal = new ArrayList<>();
+        List<String> tableNameVal = new ArrayList<>();
+        List<String> tableSchemVal = new ArrayList<>();
+        List<String> tableTypeVal = new ArrayList<>();
+        List<String> remarksVal = new ArrayList<>();
 
-        if (Objects.nonNull(catalog) && !catalog.isEmpty()) {
-            try {
-                if (Utils.isNotEmpty(tableNamePattern) && !tableNamePattern.matches("%+")) {
-                    // specify tableName for dfs table
-                    String dfsTableHandle = "handle=loadTable(\"" + catalog + "\", `" + tableNamePattern + "); handle;";
-                    connection.run(dfsTableHandle);
-                    String[] values = {catalog, tableNamePattern, null, "TABLE", null};
-                    for (String value : values)
-                        cols.add(new BasicStringVector(new String[]{value}));
-                } else {
-                    // not specify tableName for dfs table
-                    String script = "handle=database(\"" + catalog + "\"); getTables(handle);";
-                    AbstractVector vector = (AbstractVector) connection.run(script);
-                    List<String[]> valuesList = new ArrayList<>();
-                    for (int i = 0; i < vector.rows(); i++) {
-                        String tableName = vector.getString(i);
-                        String dfsTableHandle = "handle=loadTable(\"" + catalog + "\", `" + tableName + "); handle;";
-                        connection.run(dfsTableHandle);
+        if (!Utils.isEmpty(catalog) && !catalog.trim().equals("%")) {
+            if (Utils.isNotEmpty(schemaPattern) && !schemaPattern.trim().equals("%")) {
+                try {
+                    BasicTable schemas = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\")");
+                    if (schemas.rows() != 0) {
+                        int pos = -1;
+                        BasicStringVector schemaVector = (BasicStringVector) schemas.getColumn("schema");
+                        for (int i = 0; i < schemas.rows(); i++) {
+                            if (schemaVector.getString(i).equals(schemaPattern))
+                                pos = i;
+                        }
 
-                        String[] values = {catalog, tableName, null, "TABLE", null};
-                        valuesList.add(values);
+                        if (pos != -1) {
+                            BasicStringVector dbUrlVector = (BasicStringVector) schemas.getColumn("dbUrl");
+                            String dbUrl = dbUrlVector.getString(pos);
+                            String script = "handle=database(\"" + dbUrl + "\"); getTables(handle);";
+                            AbstractVector tableNameVec = (AbstractVector) connection.run(script);
+                            for (int i = 0; i < tableNameVec.rows(); i++) {
+                                tableCatVal.add(catalog);
+                                tableNameVal.add(tableNameVec.getString(i));
+                                tableSchemVal.add(schemaPattern);
+                                tableTypeVal.add("TABLE");
+                                remarksVal.add(null);
+                            }
+                        } else {
+                            throw new RuntimeException("schema" + schemaPattern + "doesn't exist in " + catalog + ".");
+                        }
+                    } else {
+                        throw new RuntimeException("Current catalog " + catalog + " doesn't has any schema.");
                     }
 
-                    for (int j = 0; j < valuesList.get(0).length; j++) {
-                        List<String> columnValues = new ArrayList<>();
-                        for (String[] values : valuesList)
-                            columnValues.add(values[j]);
-
-                        cols.add(new BasicStringVector(columnValues));
-                    }
+                    Stream.of(tableCatVal, tableNameVal, tableSchemVal, tableTypeVal, remarksVal)
+                            .map(BasicStringVector::new)
+                            .forEach(cols::add);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+            } else if (schemaPattern.trim().equals("%")) {
+                try {
+                    BasicTable schemas = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\")");
+                    if (schemas.rows() != 0) {
+                        BasicStringVector schemaVector = (BasicStringVector) schemas.getColumn("schema");
+                        BasicStringVector dbUrlVector = (BasicStringVector) schemas.getColumn("dbUrl");
+                        for (int i = 0; i < dbUrlVector.rows(); i ++) {
+                            String dbUrl = dbUrlVector.getString(i);
+                            String script = "handle=database(\"" + dbUrl + "\"); getTables(handle);";
+                            AbstractVector tableNameVec = (AbstractVector) connection.run(script);
+                            for (int j = 0; j < tableNameVec.rows(); j++) {
+                                // 针对表维度组装数据
+                                tableCatVal.add(catalog);
+                                tableNameVal.add(tableNameVec.getString(j));
+                                tableSchemVal.add(schemaVector.getString(i));
+                                tableTypeVal.add("TABLE");
+                                remarksVal.add(null);
+                            }
+                        }
+                    } else {
+                        throw new RuntimeException("Current catalog " + catalog + " doesn't has any schema.");
+                    }
+
+                    Stream.of(tableCatVal, tableNameVal, tableSchemVal, tableTypeVal, remarksVal)
+                            .map(BasicStringVector::new)
+                            .forEach(cols::add);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
-        } else if (tableNamePattern.matches("%+")) {
-            // get all tables of catalog's.
+        } else if (Utils.isEmpty(catalog) && Utils.isEmpty(schemaPattern) && tableNamePattern.equals("%")) {
             try {
-                // get all dfs table
-                String script = "getClusterDFSTables();";
-                AbstractVector allTables = (AbstractVector) connection.run(script);
-
-                List<String> tableCatVal = new ArrayList<>();
-                List<String> tableNameVal = new ArrayList<>();
-                List<String> tableSchemVal = new ArrayList<>();
-                List<String> tableTypeVal = new ArrayList<>();
-                List<String> remarksVal = new ArrayList<>();
-
-                for (int i = 0; i < allTables.rows(); i ++) {
-                    String tempDbAndTableName = allTables.getString(i);
-                    // tempTableName
-                    int lastSlashIndex = tempDbAndTableName.lastIndexOf("/");
-                    if (lastSlashIndex != -1) {
-                        String dbName = tempDbAndTableName.substring(0, lastSlashIndex);
-                        String tempTableName = tempDbAndTableName.substring(lastSlashIndex + 1);
-                        String dfsTableHandle = "handle=loadTable(\"" + dbName + "\", `" + tempTableName + "); handle;";
-                        connection.run(dfsTableHandle);
-
-                        tableCatVal.add(dbName);
-                        tableNameVal.add(tempTableName);
-                        tableSchemVal.add(null);
-                        tableTypeVal.add("TABLE");
-                        remarksVal.add(null);
-                    }
-                }
-
                 // get all mem table
                 BasicTable memTables = (BasicTable) connection.run("select * from objs(true) where form =\"TABLE\";");
                 AbstractVector name = (AbstractVector) memTables.getColumn("name");
@@ -653,20 +681,15 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+        } else if (catalog.matches("%+")) {
+            // todo get all tables; no means
+            throw new IllegalArgumentException("Invalid params in getTables, not support get all tables with no specific catalog and schema.");
         } else {
-            // memory table
-            try {
-                BasicTable memTable = (BasicTable) connection.run("select * from objs(true) where name = \""+ tableNamePattern + "\" and form = \"TABLE\";");
-                Stream.of(new String[]{null}, new String[]{tableNamePattern}, new String[]{null}, new String[]{"TABLE"}, new String[]{null})
-                        .map(BasicStringVector::new)
-                        .forEach(cols::add);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            throw new IllegalArgumentException("Invalid params in getTables.");
         }
 
         colDefs = new BasicTable(colNames, cols);
-        return new JDBCResultSet(connection,statement, colDefs,"");
+        return new JDBCResultSet(connection, statement, colDefs,"");
     }
 
     @Override

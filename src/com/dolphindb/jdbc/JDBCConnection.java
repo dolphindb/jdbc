@@ -20,6 +20,7 @@ public class JDBCConnection implements Connection {
 	private int port;
 	private boolean success;
 	private String database;
+	private String catalog;
 	private Vector tables;
 	private String url;
 	private DatabaseMetaData metaData;
@@ -321,49 +322,17 @@ public class JDBCConnection implements Connection {
 		if (Utils.isEmpty(catalog))
 			throw new SQLException("The param catalog cannot be null or empty.");
 
-		StringBuilder sbInitScript = new StringBuilder();
-
-		if (Objects.nonNull(this.tables)) {
-			// undef existed table handle;
-			for (int i = 0; i < this.tables.rows(); i ++) {
-				String tableName = this.tables.get(i).getString();
-				try {
-					this.dbConnection.run(tableName);
-					this.dbConnection.run("undef(`" + tableName + ");");
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		}
-
 		try {
-			this.dbConnection.run("system_db" + " = database(\"" + catalog + "\");\n");
-
-			List<String> dbtables=new ArrayList<>();
-
-			// if not specific tableanme, load all tables; but need to authenticate every table.
-			Vector vector = (Vector) this.dbConnection.run("getTables(system_db)");
-			if (vector.rows() != 0) {
-				for (int i = 0; i < vector.rows(); i++)
-					dbtables.add(vector.getString(i));
-				this.database = catalog;
-			} else {
-				throw new SQLException("The catalog '" + catalog + "' doesn't exist in server.");
-			}
-
-			String script = loadTables(this.database, dbtables,true);
-			sbInitScript.append(script);
-			this.tables = new BasicStringVector(dbtables);
-			this.dbConnection.run(sbInitScript.toString());
+			this.dbConnection.run("use CATALOG " + catalog + ";");
+			this.catalog = catalog;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-
 	}
 
 	@Override
 	public String getCatalog() throws SQLException {
-		return this.database;
+		return this.catalog;
 	}
 
 	@Override

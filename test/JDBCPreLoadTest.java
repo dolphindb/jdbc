@@ -293,7 +293,7 @@ public class JDBCPreLoadTest {
         Assert.assertEquals(100,index);
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     public void test_by() throws SQLException {
         Assert.assertTrue(createPartitionTable("by"));
         conn = DriverManager.getConnection(url+"?databasePath=dfs://valuedb",info);
