@@ -23,6 +23,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private BindValue[] bufferArea;
 	private int batchSize;
 	private List<String> sqlBuffer;
+	private boolean isPreparedStatement;
 
 	public JDBCPrepareStatement(JDBCConnection conn, String sql) throws SQLException {
 		super(conn);
@@ -34,36 +35,43 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.sqlDmlType = Utils.getDml(lastStatement);
 		this.sqlBuffer = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
-		if (this.sqlDmlType == Utils.DML_INSERT) {
-			if (sqlSplit.length != 1)
-				throw new SQLException("The INSERT statement must be a standalone statement.");
-			this.tableName = Utils.getTableName(preProcessedSql, true);
-			initColumnBindValues(this.tableName);
-			Utils.checkInsertSQLValid(preProcessedSql, columnBindValues.size());
+		if (preProcessedSql.contains("?"))
+			isPreparedStatement = true;
+		if (isPreparedStatement) {
+			if (this.sqlDmlType == Utils.DML_INSERT) {
+				if (sqlSplit.length != 1)
+					throw new SQLException("The INSERT statement must be a standalone statement.");
 
-			Map<String, Integer> columnParamInSql = Utils.getInsertColumnParamInSql(preProcessedSql);
-			for(ColumnBindValue value : columnBindValues){
-				String colName = value.getColName();
-				if (columnParamInSql.containsKey(colName)) {
-					insertIndexSQLToDDB.put(columnParamInSql.get(colName), value.getIndex());
-					columnParamInSql.remove(colName);
+				this.tableName = Utils.getTableName(preProcessedSql, isPreparedStatement);
+				initColumnBindValues(this.tableName);
+				Utils.checkInsertSQLValid(preProcessedSql, columnBindValues.size());
+
+				Map<String, Integer> columnParamInSql = Utils.getInsertColumnParamInSql(preProcessedSql);
+				for(ColumnBindValue value : columnBindValues){
+					String colName = value.getColName();
+					if (columnParamInSql.containsKey(colName)) {
+						insertIndexSQLToDDB.put(columnParamInSql.get(colName), value.getIndex());
+						columnParamInSql.remove(colName);
+					}
 				}
-			}
-			if (columnParamInSql.size() != 0) {
-				for (String key : columnParamInSql.keySet())
-					throw new SQLException("The column name " + key + " does not exist in table. ");
-			}
+				if (columnParamInSql.size() != 0) {
+					for (String key : columnParamInSql.keySet())
+						throw new SQLException("The column name " + key + " does not exist in table. ");
+				}
 
-			this.bufferArea = new BindValue[this.columnBindValues.size()];
+				this.bufferArea = new BindValue[this.columnBindValues.size()];
+			} else {
+				int size = 0;
+				for (int i = 0; i < preProcessedSql.length(); i++) {
+					char ch = preProcessedSql.charAt(i);
+					if(ch == '?')
+						size++;
+				}
+
+				bufferArea = new BindValue[size];
+			}
 		} else {
-			int size = 0;
-			for (int i = 0; i < preProcessedSql.length(); i++) {
-				char ch = preProcessedSql.charAt(i);
-				if(ch == '?')
-					size++;
-			}
-
-			bufferArea = new BindValue[size];
+			this.sqlBuffer.add(preProcessedSql);
 		}
 	}
 
@@ -195,10 +203,15 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public ResultSet executeQuery() throws SQLException {
-		combineOneRowData(false);
+
 		try{
-			return super.executeQuery(sqlBuffer.get(0));
-		}finally{
+			if (isPreparedStatement) {
+				combineOneRowData(false);
+				return super.executeQuery(sqlBuffer.get(0));
+			} else {
+				return super.executeQuery(sqlBuffer.get(0));
+			}
+		} finally {
 			clearBatch();
 		}
 	}
@@ -221,13 +234,17 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	@Override
 	public int executeUpdate() throws SQLException {
 		try {
-			combineOneRowData(false);
-			if (this.sqlDmlType == Utils.DML_INSERT) {
-				int[] ret = tableAppend(false);
-				if (ret[0] == SUCCESS_NO_INFO)
-					return 1;
-				else
-					return 0;
+			if (isPreparedStatement) {
+				combineOneRowData(false);
+				if (this.sqlDmlType == Utils.DML_INSERT) {
+					int[] ret = tableAppend(false);
+					if (ret[0] == SUCCESS_NO_INFO)
+						return 1;
+					else
+						return 0;
+				} else {
+					return super.executeUpdate(sqlBuffer.get(0));
+				}
 			} else {
 				return super.executeUpdate(sqlBuffer.get(0));
 			}
