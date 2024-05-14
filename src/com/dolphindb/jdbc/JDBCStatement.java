@@ -193,7 +193,7 @@ public class JDBCStatement implements Statement {
                             connection.run(sqlSb.toString());
                             return SUCCESS_NO_INFO;
                         } catch (IOException e) {
-                            new SQLException(e);
+                            throw new SQLException(e);
                         }
                     }
                 } else {
