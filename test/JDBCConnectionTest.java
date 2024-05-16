@@ -1605,4 +1605,196 @@ public class JDBCConnectionTest {
 		}
 		assertEquals(true,re.contains("Server response: 'The user name or password is incorrect.' function: 'login'"));
 	}
+	@Test
+	public void Test_getConnection_url_password_not_provided() throws SQLException, ClassNotFoundException {
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?user=admin";
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_getConnection_url_user_not_provided() throws SQLException, ClassNotFoundException {
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?password=123456";
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_getConnection_url_user_password_not_provided() throws SQLException, ClassNotFoundException {
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		conn = DriverManager.getConnection(url);
+		Statement stmt = conn.createStatement();
+		String re = null;
+		try{
+			JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("getGroupList();");
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		assertEquals(true,re.contains("getGroupList() => Only administrators execute function getGroupList"));
+	}
+
+	@Test
+	public void Test_getConnection_prop_password_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("user", "admin");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url,info);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_getConnection_prop_user_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url,info);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_getConnection_prop_user_password_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		conn = DriverManager.getConnection(url,info);
+		Statement stmt = conn.createStatement();
+		String re = null;
+		try{
+			JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("getGroupList();");
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		assertEquals(true,re.contains("getGroupList() => Only administrators execute function getGroupList"));
+	}
+	@Test
+	public void Test_JDBCConnection_url_password_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?user=admin";
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url,info);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_JDBCConnection_url_user_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?password=123456";
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_JDBCConnection_url_user_password_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		conn = new JDBCConnection(url,info);
+		Statement stmt = conn.createStatement();
+		String re = null;
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("getGroupList();");
+		BasicStringVector re2 = (BasicStringVector)rs1.getResult();
+	}
+
+	@Test
+	public void Test_JDBCConnection_prop_password_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("user", "admin");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = new JDBCConnection(url,info);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_JDBCConnection_prop_user_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = new JDBCConnection(url,info);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_JDBCConnection_prop_user_password_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		conn = new JDBCConnection(url,info);
+		Statement stmt = conn.createStatement();
+		String re = null;
+		try{
+			JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("getGroupList();");
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		assertEquals(true,re.contains("getGroupList() => Only administrators execute function getGroupList"));
+	}
 }
