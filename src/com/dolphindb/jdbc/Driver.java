@@ -116,6 +116,10 @@ public class Driver implements java.sql.Driver {
                 }
             }
         }
+
+        // check 'user' and 'password'
+        if ((prop.containsKey("user") && !prop.containsKey("password")) || (!prop.containsKey("user") && prop.containsKey("password")))
+            throw new SQLException("The user and password parameters for JDBC must both be provided.");
     }
 
     public static Connection createConnection(String url, Properties prop) throws SQLException {
