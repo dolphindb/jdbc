@@ -383,10 +383,10 @@ public class Utils {
         char chr = 0;
         char isInString = 0;
         int continueSplashCount=0;
-        for (int i = 0;i < sql.length();i++){
+        for (int i = 0;i < sql.length();i++) {
             chr=sql.charAt(i);
             int prevContinueSplashCount=continueSplashCount;
-            if(isInString != 0) {// is in string
+            if (isInString != 0) {// is in string
                 if(isInString=='`'){//check ` end flag
                     if(!isKeyChar(chr)){//end with no key char
                         isInString=0;
@@ -395,7 +395,7 @@ public class Utils {
                             isInString=chr;
                         }
                     }
-                }else{// string
+                } else {// string
                     if(chr=='\\')
                         continueSplashCount++;
                     else
@@ -407,17 +407,37 @@ public class Utils {
                 }
                 sbSql.append(chr);
                 continue;
-            }else{//not in string
+            } else {//not in string
                 if(isStringChar(chr)){//start of string
                     isInString=chr;
+                    if (sbKey1.length() > 0) {
+                        String key = sbKey1.toString();
+                        String lowerKey=key.toLowerCase();
+                        if (sqlWareHouse.contains(lowerKey)) {
+                            if (Utils.isNotEmpty(tableAliasValue) && !tableAliasValue.contains(key)) {
+                                sbSql.append(lowerKey);
+                            } else {
+                                if (Utils.isEmpty(tableAliasValue)) {
+                                    sbSql.append(lowerKey);
+                                } else {
+                                    sbSql.append(key);
+                                }
+                            }
+                        } else {
+                            sbSql.append(key);
+                        }
+
+                        sbKey1.delete(0, sbKey1.length());
+                    }
                     sbSql.append(chr);
                     continueSplashCount=0;
                     continue;
                 }
             }
+
             if (isKeyChar(chr)){
                 sbKey1.append(chr);
-            }else {
+            } else {
                 if (sbKey1.length()>0){
                     String key = sbKey1.toString();
                     String lowerKey=key.toLowerCase();
@@ -439,7 +459,8 @@ public class Utils {
                 sbSql.append(chr);
                 sbKey1.delete(0, sbKey1.length());
             }
-            if (i==sql.length()-1&&sbKey1.length()>0){
+
+            if (i==sql.length()-1&&sbKey1.length()>0) {
                 String key = sbKey1.toString();
                 String lowerKey=key.toLowerCase();
                 if (sqlWareHouse.contains(lowerKey) && (!sqlWareHouse.contains(key))) {
