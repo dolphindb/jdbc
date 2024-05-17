@@ -439,14 +439,18 @@ public class JDBCStatement implements Statement {
     }
 
     @Override
-    public void setFetchDirection(int fetchDirection) throws SQLException {
-        Driver.unused();
+    public void setFetchDirection(int direction) throws SQLException {
+        switch (direction) {
+            case java.sql.ResultSet.FETCH_FORWARD:
+                break;
+            default:
+                throw new SQLException("DolpinDB JDBC Statement direction only suppport FETCH_FORWARD.");
+        }
     }
 
     @Override
     public int getFetchDirection() throws SQLException {
-        Driver.unused();
-        return 0;
+        return java.sql.ResultSet.FETCH_FORWARD;
     }
 
     @Override
