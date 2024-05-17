@@ -1010,7 +1010,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsSchemasInDataManipulation() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override
@@ -1020,7 +1020,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsSchemasInTableDefinitions() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override
