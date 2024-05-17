@@ -1,11 +1,6 @@
 package com.dolphindb.jdbc;
 
-import com.xxdb.data.BasicInt;
-import com.xxdb.data.BasicTable;
-import com.xxdb.data.Entity;
-import com.xxdb.data.EntityBlockReader;
-import com.xxdb.io.ProgressListener;
-
+import com.xxdb.data.*;
 import java.io.IOException;
 import java.sql.*;
 import java.text.MessageFormat;
@@ -157,6 +152,7 @@ public class JDBCStatement implements Statement {
 
     @Override
     public int executeUpdate(String sql) throws SQLException {
+        sql = Utils.changeCase(sql, connection);
         sql = sql.trim();
         while (sql.endsWith(";"))
         	sql = sql.substring(0, sql.length() - 1);
@@ -183,10 +179,22 @@ public class JDBCStatement implements Statement {
 
                         String colName = "col";
                         int colIndex = 1;
-                        for (String value : values) {
-                            sqlSb.append(value).append(" as ").append(colName+colIndex).append(",");
-                            colIndex++;
+                        for (int i = 0; i < values.length; i++) {
+                            if (values[i].trim().equals("NULL")) {
+                                try {
+                                    String nullValueType = getNULLValueType(tableName, i);
+                                    sqlSb.append(nullValueType).append("(").append(values[i]).append(")").append(" as ").append(colName+colIndex).append(",");
+                                    colIndex++;
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            } else {
+                                sqlSb.append(values[i]).append(" as ").append(colName+colIndex).append(",");
+                                colIndex++;
+                            }
+
                         }
+
                         sqlSb.delete(sqlSb.length() - ",".length(), sqlSb.length());
                         sqlSb.append("))");
                         try {
@@ -226,6 +234,14 @@ public class JDBCStatement implements Statement {
                 }
                 return 0;
         }
+    }
+
+    protected String getNULLValueType(String tableName, int index) throws IOException {
+        BasicDictionary schema = (BasicDictionary) connection.run(String.format("schema(%s)", tableName));
+        BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+        AbstractVector typeStringVec = (AbstractVector) colDefs.getColumn("typeString");
+        Entity entity = typeStringVec.get(index);
+        return entity.getString().toLowerCase();
     }
 
     @Override
