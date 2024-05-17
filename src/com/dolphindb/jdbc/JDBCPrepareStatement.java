@@ -399,7 +399,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void clearParameters() throws SQLException {
-		Arrays.fill(bufferArea, null);
+		if (Objects.nonNull(bufferArea)) {
+			Arrays.fill(bufferArea, null);
+		}
 	}
 
 	@Override
