@@ -203,7 +203,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public ResultSet executeQuery() throws SQLException {
-
 		try{
 			if (isPreparedStatement) {
 				combineOneRowData(false);
@@ -212,7 +211,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				return super.executeQuery(sqlBuffer.get(0));
 			}
 		} finally {
-			clearBatch();
+			if (isPreparedStatement)
+				clearBatch();
 		}
 	}
 
