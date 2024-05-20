@@ -40,6 +40,12 @@ public class Utils {
 
     static String INSERT_TABLE_NAME_COLUMN_STRING = "(" + LOAD_TABLE_NAME + "*" + MEM_TABLE_NAME + "*" + ")\\s*(\\((.+?)\\))*";
 
+    static String UPDATE_STRING = "update\\s+";
+
+    static String UPDATE_TABLE_NAME_COLUMN_STRING = "(" + LOAD_TABLE_NAME + "*" + MEM_TABLE_NAME + "*" + ")\\s*(\\((.+?)\\))*";
+
+    static String UPDATE_SET_AND_WHERE_STRING = "set\\s+(.+=.+)+(\\s+where\\s+(.+=.+)+)?";
+
     public static final Pattern DELETE_PATTERN  = Pattern.compile( DELETE_STRING + MEM_TABLE_NAME + DELETE_WHERE_STRING);
 
     public static final Pattern DELETE_LOADTABLE_PATTERN = Pattern.compile(DELETE_STRING + LOAD_TABLE_NAME + DELETE_WHERE_STRING);
@@ -228,7 +234,9 @@ public class Utils {
         }else if(sql.contains(".append!")){
             tableName = sql.split("\\.")[0];
         }else if(sql.startsWith("update")){
-            Matcher matcher = UPDATE_PATTERN.matcher(sql);
+            String checkString = UPDATE_STRING + UPDATE_TABLE_NAME_COLUMN_STRING + UPDATE_SET_AND_WHERE_STRING;
+            Pattern pattern = Pattern.compile(checkString);
+            Matcher matcher = pattern.matcher(sql);
             if(matcher.find()){
                 tableName = sql.substring(sql.indexOf("update") + "update".length(), sql.indexOf("set"));
             }else{
