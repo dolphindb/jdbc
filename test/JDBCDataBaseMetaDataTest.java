@@ -1429,4 +1429,20 @@ public class JDBCDataBaseMetaDataTest {
         stmt.close();
         conn.close();
     }
+    @Test
+    public void test_DatabaseMetaData_getIdentifierQuoteString() throws Exception {
+        DBConnection connDB = new DBConnection();
+        connDB.connect(HOST,PORT,"admin","123456");
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        connDB.run("share table(1..10 as id) as table1");
+        DatabaseMetaData metaData = conn.getMetaData();
+        Assert.assertEquals(" ",metaData.getIdentifierQuoteString());
+        stmt.close();
+        conn.close();
+    }
 }
