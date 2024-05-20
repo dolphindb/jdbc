@@ -1045,7 +1045,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsCatalogsInTableDefinitions() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override
