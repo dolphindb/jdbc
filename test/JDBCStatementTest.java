@@ -3544,4 +3544,26 @@ public class JDBCStatementTest {
 		BasicTable re = (BasicTable)rs2.getResult();
 		org.junit.Assert.assertEquals(1, re.rows());
 	}
+	@Test
+	public void test_JDBCStatement_setFetchDirection() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.setFetchDirection(1000);
+		int re = stmt.getFetchDirection();
+		Assert.assertEquals(1000,re);
+	}
+	@Test
+	public void test_JDBCStatement_setFetchDirection_not_support() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String re = null;
+		try{
+			stmt.setFetchDirection(1002);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("DolpinDB JDBC Statement direction only suppport FETCH_FORWARD.",re);
+	}
 }

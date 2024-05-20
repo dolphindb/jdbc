@@ -1389,5 +1389,44 @@ public class JDBCDataBaseMetaDataTest {
             System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getTables_catalog_schemaPattern_table_not_exist");
         }
     }
-
+    @Test
+    public void test_DatabaseMetaData_supportsSchema() throws Exception {
+        DBConnection connDB = new DBConnection();
+        connDB.connect(HOST,PORT,"admin","123456");
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        connDB.run("share table(1..10 as id) as table1");
+        DatabaseMetaData metaData = conn.getMetaData();
+        Assert.assertEquals(true,metaData.supportsSchemasInDataManipulation());
+        Assert.assertEquals(false,metaData.supportsSchemasInProcedureCalls());
+        Assert.assertEquals(true,metaData.supportsSchemasInTableDefinitions());
+        Assert.assertEquals(false,metaData.supportsSchemasInIndexDefinitions());
+        Assert.assertEquals(false,metaData.supportsSchemasInPrivilegeDefinitions());
+        stmt.close();
+        conn.close();
+    }
+    @Test
+    public void test_DatabaseMetaData_supportsCatalog() throws Exception {
+        DBConnection connDB = new DBConnection();
+        connDB.connect(HOST,PORT,"admin","123456");
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        connDB.run("share table(1..10 as id) as table1");
+        DatabaseMetaData metaData = conn.getMetaData();
+        Assert.assertEquals(true,metaData.supportsCatalogsInDataManipulation());
+        Assert.assertEquals(false,metaData.supportsCatalogsInProcedureCalls());
+        Assert.assertEquals(true,metaData.supportsCatalogsInTableDefinitions());
+        Assert.assertEquals(false,metaData.supportsCatalogsInIndexDefinitions());
+        Assert.assertEquals(false,metaData.supportsCatalogsInPrivilegeDefinitions());
+        stmt.close();
+        conn.close();
+    }
 }

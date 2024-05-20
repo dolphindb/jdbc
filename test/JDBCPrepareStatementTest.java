@@ -9162,6 +9162,36 @@ public class JDBCPrepareStatementTest {
         BasicTable bt1 = (BasicTable) rs2.getResult();
         org.junit.Assert.assertEquals(0,bt1.rows());
     }
+
+    @Test
+    public void test_PreparedStatement_no_placeholder_memoryTable_executeUpdate_1() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("share table(10:0,`id`dataType,[INT,INT]) as table1;");
+        PreparedStatement ps = conn.prepareStatement("insert into table1(Id , DAtaTYpe)  ValUes(1,100)");
+        ps.executeUpdate();
+        PreparedStatement ps1 = conn.prepareStatement("insert into table1(Id , DAtaTYpe)  ValUes(2,)");
+        ps1.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from table1");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+        PreparedStatement ps2 = conn.prepareStatement("update table1 set DAtaType = 101 where ID = 1");
+        ps2.executeUpdate();
+        ResultSet rs1 = ps2.executeQuery("select * from table1");
+        rs1.next();
+        org.junit.Assert.assertEquals(rs1.getInt("dataType"), 101);
+        PreparedStatement ps3 = conn.prepareStatement("delete from table1 where iD in (select iD from table1 where Id in (1))");
+        ps3.executeUpdate();
+        PreparedStatement ps4 = conn.prepareStatement("delete from table1 where iD in (select iD from table1 where Id = 2)");
+        ps4.executeUpdate();
+        PreparedStatement ps5 = conn.prepareStatement("select * from table1");
+        JDBCResultSet rs2 = (JDBCResultSet)ps5.executeQuery();
+        BasicTable bt1 = (BasicTable) rs2.getResult();
+        org.junit.Assert.assertEquals(0,bt1.rows());
+    }
     @Test
     public void test_PreparedStatement_no_placeholder_memoryTable_allDataType_executeUpdate() throws SQLException, IOException {
         DBConnection db = new DBConnection();
@@ -9250,14 +9280,14 @@ public class JDBCPrepareStatementTest {
         stm.execute("pt=loadTable('dfs://test_append_type','pt')");
         PreparedStatement ps = conn.prepareStatement("insert into pt  ValUes(1,100)");
         ps.executeUpdate();
-        PreparedStatement ps1 = conn.prepareStatement("insert into pt ValUes(2,200)");
+        PreparedStatement ps1 = conn.prepareStatement("insert into pt ValUes(2,NULL)");
         ps1.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from pt");
         rs.next();
         org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
         rs.next();
         rs.getInt("dataType");
-        org.junit.Assert.assertEquals(rs.getInt("dataType"), 200);
+        org.junit.Assert.assertTrue(rs.wasNull());
         PreparedStatement ps2 = conn.prepareStatement("update pt set DAtaType = 101 where ID = 1");
         ps2.executeUpdate();
         ResultSet rs1 = ps2.executeQuery("select * from pt");
@@ -9277,14 +9307,14 @@ public class JDBCPrepareStatementTest {
         createPartitionTable("INT");
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt')  ValUes(1,100)");
         ps.executeUpdate();
-        PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(2,200)");
+        PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(2,NULL)");
         ps1.executeUpdate();
         ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
         rs.next();
         org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
         rs.next();
         rs.getInt("dataType");
-        org.junit.Assert.assertEquals(rs.getInt("dataType"), 200);
+        org.junit.Assert.assertTrue(rs.wasNull());
         PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_type','pt') set DAtaType = 101 where ID = 1");
         ps2.executeUpdate();
         ResultSet rs1 = ps2.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
@@ -9469,6 +9499,23 @@ public class JDBCPrepareStatementTest {
         BasicTable re = (BasicTable)rs3.getResult();
         org.junit.Assert.assertEquals(0,re.rows());
     }
+    @Test
+    public void test_PreparedStatement_no_placeholder_insert_into_array() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("colNames=\"col\"+string(1..2)\n" +
+                "colTypes=[INT,BOOL[]];\n" +
+                "share table(1:0,colNames,colTypes) as sub1\n");
+        PreparedStatement ps = conn.prepareStatement("insert into sub1 values( 1000,[true  false NULL true false NULL true false NULL true]) ");
+        ps.executeUpdate();
+        PreparedStatement ps2 = conn.prepareStatement("select * from sub1");
+        JDBCResultSet rs = (JDBCResultSet)ps2.executeQuery();
+        BasicTable re = (BasicTable)rs.getResult();
+        System.out.println(re.getString());
+        Assert.assertEquals("col1 col2                                      \n" +
+                "---- ------------------------------------------\n" +
+                "1000 [true,false,,true,false,,true,false,,true]\n",re.getString());
+    }
     @Test//有bug，上面已经包含该场景，bug修复之后可删掉
     public void test_PreparedStatement_no_placeholder_dfs_allDataType_datahour() throws SQLException, IOException {
         DBConnection db = new DBConnection();
@@ -9489,12 +9536,8 @@ public class JDBCPrepareStatementTest {
         //stm.execute("pt=loadTable('dfs://test_append_type','pt')");
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt')(Id , DAtaTYpe)  ValUes(1,100)");
         ps.executeUpdate();
-        PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt')(Id , DAtaTYpe)  ValUes(2,NULL)");
+        PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt')(Id , DAtaTYpe)  ValUes(2,)");
         ps1.executeUpdate();
-        //如下通过占位符的方式写入一个空值时能正常写入的，所以期望不带占位符的情况下也能够正常写入
-//        PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt')(Id , DAtaTYpe)  ValUes(?,?)");
-//        ps1.setInt(1,2);
-//        ps1.setNull(2, Types.INTEGER);
         PreparedStatement ps2 = conn.prepareStatement("select * from loadTable('dfs://test_append_type','pt')");
         ResultSet rs = ps2.executeQuery();
         rs.next();
@@ -9504,6 +9547,22 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertTrue(rs.wasNull());
     }
 
+    @Test//有bug，上面已经包含该场景，bug修复之后可删掉
+    public void test_PreparedStatement_colume_no_placeholder_null1() throws SQLException {
+        createPartitionTable("INT");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt(Id , DAtaTYpe)  ValUes(1,100)");
+        ps.executeUpdate();
+        PreparedStatement ps1 = conn.prepareStatement("insert into pt(Id , DAtaTYpe)  ValUes(2,)");
+        ps1.executeUpdate();
+        PreparedStatement ps2 = conn.prepareStatement("select * from pt");
+        ResultSet rs = ps2.executeQuery();
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
     @Test
     public void test_PreparedStatement_select_special_characters() throws SQLException, IOException, ClassNotFoundException {
         DBConnection db = new DBConnection();
@@ -9519,6 +9578,45 @@ public class JDBCPrepareStatementTest {
                 "-----\n" +
                 "2    \n",re.getString());
     }
+    @Test
+    public void test_PreparedStatement_clearParameters() throws SQLException, IOException, ClassNotFoundException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("share table(1 NULL 3 as id) as table1;");
+        PreparedStatement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        stmt = conn.prepareStatement("select * from table1 where id = NULL");
+        stmt.clearParameters();
+        stmt.clearParameters();
+        JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery();
+        stmt.clearParameters();
+        BasicTable re = (BasicTable)rs.getResult();
+        System.out.println();
+        org.junit.Assert.assertEquals("id\n" +
+                "--\n" +
+                "  \n",re.getString());
+    }
+
+    @Test
+    public void test_PreparedStatement_clearParameters_1() throws SQLException, IOException, ClassNotFoundException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("share table(1 NULL 3 as id) as table1;");
+        PreparedStatement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        stmt = conn.prepareStatement("select * from table1 where id = ?");
+        stmt.setNull(1,Types.INTEGER);
+        stmt.clearParameters();
+        stmt.clearParameters();
+        String re =null;
+        try{
+            JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery();
+        }catch(Exception ex){
+            re = ex.getMessage();
+        }
+        org.junit.Assert.assertEquals("No value specified for parameter 1",re);
+    }
+
     @After
     public void Destroy(){
         LOGININFO = null;
