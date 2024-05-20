@@ -9596,6 +9596,27 @@ public class JDBCPrepareStatementTest {
                 "--\n" +
                 "  \n",re.getString());
     }
+
+    @Test
+    public void test_PreparedStatement_clearParameters_1() throws SQLException, IOException, ClassNotFoundException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("share table(1 NULL 3 as id) as table1;");
+        PreparedStatement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        stmt = conn.prepareStatement("select * from table1 where id = ?");
+        stmt.setNull(1,Types.INTEGER);
+        stmt.clearParameters();
+        stmt.clearParameters();
+        String re =null;
+        try{
+            JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery();
+        }catch(Exception ex){
+            re = ex.getMessage();
+        }
+        org.junit.Assert.assertEquals("No value specified for parameter 1",re);
+    }
+
     @After
     public void Destroy(){
         LOGININFO = null;
