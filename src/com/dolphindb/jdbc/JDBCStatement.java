@@ -174,7 +174,7 @@ public class JDBCStatement implements Statement {
                             throw new SQLException(e);
                         }
                     } else {
-                        String[] values = lastStatement.substring(lastStatement.indexOf("values") + "values".length()).replaceAll("\\(|\\)", "").split(",");
+                        String[] values = lastStatement.substring(lastStatement.indexOf("values") + "values".length()).replaceAll("^\\(|\\)$", "").split(",");
                         StringBuilder sqlSb = new StringBuilder("append!(").append(tableName).append(",").append("table(");
 
                         String colName = "col";
