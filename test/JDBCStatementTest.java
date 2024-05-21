@@ -3688,4 +3688,68 @@ public class JDBCStatementTest {
 		BasicTable re2 = (BasicTable)rs2.getResult();
 		Assert.assertEquals(0, re2.rows());
 	}
+	@Test
+	public void test_JDBCStatement_dfs_allDataType_executeUpdate_insert_into_null() throws SQLException, IOException, ClassNotFoundException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST, PORT,"admin","123456");
+		db.run("colNames=\"col\"+string(1..28)\n" +
+				"colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
+				"t=table(1:0,colNames,colTypes)\n" +
+				"try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
+				"db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
+				"db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		Statement stmt = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.executeUpdate("insert into loadTable('dfs://test_allDataType','pt') values(,,,2,,,,,,,,,,,,,,,,,,,,,,,,) ");
+		stmt.executeUpdate("insert into loadTable('dfs://test_allDataType',`pt) ValUes(NULL,NULL,NULL,3,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL) ");
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select * from loadTable('dfs://test_allDataType', 'pt')");
+		BasicTable re = (BasicTable)rs.getResult();
+		System.out.println(re.getString());
+		Assert.assertEquals(2, re.rows());
+		stmt.executeUpdate("update  pt set col5 = 101  where col1 = NULL ,col2=NULL ,col3=NULL ,col4 =2, col5=NULL, col6=NULL, col7=NULL, col8=NULL, col9=NULL, col10=NULL, col11=NULL, col12=NULL, col13=NULL, col14=NULL, col15=NULL, col16=NULL, col17=NULL, col18=NULL, col19=NULL, col20=NULL, col21=NULL, col22=NULL, col23=NULL, col24=NULL, col25=NULL, col26=NULL, col27=NULL, col28=NULL");
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("select * from pt where col4 =2;");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		org.junit.Assert.assertEquals("101", re1.getColumn("col5").getString());
+		stmt.executeUpdate("delete from pt where col4 in (select col4 from pt where col1 = NULL ,col2=NULL ,col3=NULL ,col4 =3, col5=NULL, col6=NULL, col7=NULL, col8=NULL, col9=NULL, col10=NULL, col11=NULL, col12=NULL, col13=NULL, col14=NULL, col15=NULL, col16=NULL, col17=NULL, col18=NULL, col19=NULL, col20=NULL, col21=NULL, col22=NULL, col23=NULL, col24=NULL, col25=NULL, col26=NULL, col27=NULL, col28=NULL)");
+		JDBCResultSet rs2 = (JDBCResultSet)stmt.executeQuery("select * from pt");
+		BasicTable re2 = (BasicTable)rs2.getResult();
+		org.junit.Assert.assertEquals(1,re2.rows());
+	}
+	@Test
+	public void test_JDBCStatement_dfs_allDataType_execute_insert_into_null() throws SQLException, IOException, ClassNotFoundException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST, PORT,"admin","123456");
+		db.run("colNames=\"col\"+string(1..28)\n" +
+				"colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
+				"t=table(1:0,colNames,colTypes)\n" +
+				"try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
+				"db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
+				"db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		Statement stmt = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("insert into loadTable('dfs://test_allDataType','pt') values(,,,2,,,,,,,,,,,,,,,,,,,,,,,,) ");
+		stmt.execute("insert into loadTable('dfs://test_allDataType',`pt) ValUes(NULL,NULL,NULL,3,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL) ");
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select * from loadTable('dfs://test_allDataType', 'pt')");
+		BasicTable re = (BasicTable)rs.getResult();
+		System.out.println(re.getString());
+		Assert.assertEquals(2, re.rows());
+		stmt.executeUpdate("update  pt set col5 = 101  where col1 = NULL ,col2=NULL ,col3=NULL ,col4 =2, col5=NULL, col6=NULL, col7=NULL, col8=NULL, col9=NULL, col10=NULL, col11=NULL, col12=NULL, col13=NULL, col14=NULL, col15=NULL, col16=NULL, col17=NULL, col18=NULL, col19=NULL, col20=NULL, col21=NULL, col22=NULL, col23=NULL, col24=NULL, col25=NULL, col26=NULL, col27=NULL, col28=NULL");
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("select * from pt where col4 =2;");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		org.junit.Assert.assertEquals("101", re1.getColumn("col5").getString());
+		stmt.executeUpdate("delete from pt where col4 in (select col4 from pt where col1 = NULL ,col2=NULL ,col3=NULL ,col4 =3, col5=NULL, col6=NULL, col7=NULL, col8=NULL, col9=NULL, col10=NULL, col11=NULL, col12=NULL, col13=NULL, col14=NULL, col15=NULL, col16=NULL, col17=NULL, col18=NULL, col19=NULL, col20=NULL, col21=NULL, col22=NULL, col23=NULL, col24=NULL, col25=NULL, col26=NULL, col27=NULL, col28=NULL)");
+		JDBCResultSet rs2 = (JDBCResultSet)stmt.executeQuery("select * from pt");
+		BasicTable re2 = (BasicTable)rs2.getResult();
+		org.junit.Assert.assertEquals(1,re2.rows());
+	}
 }
