@@ -3566,4 +3566,126 @@ public class JDBCStatementTest {
 		}
 		Assert.assertEquals("DolpinDB JDBC Statement direction only suppport FETCH_FORWARD.",re);
 	}
+	@Test
+	public void Test_JDBCStatement_dfs_execUpdate() throws Exception{
+		boolean success = CreateDfsTable(HOST, PORT);
+		org.junit.Assert.assertTrue(success);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		Statement stmt = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.executeUpdate("update loadTable('dfs://db_testStatement', 'pt') set price=price+1");
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select * from loadTable('dfs://db_testStatement', 'pt')");
+		BasicTable re = (BasicTable)rs.getResult();
+		Assert.assertEquals("[50.6,51.76,51.32,52.29,175.97,176.23,30.46,30.52,31.02]", re.getColumn(1).getString());
+	}
+	@Test
+	public void Test_JDBCStatement_dfs_execUpdate_1() throws Exception{
+		boolean success = CreateDfsTable(HOST, PORT);
+		org.junit.Assert.assertTrue(success);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		Statement stmt = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.executeUpdate("update loadTable(\"dfs://db_testStatement\", `pt) set price=price+1");
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select * from loadTable('dfs://db_testStatement', 'pt')");
+		BasicTable re = (BasicTable)rs.getResult();
+		Assert.assertEquals("[50.6,51.76,51.32,52.29,175.97,176.23,30.46,30.52,31.02]", re.getColumn(1).getString());
+	}
+	@Test
+	public void Test_JDBCStatement_dfs_execUpdate_2() throws Exception{
+		boolean success = CreateDfsTable(HOST, PORT);
+		org.junit.Assert.assertTrue(success);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		Statement stmt = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.executeUpdate("update loadTable(\"dfs://db_testStatement\", `pt) set price=price+1,qty=NULL,timestamp=00:34:07 where sym in (\"IBM\",\"MS\");");
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select * from loadTable('dfs://db_testStatement', 'pt')");
+		BasicTable re = (BasicTable)rs.getResult();
+		Assert.assertEquals("[49.6,50.76,50.32,51.29,175.97,176.23,30.46,30.52,31.02]", re.getColumn(1).getString());
+		Assert.assertEquals("[2200,1300,2500,8800,,,,,]", re.getColumn(2).getString());
+		Assert.assertEquals("[09:34:07,09:34:16,09:34:26,09:38:12,00:34:07,00:34:07,00:34:07,00:34:07,00:34:07]", re.getColumn(3).getString());
+	}
+	@Test
+	public void Test_JDBCStatement_dfs_execute_1() throws Exception{
+		boolean success = CreateDfsTable(HOST, PORT);
+		org.junit.Assert.assertTrue(success);
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		Statement stmt = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("update loadTable(\"dfs://db_testStatement\", `pt) set price=price+1,qty=NULL,timestamp=00:34:07 where sym in (\"IBM\",\"MS\");");
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select * from loadTable('dfs://db_testStatement', 'pt')");
+		BasicTable re = (BasicTable)rs.getResult();
+		Assert.assertEquals("[49.6,50.76,50.32,51.29,175.97,176.23,30.46,30.52,31.02]", re.getColumn(1).getString());
+		Assert.assertEquals("[2200,1300,2500,8800,,,,,]", re.getColumn(2).getString());
+		Assert.assertEquals("[09:34:07,09:34:16,09:34:26,09:38:12,00:34:07,00:34:07,00:34:07,00:34:07,00:34:07]", re.getColumn(3).getString());
+	}
+	@Test
+	public void test_JDBCStatement_dfs_allDataType_executeUpdate() throws SQLException, IOException, ClassNotFoundException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST, PORT,"admin","123456");
+		db.run("colNames=\"col\"+string(1..28)\n" +
+				"colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
+				"t=table(1:0,colNames,colTypes)\n" +
+				"try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
+				"db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
+				"db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		Statement stmt = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.executeUpdate("insert into loadTable('dfs://test_allDataType','pt') values(true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
+		stmt.executeUpdate(" update loadTable('dfs://test_allDataType','pt') set col1 = false ,col2='3' ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18) where col4 = 2");
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select * from loadTable('dfs://test_allDataType', 'pt')");
+		BasicTable re = (BasicTable)rs.getResult();
+		Assert.assertEquals(1, re.rows());
+		stmt.executeUpdate(" delete from  loadTable('dfs://test_allDataType','pt') where col1 = false ,col2='3' ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
+		JDBCResultSet rs2 = (JDBCResultSet)stmt.executeQuery("select * from loadTable('dfs://test_allDataType', 'pt')");
+		BasicTable re2 = (BasicTable)rs2.getResult();
+		Assert.assertEquals(0, re2.rows());
+	}
+	@Test
+	public void test_JDBCStatement_dfs_allDataType_execute() throws SQLException, IOException, ClassNotFoundException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST, PORT,"admin","123456");
+		db.run("colNames=\"col\"+string(1..28)\n" +
+				"colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
+				"t=table(1:0,colNames,colTypes)\n" +
+				"try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
+				"db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
+				"db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		Statement stmt = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("insert into loadTable('dfs://test_allDataType','pt') values(true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
+		stmt.execute(" update loadTable('dfs://test_allDataType','pt') set col1 = false ,col2='3' ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18) where col4 = 2");
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select * from loadTable('dfs://test_allDataType', 'pt')");
+		BasicTable re = (BasicTable)rs.getResult();
+		Assert.assertEquals(1, re.rows());
+		stmt.execute(" delete from  loadTable('dfs://test_allDataType','pt') where col1 = false ,col2='3' ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
+		JDBCResultSet rs2 = (JDBCResultSet)stmt.executeQuery("select * from loadTable('dfs://test_allDataType', 'pt')");
+		BasicTable re2 = (BasicTable)rs2.getResult();
+		Assert.assertEquals(0, re2.rows());
+	}
 }
