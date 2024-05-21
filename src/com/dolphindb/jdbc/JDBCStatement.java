@@ -174,7 +174,7 @@ public class JDBCStatement implements Statement {
                             throw new SQLException(e);
                         }
                     } else {
-                        String[] values = lastStatement.substring(lastStatement.indexOf("values") + "values".length()).replaceAll("^\\(|\\)$", "").split(",");
+                        String[] values = lastStatement.substring(lastStatement.indexOf("values") + "values".length()).replaceAll("^\\(|\\)$", "").split(",", -1);
                         StringBuilder sqlSb = new StringBuilder("append!(").append(tableName).append(",").append("table(");
 
                         String colName = "col";
@@ -184,6 +184,14 @@ public class JDBCStatement implements Statement {
                                 try {
                                     String nullValueType = getNULLValueType(tableName, i);
                                     sqlSb.append(nullValueType).append("(").append(values[i]).append(")").append(" as ").append(colName+colIndex).append(",");
+                                    colIndex++;
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            } else if (values[i].trim().equals("")) {
+                                try {
+                                    String nullValueType = getNULLValueType(tableName, i);
+                                    sqlSb.append(nullValueType).append("(NULL)").append(" as ").append(colName+colIndex).append(",");
                                     colIndex++;
                                 } catch (IOException e) {
                                     throw new RuntimeException(e);
