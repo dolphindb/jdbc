@@ -174,7 +174,8 @@ public class JDBCStatement implements Statement {
                             throw new SQLException(e);
                         }
                     } else {
-                        String[] values = lastStatement.substring(lastStatement.indexOf("values") + "values".length()).replaceAll("^\\(|\\)$", "").split(",", -1);
+                        String INSERT_SQL_COMMA_SPLIT_REGEX = ",(?=(?:[^()]*\\([^()]*\\))*[^()]*$)";
+                        String[] values = lastStatement.substring(lastStatement.indexOf("values") + "values".length()).replaceAll("^\\(|\\)$", "").split(INSERT_SQL_COMMA_SPLIT_REGEX, -1);
                         StringBuilder sqlSb = new StringBuilder("append!(").append(tableName).append(",").append("table(");
 
                         String colName = "col";
