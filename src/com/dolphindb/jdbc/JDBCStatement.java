@@ -176,38 +176,9 @@ public class JDBCStatement implements Statement {
                     } else {
                         String INSERT_SQL_COMMA_SPLIT_REGEX = ",(?=(?:[^()]*\\([^()]*\\))*[^()]*$)";
                         String[] values = lastStatement.substring(lastStatement.indexOf("values") + "values".length()).replaceAll("^\\(|\\)$", "").split(INSERT_SQL_COMMA_SPLIT_REGEX, -1);
-                        StringBuilder sqlSb = new StringBuilder("append!(").append(tableName).append(",").append("table(");
-
-                        String colName = "col";
-                        int colIndex = 1;
-                        for (int i = 0; i < values.length; i++) {
-                            if (values[i].trim().equals("NULL")) {
-                                try {
-                                    String nullValueType = getNULLValueType(tableName, i);
-                                    sqlSb.append(nullValueType).append("(").append(values[i]).append(")").append(" as ").append(colName+colIndex).append(",");
-                                    colIndex++;
-                                } catch (IOException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            } else if (values[i].trim().equals("")) {
-                                try {
-                                    String nullValueType = getNULLValueType(tableName, i);
-                                    sqlSb.append(nullValueType).append("(NULL)").append(" as ").append(colName+colIndex).append(",");
-                                    colIndex++;
-                                } catch (IOException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            } else {
-                                sqlSb.append(values[i]).append(" as ").append(colName+colIndex).append(",");
-                                colIndex++;
-                            }
-
-                        }
-
-                        sqlSb.delete(sqlSb.length() - ",".length(), sqlSb.length());
-                        sqlSb.append("))");
+                        String runSql = processValueInSql(tableName, values);
                         try {
-                            connection.run(sqlSb.toString());
+                            connection.run(runSql);
                             return SUCCESS_NO_INFO;
                         } catch (IOException e) {
                             throw new SQLException(e);
@@ -245,12 +216,65 @@ public class JDBCStatement implements Statement {
         }
     }
 
-    protected String getNULLValueType(String tableName, int index) throws IOException {
+    protected String processValueInSql(String tableName, String[] values) {
+        StringBuilder sqlSb = new StringBuilder("append!(").append(tableName).append(",").append("table(");
+
+        String colName = "col";
+        int colIndex = 1;
+
+        AbstractVector typeStringVec;
+        try {
+            typeStringVec = getNULLValueType(tableName);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        for (int i = 0; i < values.length; i++) {
+            if (values[i].trim().equals("NULL")) {
+                String nullValueType = typeStringVec.get(i).getString().toLowerCase();
+                sqlSb.append(nullValueType).append("(").append(values[i]).append(")").append(" as ").append(colName+colIndex).append(",");
+                colIndex++;
+            } else if (values[i].trim().equals("")) {
+                String nullValueType = typeStringVec.get(i).getString().toLowerCase();
+                if (nullValueType.equals("complex") || nullValueType.equals("point")) {
+                    sqlSb.append(nullValueType).append("(00i,00i)").append(" as ").append(colName+colIndex).append(",");
+                } else if (nullValueType.contains("decimal")) {
+                    String DECIMAL_REGEX = "decimal(32|64|128)\\((\\d+)\\)";
+                    String NULL_replacement = "decimal$1(NULL, $2)";
+                    String replacedDecimal = nullValueType.replaceAll(DECIMAL_REGEX, NULL_replacement);
+                    sqlSb.append(replacedDecimal).append(" as ").append(colName+colIndex).append(",");
+                } else if (nullValueType.equals("symbol")) {
+                    sqlSb.append("array(SYMBOL, 0, 1)").append(" as ").append(colName+colIndex).append(",");
+                } else if (nullValueType.equals("uuid")) {
+                    sqlSb.append("uuid(\"\")").append(" as ").append(colName+colIndex).append(",");
+                } else if (nullValueType.equals("ipaddr")) {
+                    sqlSb.append("ipaddr(\"\")").append(" as ").append(colName+colIndex).append(",");
+                } else if (nullValueType.equals("int128")) {
+                    sqlSb.append("int128(\"\")").append(" as ").append(colName+colIndex).append(",");
+                } else if (nullValueType.equals("blob")) {
+                    sqlSb.append("blob(string(NULL))").append(" as ").append(colName+colIndex).append(",");
+                } else {
+                    sqlSb.append(nullValueType).append("(NULL)").append(" as ").append(colName+colIndex).append(",");
+                }
+                colIndex++;
+            } else {
+                sqlSb.append(values[i]).append(" as ").append(colName+colIndex).append(",");
+                colIndex++;
+            }
+
+        }
+
+        sqlSb.delete(sqlSb.length() - ",".length(), sqlSb.length());
+        sqlSb.append("))");
+
+        return sqlSb.toString();
+    }
+
+    protected AbstractVector getNULLValueType(String tableName) throws IOException {
         BasicDictionary schema = (BasicDictionary) connection.run(String.format("schema(%s)", tableName));
         BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
         AbstractVector typeStringVec = (AbstractVector) colDefs.getColumn("typeString");
-        Entity entity = typeStringVec.get(index);
-        return entity.getString().toLowerCase();
+       return typeStringVec;
     }
 
     @Override
