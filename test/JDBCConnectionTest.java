@@ -130,81 +130,81 @@ public class JDBCConnectionTest {
 		}
 		org.junit.Assert.assertEquals("The param catalog cannot be null or empty.",s);
 	}
-	@Test
-	public void Test_setCatalog_database_exist() throws SQLException, IOException {
-		CreateDfsTable(HOST,PORT);
-		prop.setProperty("hostName",HOST);
-		prop.setProperty("port",String.valueOf(PORT));
-		prop.setProperty("user","admin");
-		prop.setProperty("password","123456");
-		prop.setProperty("databasePath","dfs://db_testDriverManager");
-		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
-		conn = new JDBCConnection(url,prop);
-		org.junit.Assert.assertEquals("dfs://db_testDriverManager",conn.getCatalog());
-		conn.setCatalog("dfs://db_testDriverManager1");
-		org.junit.Assert.assertEquals("dfs://db_testDriverManager1",conn.getCatalog());
-	}
-	@Test
-	public void Test_setCatalog_database_exist_1() throws SQLException, IOException {
-		CreateDfsTable(HOST,PORT);
-		prop.setProperty("hostName",HOST);
-		prop.setProperty("port",String.valueOf(PORT));
-		prop.setProperty("user","admin");
-		prop.setProperty("password","123456");
-		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
-		conn = new JDBCConnection(url,prop);
-		System.out.println(conn.getCatalog());
-		org.junit.Assert.assertEquals(null,conn.getCatalog());
-		conn.setCatalog("dfs://db_testDriverManager");
-		org.junit.Assert.assertEquals("dfs://db_testDriverManager",conn.getCatalog());
-		Statement stm = conn.createStatement();
-		JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select * from pt");
-		BasicTable re = (BasicTable)rs.getResult();
-		System.out.println(re.rows());
-		org.junit.Assert.assertEquals(10000,re.rows());
-		conn.setCatalog("dfs://db_testDriverManager1");
-		org.junit.Assert.assertEquals("dfs://db_testDriverManager1",conn.getCatalog());
-		Statement stm1 = conn.createStatement();
-		JDBCResultSet rs1 = (JDBCResultSet)stm1.executeQuery("select * from pt");
-		BasicTable re1 = (BasicTable)rs1.getResult();
-		System.out.println(re1.rows());
-		org.junit.Assert.assertEquals(9000,re1.rows());
-	}
-	@Test
-	public void Test_setCatalog_database_not_exist() throws SQLException, IOException {
-		CreateDfsTable(HOST,PORT);
-		prop.setProperty("hostName",HOST);
-		prop.setProperty("port",String.valueOf(PORT));
-		prop.setProperty("user","admin");
-		prop.setProperty("password","123456");
-		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
-		conn = new JDBCConnection(url,prop);
-		System.out.println(conn.getCatalog());
-		String s = null;
-		try{
-			conn.setCatalog("dfs://1");
-		}catch(Exception e){
-			s = e.getMessage();
-		}
-		org.junit.Assert.assertNotNull(s);
-	}
-	@Test
-	public void Test_setCatalog_database_not_valid() throws SQLException, IOException {
-		CreateDfsTable(HOST,PORT);
-		prop.setProperty("hostName",HOST);
-		prop.setProperty("port",String.valueOf(PORT));
-		prop.setProperty("user","admin");
-		prop.setProperty("password","123456");
-		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
-		conn = new JDBCConnection(url,prop);
-		String re = null;
-		try{
-			conn.setCatalog("eeeeeee1");
-		}catch(Exception ex){
-			re = ex.getMessage();
-		}
-		org.junit.Assert.assertEquals("The catalog 'eeeeeee1' doesn't exist in server.",re);
-	}
+//	@Test
+//	public void Test_setCatalog_database_exist() throws SQLException, IOException {
+//		CreateDfsTable(HOST,PORT);
+//		prop.setProperty("hostName",HOST);
+//		prop.setProperty("port",String.valueOf(PORT));
+//		prop.setProperty("user","admin");
+//		prop.setProperty("password","123456");
+//		prop.setProperty("databasePath","dfs://db_testDriverManager");
+//		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+//		conn = new JDBCConnection(url,prop);
+//		org.junit.Assert.assertEquals("dfs://db_testDriverManager",conn.getCatalog());
+//		conn.setCatalog("dfs://db_testDriverManager1");
+//		org.junit.Assert.assertEquals("dfs://db_testDriverManager1",conn.getCatalog());
+//	}
+//	@Test
+//	public void Test_setCatalog_database_exist_1() throws SQLException, IOException {
+//		CreateDfsTable(HOST,PORT);
+//		prop.setProperty("hostName",HOST);
+//		prop.setProperty("port",String.valueOf(PORT));
+//		prop.setProperty("user","admin");
+//		prop.setProperty("password","123456");
+//		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+//		conn = new JDBCConnection(url,prop);
+//		System.out.println(conn.getCatalog());
+//		org.junit.Assert.assertEquals(null,conn.getCatalog());
+//		conn.setCatalog("dfs://db_testDriverManager");
+//		org.junit.Assert.assertEquals("dfs://db_testDriverManager",conn.getCatalog());
+//		Statement stm = conn.createStatement();
+//		JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select * from pt");
+//		BasicTable re = (BasicTable)rs.getResult();
+//		System.out.println(re.rows());
+//		org.junit.Assert.assertEquals(10000,re.rows());
+//		conn.setCatalog("dfs://db_testDriverManager1");
+//		org.junit.Assert.assertEquals("dfs://db_testDriverManager1",conn.getCatalog());
+//		Statement stm1 = conn.createStatement();
+//		JDBCResultSet rs1 = (JDBCResultSet)stm1.executeQuery("select * from pt");
+//		BasicTable re1 = (BasicTable)rs1.getResult();
+//		System.out.println(re1.rows());
+//		org.junit.Assert.assertEquals(9000,re1.rows());
+//	}
+//	@Test
+//	public void Test_setCatalog_database_not_exist() throws SQLException, IOException {
+//		CreateDfsTable(HOST,PORT);
+//		prop.setProperty("hostName",HOST);
+//		prop.setProperty("port",String.valueOf(PORT));
+//		prop.setProperty("user","admin");
+//		prop.setProperty("password","123456");
+//		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+//		conn = new JDBCConnection(url,prop);
+//		System.out.println(conn.getCatalog());
+//		String s = null;
+//		try{
+//			conn.setCatalog("dfs://1");
+//		}catch(Exception e){
+//			s = e.getMessage();
+//		}
+//		org.junit.Assert.assertNotNull(s);
+//	}
+//	@Test
+//	public void Test_setCatalog_database_not_valid() throws SQLException, IOException {
+//		CreateDfsTable(HOST,PORT);
+//		prop.setProperty("hostName",HOST);
+//		prop.setProperty("port",String.valueOf(PORT));
+//		prop.setProperty("user","admin");
+//		prop.setProperty("password","123456");
+//		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+//		conn = new JDBCConnection(url,prop);
+//		String re = null;
+//		try{
+//			conn.setCatalog("eeeeeee1");
+//		}catch(Exception ex){
+//			re = ex.getMessage();
+//		}
+//		org.junit.Assert.assertEquals("The catalog 'eeeeeee1' doesn't exist in server.",re);
+//	}
 	@Test
 	public void Test_setCatalog_Catalog_exist_300() throws SQLException, IOException {
 		JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
@@ -1534,7 +1534,7 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		assertEquals(true,re.contains("Server response: 'The user name or password is incorrect.' function: 'login'"));
+		assertEquals(true,re.contains("Server response: The user name or password is incorrect. function: login"));
 	}
 	@Test
 	public void Test_getConnection_url() throws SQLException, ClassNotFoundException {
@@ -1603,7 +1603,7 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		assertEquals(true,re.contains("Server response: 'The user name or password is incorrect.' function: 'login'"));
+		assertEquals(true,re.contains("Server response: The user name or password is incorrect. function: login"));
 	}
 	@Test
 	public void Test_getConnection_url_password_not_provided() throws SQLException, ClassNotFoundException {

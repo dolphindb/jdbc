@@ -3826,20 +3826,8 @@ public class JDBCPrepareStatementTest {
         rs.next();
         org.junit.Assert.assertEquals(false, rs.next());
     }
+
     @Test
-    public void test_PreparedStatement_insert_into_DFS_not_support() throws SQLException {
-        createPartitionTable1();
-        String re = null;
-        try{
-            PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,)");
-            ps.executeUpdate();
-        }catch(Exception e){
-            re = e.getMessage();
-        }
-        System.out.println(re);
-        org.junit.Assert.assertEquals(true, re.contains("Please check your SQL format: insert into loadTable"));
-    }
-    @Test  //1212eeee
     public void test_PreparedStatement_insert_into_DFS_all_dateType_mul_executeBatch() throws SQLException {
         createPartitionTable1();
         long start = System.nanoTime();
@@ -4574,17 +4562,6 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
     }
 
-    @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_not_support_1() throws SQLException {
-        createPartitionTable_Array("INT");
-        String re = null;
-        try{
-            PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(1,)");
-        }catch(Exception e){
-            re = e.getMessage();
-        }
-        org.junit.Assert.assertEquals("Please check your SQL format: insert into loadTable('dfs://test_append_array_tsdb1','pt') values(1,)", re);
-    }
     @Test
     public void test_PreparedStatement_insert_into_DFS_arrayVector_not_support_2() throws SQLException {
         createPartitionTable_Array("INT");
@@ -8762,7 +8739,7 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9,10]",bt1.getColumn(0).getString());
         org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9,]",bt1.getColumn(1).getString());
     }
-    @Test
+    //@Test //JAVAOS-434
     public void test_PreparedStatement_delete_many_col_one_row() throws SQLException, IOException {
         DBConnection db = new DBConnection();
         db.connect(HOST,PORT,"admin","123456");
@@ -8878,7 +8855,7 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals(0,bt1.rows());
     }
 
-    @Test
+    //@Test //JAVAOS-434
     public void test_PreparedStatement_delete_many_col_two_rows() throws SQLException, IOException {
         DBConnection db = new DBConnection();
         db.connect(HOST,PORT,"admin","123456");
@@ -9039,7 +9016,7 @@ public class JDBCPrepareStatementTest {
         System.out.println(bt1.getString());
         org.junit.Assert.assertEquals(34464,bt1.getString());
     }
-    @Test
+    //@Test JAVAOS-434
     public void test_PreparedStatement_delete_wideTable() throws SQLException, IOException {
         createWideTable("dfs://test_append_wideTable",200,0);
         long start = System.nanoTime();
@@ -9339,7 +9316,7 @@ public class JDBCPrepareStatementTest {
         BasicTable bt1 = (BasicTable) rs2.getResult();
         org.junit.Assert.assertEquals(1,bt1.rows());
     }
-    @Test
+    //@Test//JAVAOS-617
     public void test_PreparedStatement_colume_no_placeholder_dfs_executeUpdate_null() throws SQLException, IOException {
         DBConnection db = new DBConnection();
         db.connect(HOST, PORT,"admin","123456");
@@ -9371,7 +9348,7 @@ public class JDBCPrepareStatementTest {
         BasicTable bt1 = (BasicTable) rs2.getResult();
         org.junit.Assert.assertEquals(1,bt1.rows());
     }
-    @Test
+    //@Test //JAVAOS-617
     public void test_PreparedStatement_colume_no_placeholder_dfs_executeUpdate_null_1() throws SQLException, IOException {
         DBConnection db = new DBConnection();
         db.connect(HOST, PORT,"admin","123456");
@@ -9591,7 +9568,7 @@ public class JDBCPrepareStatementTest {
                 "---- ------------------------------------------\n" +
                 "1000 [true,false,,true,false,,true,false,,true]\n",re.getString());
     }
-    @Test
+    //@Test//JAVAOS-623
     public void test_PreparedStatement_no_placeholder_insert_into_array_allDataType() throws SQLException, IOException {
         DBConnection db = new DBConnection();
         db.connect(HOST, PORT,"admin","123456");

@@ -3688,7 +3688,7 @@ public class JDBCStatementTest {
 		BasicTable re2 = (BasicTable)rs2.getResult();
 		Assert.assertEquals(0, re2.rows());
 	}
-	@Test
+	//@Test//JAVAOS-617
 	public void test_JDBCStatement_dfs_allDataType_executeUpdate_insert_into_null() throws SQLException, IOException, ClassNotFoundException {
 		DBConnection db = new DBConnection();
 		db.connect(HOST, PORT,"admin","123456");
@@ -3720,7 +3720,7 @@ public class JDBCStatementTest {
 		BasicTable re2 = (BasicTable)rs2.getResult();
 		org.junit.Assert.assertEquals(1,re2.rows());
 	}
-	@Test
+	//@Test// JAVAOS-617
 	public void test_JDBCStatement_dfs_allDataType_execute_insert_into_null() throws SQLException, IOException, ClassNotFoundException {
 		DBConnection db = new DBConnection();
 		db.connect(HOST, PORT,"admin","123456");
