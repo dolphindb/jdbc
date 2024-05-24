@@ -435,7 +435,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					objectQueue.offer(executeUpdate());
 					break;
 				default: {
-					combineOneRowData(false);
+					if (isPreparedStatement)
+						combineOneRowData(false);
 					Entity entity = connection.run(sqlBuffer.get(0));
 					if (entity instanceof BasicTable) {
 						ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, sqlBuffer.get(0), this.getMaxRows());
