@@ -9591,6 +9591,32 @@ public class JDBCPrepareStatementTest {
                 "---- ------------------------------------------\n" +
                 "1000 [true,false,,true,false,,true,false,,true]\n",re.getString());
     }
+    @Test
+    public void test_PreparedStatement_no_placeholder_insert_into_array_allDataType() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("colNames=\"col\"+string(1..26)\n" +
+                "colTypes=[INT, BOOL[],CHAR[],SHORT[],INT[],LONG[],DOUBLE[],FLOAT[],DATE[],MONTH[],TIME[],MINUTE[],SECOND[],DATETIME[],TIMESTAMP[],NANOTIME[],NANOTIMESTAMP[], DATEHOUR[],UUID[],IPADDR[],INT128[],POINT[],COMPLEX[],DECIMAL32(2)[],DECIMAL64(7)[],DECIMAL128(10)[]];\n" +
+                "t = table(1:0,colNames,colTypes);\n" +
+                "share t as sub1;\n" +
+                "try{dropDatabase('dfs://test_allDataType_array')\n}catch(ex){}\n" +
+                "db=database('dfs://test_allDataType_array', RANGE, -1000 0 1000,,'TSDB')\n"+
+                "db.createPartitionedTable(t, `pt, `col1,,`col1) \n");
+        PreparedStatement ps = conn.prepareStatement("insert into sub1 values( 1,[false NULL true], [-4 -3 -2], [-1 0 1 ], [-1 0 1 ], [-1 0 1 ], [-1.8 0 1.8 ], [-1.2f 0f 1.8f ], [2012.01.21 2012.01.22 2012.01.23] , [2013.03M 2013.04M 2013.05M] , [09:00:40.000 09:00:41.000 09:00:42.000 ], [13:42m 13:43m], [09:15:30 09:15:31 09:15:32], [2012.01.01T09:15:50 2012.01.01T09:15:51], [2012.01.01T09:00:00.000 2012.01.01T09:00:01.001] , [08:59:57.862554624 08:59:58.862554624 ], [2012.01.01T09:00:00.812227584 2012.01.01T09:00:00.812227584  ], [datehour([\"1970.01.01T03\",NULL])],  [uuid([\"5d212a78-cc48-e3b1-4235-b4d91473ee89\",NULL])], [ipaddr([\"192.168.100.14\",\"0.0.0.0\"])], [int128([\"e1671797c52e15f763380b45e841ec35\",NULL])], [point(51.0  51.0  ,56.0  51.0  )], [complex(51.0 51.0  ,56.0 51.0  )], [ 0.254 1.254], [ 0.254 1.254], [0.254 1.254]);");
+        ps.executeUpdate();
+        PreparedStatement ps2 = conn.prepareStatement("select * from sub1");
+        JDBCResultSet rs = (JDBCResultSet)ps2.executeQuery();
+        BasicTable re = (BasicTable)rs.getResult();
+        System.out.println(re.getString());
+        Assert.assertEquals(1,re.rows());
+        PreparedStatement ps3 = conn.prepareStatement("insert into loadTable('dfs://test_allDataType_array',`pt) values( 1,[false NULL true], [-4 -3 -2], [-1 0 1 ], [-1 0 1 ], [-1 0 1 ], [-1.8 0 1.8 ], [-1.2f 0f 1.8f ], [2012.01.21 2012.01.22 2012.01.23] , [2013.03M 2013.04M 2013.05M] , [09:00:40.000 09:00:41.000 09:00:42.000 ], [13:42m 13:43m], [09:15:30 09:15:31 09:15:32], [2012.01.01T09:15:50 2012.01.01T09:15:51], [2012.01.01T09:00:00.000 2012.01.01T09:00:01.001] , [08:59:57.862554624 08:59:58.862554624 ], [2012.01.01T09:00:00.812227584 2012.01.01T09:00:00.812227584  ], [datehour([\"1970.01.01T03\",NULL])],  [uuid([\"5d212a78-cc48-e3b1-4235-b4d91473ee89\",NULL])], [ipaddr([\"192.168.100.14\",\"0.0.0.0\"])], [int128([\"e1671797c52e15f763380b45e841ec35\",NULL])], [point(51.0  51.0  ,56.0  51.0  )], [complex(51.0 51.0  ,56.0 51.0  )], [ 0.254 1.254], [ 0.254 1.254], [0.254 1.254]);");
+        ps3.executeUpdate();
+        PreparedStatement ps4 = conn.prepareStatement("select * from sub1");
+        JDBCResultSet rs1 = (JDBCResultSet)ps4.executeQuery();
+        BasicTable re1 = (BasicTable)rs1.getResult();
+        System.out.println(re1.getString());
+        Assert.assertEquals(1,re1.rows());
+    }
 
     @Test
     public void test_PreparedStatement_select_special_characters() throws SQLException, IOException, ClassNotFoundException {
