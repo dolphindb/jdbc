@@ -44,7 +44,9 @@ public class JDBCResultSet implements ResultSet{
     public JDBCResultSet(JDBCConnection conn, JDBCStatement statement, Entity entity, String sql, int maxRows) throws SQLException {
         this.conn = conn;
         this.statement = statement;
-        if (entity.isTable()) {
+        if (Objects.isNull(entity)) {
+            this.table = null;
+        } else if (entity.isTable()) {
             if (maxRows > 0) {
                 // if param 'maxRows' is valid.
                 this.maxRows = maxRows;

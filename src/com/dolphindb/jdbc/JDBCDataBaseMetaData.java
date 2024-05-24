@@ -519,7 +519,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 cols.add(catalogVec);
                 Schemas = new JDBCResultSet(connection, statement, new BasicTable(colNames, cols),"");
             } else {
-                Schemas = new JDBCResultSet(connection, statement, null,"");
+                Schemas = new JDBCResultSet(connection, statement, (Entity) null,"");
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
