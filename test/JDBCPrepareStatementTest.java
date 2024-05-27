@@ -1458,7 +1458,93 @@ public class JDBCPrepareStatementTest {
             }
         }
     }
+    @Test
+    public void Test_prepareStatement_inmemory_query_executeQuery4() throws Exception {
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
+        Connection conn = null;
+        Statement stmt = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        try {
+            Class.forName(JDBC_DRIVER);
+            conn = DriverManager.getConnection(url);
+            stmt = conn.createStatement();
+            stmt.execute("sym = `C`MS`MS`MS`IBM`IBM`C`C`C$SYMBOL\n" +
+                    "price= 49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29\n" +
+                    "qty = 2200 1900 2100 3200 6800 5400 1300 2500 8800\n" +
+                    "timestamp = [09:34:07,09:35:42,09:36:51,09:36:59,09:35:47,09:36:26,09:34:16,09:35:26,09:36:12]\n" +
+                    "t = table(timestamp, sym, qty, price)");
+            //pivot by
+            pstmt = conn.prepareStatement("select last(price) from t pivot by timestamp.minute(), sym");
+            rs = pstmt.executeQuery();
+            ResultSet rs1 = pstmt.executeQuery();
+            String columnName = rs.getMetaData().getColumnName(1);
+            org.junit.Assert.assertEquals(columnName, "minute_timestamp");
+            String columnName1 = rs.getMetaData().getColumnName(2);
+            org.junit.Assert.assertEquals(columnName1, "C");
+            String columnName2 = rs.getMetaData().getColumnName(3);
+            org.junit.Assert.assertEquals(columnName2, "IBM");
+            rs.last();
+            int rowCount = rs.getRow();
+            org.junit.Assert.assertEquals(rowCount,3);
 
+            String columnName11 = rs1.getMetaData().getColumnName(1);
+            org.junit.Assert.assertEquals(columnName11, "minute_timestamp");
+            String columnName12 = rs1.getMetaData().getColumnName(2);
+            org.junit.Assert.assertEquals(columnName12, "C");
+            String columnName13 = rs1.getMetaData().getColumnName(3);
+            org.junit.Assert.assertEquals(columnName13, "IBM");
+            rs1.last();
+            int rowCount1 = rs1.getRow();
+            org.junit.Assert.assertEquals(rowCount1,3);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+    @Test
+    public void Test_prepareStatement_inmemory_query_executeQuery5() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("colNames=\"col\"+string(1..28)\n" +
+                "colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
+                "t=table(1:0,colNames,colTypes)\n" +
+                "try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
+                "db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
+                "db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_allDataType','pt') values(true,'3',-2h,2,-100l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
+        ps.executeUpdate();
+        PreparedStatement ps3 = conn.prepareStatement("select * from  loadTable('dfs://test_allDataType','pt') where col1 = true ,col2='3' ,col3 =-2, col4=2, col5=-100, col6=2012.12.06, col7=2012.06M, col8=12:30:00.008, col9=12:30m, col10=12:30:00, col11=2012.06.12 12:30:00, col12=2012.06.12 12:30:00.008, col13=13:30:10.008007006, col14=2012.06.13 13:30:10.008007006, col15=2.1f, col16=2.1, col17=\"hello\", col18=\"world\", col19=uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2012.06.13 13:30:10), col21=ipaddr(\"192.168.1.253\"), col22=int128(\"e1671797c52e15f763380b45e841ec32\"), col23=blob(\"123\"), col24=complex(111,1), col25=point(1,2), col26=decimal32(1.1,2), col27=decimal64(1.1,7), col28=decimal128(1.1,18)");
+        JDBCResultSet rs1 = (JDBCResultSet)ps3.executeQuery();
+        JDBCResultSet rs2 = (JDBCResultSet)ps3.executeQuery();
+        BasicTable re = (BasicTable)rs1.getResult();
+        BasicTable re1 = (BasicTable)rs2.getResult();
+        Assert.assertEquals(1, re.rows());
+        Assert.assertEquals(1, re1.rows());
+        Assert.assertEquals(re.getString(), re1.getString());
+    }
     @Test
     public void Test_prepareStatement_dfs_query_setInt() throws Exception {
         String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";

@@ -1534,7 +1534,7 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		assertEquals(true,re.contains("Server response: The user name or password is incorrect. function: login"));
+		assertEquals(true,re.contains("Server response: The user name or password is incorrect.. function: login"));
 	}
 	@Test
 	public void Test_getConnection_url() throws SQLException, ClassNotFoundException {
@@ -1603,7 +1603,7 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		assertEquals(true,re.contains("Server response: The user name or password is incorrect. function: login"));
+		assertEquals(true,re.contains("Server response: The user name or password is incorrect.. function: login"));
 	}
 	@Test
 	public void Test_getConnection_url_password_not_provided() throws SQLException, ClassNotFoundException {
