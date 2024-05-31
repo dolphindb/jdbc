@@ -46,7 +46,7 @@
         <dependency>
             <groupId>com.dolphindb</groupId>
             <artifactId>dolphindb-javaapi</artifactId>
-            <version>3.00.0.1</version>
+            <version>3.00.0.2</version>
             <exclusions>
                 <exclusion>
                     <groupId>junit</groupId>
