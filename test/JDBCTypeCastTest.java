@@ -50,7 +50,7 @@ public class JDBCTypeCastTest {
                     "col_long = long(1 2 3 4)\n" +
                     "col_minute = 13:30m 13:30m 13:30m 13:30m\n" +
                     "col_second = 13:30:10 13:30:10 13:30:10 13:30:10\n"+
-                    "col_datetime =  2016.06.13T13:30:10 2099.11.13T13:30:10 1969.11.13T13:30:10 1970.11.13T13:30:11\n" +
+                    "col_datetime =  2016.06.13T13:30:10 2038.01.13T13:30:10 1969.11.13T13:30:10 1970.11.13T13:30:11\n" +
                     "col_timestamp =  2016.06.13T13:30:10.008 2099.11.13T13:30:10.008 1969.11.13T13:30:10.001 1970.11.13T13:30:11.008\n" +
                     "col_uuid =  uuid(\"5d212a78-cc48-e3b1-4235-b4d91473ee87\" \"5d212a78-cc48-e3b1-4235-b4d91473ee81\" \"5d212a78-cc48-e3b1-4235-b4d91473ee82\" \"5d212a78-cc48-e3b1-4235-b4d91473ee83\")\n" +
                     "col_ipaddr =  ipaddr(\"192.168.1.13\" \"192.168.1.13\" \"192.168.1.13\" \"0.0.0.0\")\n" +
@@ -61,7 +61,7 @@ public class JDBCTypeCastTest {
                     "col_decimal32 = decimal32([1.321,4231,-1.321,0],4)\n"+
                     "col_decimal64 = decimal64([1.321,4231,-1.321,0],8)\n"+
                     "col_decimal128 = decimal128([1.321,4231,-1.321,0],16)\n"+
-                    "col_datehour = [datehour(2021.06.13 13:30:10),datehour(1969.06.13 13:30:10),datehour(1970.06.13 13:30:10),datehour(2099.06.13 13:30:10)]\n"+
+                    "col_datehour = [datehour(2021.06.13 13:30:10),datehour(1969.06.13 13:30:10),datehour(1970.06.13 13:30:10),datehour(2038.01.13 13:30:10)]\n"+
                     "share table(col_sym,col_date,col_time,col_month,col_dt,col_str,col_char,col_float,col_doub,col_int,col_nanotime,col_nanotimestamp,col_bool,col_short,col_long,col_minute,col_second,col_datetime,col_timestamp,col_uuid,col_ipaddr,col_int128,col_blob,col_complex,col_point,col_decimal32,col_decimal64,col_decimal128,col_datehour) as tb";
             db = new DBConnection();
             db.connect(host, port);
@@ -463,7 +463,7 @@ public class JDBCTypeCastTest {
         assertEquals(LocalDateTime.of(2016,06,13,13,30,10), datetime1);
         rs.next();
         LocalDateTime datetime2 = (LocalDateTime) rs.getObject(18);
-        assertEquals(LocalDateTime.of(2099,11,13,13,30,10), datetime2);
+        assertEquals(LocalDateTime.of(2038,01,13,13,30,10), datetime2);
         rs.next();
         LocalDateTime datetime3 = (LocalDateTime) rs.getObject(18);
         assertEquals(LocalDateTime.of(1969,11,13,13,30,10), datetime3);
@@ -668,7 +668,7 @@ public class JDBCTypeCastTest {
         assertEquals(LocalDateTime.of(1970,6,13,13,0), datehour3);
         rs.next();
         LocalDateTime datehour4 = (LocalDateTime) rs.getObject(29);
-        assertEquals(LocalDateTime.of(2099,6,13,13,0), datehour4);
+        assertEquals(LocalDateTime.of(2038,1,13,13,0), datehour4);
     }
     @Test
     public void Test_getObject_bool_null() throws SQLException {

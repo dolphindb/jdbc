@@ -1,5 +1,7 @@
 # DolphinDB JDBC 连接器
 
+> 注意：该 Readme 不再进行维护。用户可移步至 DolphinDB 官方文档中心 [JDBC API 手册](https://docs.dolphindb.cn/zh/api/jdbc.html)。 
+
 DolphinDB 提供 JDBC 的接口的连接器，可以让支持 JDBC 接口的客户端程序直接接入 DolphinDB。DolphinDB 的 JDBC 接口基于 DolphinDB Java API 的包实现。
 
 JDBC 接口主要通过 `JDBCStatement`, `JDBCPrepareStatement` 与 `JDBCCallableStatement` 提供直接执行和预编译执行三种方式的接口。

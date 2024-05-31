@@ -1,5 +1,7 @@
 # JDBC 发行说明
 
+> 注意：该文档不再进行维护。用户可移步至 DolphinDB 官方文档中心 [JDBC 版本说明](https://docs.dolphindb.cn/zh/rn/api/rn_jdbc.html)。 
+
 **注意：为提升用户体验，DolphinDB JDBC 连接器的版本号现已调整。新的版本号与 DolphinDB Server 200 系列对齐。**
 
 ## 2.00.11.1

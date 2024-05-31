@@ -5,6 +5,7 @@ import com.xxdb.data.Entity;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Objects;
 
 public class JDBCResultSetMetaData implements ResultSetMetaData{
 
@@ -26,7 +27,10 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
 
     @Override
     public int getColumnCount() throws SQLException {
-        return table.columns();
+        if (Objects.nonNull(table))
+            return table.columns();
+        else
+            return -1;
     }
 
     @Override

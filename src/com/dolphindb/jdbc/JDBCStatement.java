@@ -1,11 +1,6 @@
 package com.dolphindb.jdbc;
 
-import com.xxdb.data.BasicInt;
-import com.xxdb.data.BasicTable;
-import com.xxdb.data.Entity;
-import com.xxdb.data.EntityBlockReader;
-import com.xxdb.io.ProgressListener;
-
+import com.xxdb.data.*;
 import java.io.IOException;
 import java.sql.*;
 import java.text.MessageFormat;
@@ -157,6 +152,7 @@ public class JDBCStatement implements Statement {
 
     @Override
     public int executeUpdate(String sql) throws SQLException {
+        sql = Utils.changeCase(sql, connection);
         sql = sql.trim();
         while (sql.endsWith(";"))
         	sql = sql.substring(0, sql.length() - 1);
@@ -178,22 +174,14 @@ public class JDBCStatement implements Statement {
                             throw new SQLException(e);
                         }
                     } else {
-                        String[] values = lastStatement.substring(lastStatement.indexOf("values") + "values".length()).replaceAll("\\(|\\)", "").split(",");
-                        StringBuilder sqlSb = new StringBuilder("append!(").append(tableName).append(",").append("table(");
-
-                        String colName = "col";
-                        int colIndex = 1;
-                        for (String value : values) {
-                            sqlSb.append(value).append(" as ").append(colName+colIndex).append(",");
-                            colIndex++;
-                        }
-                        sqlSb.delete(sqlSb.length() - ",".length(), sqlSb.length());
-                        sqlSb.append("))");
+                        String INSERT_SQL_COMMA_SPLIT_REGEX = ",(?=(?:[^()]*\\([^()]*\\))*[^()]*$)";
+                        String[] values = lastStatement.substring(lastStatement.indexOf("values") + "values".length()).replaceAll("^\\(|\\)$", "").split(INSERT_SQL_COMMA_SPLIT_REGEX, -1);
+                        String runSql = processValueInSql(tableName, values);
                         try {
-                            connection.run(sqlSb.toString());
+                            connection.run(runSql);
                             return SUCCESS_NO_INFO;
                         } catch (IOException e) {
-                            new SQLException(e);
+                            throw new SQLException(e);
                         }
                     }
                 } else {
@@ -226,6 +214,67 @@ public class JDBCStatement implements Statement {
                 }
                 return 0;
         }
+    }
+
+    protected String processValueInSql(String tableName, String[] values) {
+        StringBuilder sqlSb = new StringBuilder("append!(").append(tableName).append(",").append("table(");
+
+        String colName = "col";
+        int colIndex = 1;
+
+        AbstractVector typeStringVec;
+        try {
+            typeStringVec = getNULLValueType(tableName);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        for (int i = 0; i < values.length; i++) {
+            if (values[i].trim().equals("NULL")) {
+                String nullValueType = typeStringVec.get(i).getString().toLowerCase();
+                sqlSb.append(nullValueType).append("(").append(values[i]).append(")").append(" as ").append(colName+colIndex).append(",");
+                colIndex++;
+            } else if (values[i].trim().equals("")) {
+                String nullValueType = typeStringVec.get(i).getString().toLowerCase();
+                if (nullValueType.equals("complex") || nullValueType.equals("point")) {
+                    sqlSb.append(nullValueType).append("(00i,00i)").append(" as ").append(colName+colIndex).append(",");
+                } else if (nullValueType.contains("decimal")) {
+                    String DECIMAL_REGEX = "decimal(32|64|128)\\((\\d+)\\)";
+                    String NULL_replacement = "decimal$1(NULL, $2)";
+                    String replacedDecimal = nullValueType.replaceAll(DECIMAL_REGEX, NULL_replacement);
+                    sqlSb.append(replacedDecimal).append(" as ").append(colName+colIndex).append(",");
+                } else if (nullValueType.equals("symbol")) {
+                    sqlSb.append("array(SYMBOL, 0, 1)").append(" as ").append(colName+colIndex).append(",");
+                } else if (nullValueType.equals("uuid")) {
+                    sqlSb.append("uuid(\"\")").append(" as ").append(colName+colIndex).append(",");
+                } else if (nullValueType.equals("ipaddr")) {
+                    sqlSb.append("ipaddr(\"\")").append(" as ").append(colName+colIndex).append(",");
+                } else if (nullValueType.equals("int128")) {
+                    sqlSb.append("int128(\"\")").append(" as ").append(colName+colIndex).append(",");
+                } else if (nullValueType.equals("blob")) {
+                    sqlSb.append("blob(string(NULL))").append(" as ").append(colName+colIndex).append(",");
+                } else {
+                    sqlSb.append(nullValueType).append("(NULL)").append(" as ").append(colName+colIndex).append(",");
+                }
+                colIndex++;
+            } else {
+                sqlSb.append(values[i]).append(" as ").append(colName+colIndex).append(",");
+                colIndex++;
+            }
+
+        }
+
+        sqlSb.delete(sqlSb.length() - ",".length(), sqlSb.length());
+        sqlSb.append("))");
+
+        return sqlSb.toString();
+    }
+
+    protected AbstractVector getNULLValueType(String tableName) throws IOException {
+        BasicDictionary schema = (BasicDictionary) connection.run(String.format("schema(%s)", tableName));
+        BasicTable colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+        AbstractVector typeStringVec = (AbstractVector) colDefs.getColumn("typeString");
+       return typeStringVec;
     }
 
     @Override
@@ -439,14 +488,18 @@ public class JDBCStatement implements Statement {
     }
 
     @Override
-    public void setFetchDirection(int fetchDirection) throws SQLException {
-        Driver.unused();
+    public void setFetchDirection(int direction) throws SQLException {
+        switch (direction) {
+            case java.sql.ResultSet.FETCH_FORWARD:
+                break;
+            default:
+                throw new SQLException("DolpinDB JDBC Statement direction only suppport FETCH_FORWARD.");
+        }
     }
 
     @Override
     public int getFetchDirection() throws SQLException {
-        Driver.unused();
-        return 0;
+        return java.sql.ResultSet.FETCH_FORWARD;
     }
 
     @Override

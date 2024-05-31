@@ -330,7 +330,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public String getIdentifierQuoteString() {
-        return "`";
+        return " ";
     }
 
     @Override
@@ -519,7 +519,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 cols.add(catalogVec);
                 Schemas = new JDBCResultSet(connection, statement, new BasicTable(colNames, cols),"");
             } else {
-                Schemas = new JDBCResultSet(connection, statement, null,"");
+                Schemas = new JDBCResultSet(connection, statement, (Entity) null,"");
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -1010,7 +1010,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsSchemasInDataManipulation() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override
@@ -1020,7 +1020,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsSchemasInTableDefinitions() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override
@@ -1045,7 +1045,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean supportsCatalogsInTableDefinitions() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override

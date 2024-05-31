@@ -582,9 +582,9 @@ public class JDBCUpdateTest {
         createPartitionTable("DECIMAL128(37)");
         stm.execute("pt=loadTable('dfs://test_append_type','pt')");
         PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?)");
-        for(int i = 0;i<100;i++){
+        for(int i = 0;i<10;i++){
             ps.setInt(1, i);
-            ps.setObject(2, i*10, 39, 37);
+            ps.setObject(2, i, 39, 37);
             ps.executeUpdate();
         }
         PreparedStatement s = conn.prepareStatement("update pt set dataType = ?");

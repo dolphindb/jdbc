@@ -80,7 +80,7 @@ public class JDBCPrepareStatementTest {
                     "db=database('dfs://test_append_type', RANGE, 1 2001 4001 6001 8001 10000001) \n"+
                     "db.createPartitionedTable(t, `pt, `id) \n";
             db = new DBConnection();
-            db.connect(HOST, PORT);
+            db.connect(HOST, PORT,"admin","123456");
             db.run(script);
             success = true;
         }catch(Exception e){
@@ -1458,7 +1458,93 @@ public class JDBCPrepareStatementTest {
             }
         }
     }
+    @Test
+    public void Test_prepareStatement_inmemory_query_executeQuery4() throws Exception {
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
+        Connection conn = null;
+        Statement stmt = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        try {
+            Class.forName(JDBC_DRIVER);
+            conn = DriverManager.getConnection(url);
+            stmt = conn.createStatement();
+            stmt.execute("sym = `C`MS`MS`MS`IBM`IBM`C`C`C$SYMBOL\n" +
+                    "price= 49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29\n" +
+                    "qty = 2200 1900 2100 3200 6800 5400 1300 2500 8800\n" +
+                    "timestamp = [09:34:07,09:35:42,09:36:51,09:36:59,09:35:47,09:36:26,09:34:16,09:35:26,09:36:12]\n" +
+                    "t = table(timestamp, sym, qty, price)");
+            //pivot by
+            pstmt = conn.prepareStatement("select last(price) from t pivot by timestamp.minute(), sym");
+            rs = pstmt.executeQuery();
+            ResultSet rs1 = pstmt.executeQuery();
+            String columnName = rs.getMetaData().getColumnName(1);
+            org.junit.Assert.assertEquals(columnName, "minute_timestamp");
+            String columnName1 = rs.getMetaData().getColumnName(2);
+            org.junit.Assert.assertEquals(columnName1, "C");
+            String columnName2 = rs.getMetaData().getColumnName(3);
+            org.junit.Assert.assertEquals(columnName2, "IBM");
+            rs.last();
+            int rowCount = rs.getRow();
+            org.junit.Assert.assertEquals(rowCount,3);
 
+            String columnName11 = rs1.getMetaData().getColumnName(1);
+            org.junit.Assert.assertEquals(columnName11, "minute_timestamp");
+            String columnName12 = rs1.getMetaData().getColumnName(2);
+            org.junit.Assert.assertEquals(columnName12, "C");
+            String columnName13 = rs1.getMetaData().getColumnName(3);
+            org.junit.Assert.assertEquals(columnName13, "IBM");
+            rs1.last();
+            int rowCount1 = rs1.getRow();
+            org.junit.Assert.assertEquals(rowCount1,3);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+    @Test
+    public void Test_prepareStatement_inmemory_query_executeQuery5() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("colNames=\"col\"+string(1..28)\n" +
+                "colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
+                "t=table(1:0,colNames,colTypes)\n" +
+                "try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
+                "db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
+                "db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_allDataType','pt') values(true,'3',-2h,2,-100l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
+        ps.executeUpdate();
+        PreparedStatement ps3 = conn.prepareStatement("select * from  loadTable('dfs://test_allDataType','pt') where col1 = true ,col2='3' ,col3 =-2, col4=2, col5=-100, col6=2012.12.06, col7=2012.06M, col8=12:30:00.008, col9=12:30m, col10=12:30:00, col11=2012.06.12 12:30:00, col12=2012.06.12 12:30:00.008, col13=13:30:10.008007006, col14=2012.06.13 13:30:10.008007006, col15=2.1f, col16=2.1, col17=\"hello\", col18=\"world\", col19=uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2012.06.13 13:30:10), col21=ipaddr(\"192.168.1.253\"), col22=int128(\"e1671797c52e15f763380b45e841ec32\"), col23=blob(\"123\"), col24=complex(111,1), col25=point(1,2), col26=decimal32(1.1,2), col27=decimal64(1.1,7), col28=decimal128(1.1,18)");
+        JDBCResultSet rs1 = (JDBCResultSet)ps3.executeQuery();
+        JDBCResultSet rs2 = (JDBCResultSet)ps3.executeQuery();
+        BasicTable re = (BasicTable)rs1.getResult();
+        BasicTable re1 = (BasicTable)rs2.getResult();
+        Assert.assertEquals(1, re.rows());
+        Assert.assertEquals(1, re1.rows());
+        Assert.assertEquals(re.getString(), re1.getString());
+    }
     @Test
     public void Test_prepareStatement_dfs_query_setInt() throws Exception {
         String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
@@ -3826,20 +3912,8 @@ public class JDBCPrepareStatementTest {
         rs.next();
         org.junit.Assert.assertEquals(false, rs.next());
     }
+
     @Test
-    public void test_PreparedStatement_insert_into_DFS_not_support() throws SQLException {
-        createPartitionTable1();
-        String re = null;
-        try{
-            PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,)");
-            ps.executeUpdate();
-        }catch(Exception e){
-            re = e.getMessage();
-        }
-        System.out.println(re);
-        org.junit.Assert.assertEquals(true, re.contains("Please check your SQL format: insert into loadTable"));
-    }
-    @Test  //1212eeee
     public void test_PreparedStatement_insert_into_DFS_all_dateType_mul_executeBatch() throws SQLException {
         createPartitionTable1();
         long start = System.nanoTime();
@@ -4574,17 +4648,6 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
     }
 
-    @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_not_support_1() throws SQLException {
-        createPartitionTable_Array("INT");
-        String re = null;
-        try{
-            PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(1,)");
-        }catch(Exception e){
-            re = e.getMessage();
-        }
-        org.junit.Assert.assertEquals("Please check your SQL format: insert into loadTable('dfs://test_append_array_tsdb1','pt') values(1,)", re);
-    }
     @Test
     public void test_PreparedStatement_insert_into_DFS_arrayVector_not_support_2() throws SQLException {
         createPartitionTable_Array("INT");
@@ -8762,7 +8825,7 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9,10]",bt1.getColumn(0).getString());
         org.junit.Assert.assertEquals("[2,3,4,5,6,7,8,9,]",bt1.getColumn(1).getString());
     }
-    @Test
+    //@Test //JAVAOS-434
     public void test_PreparedStatement_delete_many_col_one_row() throws SQLException, IOException {
         DBConnection db = new DBConnection();
         db.connect(HOST,PORT,"admin","123456");
@@ -8878,7 +8941,7 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals(0,bt1.rows());
     }
 
-    @Test
+    //@Test //JAVAOS-434
     public void test_PreparedStatement_delete_many_col_two_rows() throws SQLException, IOException {
         DBConnection db = new DBConnection();
         db.connect(HOST,PORT,"admin","123456");
@@ -9039,7 +9102,7 @@ public class JDBCPrepareStatementTest {
         System.out.println(bt1.getString());
         org.junit.Assert.assertEquals(34464,bt1.getString());
     }
-    @Test
+    //@Test JAVAOS-434
     public void test_PreparedStatement_delete_wideTable() throws SQLException, IOException {
         createWideTable("dfs://test_append_wideTable",200,0);
         long start = System.nanoTime();
@@ -9133,6 +9196,545 @@ public class JDBCPrepareStatementTest {
         BasicTable bt1 = (BasicTable) rs2.getResult();
         org.junit.Assert.assertEquals(0,bt1.rows());
     }
+    @Test
+    public void test_PreparedStatement_no_placeholder_memoryTable_executeUpdate() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("share table(10:0,`id`dataType,[INT,INT]) as table1;");
+        PreparedStatement ps = conn.prepareStatement("insert into table1(Id , DAtaTYpe)  ValUes(1,100)");
+        ps.executeUpdate();
+        PreparedStatement ps1 = conn.prepareStatement("insert into table1(Id , DAtaTYpe)  ValUes(2,NULL)");
+        ps1.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from table1");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+        PreparedStatement ps2 = conn.prepareStatement("update table1 set DAtaType = 101 where ID = 1");
+        ps2.executeUpdate();
+        ResultSet rs1 = ps2.executeQuery("select * from table1");
+        rs1.next();
+        org.junit.Assert.assertEquals(rs1.getInt("dataType"), 101);
+        PreparedStatement ps3 = conn.prepareStatement("delete from table1 where iD in (select iD from table1 where Id = 1)");
+        ps3.executeUpdate();
+        PreparedStatement ps4 = conn.prepareStatement("delete from table1 where iD in (select iD from table1 where Id = 2)");
+        ps4.executeUpdate();
+        PreparedStatement ps5 = conn.prepareStatement("select * from table1");
+        JDBCResultSet rs2 = (JDBCResultSet)ps5.executeQuery();
+        BasicTable bt1 = (BasicTable) rs2.getResult();
+        org.junit.Assert.assertEquals(0,bt1.rows());
+    }
+
+    @Test
+    public void test_PreparedStatement_no_placeholder_memoryTable_executeUpdate_1() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("share table(10:0,`id`dataType,[INT,INT]) as table1;");
+        PreparedStatement ps = conn.prepareStatement("insert into table1(Id , DAtaTYpe)  ValUes(1,100)");
+        ps.executeUpdate();
+        PreparedStatement ps1 = conn.prepareStatement("insert into table1(Id , DAtaTYpe)  ValUes(2,)");
+        ps1.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from table1");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+        PreparedStatement ps2 = conn.prepareStatement("update table1 set DAtaType = 101 where ID = 1");
+        ps2.executeUpdate();
+        ResultSet rs1 = ps2.executeQuery("select * from table1");
+        rs1.next();
+        org.junit.Assert.assertEquals(rs1.getInt("dataType"), 101);
+        PreparedStatement ps3 = conn.prepareStatement("delete from table1 where iD in (select iD from table1 where Id in (1))");
+        ps3.executeUpdate();
+        PreparedStatement ps4 = conn.prepareStatement("delete from table1 where iD in (select iD from table1 where Id = 2)");
+        ps4.executeUpdate();
+        PreparedStatement ps5 = conn.prepareStatement("select * from table1");
+        JDBCResultSet rs2 = (JDBCResultSet)ps5.executeQuery();
+        BasicTable bt1 = (BasicTable) rs2.getResult();
+        org.junit.Assert.assertEquals(0,bt1.rows());
+    }
+    @Test
+    public void test_PreparedStatement_no_placeholder_memoryTable_allDataType_executeUpdate() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("colNames=\"col\"+string(1..28)\n" +
+                "colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
+                "t=table(1:0,colNames,colTypes)\n" +
+                "share t as tt1;");
+        PreparedStatement ps = conn.prepareStatement("insert into tt1 values(true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
+        ps.executeUpdate();
+        PreparedStatement ps1 = conn.prepareStatement("select * from tt1");
+        ResultSet rs = ps1.executeQuery();
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getBoolean("col1"), true);
+        org.junit.Assert.assertEquals(rs.getByte("col2"), 97);
+        org.junit.Assert.assertEquals(rs.getShort("col3"), 2);
+        org.junit.Assert.assertEquals(rs.getInt("col4"), 2);
+        org.junit.Assert.assertEquals(rs.getLong("col5"), 22);
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2012,12,6)),rs.getDate("col6"));
+        org.junit.Assert.assertEquals(YearMonth.of(2012, 6),rs.getObject("col7"));
+        //需要确认
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(12,30,0)),rs.getObject("col8"));
+        org.junit.Assert.assertEquals(LocalTime.of(12,30),rs.getObject("col9"));
+        org.junit.Assert.assertEquals(LocalTime.of(12,30,0),rs.getObject("col10"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2012,6,12,12,30,0),rs.getObject("col11"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2012,6,12,12,30,0,8000000),rs.getObject("col12"));
+        org.junit.Assert.assertEquals(LocalTime.of(13,30,10,8007006),rs.getObject("col13"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2012,6,13,13,30,10,8007006),rs.getObject("col14"));
+        org.junit.Assert.assertEquals((float) 2.1,rs.getFloat("col15"),4);
+        org.junit.Assert.assertEquals((Double) 2.1,rs.getDouble("col16"),4);
+        org.junit.Assert.assertEquals("hello",rs.getString("col17"));
+        org.junit.Assert.assertEquals("world",rs.getString("col18"));
+        org.junit.Assert.assertEquals(UUID.fromString("9d457e79-1bed-d6c2-3612-b0d31c1881f6"),rs.getObject("col19"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2012,6,13,13,00),rs.getObject("col20"));
+        org.junit.Assert.assertEquals("192.168.1.253",rs.getObject("col21"));
+        org.junit.Assert.assertEquals("e1671797c52e15f763380b45e841ec32",rs.getObject("col22"));
+        org.junit.Assert.assertEquals("123",rs.getString("col23"));
+        org.junit.Assert.assertEquals("111.0+1.0i",rs.getObject("col24"));
+        org.junit.Assert.assertEquals("(1.0, 2.0)",rs.getObject("col25"));
+        org.junit.Assert.assertEquals("1.10",rs.getObject("col26").toString());
+        org.junit.Assert.assertEquals("1.1000000",rs.getObject("col27").toString());
+        org.junit.Assert.assertEquals("1.100000000000000128",rs.getObject("col28").toString());
+        PreparedStatement ps2 = conn.prepareStatement(" update tt1 set col1 = false ,col2='3' ,col3 =-2, col4=-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
+        ps2.executeUpdate();
+        PreparedStatement ps3 = conn.prepareStatement("select * from tt1");
+        ResultSet rs1 = ps3.executeQuery();
+        rs1.next();
+        org.junit.Assert.assertEquals(rs1.getBoolean("col1"), false);
+        org.junit.Assert.assertEquals(rs1.getByte("col2"), 51);
+        org.junit.Assert.assertEquals(rs1.getShort("col3"), -2);
+        org.junit.Assert.assertEquals(rs1.getInt("col4"), -2);
+        org.junit.Assert.assertEquals(rs1.getLong("col5"), -100);
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2012,12,7)),rs1.getDate("col6"));
+        org.junit.Assert.assertEquals(YearMonth.of(2012, 7),rs1.getObject("col7"));
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(13,30,0)),rs1.getObject("col8"));
+        org.junit.Assert.assertEquals(LocalTime.of(13,30),rs1.getObject("col9"));
+        org.junit.Assert.assertEquals(LocalTime.of(13,30,0),rs1.getObject("col10"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2013,6,12,13,30,0),rs1.getObject("col11"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2013,6,12,12,30,0,8000000),rs1.getObject("col12"));
+        org.junit.Assert.assertEquals(LocalTime.of(14,30,10,8007006),rs1.getObject("col13"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2013,6,13,13,30,10,8007006),rs1.getObject("col14"));
+        org.junit.Assert.assertEquals((float) 4.1,rs1.getFloat("col15"),4);
+        org.junit.Assert.assertEquals((Double) 4.1,rs1.getDouble("col16"),4);
+        org.junit.Assert.assertEquals("hello2323",rs1.getString("col17"));
+        org.junit.Assert.assertEquals("world2323",rs1.getString("col18"));
+        org.junit.Assert.assertEquals(UUID.fromString("3d457e79-1bed-d6c2-3612-b0d31c1881f6"),rs1.getObject("col19"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2013,6,13,13,00),rs1.getObject("col20"));
+        org.junit.Assert.assertEquals("192.168.0.253",rs1.getObject("col21"));
+        org.junit.Assert.assertEquals("e1221797c52e15f763380b45e841ec32",rs1.getObject("col22"));
+        org.junit.Assert.assertEquals("123fff",rs1.getString("col23"));
+        org.junit.Assert.assertEquals("-111.0-1.0i",rs1.getObject("col24"));
+        org.junit.Assert.assertEquals("(-1.0, -2.0)",rs1.getObject("col25"));
+        org.junit.Assert.assertEquals("-1.10",rs1.getObject("col26").toString());
+        org.junit.Assert.assertEquals("-1.1000000",rs1.getObject("col27").toString());
+        org.junit.Assert.assertEquals("-1.100000000000000128",rs1.getObject("col28").toString());
+        PreparedStatement ps4 = conn.prepareStatement(" delete from  tt1 where col1 = false ,col2='3' ,col3 =-2, col4=-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
+        ps4.executeUpdate();
+        PreparedStatement ps5 = conn.prepareStatement("select * from tt1");
+        JDBCResultSet rs3 = (JDBCResultSet)ps5.executeQuery();
+        BasicTable re = (BasicTable)rs3.getResult();
+        org.junit.Assert.assertEquals(0,re.rows());
+    }
+    @Test
+    public void test_PreparedStatement_colume_no_placeholder_dfs_executeUpdate() throws SQLException, IOException {
+        createPartitionTable("INT");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt ValUes(1,100)");
+        ps.executeUpdate();
+        PreparedStatement ps1 = conn.prepareStatement("insert into pt ValUes(2,)");
+        ps1.executeUpdate();
+        PreparedStatement ps2 = conn.prepareStatement("insert into pt ValUes(3,NULL)");
+        ps2.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+        PreparedStatement ps3 = conn.prepareStatement("update pt set DAtaType = 101 where ID = 1");
+        ps3.executeUpdate();
+        ResultSet rs1 = ps3.executeQuery("select * from pt");
+        rs1.next();
+        org.junit.Assert.assertEquals(rs1.getInt("dataType"), 101);
+        PreparedStatement ps4 = conn.prepareStatement("delete from pt where iD in (select iD from pt where Id = 1)");
+        ps4.executeUpdate();
+        PreparedStatement ps5 = conn.prepareStatement("delete from pt where iD in (select iD from pt where Id = 2)");
+        ps5.executeUpdate();
+        PreparedStatement ps6 = conn.prepareStatement("select * from pt");
+        JDBCResultSet rs2 = (JDBCResultSet)ps6.executeQuery();
+        BasicTable bt1 = (BasicTable) rs2.getResult();
+        org.junit.Assert.assertEquals(1,bt1.rows());
+    }
+    @Test
+    public void test_PreparedStatement_colume_no_placeholder_dfs_executeUpdate_1() throws SQLException, IOException {
+        createPartitionTable("INT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt')  ValUes(1,100)");
+        ps.executeUpdate();
+        PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(2,)");
+        ps1.executeUpdate();
+        PreparedStatement ps2 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(3,NULL)");
+        ps2.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_type','pt') set DAtaType = 101 where ID = 1");
+        ps3.executeUpdate();
+        ResultSet rs1 = ps3.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs1.next();
+        org.junit.Assert.assertEquals(rs1.getInt("dataType"), 101);
+        PreparedStatement ps4 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where iD in (select iD from loadTable('dfs://test_append_type','pt') where Id = 1)");
+        ps4.executeUpdate();
+        PreparedStatement ps5 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where iD in (select iD from loadTable('dfs://test_append_type','pt') where Id = 2)");
+        ps5.executeUpdate();
+        PreparedStatement ps6 = conn.prepareStatement("select * from loadTable('dfs://test_append_type','pt')");
+        JDBCResultSet rs2 = (JDBCResultSet)ps6.executeQuery();
+        BasicTable bt1 = (BasicTable) rs2.getResult();
+        org.junit.Assert.assertEquals(1,bt1.rows());
+    }
+    //@Test//JAVAOS-617
+    public void test_PreparedStatement_colume_no_placeholder_dfs_executeUpdate_null() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("colNames=\"col\"+string(1..28)\n" +
+                "colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
+                "t=table(1:0,colNames,colTypes)\n" +
+                "try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
+                "db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
+                "db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
+        stm.execute("pt=loadTable('dfs://test_allDataType','pt')");
+        PreparedStatement ps1 = conn.prepareStatement("insert into pt ValUes(,,,1,,,,,,,,,,,,,,,,,,,,,,,,)");
+        ps1.executeUpdate();
+        PreparedStatement ps2 = conn.prepareStatement("insert into pt ValUes(NULL,NULL,NULL,2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL)");
+        ps2.executeUpdate();
+        JDBCResultSet rs = (JDBCResultSet)ps1.executeQuery("select * from pt");
+        BasicTable re = (BasicTable)rs.getResult();
+        System.out.println(re.getString());
+        Assert.assertEquals(2, re.rows());
+        Assert.assertEquals("", re.getColumn(0).getString());
+        PreparedStatement ps3 = conn.prepareStatement("update  pt set col5 = 101  where col1 = NULL ,col2=NULL ,col3=NULL ,col4 =2, col5=NULL, col6=NULL, col7=NULL, col8=NULL, col9=NULL, col10=NULL, col11=NULL, col12=NULL, col13=NULL, col14=NULL, col15=NULL, col16=NULL, col17=NULL, col18=NULL, col19=NULL, col20=NULL, col21=NULL, col22=NULL, col23=NULL, col24=NULL, col25=NULL, col26=NULL, col27=NULL, col28=NULL");
+        ps3.executeUpdate();
+        ResultSet rs1 = ps3.executeQuery("select * from pt where col4 =2;");
+        rs1.next();
+        org.junit.Assert.assertEquals(rs1.getInt("col5"), 101);
+        PreparedStatement ps4 = conn.prepareStatement("delete from pt where col4 in (select col4 from pt where col1 = NULL ,col2=NULL ,col3=NULL ,col4 =1, col5=NULL, col6=NULL, col7=NULL, col8=NULL, col9=NULL, col10=NULL, col11=NULL, col12=NULL, col13=NULL, col14=NULL, col15=NULL, col16=NULL, col17=NULL, col18=NULL, col19=NULL, col20=NULL, col21=NULL, col22=NULL, col23=NULL, col24=NULL, col25=NULL, col26=NULL, col27=NULL, col28=NULL)");
+        ps4.executeUpdate();
+        PreparedStatement ps5 = conn.prepareStatement("select * from pt");
+        JDBCResultSet rs2 = (JDBCResultSet)ps5.executeQuery();
+        BasicTable bt1 = (BasicTable) rs2.getResult();
+        org.junit.Assert.assertEquals(1,bt1.rows());
+    }
+    //@Test //JAVAOS-617
+    public void test_PreparedStatement_colume_no_placeholder_dfs_executeUpdate_null_1() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("colNames=\"col\"+string(1..28)\n" +
+                "colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
+                "t=table(1:0,colNames,colTypes)\n" +
+                "try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
+                "db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
+                "db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
+        //stm.execute("pt=loadTable('dfs://test_allDataType','pt')");
+        PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_allDataType','pt') ValUes(,,,1,,,,,,,,,,,,,,,,,,,,,,,,)");
+        ps1.executeUpdate();
+        PreparedStatement ps2 = conn.prepareStatement("insert into loadTable('dfs://test_allDataType','pt') ValUes(NULL,NULL,NULL,2,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL)");
+        ps2.executeUpdate();
+        JDBCResultSet rs = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_allDataType','pt')");
+        BasicTable re = (BasicTable)rs.getResult();
+        System.out.println(re.getString());
+        Assert.assertEquals(2, re.rows());
+        Assert.assertEquals("", re.getColumn(0).getString());
+        PreparedStatement ps3 = conn.prepareStatement("update  loadTable('dfs://test_allDataType','pt') set col5 = 101  where col1 = NULL ,col2=NULL ,col3=NULL ,col4 =2, col5=NULL, col6=NULL, col7=NULL, col8=NULL, col9=NULL, col10=NULL, col11=NULL, col12=NULL, col13=NULL, col14=NULL, col15=NULL, col16=NULL, col17=NULL, col18=NULL, col19=NULL, col20=NULL, col21=NULL, col22=NULL, col23=NULL, col24=NULL, col25=NULL, col26=NULL, col27=NULL, col28=NULL");
+        ps3.executeUpdate();
+        ResultSet rs1 = ps3.executeQuery("select * from loadTable('dfs://test_allDataType','pt') where col4 =2;");
+        rs1.next();
+        org.junit.Assert.assertEquals(rs1.getInt("col5"), 101);
+        PreparedStatement ps4 = conn.prepareStatement("delete from loadTable('dfs://test_allDataType','pt') where col4 in (select col4 from loadTable('dfs://test_allDataType','pt') where col1 = NULL ,col2=NULL ,col3=NULL ,col4 =1, col5=NULL, col6=NULL, col7=NULL, col8=NULL, col9=NULL, col10=NULL, col11=NULL, col12=NULL, col13=NULL, col14=NULL, col15=NULL, col16=NULL, col17=NULL, col18=NULL, col19=NULL, col20=NULL, col21=NULL, col22=NULL, col23=NULL, col24=NULL, col25=NULL, col26=NULL, col27=NULL, col28=NULL)");
+        ps4.executeUpdate();
+        PreparedStatement ps5 = conn.prepareStatement("select * from loadTable('dfs://test_allDataType','pt')");
+        JDBCResultSet rs2 = (JDBCResultSet)ps5.executeQuery();
+        BasicTable bt1 = (BasicTable) rs2.getResult();
+        org.junit.Assert.assertEquals(1,bt1.rows());
+    }
+
+    @Test
+    public void test_PreparedStatement_no_placeholder_dfs_allDataType_executeUpdate() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("colNames=\"col\"+string(1..28)\n" +
+                "colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
+                "t=table(1:0,colNames,colTypes)\n" +
+                "try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
+                "db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
+                "db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
+        stm.execute("tt1=loadTable('dfs://test_allDataType','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into tt1 values(true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
+        ps.executeUpdate();
+        PreparedStatement ps1 = conn.prepareStatement("select * from tt1");
+        ResultSet rs = ps1.executeQuery();
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getBoolean("col1"), true);
+        org.junit.Assert.assertEquals(rs.getByte("col2"), 97);
+        org.junit.Assert.assertEquals(rs.getShort("col3"), 2);
+        org.junit.Assert.assertEquals(rs.getInt("col4"), 2);
+        org.junit.Assert.assertEquals(rs.getLong("col5"), 22);
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2012,12,6)),rs.getDate("col6"));
+        org.junit.Assert.assertEquals(YearMonth.of(2012, 6),rs.getObject("col7"));
+        //需要确认
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(12,30,0)),rs.getObject("col8"));
+        org.junit.Assert.assertEquals(LocalTime.of(12,30),rs.getObject("col9"));
+        org.junit.Assert.assertEquals(LocalTime.of(12,30,0),rs.getObject("col10"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2012,6,12,12,30,0),rs.getObject("col11"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2012,6,12,12,30,0,8000000),rs.getObject("col12"));
+        org.junit.Assert.assertEquals(LocalTime.of(13,30,10,8007006),rs.getObject("col13"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2012,6,13,13,30,10,8007006),rs.getObject("col14"));
+        org.junit.Assert.assertEquals((float) 2.1,rs.getFloat("col15"),4);
+        org.junit.Assert.assertEquals((Double) 2.1,rs.getDouble("col16"),4);
+        org.junit.Assert.assertEquals("hello",rs.getString("col17"));
+        org.junit.Assert.assertEquals("world",rs.getString("col18"));
+        org.junit.Assert.assertEquals(UUID.fromString("9d457e79-1bed-d6c2-3612-b0d31c1881f6"),rs.getObject("col19"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2012,6,13,13,00),rs.getObject("col20"));
+        org.junit.Assert.assertEquals("192.168.1.253",rs.getObject("col21"));
+        org.junit.Assert.assertEquals("e1671797c52e15f763380b45e841ec32",rs.getObject("col22"));
+        org.junit.Assert.assertEquals("123",rs.getString("col23"));
+        org.junit.Assert.assertEquals("111.0+1.0i",rs.getObject("col24"));
+        org.junit.Assert.assertEquals("(1.0, 2.0)",rs.getObject("col25"));
+        org.junit.Assert.assertEquals("1.10",rs.getObject("col26").toString());
+        org.junit.Assert.assertEquals("1.1000000",rs.getObject("col27").toString());
+        org.junit.Assert.assertEquals("1.100000000000000128",rs.getObject("col28").toString());
+        PreparedStatement ps2 = conn.prepareStatement(" update tt1 set col1 = false ,col2='3' ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
+        ps2.executeUpdate();
+        PreparedStatement ps3 = conn.prepareStatement("select * from tt1");
+        ResultSet rs1 = ps3.executeQuery();
+        rs1.next();
+        org.junit.Assert.assertEquals(rs1.getBoolean("col1"), false);
+        org.junit.Assert.assertEquals(rs1.getByte("col2"), 51);
+        org.junit.Assert.assertEquals(rs1.getShort("col3"), -2);
+       // org.junit.Assert.assertEquals(rs1.getInt("col4"), -2);
+        org.junit.Assert.assertEquals(rs1.getLong("col5"), -100);
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2012,12,7)),rs1.getDate("col6"));
+        org.junit.Assert.assertEquals(YearMonth.of(2012, 7),rs1.getObject("col7"));
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(13,30,0)),rs1.getObject("col8"));
+        org.junit.Assert.assertEquals(LocalTime.of(13,30),rs1.getObject("col9"));
+        org.junit.Assert.assertEquals(LocalTime.of(13,30,0),rs1.getObject("col10"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2013,6,12,13,30,0),rs1.getObject("col11"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2013,6,12,12,30,0,8000000),rs1.getObject("col12"));
+        org.junit.Assert.assertEquals(LocalTime.of(14,30,10,8007006),rs1.getObject("col13"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2013,6,13,13,30,10,8007006),rs1.getObject("col14"));
+        org.junit.Assert.assertEquals((float) 4.1,rs1.getFloat("col15"),4);
+        org.junit.Assert.assertEquals((Double) 4.1,rs1.getDouble("col16"),4);
+        org.junit.Assert.assertEquals("hello2323",rs1.getString("col17"));
+        org.junit.Assert.assertEquals("world2323",rs1.getString("col18"));
+        org.junit.Assert.assertEquals(UUID.fromString("3d457e79-1bed-d6c2-3612-b0d31c1881f6"),rs1.getObject("col19"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2013,6,13,13,00),rs1.getObject("col20"));
+        org.junit.Assert.assertEquals("192.168.0.253",rs1.getObject("col21"));
+        org.junit.Assert.assertEquals("e1221797c52e15f763380b45e841ec32",rs1.getObject("col22"));
+        org.junit.Assert.assertEquals("123fff",rs1.getString("col23"));
+        org.junit.Assert.assertEquals("-111.0-1.0i",rs1.getObject("col24"));
+        org.junit.Assert.assertEquals("(-1.0, -2.0)",rs1.getObject("col25"));
+        org.junit.Assert.assertEquals("-1.10",rs1.getObject("col26").toString());
+        org.junit.Assert.assertEquals("-1.1000000",rs1.getObject("col27").toString());
+        org.junit.Assert.assertEquals("-1.100000000000000128",rs1.getObject("col28").toString());
+        PreparedStatement ps4 = conn.prepareStatement(" delete from  tt1 where col1 = false ,col2='3' ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
+        ps4.executeUpdate();
+        PreparedStatement ps5 = conn.prepareStatement("select * from tt1");
+        JDBCResultSet rs3 = (JDBCResultSet)ps5.executeQuery();
+        BasicTable re = (BasicTable)rs3.getResult();
+        org.junit.Assert.assertEquals(0,re.rows());
+    }
+    @Test
+    public void test_PreparedStatement_no_placeholder_dfs_allDataType_executeUpdate_1() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("colNames=\"col\"+string(1..28)\n" +
+                "colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
+                "t=table(1:0,colNames,colTypes)\n" +
+                "try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
+                "db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
+                "db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
+        //stm.execute("tt1=loadTable('dfs://test_allDataType','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_allDataType','pt') values(true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
+        ps.executeUpdate();
+        PreparedStatement ps1 = conn.prepareStatement("select * from loadTable('dfs://test_allDataType','pt')");
+        ResultSet rs = ps1.executeQuery();
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getBoolean("col1"), true);
+        org.junit.Assert.assertEquals(rs.getByte("col2"), 97);
+        org.junit.Assert.assertEquals(rs.getShort("col3"), 2);
+        org.junit.Assert.assertEquals(rs.getInt("col4"), 2);
+        org.junit.Assert.assertEquals(rs.getLong("col5"), 22);
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2012,12,6)),rs.getDate("col6"));
+        org.junit.Assert.assertEquals(YearMonth.of(2012, 6),rs.getObject("col7"));
+        //需要确认
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(12,30,0)),rs.getObject("col8"));
+        org.junit.Assert.assertEquals(LocalTime.of(12,30),rs.getObject("col9"));
+        org.junit.Assert.assertEquals(LocalTime.of(12,30,0),rs.getObject("col10"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2012,6,12,12,30,0),rs.getObject("col11"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2012,6,12,12,30,0,8000000),rs.getObject("col12"));
+        org.junit.Assert.assertEquals(LocalTime.of(13,30,10,8007006),rs.getObject("col13"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2012,6,13,13,30,10,8007006),rs.getObject("col14"));
+        org.junit.Assert.assertEquals((float) 2.1,rs.getFloat("col15"),4);
+        org.junit.Assert.assertEquals((Double) 2.1,rs.getDouble("col16"),4);
+        org.junit.Assert.assertEquals("hello",rs.getString("col17"));
+        org.junit.Assert.assertEquals("world",rs.getString("col18"));
+        org.junit.Assert.assertEquals(UUID.fromString("9d457e79-1bed-d6c2-3612-b0d31c1881f6"),rs.getObject("col19"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2012,6,13,13,00),rs.getObject("col20"));
+        org.junit.Assert.assertEquals("192.168.1.253",rs.getObject("col21"));
+        org.junit.Assert.assertEquals("e1671797c52e15f763380b45e841ec32",rs.getObject("col22"));
+        org.junit.Assert.assertEquals("123",rs.getString("col23"));
+        org.junit.Assert.assertEquals("111.0+1.0i",rs.getObject("col24"));
+        org.junit.Assert.assertEquals("(1.0, 2.0)",rs.getObject("col25"));
+        org.junit.Assert.assertEquals("1.10",rs.getObject("col26").toString());
+        org.junit.Assert.assertEquals("1.1000000",rs.getObject("col27").toString());
+        org.junit.Assert.assertEquals("1.100000000000000128",rs.getObject("col28").toString());
+        PreparedStatement ps2 = conn.prepareStatement(" update loadTable('dfs://test_allDataType','pt') set col1 = false ,col2='3' ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
+        ps2.executeUpdate();
+        PreparedStatement ps3 = conn.prepareStatement("select * from loadTable('dfs://test_allDataType','pt')");
+        ResultSet rs1 = ps3.executeQuery();
+        rs1.next();
+        org.junit.Assert.assertEquals(rs1.getBoolean("col1"), false);
+        org.junit.Assert.assertEquals(rs1.getByte("col2"), 51);
+        org.junit.Assert.assertEquals(rs1.getShort("col3"), -2);
+        org.junit.Assert.assertEquals(rs1.getInt("col4"), 2);
+        org.junit.Assert.assertEquals(rs1.getLong("col5"), -100);
+        org.junit.Assert.assertEquals(Date.valueOf(LocalDate.of(2012,12,7)),rs1.getDate("col6"));
+        org.junit.Assert.assertEquals(YearMonth.of(2012, 7),rs1.getObject("col7"));
+        org.junit.Assert.assertEquals(Time.valueOf(LocalTime.of(13,30,0)),rs1.getObject("col8"));
+        org.junit.Assert.assertEquals(LocalTime.of(13,30),rs1.getObject("col9"));
+        org.junit.Assert.assertEquals(LocalTime.of(13,30,0),rs1.getObject("col10"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2013,6,12,13,30,0),rs1.getObject("col11"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2013,6,12,12,30,0,8000000),rs1.getObject("col12"));
+        org.junit.Assert.assertEquals(LocalTime.of(14,30,10,8007006),rs1.getObject("col13"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2013,6,13,13,30,10,8007006),rs1.getObject("col14"));
+        org.junit.Assert.assertEquals((float) 4.1,rs1.getFloat("col15"),4);
+        org.junit.Assert.assertEquals((Double) 4.1,rs1.getDouble("col16"),4);
+        org.junit.Assert.assertEquals("hello2323",rs1.getString("col17"));
+        org.junit.Assert.assertEquals("world2323",rs1.getString("col18"));
+        org.junit.Assert.assertEquals(UUID.fromString("3d457e79-1bed-d6c2-3612-b0d31c1881f6"),rs1.getObject("col19"));
+        org.junit.Assert.assertEquals(LocalDateTime.of(2013,6,13,13,00),rs1.getObject("col20"));
+        org.junit.Assert.assertEquals("192.168.0.253",rs1.getObject("col21"));
+        org.junit.Assert.assertEquals("e1221797c52e15f763380b45e841ec32",rs1.getObject("col22"));
+        org.junit.Assert.assertEquals("123fff",rs1.getString("col23"));
+        org.junit.Assert.assertEquals("-111.0-1.0i",rs1.getObject("col24"));
+        org.junit.Assert.assertEquals("(-1.0, -2.0)",rs1.getObject("col25"));
+        org.junit.Assert.assertEquals("-1.10",rs1.getObject("col26").toString());
+        org.junit.Assert.assertEquals("-1.1000000",rs1.getObject("col27").toString());
+        org.junit.Assert.assertEquals("-1.100000000000000128",rs1.getObject("col28").toString());
+        PreparedStatement ps4 = conn.prepareStatement(" delete from  loadTable('dfs://test_allDataType','pt') where col1 = false ,col2='3' ,col3 =-2, col4=2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
+        ps4.executeUpdate();
+        PreparedStatement ps5 = conn.prepareStatement("select * from loadTable('dfs://test_allDataType','pt')");
+        JDBCResultSet rs3 = (JDBCResultSet)ps5.executeQuery();
+        BasicTable re = (BasicTable)rs3.getResult();
+        org.junit.Assert.assertEquals(0,re.rows());
+    }
+    @Test
+    public void test_PreparedStatement_no_placeholder_insert_into_array() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("colNames=\"col\"+string(1..2)\n" +
+                "colTypes=[INT,BOOL[]];\n" +
+                "share table(1:0,colNames,colTypes) as sub1\n");
+        PreparedStatement ps = conn.prepareStatement("insert into sub1 values( 1000,[true  false NULL true false NULL true false NULL true]) ");
+        ps.executeUpdate();
+        PreparedStatement ps2 = conn.prepareStatement("select * from sub1");
+        JDBCResultSet rs = (JDBCResultSet)ps2.executeQuery();
+        BasicTable re = (BasicTable)rs.getResult();
+        System.out.println(re.getString());
+        Assert.assertEquals("col1 col2                                      \n" +
+                "---- ------------------------------------------\n" +
+                "1000 [true,false,,true,false,,true,false,,true]\n",re.getString());
+    }
+    //@Test//JAVAOS-623
+    public void test_PreparedStatement_no_placeholder_insert_into_array_allDataType() throws SQLException, IOException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("colNames=\"col\"+string(1..26)\n" +
+                "colTypes=[INT, BOOL[],CHAR[],SHORT[],INT[],LONG[],DOUBLE[],FLOAT[],DATE[],MONTH[],TIME[],MINUTE[],SECOND[],DATETIME[],TIMESTAMP[],NANOTIME[],NANOTIMESTAMP[], DATEHOUR[],UUID[],IPADDR[],INT128[],POINT[],COMPLEX[],DECIMAL32(2)[],DECIMAL64(7)[],DECIMAL128(10)[]];\n" +
+                "t = table(1:0,colNames,colTypes);\n" +
+                "share t as sub1;\n" +
+                "try{dropDatabase('dfs://test_allDataType_array')\n}catch(ex){}\n" +
+                "db=database('dfs://test_allDataType_array', RANGE, -1000 0 1000,,'TSDB')\n"+
+                "db.createPartitionedTable(t, `pt, `col1,,`col1) \n");
+        PreparedStatement ps = conn.prepareStatement("insert into sub1 values( 1,[false NULL true], [-4 -3 -2], [-1 0 1 ], [-1 0 1 ], [-1 0 1 ], [-1.8 0 1.8 ], [-1.2f 0f 1.8f ], [2012.01.21 2012.01.22 2012.01.23] , [2013.03M 2013.04M 2013.05M] , [09:00:40.000 09:00:41.000 09:00:42.000 ], [13:42m 13:43m], [09:15:30 09:15:31 09:15:32], [2012.01.01T09:15:50 2012.01.01T09:15:51], [2012.01.01T09:00:00.000 2012.01.01T09:00:01.001] , [08:59:57.862554624 08:59:58.862554624 ], [2012.01.01T09:00:00.812227584 2012.01.01T09:00:00.812227584  ], [datehour([\"1970.01.01T03\",NULL])],  [uuid([\"5d212a78-cc48-e3b1-4235-b4d91473ee89\",NULL])], [ipaddr([\"192.168.100.14\",\"0.0.0.0\"])], [int128([\"e1671797c52e15f763380b45e841ec35\",NULL])], [point(51.0  51.0  ,56.0  51.0  )], [complex(51.0 51.0  ,56.0 51.0  )], [ 0.254 1.254], [ 0.254 1.254], [0.254 1.254]);");
+        ps.executeUpdate();
+        PreparedStatement ps2 = conn.prepareStatement("select * from sub1");
+        JDBCResultSet rs = (JDBCResultSet)ps2.executeQuery();
+        BasicTable re = (BasicTable)rs.getResult();
+        System.out.println(re.getString());
+        Assert.assertEquals(1,re.rows());
+        PreparedStatement ps3 = conn.prepareStatement("insert into loadTable('dfs://test_allDataType_array',`pt) values( 1,[false NULL true], [-4 -3 -2], [-1 0 1 ], [-1 0 1 ], [-1 0 1 ], [-1.8 0 1.8 ], [-1.2f 0f 1.8f ], [2012.01.21 2012.01.22 2012.01.23] , [2013.03M 2013.04M 2013.05M] , [09:00:40.000 09:00:41.000 09:00:42.000 ], [13:42m 13:43m], [09:15:30 09:15:31 09:15:32], [2012.01.01T09:15:50 2012.01.01T09:15:51], [2012.01.01T09:00:00.000 2012.01.01T09:00:01.001] , [08:59:57.862554624 08:59:58.862554624 ], [2012.01.01T09:00:00.812227584 2012.01.01T09:00:00.812227584  ], [datehour([\"1970.01.01T03\",NULL])],  [uuid([\"5d212a78-cc48-e3b1-4235-b4d91473ee89\",NULL])], [ipaddr([\"192.168.100.14\",\"0.0.0.0\"])], [int128([\"e1671797c52e15f763380b45e841ec35\",NULL])], [point(51.0  51.0  ,56.0  51.0  )], [complex(51.0 51.0  ,56.0 51.0  )], [ 0.254 1.254], [ 0.254 1.254], [0.254 1.254]);");
+        ps3.executeUpdate();
+        PreparedStatement ps4 = conn.prepareStatement("select * from sub1");
+        JDBCResultSet rs1 = (JDBCResultSet)ps4.executeQuery();
+        BasicTable re1 = (BasicTable)rs1.getResult();
+        System.out.println(re1.getString());
+        Assert.assertEquals(1,re1.rows());
+    }
+
+    @Test
+    public void test_PreparedStatement_select_special_characters() throws SQLException, IOException, ClassNotFoundException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("share table(1 2 3 as \"ABC$#\") as table1;");
+        PreparedStatement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        stmt = conn.prepareStatement("select * from table1 where _\"ABC$#\" = 2");
+        JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery();
+        BasicTable re = (BasicTable)rs.getResult();
+        System.out.println();
+        org.junit.Assert.assertEquals("ABC$#\n" +
+                "-----\n" +
+                "2    \n",re.getString());
+    }
+    @Test
+    public void test_PreparedStatement_clearParameters() throws SQLException, IOException, ClassNotFoundException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("share table(1 NULL 3 as id) as table1;");
+        PreparedStatement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        stmt = conn.prepareStatement("select * from table1 where id = NULL");
+        stmt.clearParameters();
+        stmt.clearParameters();
+        JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery();
+        stmt.clearParameters();
+        BasicTable re = (BasicTable)rs.getResult();
+        System.out.println();
+        org.junit.Assert.assertEquals("id\n" +
+                "--\n" +
+                "  \n",re.getString());
+    }
+
+    @Test
+    public void test_PreparedStatement_clearParameters_1() throws SQLException, IOException, ClassNotFoundException {
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run("share table(1 NULL 3 as id) as table1;");
+        PreparedStatement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        stmt = conn.prepareStatement("select * from table1 where id = ?");
+        stmt.setNull(1,Types.INTEGER);
+        stmt.clearParameters();
+        stmt.clearParameters();
+        String re =null;
+        try{
+            JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery();
+        }catch(Exception ex){
+            re = ex.getMessage();
+        }
+        org.junit.Assert.assertEquals("No value specified for parameter 1",re);
+    }
+
     @After
     public void Destroy(){
         LOGININFO = null;

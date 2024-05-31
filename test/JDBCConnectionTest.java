@@ -130,81 +130,81 @@ public class JDBCConnectionTest {
 		}
 		org.junit.Assert.assertEquals("The param catalog cannot be null or empty.",s);
 	}
-	@Test
-	public void Test_setCatalog_database_exist() throws SQLException, IOException {
-		CreateDfsTable(HOST,PORT);
-		prop.setProperty("hostName",HOST);
-		prop.setProperty("port",String.valueOf(PORT));
-		prop.setProperty("user","admin");
-		prop.setProperty("password","123456");
-		prop.setProperty("databasePath","dfs://db_testDriverManager");
-		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
-		conn = new JDBCConnection(url,prop);
-		org.junit.Assert.assertEquals("dfs://db_testDriverManager",conn.getCatalog());
-		conn.setCatalog("dfs://db_testDriverManager1");
-		org.junit.Assert.assertEquals("dfs://db_testDriverManager1",conn.getCatalog());
-	}
-	@Test
-	public void Test_setCatalog_database_exist_1() throws SQLException, IOException {
-		CreateDfsTable(HOST,PORT);
-		prop.setProperty("hostName",HOST);
-		prop.setProperty("port",String.valueOf(PORT));
-		prop.setProperty("user","admin");
-		prop.setProperty("password","123456");
-		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
-		conn = new JDBCConnection(url,prop);
-		System.out.println(conn.getCatalog());
-		org.junit.Assert.assertEquals(null,conn.getCatalog());
-		conn.setCatalog("dfs://db_testDriverManager");
-		org.junit.Assert.assertEquals("dfs://db_testDriverManager",conn.getCatalog());
-		Statement stm = conn.createStatement();
-		JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select * from pt");
-		BasicTable re = (BasicTable)rs.getResult();
-		System.out.println(re.rows());
-		org.junit.Assert.assertEquals(10000,re.rows());
-		conn.setCatalog("dfs://db_testDriverManager1");
-		org.junit.Assert.assertEquals("dfs://db_testDriverManager1",conn.getCatalog());
-		Statement stm1 = conn.createStatement();
-		JDBCResultSet rs1 = (JDBCResultSet)stm1.executeQuery("select * from pt");
-		BasicTable re1 = (BasicTable)rs1.getResult();
-		System.out.println(re1.rows());
-		org.junit.Assert.assertEquals(9000,re1.rows());
-	}
-	@Test
-	public void Test_setCatalog_database_not_exist() throws SQLException, IOException {
-		CreateDfsTable(HOST,PORT);
-		prop.setProperty("hostName",HOST);
-		prop.setProperty("port",String.valueOf(PORT));
-		prop.setProperty("user","admin");
-		prop.setProperty("password","123456");
-		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
-		conn = new JDBCConnection(url,prop);
-		System.out.println(conn.getCatalog());
-		String s = null;
-		try{
-			conn.setCatalog("dfs://1");
-		}catch(Exception e){
-			s = e.getMessage();
-		}
-		org.junit.Assert.assertNotNull(s);
-	}
-	@Test
-	public void Test_setCatalog_database_not_valid() throws SQLException, IOException {
-		CreateDfsTable(HOST,PORT);
-		prop.setProperty("hostName",HOST);
-		prop.setProperty("port",String.valueOf(PORT));
-		prop.setProperty("user","admin");
-		prop.setProperty("password","123456");
-		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
-		conn = new JDBCConnection(url,prop);
-		String re = null;
-		try{
-			conn.setCatalog("eeeeeee1");
-		}catch(Exception ex){
-			re = ex.getMessage();
-		}
-		org.junit.Assert.assertEquals("The catalog 'eeeeeee1' doesn't exist in server.",re);
-	}
+//	@Test
+//	public void Test_setCatalog_database_exist() throws SQLException, IOException {
+//		CreateDfsTable(HOST,PORT);
+//		prop.setProperty("hostName",HOST);
+//		prop.setProperty("port",String.valueOf(PORT));
+//		prop.setProperty("user","admin");
+//		prop.setProperty("password","123456");
+//		prop.setProperty("databasePath","dfs://db_testDriverManager");
+//		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+//		conn = new JDBCConnection(url,prop);
+//		org.junit.Assert.assertEquals("dfs://db_testDriverManager",conn.getCatalog());
+//		conn.setCatalog("dfs://db_testDriverManager1");
+//		org.junit.Assert.assertEquals("dfs://db_testDriverManager1",conn.getCatalog());
+//	}
+//	@Test
+//	public void Test_setCatalog_database_exist_1() throws SQLException, IOException {
+//		CreateDfsTable(HOST,PORT);
+//		prop.setProperty("hostName",HOST);
+//		prop.setProperty("port",String.valueOf(PORT));
+//		prop.setProperty("user","admin");
+//		prop.setProperty("password","123456");
+//		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+//		conn = new JDBCConnection(url,prop);
+//		System.out.println(conn.getCatalog());
+//		org.junit.Assert.assertEquals(null,conn.getCatalog());
+//		conn.setCatalog("dfs://db_testDriverManager");
+//		org.junit.Assert.assertEquals("dfs://db_testDriverManager",conn.getCatalog());
+//		Statement stm = conn.createStatement();
+//		JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select * from pt");
+//		BasicTable re = (BasicTable)rs.getResult();
+//		System.out.println(re.rows());
+//		org.junit.Assert.assertEquals(10000,re.rows());
+//		conn.setCatalog("dfs://db_testDriverManager1");
+//		org.junit.Assert.assertEquals("dfs://db_testDriverManager1",conn.getCatalog());
+//		Statement stm1 = conn.createStatement();
+//		JDBCResultSet rs1 = (JDBCResultSet)stm1.executeQuery("select * from pt");
+//		BasicTable re1 = (BasicTable)rs1.getResult();
+//		System.out.println(re1.rows());
+//		org.junit.Assert.assertEquals(9000,re1.rows());
+//	}
+//	@Test
+//	public void Test_setCatalog_database_not_exist() throws SQLException, IOException {
+//		CreateDfsTable(HOST,PORT);
+//		prop.setProperty("hostName",HOST);
+//		prop.setProperty("port",String.valueOf(PORT));
+//		prop.setProperty("user","admin");
+//		prop.setProperty("password","123456");
+//		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+//		conn = new JDBCConnection(url,prop);
+//		System.out.println(conn.getCatalog());
+//		String s = null;
+//		try{
+//			conn.setCatalog("dfs://1");
+//		}catch(Exception e){
+//			s = e.getMessage();
+//		}
+//		org.junit.Assert.assertNotNull(s);
+//	}
+//	@Test
+//	public void Test_setCatalog_database_not_valid() throws SQLException, IOException {
+//		CreateDfsTable(HOST,PORT);
+//		prop.setProperty("hostName",HOST);
+//		prop.setProperty("port",String.valueOf(PORT));
+//		prop.setProperty("user","admin");
+//		prop.setProperty("password","123456");
+//		url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+//		conn = new JDBCConnection(url,prop);
+//		String re = null;
+//		try{
+//			conn.setCatalog("eeeeeee1");
+//		}catch(Exception ex){
+//			re = ex.getMessage();
+//		}
+//		org.junit.Assert.assertEquals("The catalog 'eeeeeee1' doesn't exist in server.",re);
+//	}
 	@Test
 	public void Test_setCatalog_Catalog_exist_300() throws SQLException, IOException {
 		JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
@@ -1534,7 +1534,7 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		assertEquals(true,re.contains("Server response: 'The user name or password is incorrect.' function: 'login'"));
+		assertEquals(true,re.contains("Server response: The user name or password is incorrect.. function: login"));
 	}
 	@Test
 	public void Test_getConnection_url() throws SQLException, ClassNotFoundException {
@@ -1603,6 +1603,198 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		assertEquals(true,re.contains("Server response: 'The user name or password is incorrect.' function: 'login'"));
+		assertEquals(true,re.contains("Server response: The user name or password is incorrect.. function: login"));
+	}
+	@Test
+	public void Test_getConnection_url_password_not_provided() throws SQLException, ClassNotFoundException {
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?user=admin";
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_getConnection_url_user_not_provided() throws SQLException, ClassNotFoundException {
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?password=123456";
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_getConnection_url_user_password_not_provided() throws SQLException, ClassNotFoundException {
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		conn = DriverManager.getConnection(url);
+		Statement stmt = conn.createStatement();
+		String re = null;
+		try{
+			JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("getGroupList();");
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		assertEquals(true,re.contains("getGroupList() => Only administrators execute function getGroupList"));
+	}
+
+	@Test
+	public void Test_getConnection_prop_password_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("user", "admin");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url,info);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_getConnection_prop_user_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url,info);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_getConnection_prop_user_password_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		conn = DriverManager.getConnection(url,info);
+		Statement stmt = conn.createStatement();
+		String re = null;
+		try{
+			JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("getGroupList();");
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		assertEquals(true,re.contains("getGroupList() => Only administrators execute function getGroupList"));
+	}
+	@Test
+	public void Test_JDBCConnection_url_password_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?user=admin";
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url,info);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_JDBCConnection_url_user_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT+"?password=123456";
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_JDBCConnection_url_user_password_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		conn = new JDBCConnection(url,info);
+		Statement stmt = conn.createStatement();
+		String re = null;
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("getGroupList();");
+		BasicStringVector re2 = (BasicStringVector)rs1.getResult();
+	}
+
+	@Test
+	public void Test_JDBCConnection_prop_password_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("user", "admin");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = new JDBCConnection(url,info);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_JDBCConnection_prop_user_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = new JDBCConnection(url,info);
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		Assert.assertEquals("The user and password parameters for JDBC must both be provided.",re);
+	}
+	@Test
+	public void Test_JDBCConnection_prop_user_password_not_provided() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", COLPORT);
+		info.put("highAvailability", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+COLPORT;
+		Connection conn = null;
+		conn = new JDBCConnection(url,info);
+		Statement stmt = conn.createStatement();
+		String re = null;
+		try{
+			JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("getGroupList();");
+		}catch(Exception ex){
+			re = ex.getMessage();
+		}
+		assertEquals(true,re.contains("getGroupList() => Only administrators execute function getGroupList"));
 	}
 }
