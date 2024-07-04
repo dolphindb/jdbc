@@ -95,6 +95,30 @@ public class JDBCResultSet implements ResultSet{
                     insertRowMap = new HashMap<>(this.table.columns() + 1);
                 }
             }
+
+            if (entity instanceof Scalar) {
+                Scalar scalar = (Scalar) entity;
+                Entity.DATA_TYPE dataType = scalar.getDataType();
+                BasicEntityFactory factory = new BasicEntityFactory();
+                Vector vector;
+                if (dataType == Entity.DATA_TYPE.DT_DECIMAL32 || dataType == Entity.DATA_TYPE.DT_DECIMAL64 || dataType == Entity.DATA_TYPE.DT_DECIMAL128)
+                    vector = factory.createVectorWithDefaultValue(dataType, 0, scalar.getScale());
+                else
+                    vector = factory.createVectorWithDefaultValue(dataType, 0, -1);
+
+                List<String> colNames = new ArrayList<>();
+                List<Vector> cols = new ArrayList<>();
+                colNames.add("col0");
+                cols.add(vector);
+                this.table = new BasicTable(colNames, cols);
+            } else if (entity instanceof Vector) {
+                Vector vector = (Vector) entity;
+                List<String> colNames = new ArrayList<>();
+                List<Vector> cols = new ArrayList<>();
+                colNames.add("col0");
+                cols.add(vector);
+                this.table = new BasicTable(colNames, cols);
+            }
         }
     }
 

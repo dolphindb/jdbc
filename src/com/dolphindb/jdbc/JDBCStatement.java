@@ -126,17 +126,11 @@ public class JDBCStatement implements Statement {
                         entity = connection.run(sql);
                     }
 
-                    if (entity instanceof BasicTable) {
+                    if (entity instanceof BasicTable || entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR || entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR) {
                         resultSet = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
                         return resultSet;
                     } else if(entity instanceof EntityBlockReader) {
                         resultSet = new JDBCResultSet(connection, this, (EntityBlockReader) entity, sql, this.maxRows);
-                        return resultSet;
-                    } else if (entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR) {
-                        resultSet = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
-                        return resultSet;
-                    } else if (entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR) {
-                        resultSet = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
                         return resultSet;
                     } else {
                         throw new SQLException("The given SQL statement produces anything other than a single ResultSet object.");
