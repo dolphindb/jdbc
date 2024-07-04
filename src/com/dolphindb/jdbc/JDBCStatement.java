@@ -126,7 +126,8 @@ public class JDBCStatement implements Statement {
                         entity = connection.run(sql);
                     }
 
-                    if (entity instanceof BasicTable || entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR || entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR) {
+                    if (entity instanceof BasicTable || entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR
+                            || entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR || entity.getDataForm() == Entity.DATA_FORM.DF_MATRIX) {
                         resultSet = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
                         return resultSet;
                     } else if(entity instanceof EntityBlockReader) {

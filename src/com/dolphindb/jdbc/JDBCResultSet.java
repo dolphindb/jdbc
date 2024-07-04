@@ -118,6 +118,36 @@ public class JDBCResultSet implements ResultSet{
                 colNames.add("col0");
                 cols.add(vector);
                 this.table = new BasicTable(colNames, cols);
+            } else if (entity instanceof Matrix) {
+                Matrix matrix = (Matrix) entity;
+                Vector rowLabels = matrix.getRowLabels();
+                Vector columnLabels = matrix.getColumnLabels();
+
+                List<String> colNames = new ArrayList<>();
+                List<Vector> cols = new ArrayList<>();
+                colNames.add("");
+                cols.add(rowLabels);
+
+                Entity.DATA_TYPE dataType = matrix.getDataType();
+                BasicEntityFactory factory = new BasicEntityFactory();
+                for (int i = 0; i < matrix.columns(); i ++) {
+                    Vector vector;
+                    if (dataType == Entity.DATA_TYPE.DT_DECIMAL32 || dataType == Entity.DATA_TYPE.DT_DECIMAL64 || dataType == Entity.DATA_TYPE.DT_DECIMAL128)
+                        vector = factory.createVectorWithDefaultValue(dataType, 0, matrix.getScale());
+                    else
+                        vector = factory.createVectorWithDefaultValue(dataType, 0, -1);
+                    for (int j = 0; j < matrix.rows(); j ++) {
+                        try {
+                            vector.Append(matrix.get(j, i));
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    colNames.add(columnLabels.get(i).getString());
+                    cols.add(vector);
+                }
+
+                this.table = new BasicTable(colNames, cols);
             }
         }
     }
