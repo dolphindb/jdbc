@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.*;
+import java.util.stream.IntStream;
 
 
 public class JDBCResultSet implements ResultSet{
@@ -106,18 +107,27 @@ public class JDBCResultSet implements ResultSet{
                 else
                     vector = factory.createVectorWithDefaultValue(dataType, 0, -1);
 
+                try {
+                    vector.Append(scalar);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
                 List<String> colNames = new ArrayList<>();
                 List<Vector> cols = new ArrayList<>();
                 colNames.add("col0");
                 cols.add(vector);
+
                 this.table = new BasicTable(colNames, cols);
+                this.offsetRows = this.table.rows();
             } else if (entity instanceof Vector) {
                 Vector vector = (Vector) entity;
                 List<String> colNames = new ArrayList<>();
                 List<Vector> cols = new ArrayList<>();
                 colNames.add("col0");
                 cols.add(vector);
+
                 this.table = new BasicTable(colNames, cols);
+                this.offsetRows = this.table.rows();
             } else if (entity instanceof Matrix) {
                 Matrix matrix = (Matrix) entity;
                 Vector rowLabels = matrix.getRowLabels();
@@ -126,7 +136,10 @@ public class JDBCResultSet implements ResultSet{
                 List<String> colNames = new ArrayList<>();
                 List<Vector> cols = new ArrayList<>();
                 colNames.add("");
-                cols.add(rowLabels);
+                if (Objects.isNull(rowLabels))
+                    cols.add(new BasicIntVector(IntStream.range(0, matrix.rows()).toArray()));
+                else
+                    cols.add(rowLabels);
 
                 Entity.DATA_TYPE dataType = matrix.getDataType();
                 BasicEntityFactory factory = new BasicEntityFactory();
@@ -143,11 +156,16 @@ public class JDBCResultSet implements ResultSet{
                             throw new RuntimeException(e);
                         }
                     }
-                    colNames.add(columnLabels.get(i).getString());
+
+                    if (Objects.isNull(columnLabels))
+                        colNames.add("col" + i);
+                    else
+                        colNames.add(columnLabels.get(i).getString());
                     cols.add(vector);
                 }
 
                 this.table = new BasicTable(colNames, cols);
+                this.offsetRows = this.table.rows();
             }
         }
     }
