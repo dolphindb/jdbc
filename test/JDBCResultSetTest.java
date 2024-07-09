@@ -1,6 +1,14 @@
 //import jdk.internal.dynalink.beans.StaticClass;
+import com.dolphindb.jdbc.JDBCConnection;
+import com.dolphindb.jdbc.JDBCResultSet;
+import com.dolphindb.jdbc.JDBCStatement;
+
+import com.xxdb.data.BasicIntMatrix;
+import com.xxdb.data.BasicTable;
+import com.xxdb.data.Entity;
 import junit.framework.TestCase;
 import org.junit.*;
+import org.junit.Assert.*;
 
 
 import java.io.IOException;
@@ -14,7 +22,10 @@ import java.util.List;
 
 import com.xxdb.DBConnection;
 import org.junit.Test;
-import org.omg.CORBA.TIMEOUT;
+
+import static com.dolphindb.jdbc.Main.printData;
+import static org.junit.Assert.assertEquals;
+
 
 public class JDBCResultSetTest {
 	static String HOST = JDBCTestUtil.HOST;
@@ -639,7 +650,7 @@ public class JDBCResultSetTest {
 			TestCase.assertFalse(rsmd.isWritable(j+1));
 			//TestCase.assertTrue(rsmd.isReadOnly(j+1));
 		}
-		org.junit.Assert.assertEquals(len, 17);
+		assertEquals(len, 17);
 		//get alias
 		Statement stmt1 = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
 		stmt1.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
@@ -653,7 +664,7 @@ public class JDBCResultSetTest {
 			TestCase.assertFalse(rsmd1.isReadOnly(j+1));
 			//TestCase.assertTrue(rsmd1.isWritable(j+1));
 		}
-		org.junit.Assert.assertEquals(len1, 2);
+		assertEquals(len1, 2);
 	}
 
 
@@ -673,28 +684,28 @@ public class JDBCResultSetTest {
 		}
 		catch(Exception ex){
 			System.out.println(ex.toString());
-			org.junit.Assert.assertEquals("java.sql.SQLException: Updating the table of ResultSet is not currently supported", ex.toString());
+			assertEquals("java.sql.SQLException: Updating the table of ResultSet is not currently supported", ex.toString());
 		}
 		try{
 			rs.updateRow();
 		}
 		catch(Exception ex){
 			System.out.println(ex.toString());
-			org.junit.Assert.assertEquals("java.sql.SQLException: Updating the table of ResultSet is not currently supported", ex.toString());
+			assertEquals("java.sql.SQLException: Updating the table of ResultSet is not currently supported", ex.toString());
 		}
 		try{
 			rs.moveToInsertRow();
 		}
 		catch(Exception ex){
 			System.out.println(ex.toString());
-			org.junit.Assert.assertEquals("java.sql.SQLException: Updating the table of ResultSet is not currently supported", ex.toString());
+			assertEquals("java.sql.SQLException: Updating the table of ResultSet is not currently supported", ex.toString());
 		}
 		try{
 			rs.moveToCurrentRow();
 		}
 		catch(Exception ex){
 			System.out.println(ex.toString());
-			org.junit.Assert.assertEquals("java.sql.SQLException: Updating the table of ResultSet is not currently supported", ex.toString());
+			assertEquals("java.sql.SQLException: Updating the table of ResultSet is not currently supported", ex.toString());
 		}
 	}
 
@@ -2840,26 +2851,26 @@ public class JDBCResultSetTest {
 		stmt.execute("intv = int(-2147483648 2147483647 0 -2147483647 -100 100 NULL);\nshortv = short(-32768  32767 0 -32767 -100 100 NULL);\n tt= table(intv,shortv);");
 		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
 		rs.next();
-		Assert.assertEquals(0, rs.getInt(1));
-		Assert.assertEquals(0, rs.getInt(2));
+		assertEquals(0, rs.getInt(1));
+		assertEquals(0, rs.getInt(2));
 		rs.next();
-		Assert.assertEquals(2147483647, rs.getInt(1));
-		Assert.assertEquals(32767, rs.getInt(2));
+		assertEquals(2147483647, rs.getInt(1));
+		assertEquals(32767, rs.getInt(2));
 		rs.next();
-		Assert.assertEquals(0, rs.getInt(1));
-		Assert.assertEquals(0, rs.getInt(2));
+		assertEquals(0, rs.getInt(1));
+		assertEquals(0, rs.getInt(2));
 		rs.next();
-		Assert.assertEquals(-2147483647, rs.getInt(1));
-		Assert.assertEquals(-32767, rs.getInt(2));
+		assertEquals(-2147483647, rs.getInt(1));
+		assertEquals(-32767, rs.getInt(2));
 		rs.next();
-		Assert.assertEquals(-100, rs.getInt(1));
-		Assert.assertEquals(-100, rs.getInt(2));
+		assertEquals(-100, rs.getInt(1));
+		assertEquals(-100, rs.getInt(2));
 		rs.next();
-		Assert.assertEquals(100, rs.getInt(1));
-		Assert.assertEquals(100, rs.getInt(2));
+		assertEquals(100, rs.getInt(1));
+		assertEquals(100, rs.getInt(2));
 		rs.next();
-		Assert.assertEquals(0, rs.getInt(1));
-		Assert.assertEquals(0, rs.getInt(2));
+		assertEquals(0, rs.getInt(1));
+		assertEquals(0, rs.getInt(2));
 	}
 	@Test
 	public void Test_ResultSet_getLong() throws Exception {
@@ -2869,33 +2880,33 @@ public class JDBCResultSetTest {
 		stmt.execute("intv = int(-2147483648 2147483647 0 -2147483647 -100 100 NULL);\nshortv = short(-32768  32767 0 -32767 -100 100 NULL);\n longv = long(-9223372036854775808  9223372036854775807 0 -9223372036854775807 -100 100 NULL);\n tt= table(intv,shortv,longv);");
 		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
 		rs.next();
-		Assert.assertEquals(0, rs.getLong(1));
-		Assert.assertEquals(0, rs.getLong(2));
-		Assert.assertEquals(0, rs.getLong(3));
+		assertEquals(0, rs.getLong(1));
+		assertEquals(0, rs.getLong(2));
+		assertEquals(0, rs.getLong(3));
 		rs.next();
-		Assert.assertEquals(2147483647, rs.getLong(1));
-		Assert.assertEquals(32767, rs.getLong(2));
-		Assert.assertEquals(9223372036854775807l, rs.getLong(3));
+		assertEquals(2147483647, rs.getLong(1));
+		assertEquals(32767, rs.getLong(2));
+		assertEquals(9223372036854775807l, rs.getLong(3));
 		rs.next();
-		Assert.assertEquals(0, rs.getLong(1));
-		Assert.assertEquals(0, rs.getLong(2));
-		Assert.assertEquals(0, rs.getLong(3));
+		assertEquals(0, rs.getLong(1));
+		assertEquals(0, rs.getLong(2));
+		assertEquals(0, rs.getLong(3));
 		rs.next();
-		Assert.assertEquals(-2147483647, rs.getLong(1));
-		Assert.assertEquals(-32767, rs.getLong(2));
-		Assert.assertEquals(-9223372036854775807l, rs.getLong(3));
+		assertEquals(-2147483647, rs.getLong(1));
+		assertEquals(-32767, rs.getLong(2));
+		assertEquals(-9223372036854775807l, rs.getLong(3));
 		rs.next();
-		Assert.assertEquals(-100, rs.getLong(1));
-		Assert.assertEquals(-100, rs.getLong(2));
-		Assert.assertEquals(-100, rs.getLong(3));
+		assertEquals(-100, rs.getLong(1));
+		assertEquals(-100, rs.getLong(2));
+		assertEquals(-100, rs.getLong(3));
 		rs.next();
-		Assert.assertEquals(100, rs.getLong(1));
-		Assert.assertEquals(100, rs.getLong(2));
-		Assert.assertEquals(100, rs.getLong(3));
+		assertEquals(100, rs.getLong(1));
+		assertEquals(100, rs.getLong(2));
+		assertEquals(100, rs.getLong(3));
 		rs.next();
-		Assert.assertEquals(0, rs.getLong(1));
-		Assert.assertEquals(0, rs.getLong(2));
-		Assert.assertEquals(0, rs.getLong(3));
+		assertEquals(0, rs.getLong(1));
+		assertEquals(0, rs.getLong(2));
+		assertEquals(0, rs.getLong(3));
 	}
 	@Test
 	public void Test_ResultSet_getDouble() throws Exception {
@@ -2905,23 +2916,23 @@ public class JDBCResultSetTest {
 		stmt.execute("floatv = float(-2.14748364 21474.8364 0 -21474.83 100 NULL);\ndoublev = double(-2.14748364 21474.8364 0 -21474.83 100 NULL);\n tt= table(floatv,doublev);");
 		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
 		rs.next();
-		Assert.assertEquals(-2.14748364, rs.getDouble(1),4);
-		Assert.assertEquals(-2.14748364, rs.getDouble(2),4);
+		assertEquals(-2.14748364, rs.getDouble(1),4);
+		assertEquals(-2.14748364, rs.getDouble(2),4);
 		rs.next();
-		Assert.assertEquals(21474.8364, rs.getDouble(1),4);
-		Assert.assertEquals(21474.8364, rs.getDouble(2),4);
+		assertEquals(21474.8364, rs.getDouble(1),4);
+		assertEquals(21474.8364, rs.getDouble(2),4);
 		rs.next();
-		Assert.assertEquals(0, rs.getDouble(1),4);
-		Assert.assertEquals(0, rs.getDouble(2),4);
+		assertEquals(0, rs.getDouble(1),4);
+		assertEquals(0, rs.getDouble(2),4);
 		rs.next();
-		Assert.assertEquals(-21474.83, rs.getDouble(1),4);
-		Assert.assertEquals(-21474.83, rs.getDouble(2),4);
+		assertEquals(-21474.83, rs.getDouble(1),4);
+		assertEquals(-21474.83, rs.getDouble(2),4);
 		rs.next();
-		Assert.assertEquals(100, rs.getDouble(1),4);
-		Assert.assertEquals(100, rs.getDouble(2),4);
+		assertEquals(100, rs.getDouble(1),4);
+		assertEquals(100, rs.getDouble(2),4);
 		rs.next();
-		Assert.assertEquals(0, rs.getDouble(1),4);
-		Assert.assertEquals(0, rs.getDouble(2),4);
+		assertEquals(0, rs.getDouble(1),4);
+		assertEquals(0, rs.getDouble(2),4);
 	}
 	@Test
 	public void Test_ResultSet_getBigDecimal_1() throws Exception {
@@ -2931,23 +2942,23 @@ public class JDBCResultSetTest {
 		stmt.execute("floatv = float(-2.14748364 21474.8364 0 -21474.83 100 NULL);\ndoublev = double(-2.14748364 21474.8364 0 -21474.83 100 NULL);\n tt= table(floatv,doublev);");
 		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
 		rs.next();
-		Assert.assertEquals("-2.1474835872650146", rs.getBigDecimal(1).toString());
-		Assert.assertEquals("-2.14748364", rs.getBigDecimal(2).toString());
+		assertEquals("-2.1474835872650146", rs.getBigDecimal(1).toString());
+		assertEquals("-2.14748364", rs.getBigDecimal(2).toString());
 		rs.next();
-		Assert.assertEquals("21474.8359375", rs.getBigDecimal(1).toString());
-		Assert.assertEquals("21474.8364", rs.getBigDecimal(2).toString());
+		assertEquals("21474.8359375", rs.getBigDecimal(1).toString());
+		assertEquals("21474.8364", rs.getBigDecimal(2).toString());
 		rs.next();
-		Assert.assertEquals("0.0", rs.getBigDecimal(1).toString());
-		Assert.assertEquals("0.0", rs.getBigDecimal(2).toString());
+		assertEquals("0.0", rs.getBigDecimal(1).toString());
+		assertEquals("0.0", rs.getBigDecimal(2).toString());
 		rs.next();
-		Assert.assertEquals("-21474.830078125", rs.getBigDecimal(1).toString());
-		Assert.assertEquals("-21474.83", rs.getBigDecimal(2).toString());
+		assertEquals("-21474.830078125", rs.getBigDecimal(1).toString());
+		assertEquals("-21474.83", rs.getBigDecimal(2).toString());
 		rs.next();
-		Assert.assertEquals("100.0", rs.getBigDecimal(1).toString());
-		Assert.assertEquals("100.0", rs.getBigDecimal(2).toString());
+		assertEquals("100.0", rs.getBigDecimal(1).toString());
+		assertEquals("100.0", rs.getBigDecimal(2).toString());
 		rs.next();
-		Assert.assertEquals(null, rs.getBigDecimal(1));
-		Assert.assertEquals(null, rs.getBigDecimal(2));
+		assertEquals(null, rs.getBigDecimal(1));
+		assertEquals(null, rs.getBigDecimal(2));
 	}
 	@Test
 	public void Test_ResultSet_getString() throws Exception {
@@ -2967,27 +2978,423 @@ public class JDBCResultSetTest {
 				"tt = table(charv,symbolv,stringv,uuidv,datehourv,ippaddrv,int128v,blobv,complexv,pointv);");
 		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
 		rs.next();
-		Assert.assertEquals("49", rs.getString(1));
-		Assert.assertEquals("syms100", rs.getString(2));
-		Assert.assertEquals("stringv100", rs.getString(3));
-		Assert.assertEquals("5d212a78-cc48-e3b1-4235-b4d91473ee89", rs.getString(4));
-		Assert.assertEquals("1969-12-31T23:00", rs.getString(5));
-		Assert.assertEquals("192.168.100.14", rs.getString(6));
-		Assert.assertEquals("e1671797c52e15f763380b45e841ec35", rs.getString(7));
-		Assert.assertEquals("blobv100", rs.getString(8));
-		Assert.assertEquals("-1.0-1.0i", rs.getString(9));
-		Assert.assertEquals("(-1.0, -1.0)", rs.getString(10));
+		assertEquals("49", rs.getString(1));
+		assertEquals("syms100", rs.getString(2));
+		assertEquals("stringv100", rs.getString(3));
+		assertEquals("5d212a78-cc48-e3b1-4235-b4d91473ee89", rs.getString(4));
+		assertEquals("1969-12-31T23:00", rs.getString(5));
+		assertEquals("192.168.100.14", rs.getString(6));
+		assertEquals("e1671797c52e15f763380b45e841ec35", rs.getString(7));
+		assertEquals("blobv100", rs.getString(8));
+		assertEquals("-1.0-1.0i", rs.getString(9));
+		assertEquals("(-1.0, -1.0)", rs.getString(10));
 		rs.next();
-		Assert.assertEquals(null, rs.getString(1));
-		Assert.assertEquals(null, rs.getString(2));
-		Assert.assertEquals(null, rs.getString(3));
-		Assert.assertEquals(null, rs.getString(4));
-		Assert.assertEquals(null, rs.getString(5));
-		Assert.assertEquals("0.0.0.0", rs.getString(6));
-		Assert.assertEquals(null, rs.getString(7));
-		Assert.assertEquals(null, rs.getString(8));
-		Assert.assertEquals(null, rs.getString(9));
-		Assert.assertEquals("(,)", rs.getString(10));
+		assertEquals(null, rs.getString(1));
+		assertEquals(null, rs.getString(2));
+		assertEquals(null, rs.getString(3));
+		assertEquals(null, rs.getString(4));
+		assertEquals(null, rs.getString(5));
+		assertEquals("0.0.0.0", rs.getString(6));
+		assertEquals(null, rs.getString(7));
+		assertEquals(null, rs.getString(8));
+		assertEquals(null, rs.getString(9));
+		assertEquals("(,)", rs.getString(10));
+	}
+
+	@Test
+	public void Test_ResultSet_MatrixtoTable_null() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("");
+		BasicTable re = (BasicTable)rs.getResult();
+		System.out.println(re.getString());
+		assertEquals("col0\n" + "----\n" + "    \n" ,re.getString());
+	}
+
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_int() throws SQLException, ClassNotFoundException {
+
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(INT,2,2, ,16665);m[0,1]=null\n" +
+				"m\n");
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(INT,2,2, ,,)");
+		BasicTable re = (BasicTable)rs.getResult();
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0  col1 \n" +
+				"- ----- -----\n" +
+				"0 16665      \n" +
+				"1 16665 16665\n",re.getString());
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_bool() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(BOOL,2,2,,true)\n m[0,1]=null\n m");
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(BOOL,2,2, ,,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		BasicTable re = (BasicTable)rs.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0 true     \n" +
+				"1 true true\n",re.getString());
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_byte() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(CHAR,2,2,,'c');\n m[0,0]=null\n m");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(CHAR,2,2, ,,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0      'c' \n" +
+				"1 'c'  'c' \n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_date() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery(" m=matrix(DATE,2,2,,2023.06.13)\n m[0,1]=null\n m;");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(DATE,2,2, ,,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0       col1      \n" +
+				"- ---------- ----------\n" +
+				"0 2023.06.13           \n" +
+				"1 2023.06.13 2023.06.13\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_datehour() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("  m=matrix(DATEHOUR,2,2,,2012.06.13 13:30:10)\n" +
+				" m[0,1]=null\n" +
+				" m;");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(DATEHOUR,2,2,,,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		System.out.println(re.getString());
+		assertEquals("  col0          col1         \n" +
+				"- ------------- -------------\n" +
+				"0 2012.06.13T13              \n" +
+				"1 2012.06.13T13 2012.06.13T13\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_datetime() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery(" m=matrix(DATETIME,2,2,,2012.06.13 13:30:10)\n m[0,1]=null\n m;");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(DATETIME,2,2, ,,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0                col1               \n" +
+				"- ------------------- -------------------\n" +
+				"0 2012.06.13T13:30:10                    \n" +
+				"1 2012.06.13T13:30:10 2012.06.13T13:30:10\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_minute() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery(" m=matrix(MINUTE,2,2,,2012.06.13 13:30:10)\n m[0,1]=null\n m;");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(MINUTE,2,2, ,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0   col1  \n" +
+				"- ------ ------\n" +
+				"0 13:30m       \n" +
+				"1 13:30m 13:30m\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_time() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery(" m=matrix(TIME,2,2,,2012.06.13 13:30:10.005)\n m[0,1]=null\n m");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(TIME,2,2, ,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0         col1        \n" +
+				"- ------------ ------------\n" +
+				"0 13:30:10.005             \n" +
+				"1 13:30:10.005 13:30:10.005\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_timestamp() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(TIMESTAMP,2,2,,2022.06.13 13:30:10.008)\n m[0,1]=null\n m");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(TIMESTAMP,2,2, ,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0                    col1                   \n" +
+				"- ----------------------- -----------------------\n" +
+				"0 2022.06.13T13:30:10.008                        \n" +
+				"1 2022.06.13T13:30:10.008 2022.06.13T13:30:10.008\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_nanotime() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(nanotime,2,2,,13:30:10.252525255)\n m[0,1]=null\n m");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(nanotime,2,2, ,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0               col1              \n" +
+				"- ------------------ ------------------\n" +
+				"0 13:30:10.252525255                   \n" +
+				"1 13:30:10.252525255 13:30:10.252525255\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_nanotimestamp() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(NANOTIMESTAMP,2,2,,2030.01.02 13:30:10.252525255)\n m[0,1]=null\n m");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(NANOTIMESTAMP,2,2, ,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0                          col1                         \n" +
+				"- ----------------------------- -----------------------------\n" +
+				"0 2030.01.02T13:30:10.252525255                              \n" +
+				"1 2030.01.02T13:30:10.252525255 2030.01.02T13:30:10.252525255\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_decimal32() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(DECIMAL32(8),2,2,,5.52348648)\n m[0,1]=null\n m");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(DECIMAL32(8),2,2, ,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0       col1      \n" +
+				"- ---------- ----------\n" +
+				"0 5.52348648           \n" +
+				"1 5.52348648 5.52348648\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_decimal64() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(DECIMAL64(18),2,2,,5.52348648864824558)\n m[0,1]=null\n m");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(DECIMAL64(18),2,2, ,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0                 col1                \n" +
+				"- -------------------- --------------------\n" +
+				"0 5.523486488648245248                     \n" +
+				"1 5.523486488648245248 5.523486488648245248\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_decimal128() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(DECIMAL128(38),2,2,,decimal128(\"0.12345678912345678912345678912345678912\",38))\n m[0,1]=null\n m");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(DECIMAL128(38),2,2, ,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0                                     col1                                    \n" +
+				"- ---------------------------------------- ----------------------------------------\n" +
+				"0 0.12345678912345678912345678912345678912                                         \n" +
+				"1 0.12345678912345678912345678912345678912 0.12345678912345678912345678912345678912\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_double() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(DOUBLE,2,2,,5.565653543687667)\n m[0,1]=null\n m");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(DOUBLE,2,2, ,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0       col1      \n" +
+				"- ---------- ----------\n" +
+				"0 5.56565354           \n" +
+				"1 5.56565354 5.56565354\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_float() throws SQLException, ClassNotFoundException {
+
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(FLOAT,2,2,,0.56544f)\n m[0,1]=null\n m");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(FLOAT,2,2, ,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0    col1   \n" +
+				"- ------- -------\n" +
+				"0 0.56544        \n" +
+				"1 0.56544 0.56544\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_long() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(LONG,2,2,,35687946468)\n m[0,1]=null\n m");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(LONG,2,2, ,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0        col1       \n" +
+				"- ----------- -----------\n" +
+				"0 35687946468            \n" +
+				"1 35687946468 35687946468\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_month() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(MONTH,2,2,, 2012.12M)\n m[0,1]=null\n m");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(MONTH,2,2, ,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0     col1    \n" +
+				"- -------- --------\n" +
+				"0 2012.12M         \n" +
+				"1 2012.12M 2012.12M\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_second() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(SECOND,2,2,, 13:30:10)\n m[0,1]=null\n m");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(SECOND,2,2, ,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0     col1    \n" +
+				"- -------- --------\n" +
+				"0 13:30:10         \n" +
+				"1 13:30:10 13:30:10\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_short() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(SHORT,2,2,,4548)\n m[0,1]=null\n m");
+		BasicTable re = (BasicTable)rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(SHORT,2,2, ,)");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0 4548     \n" +
+				"1 4548 4548\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_MatrixtoTable_matrix_string() throws SQLException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=matrix(STRING,2,2,,\"dd\")\n m[0,1]=null\n m");
+		BasicTable re = (BasicTable) rs.getResult();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(STRING,2,2, ,\"\" )");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0          \n" +
+				"1          \n",re1.getString());
+		assertEquals("  col0 col1\n" +
+				"- ---- ----\n" +
+				"0 dd       \n" +
+				"1 dd   dd  \n",re.getString());
 	}
 }
 
