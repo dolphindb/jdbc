@@ -122,7 +122,8 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         if (Utils.isNotEmpty(catalog) && !catalog.equals("%") && Utils.isNotEmpty(schemaPattern) && !schemaPattern.equals("%")
                 && Utils.isNotEmpty(tableNamePattern) && Utils.isNotEmpty(columnNamePattern) && columnNamePattern.equals("%")) {
             try {
-                connection.run(catalog + "." + schemaPattern + "." + tableNamePattern);
+                if (!((BasicBoolean) connection.run("existsCatalog(\"" + catalog + "\")")).getBoolean())
+                    throw new RuntimeException("The catalog '" + catalog + "' doesn't exist.");
                 BasicTable schemas = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\")");
                 if (schemas.rows() != 0) {
                     int pos = -1;
@@ -135,17 +136,31 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     if (pos != -1) {
                         BasicStringVector dbUrlVector = (BasicStringVector) schemas.getColumn("dbUrl");
                         dbUrl = dbUrlVector.getString(pos);
+                        if (tableNamePattern.trim().equals("%")) {
+                            // Retrieve all column information for all tables under 'catalog.schema'
+                            String script = "handle=database(\"" + dbUrl + "\"); getTables(handle);";
+                            AbstractVector tableNameVec = (AbstractVector) connection.run(script);
+                            for (int i = 0; i < tableNameVec.rows(); i++) {
+                                String tmpTableName = tableNameVec.getString(i);
+                                String tableScript = "handle=loadTable(\"" + dbUrl + "\", `" + tmpTableName + "); schema(handle);";
+                                BasicDictionary schema = (BasicDictionary) connection.run(tableScript);
 
-                        String script = "handle=loadTable(\"" + dbUrl + "\", `" + tableNamePattern + "); schema(handle);";
-                        BasicDictionary schema = (BasicDictionary) connection.run(script);
-                        colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-                        if (colDefs.getColumn(0).rows() == 0)
-                            throw new RuntimeException("The column: '" + columnNamePattern + "' doesn't exist in table: '" + tableNamePattern + "'.");
+                                if (i == 0)
+                                    colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+                                else
+                                    colDefs.combine((BasicTable) schema.get(new BasicString("colDefs")));
+                            }
+                        } else {
+                            // Retrieve all column-related information for all tables under 'catalog.schema.tableNamePattern'.
+                            String script = "handle=loadTable(\"" + dbUrl + "\", `" + tableNamePattern + "); schema(handle);";
+                            BasicDictionary schema = (BasicDictionary) connection.run(script);
+                            colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+                        }
                     } else {
                         throw new RuntimeException("schema" + schemaPattern + "doesn't exist in " + catalog + ".");
                     }
                 } else {
-                    throw new RuntimeException("Current catalog " + catalog + " doesn't has any schema.");
+                    throw new RuntimeException("Current catalog '" + catalog + "' doesn't has any schema.");
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
