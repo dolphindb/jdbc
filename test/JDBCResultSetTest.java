@@ -3,6 +3,7 @@ import com.dolphindb.jdbc.JDBCConnection;
 import com.dolphindb.jdbc.JDBCResultSet;
 import com.dolphindb.jdbc.JDBCStatement;
 
+import com.xxdb.data.BasicDateHour;
 import com.xxdb.data.BasicIntMatrix;
 import com.xxdb.data.BasicTable;
 import com.xxdb.data.Entity;
@@ -3013,16 +3014,17 @@ public class JDBCResultSetTest {
 	}
 
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_int() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_int() throws SQLException, ClassNotFoundException {
 
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
 		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m=matrix(INT,2,2, ,16665);m[0,1]=null\n" +
-				"m\n");
+				"m\n"+"m.rename!(\"aa\"\"bb\")");
 		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("matrix(INT,2,2, ,,)");
 		BasicTable re = (BasicTable)rs.getResult();
 		BasicTable re1 = (BasicTable)rs1.getResult();
+		System.out.println(re.getString());
 		assertEquals("  col0  col1 \n" +
 				"- ----- -----\n" +
 				"0 16665      \n" +
@@ -3033,7 +3035,7 @@ public class JDBCResultSetTest {
 				"1          \n",re1.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_bool() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_bool() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3051,7 +3053,7 @@ public class JDBCResultSetTest {
 				"1          \n",re1.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_byte() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_byte() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3069,7 +3071,7 @@ public class JDBCResultSetTest {
 				"1 'c'  'c' \n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_date() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_date() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3087,7 +3089,7 @@ public class JDBCResultSetTest {
 				"1 2023.06.13 2023.06.13\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_datehour() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_datehour() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3108,7 +3110,7 @@ public class JDBCResultSetTest {
 				"1 2012.06.13T13 2012.06.13T13\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_datetime() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_datetime() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3126,7 +3128,7 @@ public class JDBCResultSetTest {
 				"1 2012.06.13T13:30:10 2012.06.13T13:30:10\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_minute() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_minute() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3144,7 +3146,7 @@ public class JDBCResultSetTest {
 				"1 13:30m 13:30m\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_time() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_time() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3162,7 +3164,7 @@ public class JDBCResultSetTest {
 				"1 13:30:10.005 13:30:10.005\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_timestamp() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_timestamp() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3180,7 +3182,7 @@ public class JDBCResultSetTest {
 				"1 2022.06.13T13:30:10.008 2022.06.13T13:30:10.008\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_nanotime() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_nanotime() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3198,7 +3200,7 @@ public class JDBCResultSetTest {
 				"1 13:30:10.252525255 13:30:10.252525255\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_nanotimestamp() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_nanotimestamp() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3216,7 +3218,7 @@ public class JDBCResultSetTest {
 				"1 2030.01.02T13:30:10.252525255 2030.01.02T13:30:10.252525255\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_decimal32() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_decimal32() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3234,7 +3236,7 @@ public class JDBCResultSetTest {
 				"1 5.52348648 5.52348648\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_decimal64() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_decimal64() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3252,7 +3254,7 @@ public class JDBCResultSetTest {
 				"1 5.523486488648245248 5.523486488648245248\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_decimal128() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_decimal128() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3270,7 +3272,7 @@ public class JDBCResultSetTest {
 				"1 0.12345678912345678912345678912345678912 0.12345678912345678912345678912345678912\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_double() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_double() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3288,7 +3290,7 @@ public class JDBCResultSetTest {
 				"1 5.56565354 5.56565354\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_float() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_float() throws SQLException, ClassNotFoundException {
 
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
@@ -3307,7 +3309,7 @@ public class JDBCResultSetTest {
 				"1 0.56544 0.56544\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_long() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_long() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3325,7 +3327,7 @@ public class JDBCResultSetTest {
 				"1 35687946468 35687946468\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_month() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_month() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3343,7 +3345,7 @@ public class JDBCResultSetTest {
 				"1 2012.12M 2012.12M\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_second() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_second() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3361,7 +3363,7 @@ public class JDBCResultSetTest {
 				"1 13:30:10 13:30:10\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_short() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_short() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3379,7 +3381,7 @@ public class JDBCResultSetTest {
 				"1 4548 4548\n",re.getString());
 	}
 	@Test
-	public void Test_ResultSet_MatrixtoTable_matrix_string() throws SQLException, ClassNotFoundException {
+	public void Test_ResultSet_MatrixtoTable_string() throws SQLException, ClassNotFoundException {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3395,6 +3397,794 @@ public class JDBCResultSetTest {
 				"- ---- ----\n" +
 				"0 dd       \n" +
 				"1 dd   dd  \n",re.getString());
+		System.out.println(re.getString());
 	}
+
+	@Test
+	public void Test_ResultSet_ScalartoTable_bool() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("true");
+		BasicTable re = (BasicTable) rs.getResult();
+		assertEquals("col0\n" +
+				"----\n" +
+				"true\n",re.getString());;
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_char() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("'a'");
+		BasicTable re = (BasicTable) rs.getResult();
+		assertEquals("col0\n" +
+				"----\n" +
+				"'a' \n",re.getString());;
+		System.out.println(re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_short() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("122h");
+		BasicTable re = (BasicTable) rs.getResult();
+		assertEquals("col0\n" +
+				"----\n" +
+				"122 \n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_int() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("5");
+		BasicTable re = (BasicTable) rs.getResult();
+		assertEquals("col0\n" +
+				"----\n" +
+				"5   \n",re.getString());
+
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_long() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("22564l");
+		BasicTable re = (BasicTable) rs.getResult();
+		assertEquals("col0 \n"+"-----\n"+"22564\n",re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_date() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("2013.06.13");
+		BasicTable re = (BasicTable) rs.getResult();
+		int length="2013.06.13".length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, "2013.06.13");
+		System.out.println(expected);
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_month() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String date="2012.06M";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(date);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length=date.length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, date);
+		assertEquals(expected,re.getString());
+	}
+
+	@Test
+	public void Test_ResultSet_ScalartoTable_time() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String date="13:30:10.008";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(date);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length=date.length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, date);
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_minute() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String date="13:30m";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(date);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length=date.length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, date);
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_second() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String date="13:30:10";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(date);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length=date.length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, date);
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_datetime() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String date="2012.06.13T13:30:10";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(date);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length=date.length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, date);
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_timestamp() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String date="2012.06.13T13:30:10.008";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(date);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length=date.length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, date);
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_nanotime() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String date="13:30:10.008007006";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(date);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length=date.length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, date);
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_nanotimestamp() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String date="2012.06.13T13:30:10.008007006";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(date);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length=date.length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, date);
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_datehour() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String date="datehour(2012.06.13 13:30:10)";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(date);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length="2012.06.13T13".length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, "2012.06.13T13");
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_float() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		float t= 5.12F;
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(String.valueOf(t));
+		BasicTable re = (BasicTable) rs.getResult();
+		int length=String.valueOf(t).length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, t);
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_double() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String temp="5.2547";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(temp);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length=temp.length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, temp);
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_string() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String temp="'hello'";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(temp);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length=5;
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, "hello");
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_blob() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String temp="blob(\"hello\")";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(temp);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length=5;
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, "hello");
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_int128() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String temp="uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\")";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(temp);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length="9d457e79-1bed-d6c2-3612-b0d31c1881f6".length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, "9d457e79-1bed-d6c2-3612-b0d31c1881f6");
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_ipaddr() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String temp="ipaddr(\"192.168.1.13\")";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(temp);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length="192.168.1.13".length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, "192.168.1.13");
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_point() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String temp="point(117.60972, 24.118418)";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(temp);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length="(117.60972, 24.118418)".length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, "(117.60972, 24.118418)");
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_complex() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String temp="decimal32(25,6)";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(temp);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length="25.000000".length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, "25.000000");
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_decimal32() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String temp="decimal32(25,6)";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(temp);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length="25.000000".length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, "25.000000");
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_decimal64() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String temp="decimal64(2,18)";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(temp);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length="2.000000000000000000".length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, "2.000000000000000000");
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_decimal128() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String temp="decimal128(6,10)";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(temp);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length="6.0000000000".length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, "6.0000000000");
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_bool() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(BOOL,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(BOOL,2,,1);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0\n" +
+				"----\n" +
+				"    \n" +
+				"true\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_char() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(CHAR,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(CHAR,2,,'A');m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0\n" +
+				"----\n" +
+				"    \n" +
+				"'A' \n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_short() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(short,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(short,2,,23);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0\n" +
+				"----\n" +
+				"    \n" +
+				"23  \n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_int() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(INT,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(INT,2,,1);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0\n" +
+				"----\n" +
+				"    \n" +
+				"1   \n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_long() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(LONG,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(LONG,2,,10);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0\n" +
+				"----\n" +
+				"    \n" +
+				"10  \n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_date() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(DATE,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(DATE,2,,2013.06.13);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0      \n" +
+				"----------\n" +
+				"          \n" +
+				"2013.06.13\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_month() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(MONTH,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(MONTH,2,,2012.06M);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals
+				("col0    \n" +
+				"--------\n" +
+				"        \n" +
+				"2012.06M\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_time() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(time,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(time,2,,13:30:10.008);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0        \n" +
+				"------------\n" +
+				"            \n" +
+				"13:30:10.008\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_minute() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(minute,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(minute,2,,13:30:10.008);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0  \n" +
+				"------\n" +
+				"      \n" +
+				"13:30m\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_second() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(second,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(second,2,,13:30:10.008);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0    \n" +
+				"--------\n" +
+				"        \n" +
+				"13:30:10\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_datetime() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(datetime,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(datetime,2,,2012.06.13T13:30:10.008007006);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0               \n" +
+				"-------------------\n" +
+				"                   \n" +
+				"2012.06.13T13:30:10\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_timestamp() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(timestamp,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(timestamp,2,,2012.06.13T13:30:10.008007006);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0                   \n" +
+				"-----------------------\n" +
+				"                       \n" +
+				"2012.06.13T13:30:10.008\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_nanotime() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(nanotime,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(nanotime,2,,2012.06.13T13:30:10.008007006);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0              \n" +
+				"------------------\n" +
+				"                  \n" +
+				"13:30:10.008007006\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_nanotimestamp() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(nanotimestamp,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(nanotimestamp,2,,2012.06.13T13:30:10.008007006);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0                         \n" +
+				"-----------------------------\n" +
+				"                             \n" +
+				"2012.06.13T13:30:10.008007006\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_datehour() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(datehour,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(datehour,2,,2012.06.13T13:30:10.008007006);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0         \n" +
+				"-------------\n" +
+				"             \n" +
+				"2012.06.13T13\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_float() throws SQLException, ClassNotFoundException{
+		float a=32.57F;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(float,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(float,2,,"+a+");m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0       \n" +
+				"-----------\n" +
+				"           \n" +
+				"32.56999969\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_double() throws SQLException, ClassNotFoundException{
+
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(double,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(double,2,,2);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0\n" +
+				"----\n" +
+				"    \n" +
+				"2   \n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_symbol() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(symbol,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(symbol,2,,\"ddd\");m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0\n" +
+				"----\n" +
+				"    \n" +
+				"ddd \n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_string() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=array(string,0);m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=array(string,2,,'dasearfaa');m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0     \n" +
+				"---------\n" +
+				"         \n" +
+				"dasearfaa\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_int128() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=int128(array(string,0));m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=int128(array(string,2,,'e1671797c52e15f763380b45e841ec32'));m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0                            \n" +
+				"--------------------------------\n" +
+				"                                \n" +
+				"e1671797c52e15f763380b45e841ec32\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_uuid() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=uuid(array(string,0));m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=uuid(array(string,2,,'5d212a78-cc48-e3b1-4235-b4d91473ee87'));m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0                                \n" +
+				"------------------------------------\n" +
+				"                                    \n" +
+				"5d212a78-cc48-e3b1-4235-b4d91473ee87\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_ipaddr() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("m=ipaddr(array(string,0));m");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=ipaddr(array(string,2,,'192.168.1.13'));m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0        \n" +
+				"------------\n" +
+				"0.0.0.0     \n" +
+				"192.168.1.13\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_point() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("array(point,0)");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=point(1..2,9..10);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0       \n" +
+				"-----------\n" +
+				"(,)        \n" +
+				"(2.0, 10.0)\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_complex() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("array(complex,0)");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=complex(1 2,9 10);m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0     \n" +
+				"---------\n" +
+				"         \n" +
+				"2.0+10.0i\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_decimal32() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("array(DECIMAL32(4),0)");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=[decimal32(42,2),decimal32(25,2)];m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0 \n" +
+				"-----\n" +
+				"     \n" +
+				"25.00\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_decimal64() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("array(DECIMAL64(4),0)");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=[decimal64(42,4),decimal64(25,4)];m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0   \n" +
+				"-------\n" +
+				"       \n" +
+				"25.0000\n",re1.getString());
+	}
+	@Test
+	public void Test_ResultSet_VectortoTable_decimal128() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery("array(DECIMAL128(4),0)");
+		JDBCResultSet rs1 = (JDBCResultSet) stmt.executeQuery("m=[decimal128(42,5),decimal128(25,5)];m[0]=null;m");
+		BasicTable re = (BasicTable) rs.getResult();
+		BasicTable re1 = (BasicTable) rs1.getResult();
+		assertEquals("col0\n" +
+				"----\n" ,re.getString());
+		assertEquals("col0    \n" +
+				"--------\n" +
+				"        \n" +
+				"25.00000\n",re1.getString());
+	}
+
 }
 
