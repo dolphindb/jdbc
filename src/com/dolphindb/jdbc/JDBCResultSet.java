@@ -135,10 +135,8 @@ public class JDBCResultSet implements ResultSet{
 
                 List<String> colNames = new ArrayList<>();
                 List<Vector> cols = new ArrayList<>();
-                colNames.add("");
-                if (Objects.isNull(rowLabels))
-                    cols.add(new BasicIntVector(IntStream.range(0, matrix.rows()).toArray()));
-                else
+
+                if (Objects.nonNull(rowLabels))
                     cols.add(rowLabels);
 
                 Entity.DATA_TYPE dataType = matrix.getDataType();
