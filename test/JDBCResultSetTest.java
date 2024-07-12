@@ -3706,7 +3706,7 @@ public class JDBCResultSetTest {
 		assertEquals(expected,re.getString());
 	}
 	@Test
-	public void Test_ResultSet_ScalartoTable_int128() throws SQLException, ClassNotFoundException{
+	public void Test_ResultSet_ScalartoTable_uuid() throws SQLException, ClassNotFoundException{
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -3717,6 +3717,20 @@ public class JDBCResultSetTest {
 		String col0 = String.format("%-" + length + "s", "col0");
 		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
 		String expected = String.format("%s\n%s\n%s\n", col0, separator, "9d457e79-1bed-d6c2-3612-b0d31c1881f6");
+		assertEquals(expected,re.getString());
+	}
+	@Test
+	public void Test_ResultSet_ScalartoTable_int128() throws SQLException, ClassNotFoundException{
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		String temp="int128(\"e1671797c52e15f763380b45e841ec32\")";
+		JDBCResultSet rs = (JDBCResultSet) stmt.executeQuery(temp);
+		BasicTable re = (BasicTable) rs.getResult();
+		int length="e1671797c52e15f763380b45e841ec32".length();
+		String col0 = String.format("%-" + length + "s", "col0");
+		String separator = String.format("%-" + length + "s", "").replace(' ', '-');
+		String expected = String.format("%s\n%s\n%s\n", col0, separator, "e1671797c52e15f763380b45e841ec32");
 		assertEquals(expected,re.getString());
 	}
 	@Test
