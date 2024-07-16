@@ -254,6 +254,7 @@ public class Utils {
                     tableName = sql.substring(sql.indexOf("from") + "from".length()).replaceAll(";", "").trim();
                 }
         }
+
         return tableName;
     }
 
