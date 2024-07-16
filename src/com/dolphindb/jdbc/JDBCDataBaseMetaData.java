@@ -361,7 +361,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             if (i == 0)
                 colDefs = curTable;
             else
-                colDefs.combine(curTable);
+                colDefs = colDefs.combine(curTable);
         }
 
         return colDefs;
