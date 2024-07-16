@@ -5313,7 +5313,6 @@ public class JDBCPrepareStatementTest {
             org.junit.Assert.assertTrue(rs.wasNull());
         }
         Assert.assertArrayEquals(expect1,act1);
-
     }
     @Test
     public void test_PreparedStatement_insert_into_Decimal64_executeUpdate_String() throws SQLException {
@@ -5336,7 +5335,6 @@ public class JDBCPrepareStatementTest {
             org.junit.Assert.assertTrue(rs.wasNull());
         }
         Assert.assertArrayEquals(expect1,act1);
-
     }
     @Test
     public void test_PreparedStatement_insert_into_col_Boolean_executeUpdate() throws SQLException {

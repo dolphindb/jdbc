@@ -3752,4 +3752,38 @@ public class JDBCStatementTest {
 		BasicTable re2 = (BasicTable)rs2.getResult();
 		org.junit.Assert.assertEquals(1,re2.rows());
 	}
+	@Test
+	public void test_JDBCStatement_execute_false() throws SQLException, IOException, ClassNotFoundException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST, PORT,"admin","123456");
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		Statement stmt = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		Boolean re =  stmt.execute("a = 1;");
+		Assert.assertEquals(false, re);
+
+		Boolean re1 =  stmt.execute("a = 1;a");
+		Assert.assertEquals(true, re1);
+		ResultSet res1 = stmt.getResultSet();
+		Assert.assertEquals(true, res1.next());
+
+		Boolean re2 =  stmt.execute("a=table(1..10 as id);a;");
+		Assert.assertEquals(true, re2);
+		ResultSet res2 = stmt.getResultSet();
+		Assert.assertEquals(true, res2.next());
+
+		Boolean re3 =  stmt.execute("a=1..10;a;");
+		Assert.assertEquals(true, re3);
+		ResultSet res3 = stmt.getResultSet();
+		Assert.assertEquals(true, res3.next());
+
+		Boolean re4 =  stmt.execute("a=matrix(INT,3,2, ,1);a;");
+		Assert.assertEquals(true, re4);
+		ResultSet res4 = stmt.getResultSet();
+		Assert.assertEquals(true, res4.next());
+	}
 }
