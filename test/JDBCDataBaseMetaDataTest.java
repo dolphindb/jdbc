@@ -170,6 +170,44 @@ public class JDBCDataBaseMetaDataTest {
             return success;
         }
     }
+    public static boolean createSchema_decimal(String CatalogName,String dbName,String schemaName) {
+        boolean success = false;
+        DBConnection db = null;
+        try {
+            String script = " login(`admin, `123456); \n" +
+                    "dbName = \""+ dbName +"\"\n" +
+                    "if(existsDatabase(dbName)){\n" +
+                    "        dropDatabase(dbName)\n" +
+                    "}\n" +
+                    "n=1000\n" +
+                    "ID=rand(10, n)\n" +
+                    "cdecimal32=decimal32(rand(1.0, n),8)\n" +
+                    "cdecimal64=decimal64(rand(1.0, n),17)\n" +
+                    "cdecimal128=decimal128(rand(1.0, n),30)\n" +
+                    "t=table(ID, cdecimal32,cdecimal64,cdecimal128);\n" +
+                    "t1=table(ID, cdecimal32);\n" +
+                    "db=database(dbName,RANGE,  0 5 10)\n" +
+                    "pt=db.createPartitionedTable(t, `pt, `ID);\n" +
+                    "pt.append!(t);\n" +
+                    "setColumnComment(pt,{ID:\"股票代码\",cdecimal32:\"decimal32类型\",cdecimal64:\"decimal64(17)类型\",cdecimal128:\"decimal128类型\"});\n" +
+                    "db.createTable(t1, `dt).append!(t1);" +
+                    "try{\n dropCatalog(\""+ CatalogName +"\")\n }catch(ex){\n }\n" +
+                    "createCatalog(\""+ CatalogName +"\")\n"+
+                    "createSchema(\""+ CatalogName +"\", \""+ dbName +"\", \""+schemaName+"\")\n";
+            db = new DBConnection();
+            db.connect(HOST, PORT);
+            db.run(script);
+            success = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            success = false;
+        } finally {
+            if (db != null) {
+                db.close();
+            }
+            return success;
+        }
+    }
     public static boolean createTable(String CatalogName,String dbName,String schemaName) {
         boolean success = false;
         DBConnection db = null;
@@ -1348,7 +1386,7 @@ public class JDBCDataBaseMetaDataTest {
         rs = metaData.getColumns("catalog1","schema_test","dt", "%");
         String results1 = getTablesData(rs);
         //printData(rs);
-        Assert.assertEquals("nullCOLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    COLUMN_NAME: x    TYPE_NAME: DOUBLE    DATA_TYPE: 8    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 8    COLUMN_NAME: sys    TYPE_NAME: STRING    DATA_TYPE: 12    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 12    ",results1);
+        Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: x    TYPE_NAME: DOUBLE    DATA_TYPE: 8    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 8    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: sys    TYPE_NAME: STRING    DATA_TYPE: 12    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 12    ",results1);
         stmt.close();
         conn.close();
         }else{
@@ -1373,7 +1411,7 @@ public class JDBCDataBaseMetaDataTest {
         rs = metaData.getColumns("","","table1", "%");
         String results1 = getTablesData(rs);
         //printData(rs);
-        Assert.assertEquals("nullCOLUMN_NAME: id    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    IS_NULLABLE: YES    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    ",results1);
+        Assert.assertEquals("nullTABLE_CAT: null    TABLE_SCHEM: null    TABLE_NAME: table1    COLUMN_NAME: id    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    ",results1);
         stmt.close();
         conn.close();
         }else{
@@ -1401,6 +1439,99 @@ public class JDBCDataBaseMetaDataTest {
         conn.close();
         }else{
             System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getTables_catalog_schemaPattern_table_not_exist");
+        }
+    }
+    @Test
+    public void test_DatabaseMetaData_getColumns_1() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+            Connection conn = null;
+            Statement stmt = null;
+            Class.forName(JDBC_DRIVER);
+            conn = DriverManager.getConnection(url,LOGININFO);
+            stmt = conn.createStatement();
+            ResultSet rs = null;
+            DatabaseMetaData metaData = conn.getMetaData();
+            String results = null;
+            createSchema("catalog1","dfs://db","schema_test");
+            rs = metaData.getColumns("catalog1","schema_test","dt", "%");
+            String results1 = getTablesData(rs);
+            //printData(rs);
+            Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: x    TYPE_NAME: DOUBLE    DATA_TYPE: 8    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 8    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: sys    TYPE_NAME: STRING    DATA_TYPE: 12    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 12    ",results1);
+            stmt.close();
+            conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getColumns_columnNamePattern_per");
+        }
+    }
+    @Test
+    public void test_DatabaseMetaData_getColumns_2() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+            Connection conn = null;
+            Statement stmt = null;
+            Class.forName(JDBC_DRIVER);
+            conn = DriverManager.getConnection(url,LOGININFO);
+            stmt = conn.createStatement();
+            ResultSet rs = null;
+            DatabaseMetaData metaData = conn.getMetaData();
+            String results = null;
+            createSchema("catalog1","dfs://db","schema_test");
+            rs = metaData.getColumns("catalog1","schema_test","pt", "%");
+            String results1 = getTablesData(rs);
+            //printData(rs);
+            Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: x    TYPE_NAME: DOUBLE    DATA_TYPE: 8    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 8    ",results1);
+            stmt.close();
+            conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getColumns_columnNamePattern_per");
+        }
+    }
+    @Test
+    public void test_DatabaseMetaData_getColumns_columnNamePattern_per() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+            Connection conn = null;
+            Statement stmt = null;
+            Class.forName(JDBC_DRIVER);
+            conn = DriverManager.getConnection(url,LOGININFO);
+            stmt = conn.createStatement();
+            ResultSet rs = null;
+            DatabaseMetaData metaData = conn.getMetaData();
+            String results = null;
+            createSchema("catalog1","dfs://db","schema_test");
+            rs = metaData.getColumns("catalog1","schema_test","%", "%");
+            String results1 = getTablesData(rs);
+            //printData(rs);
+            Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: x    TYPE_NAME: DOUBLE    DATA_TYPE: 8    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 8    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: sys    TYPE_NAME: STRING    DATA_TYPE: 12    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 12    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: x    TYPE_NAME: DOUBLE    DATA_TYPE: 8    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 8    ",results1);
+            stmt.close();
+            conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getColumns_columnNamePattern_per");
+        }
+    }
+
+    @Test
+    public void test_DatabaseMetaData_getColumns_columnNamePattern_per_1() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+            Connection conn = null;
+            Statement stmt = null;
+            Class.forName(JDBC_DRIVER);
+            conn = DriverManager.getConnection(url,LOGININFO);
+            stmt = conn.createStatement();
+            ResultSet rs = null;
+            DatabaseMetaData metaData = conn.getMetaData();
+            String results = null;
+            createSchema_decimal("catalog1","dfs://db","schema_test");
+            rs = metaData.getColumns("catalog1","schema_test","%", "%");
+            String results1 = getTablesData(rs);
+            //printData(rs);
+            Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: cdecimal32    TYPE_NAME: DECIMAL32(8)    DATA_TYPE: 3    EXTRA: 8    REMARKS: null    DECIMAL_DIGITS: 8    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: 股票代码    DECIMAL_DIGITS: -1    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: cdecimal32    TYPE_NAME: DECIMAL32(8)    DATA_TYPE: 3    EXTRA: 8    REMARKS: decimal32类型    DECIMAL_DIGITS: 8    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: cdecimal64    TYPE_NAME: DECIMAL64(17)    DATA_TYPE: 3    EXTRA: 17    REMARKS: decimal64(17)类型    DECIMAL_DIGITS: 17    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 3    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: cdecimal128    TYPE_NAME: DECIMAL128(30)    DATA_TYPE: 3    EXTRA: 30    REMARKS: decimal128类型    DECIMAL_DIGITS: 30    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 4    SQL_DATA_TYPES: 3    ",results1);
+            stmt.close();
+            conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getColumns_columnNamePattern_per");
         }
     }
     @Test
