@@ -185,8 +185,8 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
         for (int i = 0; i < tables.size(); i++) {
             List<String> columnIndexList = new ArrayList<>();
+            BasicDictionary schema;
             try {
-                BasicDictionary schema;
                 String tbName;
                 if (Objects.nonNull(tableNamePattern) && !tableNamePattern.trim().equals("%")) {
                     tbName = tableNamePattern;
@@ -271,16 +271,19 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 List<Integer> decimalDigits = new ArrayList<>();
                 for (int j = 0; j < typeStringColumn.rows(); j ++) {
                     String dataType = typeStringColumn.get(j).getString();
+                    dataType = dataType.replaceAll("\\(.*?\\)", "");
+                    BasicTable curColDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+                    BasicIntVector extraVec = (BasicIntVector) curColDefs.getColumn("extra");
                     int scale = -1;
                     switch (dataType) {
                         case "DECIMAL32":
-                            scale = ((BasicDecimal32Vector) curTable.getColumn(j)).getScale();
+                            scale = extraVec.getInt(j);
                             break;
                         case "DECIMAL64":
-                            scale = ((BasicDecimal64Vector) curTable.getColumn(j)).getScale();
+                            scale = extraVec.getInt(j);
                             break;
                         case "DECIMAL128":
-                            scale = ((BasicDecimal128Vector) curTable.getColumn(j)).getScale();
+                            scale = extraVec.getInt(j);
                             break;
                     }
                     decimalDigits.add(scale);
