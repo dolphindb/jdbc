@@ -1420,11 +1420,15 @@ public class JDBCResultSet implements ResultSet{
         return aClass.isInstance(this);
     }
 
+    /**
+     * Since JDBC version 3.00.1.0, this method is deprecated.
+     */
+    @Deprecated
     public Entity getResult() throws SQLException{
-        if (table == null)
-            return entity;
-        else
+        if (Objects.nonNull(this.entity) && this.entity.isTable())
             return table;
+        else
+            return this.entity;
     }
 
     public BasicDate getBasicDate(String columnLabel) throws SQLException{
