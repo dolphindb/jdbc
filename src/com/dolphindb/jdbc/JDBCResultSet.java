@@ -137,7 +137,7 @@ public class JDBCResultSet implements ResultSet{
                 List<Vector> cols = new ArrayList<>();
 
                 if (Objects.nonNull(rowLabels)) {
-                    colNames.add("");
+                    colNames.add("label");
                     cols.add(rowLabels);
                 }
 
