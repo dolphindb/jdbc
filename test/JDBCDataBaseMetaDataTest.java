@@ -284,7 +284,6 @@ public class JDBCDataBaseMetaDataTest {
         } else {
             return null;
         }
-
     }
 
     @Test

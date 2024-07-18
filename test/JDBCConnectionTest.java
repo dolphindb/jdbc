@@ -328,7 +328,8 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		org.junit.Assert.assertEquals(true,re.contains("The catalog [eeeeeee1] doesn't exist."));
+		System.out.println(re.toString());
+		org.junit.Assert.assertEquals(true,re.contains("The catalog [eeeeeee1] does not exist."));
 		}else{
 			System.out.println("SKIP THIS CASE : Test_setCatalog_Catalog_not_exist_300");
 		}
