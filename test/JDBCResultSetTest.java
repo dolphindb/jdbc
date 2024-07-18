@@ -3021,16 +3021,16 @@ public class JDBCResultSetTest {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
-		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m = matrix(1..5, 6..10);\n m.rename!(2021.01.01..2021.01.05, `A`B);\n m");
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m = matrix(1..5, 6..10);\n m.rename!(2021.01.01..2021.01.05, `label`B);\n m");
 		BasicIntMatrix re = (BasicIntMatrix)rs.getResult();
 		System.out.println(re.getString());
 		ResultSetMetaData metaData = rs.getMetaData();
 		assertEquals(3,metaData.getColumnCount());
 		assertEquals("label",metaData.getColumnName(1));
-		assertEquals("A",metaData.getColumnName(2));
+		assertEquals("label",metaData.getColumnName(2));
 		assertEquals("B",metaData.getColumnName(3));
 		String results1 = getTablesData(rs);
-		Assert.assertEquals("nulllabel: 21-1-1 上午12:00    A: 1    B: 6    label: 21-1-2 上午12:00    A: 2    B: 7    label: 21-1-3 上午12:00    A: 3    B: 8    label: 21-1-4 上午12:00    A: 4    B: 9    label: 21-1-5 上午12:00    A: 5    B: 10    \n",results1);
+		Assert.assertEquals("nulllabel: 21-1-1 上午12:00    label: 1    B: 6    label: 21-1-2 上午12:00    label: 2    B: 7    label: 21-1-3 上午12:00    label: 3    B: 8    label: 21-1-4 上午12:00    label: 4    B: 9    label: 21-1-5 上午12:00    label: 5    B: 10    ",results1);
 	}
 	@Test
 	public void Test_ResultSet_Matrix_getResult_int() throws SQLException, ClassNotFoundException {
