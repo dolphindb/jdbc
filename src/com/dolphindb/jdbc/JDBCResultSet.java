@@ -1427,10 +1427,14 @@ public class JDBCResultSet implements ResultSet{
      */
     @Deprecated
     public Entity getResult() throws SQLException{
-        if (Objects.nonNull(this.entity) && this.entity.isTable())
+        if (Objects.nonNull(entity)) {
+            if (entity.isTable())
+                return table;
+            else
+                return entity;
+        } else {
             return table;
-        else
-            return this.entity;
+        }
     }
 
     public BasicDate getBasicDate(String columnLabel) throws SQLException{
