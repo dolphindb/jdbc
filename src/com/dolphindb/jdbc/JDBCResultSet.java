@@ -95,9 +95,7 @@ public class JDBCResultSet implements ResultSet{
                 if (this.isUpdatable){
                     insertRowMap = new HashMap<>(this.table.columns() + 1);
                 }
-            }
-
-            if (entity instanceof Scalar) {
+            } else if (entity instanceof Scalar) {
                 Scalar scalar = (Scalar) entity;
                 Entity.DATA_TYPE dataType = scalar.getDataType();
                 BasicEntityFactory factory = new BasicEntityFactory();
