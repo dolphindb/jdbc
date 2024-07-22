@@ -524,7 +524,6 @@ public class JDBCStatementTest {
     		}
     	}
 	}
-	
 
 	@Test
 	public void Test_statement_dfs_execQuery() throws Exception{
@@ -543,115 +542,56 @@ public class JDBCStatementTest {
     	ResultSet rs7 = null;
     	int i =0;
     	String s="the given SQL statement produces anything other than a single ResultSet object";
-    	try {
-    		Class.forName(JDBC_DRIVER);
-    		conn = DriverManager.getConnection(url);
-    		stmt = conn.createStatement();
-    		stmt.execute("pt=loadTable('dfs://db_testStatement', 'pt')");
-    		rs1 = stmt.executeQuery("exec count(*) from pt");
-    	}catch(Exception e) {
-    		org.junit.Assert.assertThat(e.getMessage(),containsString(s));
-    	}
-    	try {
-    		Class.forName(JDBC_DRIVER);
-    		conn = DriverManager.getConnection(url);
-    		stmt = conn.createStatement();
-    		stmt.execute("pt=loadTable('dfs://db_testStatement', 'pt')");
-    		rs2 = stmt.executeQuery("exec price from pt");
-    	}catch(Exception e) {
-    		org.junit.Assert.assertThat(e.getMessage(), containsString(s));
-    	}
-    	try{
-    		Class.forName(JDBC_DRIVER);
-    		conn = DriverManager.getConnection(url);
-    		stmt = conn.createStatement();
-    		stmt.execute("pt=loadTable('dfs://db_testStatement', 'pt')");
-    		rs3 = stmt.executeQuery("select * from pt where price>100 order by qty");
-    		rs3.absolute(2);
-    		org.junit.Assert.assertEquals(6800, rs3.getInt(3));	
-    		rs4 = stmt.executeQuery("select max(price) from pt group by sym");
-    		rs4.absolute(3);
-    		org.junit.Assert.assertEquals(30.02, rs4.getDouble(2),0);
-    		rs5 = stmt.executeQuery("select wavg(price, qty) as wvap from pt where sym = 'IBM' cgroup by timestamp order by timestamp");
-    		rs5.absolute(1);
-    		org.junit.Assert.assertEquals(174.97, rs5.getDouble(2),0);
-    		rs6 = stmt.executeQuery("select max(price) from pt context by sym having sym=`C");
-    		while(rs6.next()) {
-    			if(rs6.getDouble(1)==51.29) {
-    				i++;
-    			}
-    		}
-    		org.junit.Assert.assertEquals(4, i);
-    		rs7 = stmt.executeQuery("select price from pt pivot by timestamp,sym");
-    		ResultSetMetaData rsmd = rs7.getMetaData();
-    		org.junit.Assert.assertEquals(4, rsmd.getColumnCount());   		
-    	}catch(Exception e){
-    		e.printStackTrace();
-    	}finally{
-    		if(rs1 != null){
-    			try{
-    				rs1.close();
-    			}catch(SQLException e){
-    				e.printStackTrace();
-    			}
-    		}
-    		if(rs2 != null){
-    			try{
-    				rs2.close();
-    			}catch(SQLException e){
-    				e.printStackTrace();
-    			}
-    		}
-    		if(rs3 != null){
-    			try{
-    				rs3.close();
-    			}catch(SQLException e){
-    				e.printStackTrace();
-    			}
-    		}
-    		if(rs4 != null){
-    			try{
-    				rs4.close();
-    			}catch(SQLException e){
-    				e.printStackTrace();
-    			}
-    		}
-    		if(rs5 != null){
-    			try{
-    				rs5.close();
-    			}catch(SQLException e){
-    				e.printStackTrace();
-    			}
-    		}
-    		if(rs6 != null){
-    			try{
-    				rs6.close();
-    			}catch(SQLException e){
-    				e.printStackTrace();
-    			}
-    		}
-    		if(rs7 != null){
-    			try{
-    				rs7.close();
-    			}catch(SQLException e){
-    				e.printStackTrace();
-    			}
-    		}
-    		if(stmt != null){
-    			try{
-    				stmt.close();
-    			}catch(SQLException e){
-    				e.printStackTrace();
-    			}
-    		}
-    		if(conn != null){
-    			try{
-    				conn.close();
-    			}catch(SQLException e){
-    				e.printStackTrace();
-    			}
-    		}
-    	}
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable('dfs://db_testStatement', 'pt')");
+		rs1 = stmt.executeQuery("exec count(*) from pt");
+		rs1.last();
+		Assert.assertEquals(1,rs1.getRow());
+		ResultSetMetaData metaData1 = rs1.getMetaData();
+		Assert.assertEquals(1,metaData1.getColumnCount());
+		org.junit.Assert.assertEquals(9, rs1.getInt(1));
+
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable('dfs://db_testStatement', 'pt')");
+		rs2 = stmt.executeQuery("exec price from pt order by price");
+		rs2.last();
+		Assert.assertEquals(9,rs2.getRow());
+		ResultSetMetaData metaData2 = rs2.getMetaData();
+		Assert.assertEquals(1,metaData2.getColumnCount());
+		rs2.absolute(2);
+		org.junit.Assert.assertEquals(29.46, rs2.getDouble(1),2);
+
+    	Class.forName(JDBC_DRIVER);
+    	conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable('dfs://db_testStatement', 'pt')");
+		rs3 = stmt.executeQuery("select * from pt where price>100 order by qty");
+		rs3.absolute(2);
+		org.junit.Assert.assertEquals(6800, rs3.getInt(3));
+
+		rs4 = stmt.executeQuery("select max(price) from pt group by sym");
+		rs4.absolute(3);
+		org.junit.Assert.assertEquals(30.02, rs4.getDouble(2),0);
+
+		rs5 = stmt.executeQuery("select wavg(price, qty) as wvap from pt where sym = 'IBM' cgroup by timestamp order by timestamp");
+		rs5.absolute(1);
+		org.junit.Assert.assertEquals(174.97, rs5.getDouble(2),0);
+
+		rs6 = stmt.executeQuery("select max(price) from pt context by sym having sym=`C");
+		while(rs6.next()) {
+			if(rs6.getDouble(1)==51.29) {
+				i++;
+			}
+		}
+		org.junit.Assert.assertEquals(4, i);
+
+		rs7 = stmt.executeQuery("select price from pt pivot by timestamp,sym");
+		ResultSetMetaData rsmd = rs7.getMetaData();
+		org.junit.Assert.assertEquals(4, rsmd.getColumnCount());
 	}
 	
 	@Test
@@ -3751,5 +3691,39 @@ public class JDBCStatementTest {
 		JDBCResultSet rs2 = (JDBCResultSet)stmt.executeQuery("select * from pt");
 		BasicTable re2 = (BasicTable)rs2.getResult();
 		org.junit.Assert.assertEquals(1,re2.rows());
+	}
+	@Test
+	public void test_JDBCStatement_execute_false() throws SQLException, IOException, ClassNotFoundException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST, PORT,"admin","123456");
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		Statement stmt = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		Boolean re =  stmt.execute("a = 1;");
+		Assert.assertEquals(false, re);
+
+		Boolean re1 =  stmt.execute("a = 1;a");
+		Assert.assertEquals(true, re1);
+		ResultSet res1 = stmt.getResultSet();
+		Assert.assertEquals(true, res1.next());
+
+		Boolean re2 =  stmt.execute("a=table(1..10 as id);a;");
+		Assert.assertEquals(true, re2);
+		ResultSet res2 = stmt.getResultSet();
+		Assert.assertEquals(true, res2.next());
+
+		Boolean re3 =  stmt.execute("a=1..10;a;");
+		Assert.assertEquals(true, re3);
+		ResultSet res3 = stmt.getResultSet();
+		Assert.assertEquals(true, res3.next());
+
+		Boolean re4 =  stmt.execute("a=matrix(INT,3,2, ,1);a;");
+		Assert.assertEquals(true, re4);
+		ResultSet res4 = stmt.getResultSet();
+		Assert.assertEquals(true, res4.next());
 	}
 }

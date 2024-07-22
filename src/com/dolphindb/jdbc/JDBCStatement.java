@@ -1,6 +1,7 @@
 package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
+import com.xxdb.data.Void;
 import java.io.IOException;
 import java.sql.*;
 import java.text.MessageFormat;
@@ -126,17 +127,12 @@ public class JDBCStatement implements Statement {
                         entity = connection.run(sql);
                     }
 
-                    if (entity instanceof BasicTable) {
+                    if (entity instanceof BasicTable || entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR
+                            || entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR || entity.getDataForm() == Entity.DATA_FORM.DF_MATRIX) {
                         resultSet = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
                         return resultSet;
                     } else if(entity instanceof EntityBlockReader) {
                         resultSet = new JDBCResultSet(connection, this, (EntityBlockReader) entity, sql, this.maxRows);
-                        return resultSet;
-                    } else if (entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR) {
-                        resultSet = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
-                        return resultSet;
-                    } else if (entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR) {
-                        resultSet = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
                         return resultSet;
                     } else {
                         throw new SQLException("The given SQL statement produces anything other than a single ResultSet object.");
@@ -427,17 +423,18 @@ public class JDBCStatement implements Statement {
                     throw new SQLException(e);
                 }
 
-                if (entity instanceof BasicTable) {
-                    ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
-                    resultSets.offerLast(resultSet_);
-                    objectQueue.offer(resultSet_);
+                if (entity instanceof BasicTable || (entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR && !(entity instanceof Void))
+                        || entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR || entity.getDataForm() == Entity.DATA_FORM.DF_MATRIX) {
+                    ResultSet resultSet = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
+                    resultSets.offerLast(resultSet);
+                    objectQueue.offer(resultSet);
                 }
             }
         }
 
         if (objectQueue.isEmpty()) {
             return false;
-        }else {
+        } else {
             result = objectQueue.poll();
             return result instanceof ResultSet;
         }

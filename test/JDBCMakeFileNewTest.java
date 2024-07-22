@@ -5,7 +5,6 @@ import com.xxdb.data.BasicStringVector;
 import com.xxdb.data.BasicTable;
 import org.junit.Before;
 import org.junit.Test;
-
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;

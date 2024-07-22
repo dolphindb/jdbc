@@ -5280,7 +5280,7 @@ public class JDBCPrepareStatementTest {
         createPartitionTable("DECIMAL128(4)");
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
         ps.setInt(1,1000);
-        ps.setObject(2,"123421.00012",39,4);
+        ps.setObject(2,"123421.00012",37,4);
         ps.executeUpdate();
         ps.setInt(1,2);
         ps.setNull(2,Types.OTHER);
@@ -5291,6 +5291,50 @@ public class JDBCPrepareStatementTest {
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_Decimal32_executeUpdate_String() throws SQLException {
+        String [] expect1=new String[]{"0","0.1","0.10","0.100","0.1000","0.10000","0.100000","0.1000000","0.10000000","0.100000000"};;
+        String [] act1=new String[10];
+        for(int precsion=0;precsion<=9;precsion++){
+            createPartitionTable("DECIMAL32("+precsion+")");
+            PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+            ps.setInt(1,1000);
+            ps.setObject(2,"0.1");
+            ps.executeUpdate();
+            ps.setInt(1,2);
+            ps.setNull(2,Types.OTHER);
+            ps.executeUpdate();
+            ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+            rs.next();
+            act1[precsion]=rs.getObject("dataType").toString();
+            rs.next();
+            rs.getObject("dataType");
+            org.junit.Assert.assertTrue(rs.wasNull());
+        }
+        Assert.assertArrayEquals(expect1,act1);
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_Decimal64_executeUpdate_String() throws SQLException {
+        String[] expect1 = new String[]{"0", "0.1", "0.10", "0.100", "0.1000", "0.10000", "0.100000", "0.1000000", "0.10000000", "0.100000000", "0.1000000000", "0.10000000000", "0.100000000000", "0.1000000000000", "0.10000000000000", "0.100000000000000", "0.1000000000000000", "0.10000000000000000", "0.100000000000000000"};
+        String[] act1=new String[19];
+        for(int i=0;i<=18;i++){
+            createPartitionTable("DECIMAL64("+i+")");
+            PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+            ps.setInt(1,1000);
+            ps.setObject(2,0.1);
+            ps.executeUpdate();
+            ps.setInt(1,2);
+            ps.setNull(2,Types.OTHER);
+            ps.executeUpdate();
+            ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+            rs.next();
+            act1[i]=rs.getObject("dataType").toString();
+            rs.next();
+            rs.getObject("dataType");
+            org.junit.Assert.assertTrue(rs.wasNull());
+        }
+        Assert.assertArrayEquals(expect1,act1);
     }
     @Test
     public void test_PreparedStatement_insert_into_col_Boolean_executeUpdate() throws SQLException {
@@ -7125,6 +7169,38 @@ public class JDBCPrepareStatementTest {
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new String[] {"0.0","-123.00432","132.204234","100.0"},39,4);
+        ps.executeUpdate();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.executeUpdate();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_DECIMAL32_executeUpdate_String() throws SQLException, IOException {
+        createPartitionTable_Array("DECIMAL32(5)");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new String[] {"0.0","-123.00432","132.204234","100.0"});
+        ps.executeUpdate();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.OTHER);
+        ps.executeUpdate();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re1.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+    @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_DECIMAL64executeUpdate_String() throws SQLException, IOException {
+        createPartitionTable_Array("DECIMAL64(5)");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new String[] {"0.0","-123.00432","132.204234","100.0"},37,2);
         ps.executeUpdate();
         ps.setInt(1,2);
         ps.setNull(2,Types.OTHER);

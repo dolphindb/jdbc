@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.*;
+import java.util.stream.IntStream;
 
 
 public class JDBCResultSet implements ResultSet{
@@ -94,6 +95,75 @@ public class JDBCResultSet implements ResultSet{
                 if (this.isUpdatable){
                     insertRowMap = new HashMap<>(this.table.columns() + 1);
                 }
+            } else if (entity instanceof Scalar) {
+                Scalar scalar = (Scalar) entity;
+                Entity.DATA_TYPE dataType = scalar.getDataType();
+                BasicEntityFactory factory = new BasicEntityFactory();
+                Vector vector;
+                if (dataType == Entity.DATA_TYPE.DT_DECIMAL32 || dataType == Entity.DATA_TYPE.DT_DECIMAL64 || dataType == Entity.DATA_TYPE.DT_DECIMAL128)
+                    vector = factory.createVectorWithDefaultValue(dataType, 0, scalar.getScale());
+                else
+                    vector = factory.createVectorWithDefaultValue(dataType, 0, -1);
+
+                try {
+                    vector.Append(scalar);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                List<String> colNames = new ArrayList<>();
+                List<Vector> cols = new ArrayList<>();
+                colNames.add("col0");
+                cols.add(vector);
+
+                this.table = new BasicTable(colNames, cols);
+                this.offsetRows = this.table.rows();
+            } else if (entity instanceof Vector) {
+                Vector vector = (Vector) entity;
+                List<String> colNames = new ArrayList<>();
+                List<Vector> cols = new ArrayList<>();
+                colNames.add("col0");
+                cols.add(vector);
+
+                this.table = new BasicTable(colNames, cols);
+                this.offsetRows = this.table.rows();
+            } else if (entity instanceof Matrix) {
+                Matrix matrix = (Matrix) entity;
+                Vector rowLabels = matrix.getRowLabels();
+                Vector columnLabels = matrix.getColumnLabels();
+
+                List<String> colNames = new ArrayList<>();
+                List<Vector> cols = new ArrayList<>();
+
+                if (Objects.nonNull(rowLabels)) {
+                    colNames.add("label");
+                    cols.add(rowLabels);
+                }
+
+                Entity.DATA_TYPE dataType = matrix.getDataType();
+                BasicEntityFactory factory = new BasicEntityFactory();
+                for (int i = 0; i < matrix.columns(); i ++) {
+                    Vector vector;
+                    if (dataType == Entity.DATA_TYPE.DT_DECIMAL32 || dataType == Entity.DATA_TYPE.DT_DECIMAL64 || dataType == Entity.DATA_TYPE.DT_DECIMAL128)
+                        vector = factory.createVectorWithDefaultValue(dataType, 0, matrix.getScale());
+                    else
+                        vector = factory.createVectorWithDefaultValue(dataType, 0, -1);
+                    for (int j = 0; j < matrix.rows(); j ++) {
+                        try {
+                            vector.Append(matrix.get(j, i));
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
+                    if (Objects.isNull(columnLabels))
+                        colNames.add("col" + i);
+                    else
+                        colNames.add(columnLabels.get(i).getString());
+                    cols.add(vector);
+                }
+
+                this.table = new BasicTable(colNames, cols);
+                this.offsetRows = this.table.rows();
             }
         }
     }
@@ -1350,11 +1420,19 @@ public class JDBCResultSet implements ResultSet{
         return aClass.isInstance(this);
     }
 
+    /**
+     * Since JDBC version 3.00.1.0, this method is deprecated.
+     */
+    @Deprecated
     public Entity getResult() throws SQLException{
-        if (table == null)
-            return entity;
-        else
+        if (Objects.nonNull(entity)) {
+            if (entity.isTable())
+                return table;
+            else
+                return entity;
+        } else {
             return table;
+        }
     }
 
     public BasicDate getBasicDate(String columnLabel) throws SQLException{
