@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
 
 import java.awt.List;
 import java.io.IOException;
@@ -3725,5 +3726,26 @@ public class JDBCStatementTest {
 		Assert.assertEquals(true, re4);
 		ResultSet res4 = stmt.getResultSet();
 		Assert.assertEquals(true, res4.next());
+	}
+
+	public static void PrepareUser(String userName,String password) throws IOException {
+		DBConnection conn = new DBConnection();
+		conn.connect(HOST,PORT,"admin","123456");
+		conn.run("def create_user(){try{deleteUser(`"+userName+")}catch(ex){};createUser(`"+userName+", '"+password+"',,true);};"+
+				"rpc(getControllerAlias(),create_user);" );
+	}
+	@Test
+	public void Test_Statement_executeQuery_parallelism() throws SQLException, ClassNotFoundException, IOException {
+		PrepareUser("parallelism_test","123456");
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection("jdbc:dolphindb://" + HOST + ":" + PORT + "?user=parallelism_test&password=123456");
+		stmt = conn.createStatement();
+		stmt.execute("setMaxJobParallelism(\"parallelism_test\",22);");
+		Connection conn1 = DriverManager.getConnection("jdbc:dolphindb://" + HOST + ":" + PORT + "?user=parallelism_test&password=123456");
+		Statement stmt1 = conn1.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt1.executeQuery("getConsoleJobs();");
+		BasicTable re1 = (BasicTable)rs1.getResult();
+		System.out.println(re1.getColumn(6).get(0).getString());
+		assertEquals("22",re1.getColumn(6).get(0).getString());
 	}
 }
