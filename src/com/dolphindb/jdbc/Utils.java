@@ -28,9 +28,9 @@ public class Utils {
 
     static String TABLE_NAME_STRING = MEM_TABLE_NAME + "|" + LOAD_TABLE_NAME;
 
-    static String VALUE_WITH_QUESTION_STRING= "\\s+(values)\\s*\\(([\\s?,]+)\\)";
+    static String VALUE_WITH_QUESTION_STRING= "\\s*(values)\\s*\\(([\\s?,]+)\\)";
 
-    static String VALUE_STRING = "\\s+(values)\\s*\\((.+)\\)";
+    static String VALUE_STRING = "\\s*(values)\\s*\\((.+)\\)";
 
     static String COLNAME_STRING = "\\s*\\([a-zA-Z\\d_\\,\\s]+?\\)";
 
