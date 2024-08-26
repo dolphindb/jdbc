@@ -2213,6 +2213,45 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertTrue(rs.wasNull());
     }
     @Test
+    public void test_PreparedStatement_insert_into_Int_6_executeBatch() throws SQLException {
+        createPartitionTable("INT");
+        PreparedStatement ps = conn.prepareStatement("inSERT iNto loadTable('dfs://test_append_type','pt')ValUes(?,?)");
+        ps.setInt(1,1);
+        ps.setInt(2,100);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.INTEGER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Int_7_executeBatch() throws SQLException {
+        createPartitionTable("INT");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt(id,dataType)values(?,?)");
+        ps.setInt(1,1);
+        ps.setInt(2,100);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.INTEGER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
     public void test_PreparedStatement_insert_into_Int_line_break_executeBatch() throws SQLException {
         createPartitionTable("INT");
         PreparedStatement ps = conn.prepareStatement("insert into \nloadTable('dfs://test_append_type','pt')\n"+" values(?,?)\n");
