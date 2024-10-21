@@ -610,4 +610,10 @@ public class JDBCConnection implements Connection {
 	public String getDatabase() {
 		return database;
 	}
+
+	protected DBConnection createNewConnection() throws IOException {
+		DBConnection dbConnection = new DBConnection();
+		dbConnection.connect(this.hostName, this.port, clientInfo.getProperty("user", ""), clientInfo.getProperty("password", ""));
+		return dbConnection;
+	}
 }
