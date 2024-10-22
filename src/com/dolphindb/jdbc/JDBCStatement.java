@@ -406,8 +406,8 @@ public class JDBCStatement implements Statement {
 
     @Override
     public void setQueryTimeout(int seconds) throws SQLException {
-        if (queryTimeout < 0) {
-            throw new SQLException("Query timeout value must be non-negative");
+        if (seconds < 0) {
+            throw new SQLException("Query timeout value must be non-negative.");
         }
         this.queryTimeout = seconds;
     }
