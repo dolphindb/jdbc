@@ -113,9 +113,9 @@ public class JDBCStatement implements Statement {
             isCancelled.set(true);
             future.cancel(true);
             cancelJobOperation();
-            throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds", e);
+            throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds.", e);
         } catch (Exception e) {
-            throw new SQLException("Error executing query", e);
+            throw new SQLException("Error executing query.", e);
         } finally {
             isCancelled.set(false);
         }
@@ -183,7 +183,7 @@ public class JDBCStatement implements Statement {
                 newConnection.run("cancelConsoleJob", arguments);
             } catch (IOException e) {
                 newConnection.close();
-                throw new SQLException("Cancel job operation failed", e);
+                throw new SQLException("Cancel job operation failed.", e);
             } finally {
                 newConnection.close();
             }
@@ -203,9 +203,9 @@ public class JDBCStatement implements Statement {
             isCancelled.set(true);
             future.cancel(true);
             cancelJobOperation();
-            throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds", e);
+            throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds.", e);
         } catch (Exception e) {
-            throw new SQLException("Error executing update", e);
+            throw new SQLException("Error executing update.", e);
         } finally {
             isCancelled.set(false);
         }
@@ -261,7 +261,7 @@ public class JDBCStatement implements Statement {
                 }
             case Utils.DML_SELECT:
             case Utils.DML_EXEC:
-                throw new SQLException("Can not issue SELECT or EXEC via executeUpdate()");
+                throw new SQLException("Can not issue SELECT or EXEC via executeUpdate().");
             default:
                 Entity entity;
                 try {
@@ -270,7 +270,7 @@ public class JDBCStatement implements Statement {
                     throw new SQLException(e);
                 }
                 if(entity instanceof BasicTable){
-                    throw new SQLException("Can not produces ResultSet");
+                    throw new SQLException("Can not produces ResultSet.");
                 }
                 return 0;
         }
@@ -445,9 +445,9 @@ public class JDBCStatement implements Statement {
             isCancelled.set(true);
             future.cancel(true);
             cancelJobOperation();
-            throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds", e);
+            throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds.", e);
         } catch (Exception e) {
-            throw new SQLException("Error executing ", e);
+            throw new SQLException("Error executing.", e);
         } finally {
             isCancelled.set(false);
         }
@@ -631,9 +631,9 @@ public class JDBCStatement implements Statement {
             isCancelled.set(true);
             future.cancel(true);
             cancelBatchJobOperation();
-            throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds", e);
+            throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds.", e);
         } catch (Exception e) {
-            throw new SQLException("Error executing batch", e);
+            throw new SQLException("Error executing batch.", e);
         } finally {
             isCancelled.set(false);
         }
@@ -668,7 +668,7 @@ public class JDBCStatement implements Statement {
                 newConnection.run("cancelConsoleJob", arguments);
             } catch (IOException e) {
                 newConnection.close();
-                throw new SQLException("Cancel job operation failed", e);
+                throw new SQLException("Cancel job operation failed.", e);
             } finally {
                 newConnection.close();
             }
