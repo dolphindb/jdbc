@@ -145,6 +145,9 @@ public class JDBCConnection implements Connection {
 			}
 		}
 
+		String reconnectStr = prop.getProperty("reconnect");
+		boolean reconnect = reconnectStr==null ? Boolean.parseBoolean(reconnectStr) : false;
+
 		String tableAliasStr = prop.getProperty("tableAlias");
 		if (Utils.isNotEmpty(tableAliasStr)) {
 			String tableAliasScript = Utils.parseTableAliasPropToScript(tableAliasStr);
@@ -158,9 +161,9 @@ public class JDBCConnection implements Connection {
 
 		if (Objects.nonNull(enableLoadBalanceStr)) {
 			boolean enableLoadBalance = Boolean.parseBoolean(enableLoadBalanceStr);
-			success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites, false, enableLoadBalance);
+			success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites, reconnect, enableLoadBalance);
 		} else {
-			success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites);
+			success = dbConnection.connect(hostname, port, userId, password, initialScript, highAvailability, highAvailabilitySites, reconnect);
 		}
 	}
 
