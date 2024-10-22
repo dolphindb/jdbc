@@ -114,15 +114,8 @@ public class JDBCStatement implements Statement {
             future.cancel(true);
             cancelJobOperation();
             throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds", e);
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof SQLException) {
-                throw (SQLException) cause;
-            }
-            throw new SQLException("Error executing query", cause);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new SQLException("Query was interrupted", e);
+        } catch (Exception e) {
+            throw new SQLException("Error executing query", e);
         } finally {
             isCancelled.set(false);
         }
@@ -211,15 +204,8 @@ public class JDBCStatement implements Statement {
             future.cancel(true);
             cancelJobOperation();
             throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds", e);
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof SQLException) {
-                throw (SQLException) cause;
-            }
-            throw new SQLException("Error executing query", cause);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new SQLException("Query was interrupted", e);
+        } catch (Exception e) {
+            throw new SQLException("Error executing update", e);
         } finally {
             isCancelled.set(false);
         }
@@ -460,15 +446,8 @@ public class JDBCStatement implements Statement {
             future.cancel(true);
             cancelJobOperation();
             throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds", e);
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof SQLException) {
-                throw (SQLException) cause;
-            }
-            throw new SQLException("Error executing query", cause);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new SQLException("Query was interrupted", e);
+        } catch (Exception e) {
+            throw new SQLException("Error executing ", e);
         } finally {
             isCancelled.set(false);
         }
@@ -653,15 +632,8 @@ public class JDBCStatement implements Statement {
             future.cancel(true);
             cancelBatchJobOperation();
             throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds", e);
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof SQLException) {
-                throw (SQLException) cause;
-            }
-            throw new SQLException("Error executing query", cause);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new SQLException("Query was interrupted", e);
+        } catch (Exception e) {
+            throw new SQLException("Error executing batch", e);
         } finally {
             isCancelled.set(false);
         }
