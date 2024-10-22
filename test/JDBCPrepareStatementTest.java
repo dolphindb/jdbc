@@ -9903,58 +9903,61 @@ public class JDBCPrepareStatementTest {
         //LOGININFO.put("password", "123456");
         DB_URL = "jdbc:dolphindb://"+HOST+":"+PORT;
         Connection conn1 = JDBCTestUtil.getConnection(LOGININFO1);
-        Statement stmt = null;
-        PreparedStatement pstmt = null;
+        //Statement stmt = null;
+        PreparedStatement stmt = null;
         Class.forName(JDBC_DRIVER);
-        stmt = conn1.createStatement();
+        stmt = conn1.prepareStatement("update table1 set id = `3aaa where id= `1aaa");
         stmt.setQueryTimeout(1);
         org.junit.Assert.assertEquals(1, stmt.getQueryTimeout());
         String re = null;
         try{
-            stmt.execute("update table1 set id = `3aaa where id= `1aaa");
+            stmt.execute();
         }catch(SQLException ex){
             re = ex.getMessage();
         }
         System.out.println(re);
-        org.junit.Assert.assertEquals("Query timed out after 1 seconds", re);
+        org.junit.Assert.assertEquals("java.sql.SQLException: java.sql.SQLTimeoutException: Query timed out after 1 seconds.", re);
     }
     @Test
     public void test_PreparedStatement_execute_not_timeout() throws SQLException, IOException, ClassNotFoundException {
         DBConnection db = new DBConnection();
         db.connect(HOST, PORT, "admin", "123456");
         db.run("share table(take(`1aaa `2sss,100000000) as id) as table1;");
-        Statement stmt = null;
-        PreparedStatement pstmt = null;
+        JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Properties LOGININFO1 = new Properties();
+        //LOGININFO.put("user", "admin");
+        //LOGININFO.put("password", "123456");
+        DB_URL = "jdbc:dolphindb://"+HOST+":"+PORT;
+        Connection conn1 = JDBCTestUtil.getConnection(LOGININFO1);
+        PreparedStatement stmt = null;
         Class.forName(JDBC_DRIVER);
-        stmt = conn.createStatement();
+        stmt = conn1.prepareStatement("update table1 set id = `3aaa where id= `1aaa");
         stmt.setQueryTimeout(3);
         org.junit.Assert.assertEquals(3, stmt.getQueryTimeout());
-        stmt.execute("update table1 set id = `3aaa where id= `1aaa");
-        pstmt = conn.prepareStatement("select count(*) from table1 where id = `3aaa");
-        JDBCResultSet rs = (JDBCResultSet)pstmt.executeQuery();
+        stmt.execute();
+        stmt = conn.prepareStatement("select count(*) from table1 where id = `3aaa");
+        JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery();
         BasicTable re = (BasicTable) rs.getResult();
         org.junit.Assert.assertEquals("50000000", re.getColumn(0).getString(0));
     }
-
     @Test
     public void test_PreparedStatement_execute_timeout() throws SQLException, IOException, ClassNotFoundException {
         DBConnection db = new DBConnection();
         db.connect(HOST, PORT, "admin", "123456");
         db.run("share table(take(`1aaa `2sss,100000000) as id) as table1;");
-        Statement stmt = null;
-        PreparedStatement pstmt = null;
+        PreparedStatement stmt = null;
         Class.forName(JDBC_DRIVER);
-        stmt = conn.createStatement();
+        stmt = conn.prepareStatement("update table1 set id = `3aaa where id= `1aaa");
         stmt.setQueryTimeout(1);
         org.junit.Assert.assertEquals(1, stmt.getQueryTimeout());
         String re = null;
         try{
-            stmt.execute("update table1 set id = `3aaa where id= `1aaa");
+            stmt.execute();
         }catch(SQLException ex){
             re = ex.getMessage();
         }
         System.out.println(re);
-        org.junit.Assert.assertEquals("Query timed out after 1 seconds", re);
+        org.junit.Assert.assertEquals("java.sql.SQLException: java.sql.SQLTimeoutException: Query timed out after 1 seconds.", re);
     }
 
     @Test
@@ -9995,7 +9998,7 @@ public class JDBCPrepareStatementTest {
                 re = ex.getMessage();
             }
             System.out.println(re);
-            org.junit.Assert.assertEquals("Query timed out after 1 seconds", re);
+            org.junit.Assert.assertEquals("Query timed out after 1 seconds.", re);
         }
 
         @Test
@@ -10031,7 +10034,7 @@ public class JDBCPrepareStatementTest {
                 re = ex.getMessage();
             }
             System.out.println(re);
-            org.junit.Assert.assertEquals("java.sql.SQLTimeoutException: Query timed out after 1 seconds", re);
+            org.junit.Assert.assertEquals("java.sql.SQLTimeoutException: Query timed out after 1 seconds.", re);
         }
     @Test
     public void test_PreparedStatement_executeBatch_not_timeout() throws SQLException, IOException, ClassNotFoundException {
@@ -10079,7 +10082,7 @@ public class JDBCPrepareStatementTest {
             re = ex.getMessage();
         }
         System.out.println(re);
-        org.junit.Assert.assertEquals("Query timed out after 1 seconds", re);
+        org.junit.Assert.assertEquals("Query timed out after 1 seconds.", re);
     }
 
     @Test
@@ -10097,12 +10100,13 @@ public class JDBCPrepareStatementTest {
         PreparedStatement pstmt = null;
         Class.forName(JDBC_DRIVER);
         stmt = conn1.createStatement();
-        stmt.setQueryTimeout(1);
-        org.junit.Assert.assertEquals(1, stmt.getQueryTimeout());
         String re = null;
         long startTime = System.currentTimeMillis();
+        pstmt = conn1.prepareStatement("sleep(10000); sleep(10000);");
+        pstmt.setQueryTimeout(1);
+        org.junit.Assert.assertEquals(1, pstmt.getQueryTimeout());
         try{
-            stmt.execute("sleep(10000); sleep(10000);");
+            pstmt.executeUpdate();
         }catch(SQLException ex){
             re = ex.getMessage();
         }
@@ -10110,7 +10114,7 @@ public class JDBCPrepareStatementTest {
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
         System.out.println("代码运行时间: " + duration + " 毫秒");
-        org.junit.Assert.assertEquals("Query timed out after 1 seconds", re);
+        org.junit.Assert.assertEquals("java.sql.SQLTimeoutException: Query timed out after 1 seconds.", re);
         db.run("sleep(6000)");
         pstmt = conn.prepareStatement("select rootJobId from getConsoleJobs() where userID = `usercancelConsoleJob");
         JDBCResultSet rs = (JDBCResultSet)pstmt.executeQuery();
@@ -10145,7 +10149,7 @@ public class JDBCPrepareStatementTest {
             re = ex.getMessage();
         }
         System.out.println(re);
-        org.junit.Assert.assertEquals("Query timed out after 1 seconds", re);
+        org.junit.Assert.assertEquals("Query timed out after 1 seconds.", re);
         stmt.setQueryTimeout(3);
         stmt.executeBatch();
         stmt = conn.prepareStatement("select count(*) from table1 where id = `3aaa");
