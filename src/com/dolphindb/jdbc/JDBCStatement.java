@@ -115,7 +115,7 @@ public class JDBCStatement implements Statement {
             cancelJobOperation();
             throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds.", e);
         } catch (Exception e) {
-            throw new SQLException("Error executing query.", e);
+            throw new SQLException(e);
         } finally {
             isCancelled.set(false);
         }
@@ -205,7 +205,7 @@ public class JDBCStatement implements Statement {
             cancelJobOperation();
             throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds.", e);
         } catch (Exception e) {
-            throw new SQLException("Error executing update.", e);
+            throw new SQLException(e);
         } finally {
             isCancelled.set(false);
         }
@@ -447,7 +447,7 @@ public class JDBCStatement implements Statement {
             cancelJobOperation();
             throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds.", e);
         } catch (Exception e) {
-            throw new SQLException("Error executing.", e);
+            throw new SQLException(e);
         } finally {
             isCancelled.set(false);
         }
@@ -633,7 +633,7 @@ public class JDBCStatement implements Statement {
             cancelBatchJobOperation();
             throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds.", e);
         } catch (Exception e) {
-            throw new SQLException("Error executing batch.", e);
+            throw new SQLException(e);
         } finally {
             isCancelled.set(false);
         }
