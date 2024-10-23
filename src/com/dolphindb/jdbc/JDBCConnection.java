@@ -146,7 +146,7 @@ public class JDBCConnection implements Connection {
 		}
 
 		String reconnectStr = prop.getProperty("reconnect");
-		boolean reconnect = reconnectStr==null ? Boolean.parseBoolean(reconnectStr) : false;
+		boolean reconnect = reconnectStr!=null ? Boolean.parseBoolean(reconnectStr) : false;
 
 		String tableAliasStr = prop.getProperty("tableAlias");
 		if (Utils.isNotEmpty(tableAliasStr)) {
