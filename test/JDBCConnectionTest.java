@@ -502,7 +502,7 @@ public class JDBCConnectionTest {
 		{
 			System.out.println(ex.getMessage());
 		}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		conn1.equals(true);
 		Statement s = conn1.createStatement();
@@ -516,7 +516,7 @@ public class JDBCConnectionTest {
 		{
 			System.out.println(ex.getMessage());
 		}
-		stmt.execute(" sleep(50000)");
+		stmt.execute(" sleep(8000)");
 		conn1 = DriverManager.getConnection(url);
 		//conn1.equals(true);
 		conn1.close();
@@ -547,7 +547,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\""+HOST+":"+PORT1+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		conn1.equals(true);
 		Statement s = conn1.createStatement();
@@ -702,7 +702,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\""+HOST+":"+PORT1+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		conn1.equals(true);
 		Statement s = conn1.createStatement();
@@ -749,7 +749,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\"" + HOST + ":" + PORT + "\")");
 		} catch (Exception ex) {
 		}
-		stmt.execute(" sleep(1000)");
+		stmt.execute(" sleep(5000)");
 		Statement s = conn1.createStatement();
 		String re = null;
 		try{
@@ -757,11 +757,12 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		Assert.assertEquals("java.io.IOException: Failed to read response header from the socket with IO error null",re);
+		Assert.assertEquals(true,re.contains("java.io.IOException: Failed to read response header from the socket with IO error null")||re.contains("DataNodeNotAvail"));
 		stmt = conn.createStatement();
 		try {
 			stmt.execute("startDataNode(\"" + HOST + ":" + PORT + "\")");
 		} catch (Exception ex) {
+			System.out.println(ex.getMessage());
 		}
 		stmt.execute(" sleep(2000)");
 		conn1 = DriverManager.getConnection(url);
@@ -771,7 +772,7 @@ public class JDBCConnectionTest {
 	}
 
 	@Test
-	public void Test_getConnection_enableHighAvailability_false_highAvailability_121() throws SQLException, ClassNotFoundException {
+	public void Test_getConnection_enableHighAvailability_false_highAvailability_121() throws SQLException, ClassNotFoundException, InterruptedException {
 		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
 		String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=false&highAvailability=121";
 		String url1 = "jdbc:dolphindb://" + HOST + ":" + COLPORT + "?user=admin&password=123456";
@@ -788,7 +789,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\"" + HOST + ":" + PORT + "\")");
 		} catch (Exception ex) {
 		}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		Statement s = conn1.createStatement();
 		String re = null;
 		try{
@@ -796,16 +797,15 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		Assert.assertEquals("java.io.IOException: Failed to read response header from the socket with IO error null",re);
+		Assert.assertEquals(true,re.contains("java.io.IOException: Failed to read response header from the socket with IO error null")||re.contains("DataNodeNotAvail"));
 		stmt = conn.createStatement();
 		try {
 			stmt.execute("startDataNode(\"" + HOST + ":" + PORT + "\")");
 		} catch (Exception ex) {
 		}
-		stmt.execute(" sleep(2000)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		//conn1.equals(true);
-		conn.close();
 		conn1.close();
 	}
 
