@@ -9865,7 +9865,7 @@ public class JDBCPrepareStatementTest {
         }catch(Exception ex){
             re = ex.getMessage();
         }
-        org.junit.Assert.assertEquals("Query timeout value must be non-negative.",re);
+        org.junit.Assert.assertEquals("The value of param 'seconds' must be non-negative.",re);
     }
 
     @Test
@@ -9916,7 +9916,7 @@ public class JDBCPrepareStatementTest {
             re = ex.getMessage();
         }
         System.out.println(re);
-        org.junit.Assert.assertEquals("java.sql.SQLException: java.sql.SQLTimeoutException: Query timed out after 1 seconds.", re);
+        org.junit.Assert.assertEquals("java.sql.SQLException: java.sql.SQLTimeoutException: Statement execute update timed out after 1 seconds.", re);
     }
     @Test
     public void test_PreparedStatement_execute_not_timeout() throws SQLException, IOException, ClassNotFoundException {
@@ -9957,7 +9957,7 @@ public class JDBCPrepareStatementTest {
             re = ex.getMessage();
         }
         System.out.println(re);
-        org.junit.Assert.assertEquals("java.sql.SQLException: java.sql.SQLTimeoutException: Query timed out after 1 seconds.", re);
+        org.junit.Assert.assertEquals("java.sql.SQLException: java.sql.SQLTimeoutException: Statement execute update timed out after 1 seconds.", re);
     }
 
     @Test
@@ -9998,7 +9998,7 @@ public class JDBCPrepareStatementTest {
                 re = ex.getMessage();
             }
             System.out.println(re);
-            org.junit.Assert.assertEquals("Query timed out after 1 seconds.", re);
+            org.junit.Assert.assertEquals("Statement execute query timed out after 1 seconds.", re);
         }
 
         @Test
@@ -10034,7 +10034,7 @@ public class JDBCPrepareStatementTest {
                 re = ex.getMessage();
             }
             System.out.println(re);
-            org.junit.Assert.assertEquals("java.sql.SQLTimeoutException: Query timed out after 1 seconds.", re);
+            org.junit.Assert.assertEquals("java.sql.SQLTimeoutException: Statement execute update timed out after 1 seconds.", re);
         }
     @Test
     public void test_PreparedStatement_executeBatch_not_timeout() throws SQLException, IOException, ClassNotFoundException {
@@ -10082,7 +10082,7 @@ public class JDBCPrepareStatementTest {
             re = ex.getMessage();
         }
         System.out.println(re);
-        org.junit.Assert.assertEquals("Query timed out after 1 seconds.", re);
+        org.junit.Assert.assertEquals("Statement execute update timed out after 1 seconds.", re);
     }
 
     @Test
@@ -10114,7 +10114,7 @@ public class JDBCPrepareStatementTest {
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
         System.out.println("代码运行时间: " + duration + " 毫秒");
-        org.junit.Assert.assertEquals("java.sql.SQLTimeoutException: Query timed out after 1 seconds.", re);
+        org.junit.Assert.assertEquals("java.sql.SQLTimeoutException: Statement execute update timed out after 1 seconds.", re);
         db.run("sleep(6000)");
         pstmt = conn.prepareStatement("select rootJobId from getConsoleJobs() where userID = `usercancelConsoleJob");
         JDBCResultSet rs = (JDBCResultSet)pstmt.executeQuery();
@@ -10149,7 +10149,7 @@ public class JDBCPrepareStatementTest {
             re = ex.getMessage();
         }
         System.out.println(re);
-        org.junit.Assert.assertEquals("Query timed out after 1 seconds.", re);
+        org.junit.Assert.assertEquals("Statement execute update timed out after 1 seconds.", re);
         stmt.setQueryTimeout(3);
         stmt.executeBatch();
         stmt = conn.prepareStatement("select count(*) from table1 where id = `3aaa");

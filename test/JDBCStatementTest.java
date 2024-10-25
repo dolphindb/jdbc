@@ -3799,7 +3799,7 @@ public class JDBCStatementTest {
 			re = ex.getMessage();
 		}
 		System.out.println(re);
-		org.junit.Assert.assertEquals("Query timed out after 1 seconds.", re);
+		org.junit.Assert.assertEquals("Statement execute timed out after 1 seconds.", re);
 	}
 
 	@Test
@@ -3832,7 +3832,7 @@ public class JDBCStatementTest {
 			re = ex.getMessage();
 		}
 		System.out.println(re);
-		org.junit.Assert.assertEquals("Query timed out after 1 seconds.", re);
+		org.junit.Assert.assertEquals("Statement execute query timed out after 1 seconds.", re);
 	}
 
 	@Test
@@ -3861,7 +3861,7 @@ public class JDBCStatementTest {
 			re = ex.getMessage();
 		}
 		System.out.println(re);
-		org.junit.Assert.assertEquals("Query timed out after 1 seconds.", re);
+		org.junit.Assert.assertEquals("Statement execute update timed out after 1 seconds.", re);
 	}
 	@Test
 	public void test_JDBCStatement_executeBatch_not_timeout() throws SQLException, IOException, ClassNotFoundException {
@@ -3892,7 +3892,7 @@ public class JDBCStatementTest {
 			re = ex.getMessage();
 		}
 		System.out.println(re);
-		org.junit.Assert.assertEquals("Query timed out after 1 seconds.", re);
+		org.junit.Assert.assertEquals("Statement execute batch timed out after 1 seconds.", re);
 	}
 
 	@Test
@@ -3923,7 +3923,7 @@ public class JDBCStatementTest {
 		long endTime = System.currentTimeMillis();
 		long duration = endTime - startTime;
 		System.out.println("代码运行时间: " + duration + " 毫秒");
-		org.junit.Assert.assertEquals("Query timed out after 2 seconds.", re);
+		org.junit.Assert.assertEquals("Statement execute timed out after 2 seconds.", re);
 		db.run("sleep(4000)");
 		pstmt = conn.prepareStatement("select rootJobId from getConsoleJobs() where userID = `usercancelConsoleJob");
 		JDBCResultSet rs = (JDBCResultSet)pstmt.executeQuery();
@@ -3950,7 +3950,7 @@ public class JDBCStatementTest {
 			re = ex.getMessage();
 		}
 		System.out.println(re);
-		org.junit.Assert.assertEquals("Query timed out after 1 seconds.", re);
+		org.junit.Assert.assertEquals("Statement execute batch timed out after 1 seconds.", re);
 		stmt.setQueryTimeout(3);
 		stmt.executeBatch();
 		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select count(*) from table1 where id = `3aaa");

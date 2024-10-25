@@ -447,7 +447,7 @@ public class JDBCConnectionTest {
 	@Test
 	public void Test_getConnection_highAvailability_true_highAvailabilitySites_null() throws SQLException, ClassNotFoundException {
 		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
-		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456&highAvailability=true";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456&highAvailability=true&enableLoadBalance=true";
 		String url1 = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
 		Connection conn = null;
 		Connection conn1 = null;
@@ -462,7 +462,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		Statement s = conn1.createStatement();
 		s.execute("trade=table(`XOM`GS`AAPL as id, 102.1 33.4 73.6 as x);");
 		ResultSet rs1 =s.executeQuery("SElect * fROM trade ;");
@@ -621,7 +621,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		Statement s = conn1.createStatement();
 		s.execute("trade=table(`XOM`GS`AAPL as id, 102.1 33.4 73.6 as x);");
 		ResultSet rs1 =s.executeQuery("SElect * fROM trade ;");
@@ -659,7 +659,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		conn1.equals(true);
 		Statement s = conn1.createStatement();
@@ -1173,7 +1173,7 @@ public class JDBCConnectionTest {
 		Assert.assertEquals("java.lang.RuntimeException: Cannot only enable loadbalance but not enable highAvailablity.",re);
 	}
 	@Test
-	public void Test_getConnection_enableHighAvailability_false_enableLoadBalance_false() throws SQLException, ClassNotFoundException {
+	public void Test_getConnection_enableHighAvailability_false_enableLoadBalance_false() throws SQLException, ClassNotFoundException, InterruptedException {
 		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
 		String url = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
 		Connection conn1 = null;
@@ -1186,7 +1186,7 @@ public class JDBCConnectionTest {
 			stmt1.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt1.execute(" sleep(500)");
+		stmt1.execute(" sleep(5000)");
 		prop.setProperty("user","admin");
 		prop.setProperty("password","123456");
 		prop.setProperty("enableHighAvailability", "false");
@@ -1198,6 +1198,7 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
+
 		Assert.assertEquals("java.sql.SQLException: Connection is failed",re);
 		try{
 			stmt1.execute("startDataNode(\""+HOST+":"+PORT+"\")");
@@ -1383,7 +1384,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		conn1.equals(true);
 		Statement s = conn1.createStatement();
