@@ -8,7 +8,6 @@ import java.sql.*;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class JDBCStatement implements Statement {
 
@@ -25,15 +24,13 @@ public class JDBCStatement implements Statement {
     private int maxRows = -1;
 
     private int queryTimeout = 0;
-    private final AtomicBoolean isCancelled = new AtomicBoolean(false);
-    private final ExecutorService executorService;
+    private static final ExecutorService executorService = Executors.newCachedThreadPool();
 
     public JDBCStatement(JDBCConnection cnn){
         this.connection = cnn;
         this.objectQueue = new LinkedList<>();
         this.resultSets = new LinkedList<>();
         this.batch = new StringBuilder();
-        this.executorService = Executors.newCachedThreadPool();
     }
 
     @Override
@@ -102,26 +99,23 @@ public class JDBCStatement implements Statement {
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
-        Future<ResultSet> future = executorService.submit(() -> executeQueryInternal(sql));
-        try {
-            if (queryTimeout > 0) {
+        if (queryTimeout > 0) {
+            Future<ResultSet> future = executorService.submit(() -> executeQueryInternal(sql));
+            try {
                 return future.get(queryTimeout, TimeUnit.SECONDS);
-            } else {
-                return future.get();
+            } catch (TimeoutException e) {
+                future.cancel(true);
+                cancelJobOperation();
+                throw new SQLTimeoutException("Statement execute query timed out after " + queryTimeout + " seconds.", e);
+            } catch (Exception e) {
+                throw new SQLException(e);
             }
-        } catch (TimeoutException e) {
-            isCancelled.set(true);
-            future.cancel(true);
-            cancelJobOperation();
-            throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds.", e);
-        } catch (Exception e) {
-            throw new SQLException(e);
-        } finally {
-            isCancelled.set(false);
+        } else {
+            return executeQueryInternal(sql);
         }
     }
 
-    public ResultSet executeQueryInternal(String sql) throws SQLException {
+    private ResultSet executeQueryInternal(String sql) throws SQLException {
         sql = Utils.changeCase(sql, connection);
         sql = sql.trim();
         while (sql.endsWith(";"))
@@ -172,19 +166,18 @@ public class JDBCStatement implements Statement {
     }
 
     private void cancelJobOperation() throws SQLException {
-        if (isCancelled.get()) {
-            DBConnection newConnection = null;
-            try {
-                newConnection = this.connection.createNewConnection();
-                String sessionId = this.connection.getDBConnection().getSessionID();
-                BasicStringVector bs = (BasicStringVector) newConnection.run("exec rootJobId from getConsoleJobs() where sessionId = " + sessionId);
-                List<Entity> arguments = new ArrayList<>();
-                arguments.add(bs);
-                newConnection.run("cancelConsoleJob", arguments);
-            } catch (IOException e) {
-                newConnection.close();
-                throw new SQLException("Cancel job operation failed.", e);
-            } finally {
+        DBConnection newConnection = null;
+        try {
+            newConnection = this.connection.createNewConnection();
+            String sessionId = this.connection.getDBConnection().getSessionID();
+            BasicStringVector bs = (BasicStringVector) newConnection.run("exec rootJobId from getConsoleJobs() where sessionId = " + sessionId);
+            List<Entity> arguments = new ArrayList<>();
+            arguments.add(bs);
+            newConnection.run("cancelConsoleJob", arguments);
+        } catch (Exception e) {
+            throw new SQLException("Cancel job operation failed.", e);
+        } finally {
+            if (newConnection != null) {
                 newConnection.close();
             }
         }
@@ -192,26 +185,23 @@ public class JDBCStatement implements Statement {
 
     @Override
     public int executeUpdate(String sql) throws SQLException {
-        Future<Integer> future = executorService.submit(() -> executeUpdateInternal(sql));
-        try {
-            if (queryTimeout > 0) {
+        if (queryTimeout > 0) {
+            Future<Integer> future = executorService.submit(() -> executeUpdateInternal(sql));
+            try {
                 return future.get(queryTimeout, TimeUnit.SECONDS);
-            } else {
-                return future.get();
+            } catch (TimeoutException e) {
+                future.cancel(true);
+                cancelJobOperation();
+                throw new SQLTimeoutException("Statement execute update timed out after " + queryTimeout + " seconds.", e);
+            } catch (Exception e) {
+                throw new SQLException(e);
             }
-        } catch (TimeoutException e) {
-            isCancelled.set(true);
-            future.cancel(true);
-            cancelJobOperation();
-            throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds.", e);
-        } catch (Exception e) {
-            throw new SQLException(e);
-        } finally {
-            isCancelled.set(false);
+        } else {
+            return executeUpdateInternal(sql);
         }
     }
 
-    public int executeUpdateInternal(String sql) throws SQLException {
+    private int executeUpdateInternal(String sql) throws SQLException {
         sql = Utils.changeCase(sql, connection);
         sql = sql.trim();
         while (sql.endsWith(";"))
@@ -393,7 +383,7 @@ public class JDBCStatement implements Statement {
     @Override
     public void setQueryTimeout(int seconds) throws SQLException {
         if (seconds < 0) {
-            throw new SQLException("Query timeout value must be non-negative.");
+            throw new SQLException("The value of param 'seconds' must be non-negative.");
         }
         this.queryTimeout = seconds;
     }
@@ -434,26 +424,23 @@ public class JDBCStatement implements Statement {
 
     @Override
     public boolean execute(String sql) throws SQLException {
-        Future<Boolean> future = executorService.submit(() -> executeInternal(sql));
-        try {
-            if (queryTimeout > 0) {
+        if (queryTimeout > 0) {
+            Future<Boolean> future = executorService.submit(() -> executeInternal(sql));
+            try {
                 return future.get(queryTimeout, TimeUnit.SECONDS);
-            } else {
-                return future.get();
+            } catch (TimeoutException e) {
+                future.cancel(true);
+                cancelJobOperation();
+                throw new SQLTimeoutException("Statement execute timed out after " + queryTimeout + " seconds.", e);
+            } catch (Exception e) {
+                throw new SQLException(e);
             }
-        } catch (TimeoutException e) {
-            isCancelled.set(true);
-            future.cancel(true);
-            cancelJobOperation();
-            throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds.", e);
-        } catch (Exception e) {
-            throw new SQLException(e);
-        } finally {
-            isCancelled.set(false);
+        } else {
+            return executeInternal(sql);
         }
     }
 
-    public boolean executeInternal(String sql) throws SQLException {
+    private boolean executeInternal(String sql) throws SQLException {
         sql = Utils.changeCase(sql);
         sql = sql.trim();
         while (sql.endsWith(";"))
@@ -620,26 +607,23 @@ public class JDBCStatement implements Statement {
 
     @Override
     public int[] executeBatch() throws SQLException {
-        Future<int[]> future = executorService.submit(() -> executeBatchInternal());
-        try {
-            if (queryTimeout > 0) {
+        if (queryTimeout > 0) {
+            Future<int[]> future = executorService.submit(() -> executeBatchInternal());
+            try {
                 return future.get(queryTimeout, TimeUnit.SECONDS);
-            } else {
-                return future.get();
+            } catch (TimeoutException e) {
+                future.cancel(true);
+                cancelJobOperation();
+                throw new SQLTimeoutException("Statement execute batch timed out after " + queryTimeout + " seconds.", e);
+            } catch (Exception e) {
+                throw new SQLException(e);
             }
-        } catch (TimeoutException e) {
-            isCancelled.set(true);
-            future.cancel(true);
-            cancelBatchJobOperation();
-            throw new SQLTimeoutException("Query timed out after " + queryTimeout + " seconds.", e);
-        } catch (Exception e) {
-            throw new SQLException(e);
-        } finally {
-            isCancelled.set(false);
+        } else {
+            return executeBatchInternal();
         }
     }
 
-    public int[] executeBatchInternal() throws SQLException {
+    private int[] executeBatchInternal() throws SQLException {
         String[] strings = batch.toString().split(";");
         int[] arr_int = new int[strings.length];
         int index = 0;
@@ -655,26 +639,6 @@ public class JDBCStatement implements Statement {
             throw new BatchUpdateException(e.getMessage(),Arrays.copyOf(arr_int,index));
         }
     }
-
-    private void cancelBatchJobOperation() throws SQLException {
-        if (isCancelled.get()) {
-            DBConnection newConnection = null;
-            try {
-                newConnection = this.connection.createNewConnection();
-                String sessionId = this.connection.getDBConnection().getSessionID();
-                BasicStringVector bs = (BasicStringVector) newConnection.run("exec rootJobId from getConsoleJobs() where sessionId = " + sessionId);
-                List<Entity> arguments = new ArrayList<>();
-                arguments.add(bs);
-                newConnection.run("cancelConsoleJob", arguments);
-            } catch (IOException e) {
-                newConnection.close();
-                throw new SQLException("Cancel job operation failed.", e);
-            } finally {
-                newConnection.close();
-            }
-        }
-    }
-
 
     @Override
     public Connection getConnection() throws SQLException {
