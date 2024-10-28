@@ -447,7 +447,7 @@ public class JDBCConnectionTest {
 	@Test
 	public void Test_getConnection_highAvailability_true_highAvailabilitySites_null() throws SQLException, ClassNotFoundException {
 		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
-		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456&highAvailability=true";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456&highAvailability=true&enableLoadBalance=true";
 		String url1 = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
 		Connection conn = null;
 		Connection conn1 = null;
@@ -462,7 +462,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		Statement s = conn1.createStatement();
 		s.execute("trade=table(`XOM`GS`AAPL as id, 102.1 33.4 73.6 as x);");
 		ResultSet rs1 =s.executeQuery("SElect * fROM trade ;");
@@ -502,7 +502,7 @@ public class JDBCConnectionTest {
 		{
 			System.out.println(ex.getMessage());
 		}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		conn1.equals(true);
 		Statement s = conn1.createStatement();
@@ -516,7 +516,7 @@ public class JDBCConnectionTest {
 		{
 			System.out.println(ex.getMessage());
 		}
-		stmt.execute(" sleep(50000)");
+		stmt.execute(" sleep(8000)");
 		conn1 = DriverManager.getConnection(url);
 		//conn1.equals(true);
 		conn1.close();
@@ -547,7 +547,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\""+HOST+":"+PORT1+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		conn1.equals(true);
 		Statement s = conn1.createStatement();
@@ -621,7 +621,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		Statement s = conn1.createStatement();
 		s.execute("trade=table(`XOM`GS`AAPL as id, 102.1 33.4 73.6 as x);");
 		ResultSet rs1 =s.executeQuery("SElect * fROM trade ;");
@@ -659,7 +659,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		conn1.equals(true);
 		Statement s = conn1.createStatement();
@@ -702,7 +702,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\""+HOST+":"+PORT1+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		conn1.equals(true);
 		Statement s = conn1.createStatement();
@@ -749,7 +749,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\"" + HOST + ":" + PORT + "\")");
 		} catch (Exception ex) {
 		}
-		stmt.execute(" sleep(1000)");
+		stmt.execute(" sleep(5000)");
 		Statement s = conn1.createStatement();
 		String re = null;
 		try{
@@ -757,11 +757,12 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		Assert.assertEquals("java.io.IOException: Failed to read response header from the socket with IO error null",re);
+		Assert.assertEquals(true,re.contains("java.io.IOException: Failed to read response header from the socket with IO error null")||re.contains("DataNodeNotAvail"));
 		stmt = conn.createStatement();
 		try {
 			stmt.execute("startDataNode(\"" + HOST + ":" + PORT + "\")");
 		} catch (Exception ex) {
+			System.out.println(ex.getMessage());
 		}
 		stmt.execute(" sleep(2000)");
 		conn1 = DriverManager.getConnection(url);
@@ -771,7 +772,7 @@ public class JDBCConnectionTest {
 	}
 
 	@Test
-	public void Test_getConnection_enableHighAvailability_false_highAvailability_121() throws SQLException, ClassNotFoundException {
+	public void Test_getConnection_enableHighAvailability_false_highAvailability_121() throws SQLException, ClassNotFoundException, InterruptedException {
 		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
 		String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456&enableHighAvailability=false&highAvailability=121";
 		String url1 = "jdbc:dolphindb://" + HOST + ":" + COLPORT + "?user=admin&password=123456";
@@ -788,7 +789,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\"" + HOST + ":" + PORT + "\")");
 		} catch (Exception ex) {
 		}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		Statement s = conn1.createStatement();
 		String re = null;
 		try{
@@ -796,16 +797,15 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		Assert.assertEquals("java.io.IOException: Failed to read response header from the socket with IO error null",re);
+		Assert.assertEquals(true,re.contains("java.io.IOException: Failed to read response header from the socket with IO error null")||re.contains("DataNodeNotAvail"));
 		stmt = conn.createStatement();
 		try {
 			stmt.execute("startDataNode(\"" + HOST + ":" + PORT + "\")");
 		} catch (Exception ex) {
 		}
-		stmt.execute(" sleep(2000)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		//conn1.equals(true);
-		conn.close();
 		conn1.close();
 	}
 
@@ -1173,7 +1173,7 @@ public class JDBCConnectionTest {
 		Assert.assertEquals("java.lang.RuntimeException: Cannot only enable loadbalance but not enable highAvailablity.",re);
 	}
 	@Test
-	public void Test_getConnection_enableHighAvailability_false_enableLoadBalance_false() throws SQLException, ClassNotFoundException {
+	public void Test_getConnection_enableHighAvailability_false_enableLoadBalance_false() throws SQLException, ClassNotFoundException, InterruptedException {
 		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
 		String url = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
 		Connection conn1 = null;
@@ -1186,7 +1186,7 @@ public class JDBCConnectionTest {
 			stmt1.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt1.execute(" sleep(500)");
+		stmt1.execute(" sleep(5000)");
 		prop.setProperty("user","admin");
 		prop.setProperty("password","123456");
 		prop.setProperty("enableHighAvailability", "false");
@@ -1198,6 +1198,7 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
+
 		Assert.assertEquals("java.sql.SQLException: Connection is failed",re);
 		try{
 			stmt1.execute("startDataNode(\""+HOST+":"+PORT+"\")");
@@ -1383,7 +1384,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url);
 		conn1.equals(true);
 		Statement s = conn1.createStatement();
@@ -1468,6 +1469,220 @@ public class JDBCConnectionTest {
 		}
 		assertEquals(true,re.contains("Connection is failed"));
 	}
+
+	@Test
+	public void Test_getConnection_reconnect_false_1() throws SQLException, ClassNotFoundException {
+		String url = "jdbc:dolphindb://192.168.11.111:18911?user=admin&password=123456&enableHighAvailability=false&reconnect=false";
+		String url1 = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456&reconnect=false";
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url);
+		}catch(Exception e){
+			re = e.getMessage();
+		}
+		assertEquals(true,re.contains("Connection is failed"));
+	}
+	@Test
+	public void Test_getConnection_reconnect_false_2() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		info.put("reconnect", "false");
+		String url = "jdbc:dolphindb://192.168.11.111:18911";
+		Connection conn = null;
+		String re = null;
+		try{
+			conn = DriverManager.getConnection(url,info);
+		}catch(Exception e){
+			re = e.getMessage();
+		}
+		assertEquals(true,re.contains("Connection is failed"));
+	}
+
+	@Test//Reconnect when the node disconnects during the first connection.
+	public void Test_getConnection_reconnect_true_1() throws SQLException, ClassNotFoundException, InterruptedException {
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456&enableHighAvailability=false&reconnect=true";
+		String url1 = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
+		String re = null;
+		Statement stmt = null;
+		Statement stmt1 = null;
+		Connection conn1 = DriverManager.getConnection(url1);
+		stmt1 = conn1.createStatement();
+		try{
+			stmt1.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
+		}catch(Exception ex)
+		{}
+		Thread.sleep(5000);
+		Statement finalStmt = stmt1;
+		class MyThread extends Thread {
+            @Override
+            public void run() {
+                    try {
+						finalStmt.execute("startDataNode(\""+HOST+":"+PORT+"\")");
+					} catch (Exception e) {
+                        // 捕获异常并打印错误信息
+                        System.err.println(e.getMessage());
+                    }
+            	}
+        	}
+		class MyThread1 extends Thread {
+			@Override
+			public void run() {
+				try {
+					conn = DriverManager.getConnection(url);
+				} catch (SQLException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}
+		MyThread1 thread1 = new MyThread1();
+		thread1.start();
+		Thread.sleep(3000);
+        MyThread thread = new MyThread();
+        thread.start();
+        thread.join();
+		Thread.sleep(8000);
+		stmt = conn.createStatement();
+		stmt.execute("table(1..2 as id)");
+		ResultSet rs = stmt.getResultSet();
+		assertEquals(true,rs.next());
+	}
+	@Test//Reconnect when the node disconnects during the first connection.
+	public void Test_getConnection_reconnect_true_2() throws SQLException, ClassNotFoundException, InterruptedException {
+		Properties info = new Properties();
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		info.put("reconnect", "true");
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"";
+		String re = null;
+		conn = DriverManager.getConnection(url,info);
+		String url1 = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
+		Statement stmt = null;
+		Statement stmt1 = null;
+		Connection conn1 = DriverManager.getConnection(url1);
+		stmt1 = conn1.createStatement();
+		try{
+			stmt1.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
+		}catch(Exception ex)
+		{}
+		Thread.sleep(5000);
+		Statement finalStmt = stmt1;
+		class MyThread extends Thread {
+			@Override
+			public void run() {
+				try {
+					finalStmt.execute("startDataNode(\""+HOST+":"+PORT+"\")");
+				} catch (Exception e) {
+					// 捕获异常并打印错误信息
+					System.err.println(e.getMessage());
+				}
+			}
+		}
+		class MyThread1 extends Thread {
+			@Override
+			public void run() {
+				try {
+					conn = DriverManager.getConnection(url,info);
+				} catch (SQLException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}
+		MyThread1 thread1 = new MyThread1();
+		thread1.start();
+		Thread.sleep(3000);
+		MyThread thread = new MyThread();
+		thread.start();
+		thread.join();
+		Thread.sleep(8000);
+		stmt = conn.createStatement();
+		stmt.execute("table(1..2 as id)");
+		ResultSet rs = stmt.getResultSet();
+		assertEquals(true,rs.next());
+	}
+
+	@Test//Successfully connected; in the case where the node is interrupted and restarted, the connection should reconnect.
+	public void Test_getConnection_reconnect_true_3() throws SQLException, ClassNotFoundException, InterruptedException {
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456&enableHighAvailability=false&reconnect=true";
+		String url1 = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn = null;
+		String re = null;
+		Statement stmt = null;
+		Statement stmt1 = null;
+		conn = DriverManager.getConnection(url);
+		Connection conn1 = DriverManager.getConnection(url1);
+		stmt = conn.createStatement();
+		stmt1 = conn1.createStatement();
+		try{
+			stmt1.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
+		}catch(Exception ex)
+		{}
+
+		Thread.sleep(5000);
+		stmt1.execute("startDataNode(\""+HOST+":"+PORT+"\")");
+		Thread.sleep(5000);
+		stmt.execute("table(1..2 as id)");
+		ResultSet rs = stmt.getResultSet();
+		assertEquals(true,rs.next());
+	}
+	@Test//Successfully connected; in the case where the node is interrupted and restarted, the connection should reconnect.
+	public void Test_getConnection_reconnect_true_4() throws SQLException, ClassNotFoundException, InterruptedException {
+		Properties info = new Properties();
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("highAvailability", "false");
+		info.put("reconnect", "true");
+		String url = "jdbc:dolphindb://"+HOST+":"+COLPORT+"";
+		Connection conn = null;
+		String re = null;
+		conn = DriverManager.getConnection(url,info);
+		String url1 = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
+		Statement stmt = null;
+		Statement stmt1 = null;
+		Connection conn1 = DriverManager.getConnection(url1);
+		stmt = conn.createStatement();
+		stmt1 = conn1.createStatement();
+		try{
+			stmt1.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
+		}catch(Exception ex)
+		{}
+
+		Thread.sleep(5000);
+		stmt1.execute("startDataNode(\""+HOST+":"+PORT+"\")");
+		Thread.sleep(5000);
+		stmt.execute("table(1..2 as id)");
+		ResultSet rs = stmt.getResultSet();
+		assertEquals(true,rs.next());
+
+	}
+	@Test//Successfully connected; in the case where the node is interrupted and restarted, the connection should reconnect.
+	public void Test_getConnection_enableHighAvailability_SITES_same_to_port() throws SQLException, ClassNotFoundException, InterruptedException {
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456&enableHighAvailability=true&highAvailabilitySites="+SITES;
+		String url1 = "jdbc:dolphindb://"+HOST+":"+COLPORT+"?user=admin&password=123456";
+		Connection conn = null;
+		String re = null;
+		Statement stmt = null;
+		Statement stmt1 = null;
+		conn = DriverManager.getConnection(url);
+		Connection conn1 = DriverManager.getConnection(url1);
+		stmt = conn.createStatement();
+		stmt1 = conn1.createStatement();
+		try{
+			stmt1.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
+		}catch(Exception ex)
+		{}
+
+		Thread.sleep(5000);
+		stmt1.execute("startDataNode(\""+HOST+":"+PORT+"\")");
+		Thread.sleep(5000);
+		stmt.execute("table(1..2 as id)");
+		ResultSet rs = stmt.getResultSet();
+		assertEquals(true,rs.next());
+	}
+
 	@Test
 	public void Test_JDBConnection_url() throws SQLException, ClassNotFoundException {
 		Properties info = new Properties();

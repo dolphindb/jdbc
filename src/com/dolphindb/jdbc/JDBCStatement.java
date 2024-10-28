@@ -1,11 +1,13 @@
 package com.dolphindb.jdbc;
 
+import com.xxdb.DBConnection;
 import com.xxdb.data.*;
 import com.xxdb.data.Void;
 import java.io.IOException;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.concurrent.*;
 
 public class JDBCStatement implements Statement {
 
@@ -18,9 +20,11 @@ public class JDBCStatement implements Statement {
     protected HashMap<String,String> tableTypes;
     protected static final String IN_MEMORY_TABLE = "IN-MEMORY TABLE";
     protected boolean isClosed;
-    private int timeout = 100;
     private int fetchSize = 0;
     private int maxRows = -1;
+
+    private int queryTimeout = 0;
+    private static final ExecutorService executorService = Executors.newCachedThreadPool();
 
     public JDBCStatement(JDBCConnection cnn){
         this.connection = cnn;
@@ -93,13 +97,29 @@ public class JDBCStatement implements Statement {
         }
     }
 
-
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
+        if (queryTimeout > 0) {
+            Future<ResultSet> future = executorService.submit(() -> executeQueryInternal(sql));
+            try {
+                return future.get(queryTimeout, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                future.cancel(true);
+                cancelJobOperation();
+                throw new SQLTimeoutException("Statement execute query timed out after " + queryTimeout + " seconds.", e);
+            } catch (Exception e) {
+                throw new SQLException(e);
+            }
+        } else {
+            return executeQueryInternal(sql);
+        }
+    }
+
+    private ResultSet executeQueryInternal(String sql) throws SQLException {
         sql = Utils.changeCase(sql, connection);
         sql = sql.trim();
         while (sql.endsWith(";"))
-        	sql = sql.substring(0, sql.length() - 1);
+            sql = sql.substring(0, sql.length() - 1);
         sql = sql.trim();
         if (sql!=null&&sql.equals("select 1"))
             sql = "select 1 as val";
@@ -145,9 +165,43 @@ public class JDBCStatement implements Statement {
         }
     }
 
+    private void cancelJobOperation() throws SQLException {
+        DBConnection newConnection = null;
+        try {
+            newConnection = this.connection.createNewConnection();
+            String sessionId = this.connection.getDBConnection().getSessionID();
+            BasicStringVector bs = (BasicStringVector) newConnection.run("exec rootJobId from getConsoleJobs() where sessionId = " + sessionId);
+            List<Entity> arguments = new ArrayList<>();
+            arguments.add(bs);
+            newConnection.run("cancelConsoleJob", arguments);
+        } catch (Exception e) {
+            throw new SQLException("Cancel job operation failed.", e);
+        } finally {
+            if (newConnection != null) {
+                newConnection.close();
+            }
+        }
+    }
 
     @Override
     public int executeUpdate(String sql) throws SQLException {
+        if (queryTimeout > 0) {
+            Future<Integer> future = executorService.submit(() -> executeUpdateInternal(sql));
+            try {
+                return future.get(queryTimeout, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                future.cancel(true);
+                cancelJobOperation();
+                throw new SQLTimeoutException("Statement execute update timed out after " + queryTimeout + " seconds.", e);
+            } catch (Exception e) {
+                throw new SQLException(e);
+            }
+        } else {
+            return executeUpdateInternal(sql);
+        }
+    }
+
+    private int executeUpdateInternal(String sql) throws SQLException {
         sql = Utils.changeCase(sql, connection);
         sql = sql.trim();
         while (sql.endsWith(";"))
@@ -197,7 +251,7 @@ public class JDBCStatement implements Statement {
                 }
             case Utils.DML_SELECT:
             case Utils.DML_EXEC:
-                throw new SQLException("Can not issue SELECT or EXEC via executeUpdate()");
+                throw new SQLException("Can not issue SELECT or EXEC via executeUpdate().");
             default:
                 Entity entity;
                 try {
@@ -206,7 +260,7 @@ public class JDBCStatement implements Statement {
                     throw new SQLException(e);
                 }
                 if(entity instanceof BasicTable){
-                    throw new SQLException("Can not produces ResultSet");
+                    throw new SQLException("Can not produces ResultSet.");
                 }
                 return 0;
         }
@@ -323,12 +377,15 @@ public class JDBCStatement implements Statement {
 
     @Override
     public int getQueryTimeout() throws SQLException {
-        return timeout;
+        return queryTimeout;
     }
 
     @Override
-    public void setQueryTimeout(int queryTimeout) throws SQLException {
-        timeout = queryTimeout * 1000;
+    public void setQueryTimeout(int seconds) throws SQLException {
+        if (seconds < 0) {
+            throw new SQLException("The value of param 'seconds' must be non-negative.");
+        }
+        this.queryTimeout = seconds;
     }
 
     @Override
@@ -367,6 +424,23 @@ public class JDBCStatement implements Statement {
 
     @Override
     public boolean execute(String sql) throws SQLException {
+        if (queryTimeout > 0) {
+            Future<Boolean> future = executorService.submit(() -> executeInternal(sql));
+            try {
+                return future.get(queryTimeout, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                future.cancel(true);
+                cancelJobOperation();
+                throw new SQLTimeoutException("Statement execute timed out after " + queryTimeout + " seconds.", e);
+            } catch (Exception e) {
+                throw new SQLException(e);
+            }
+        } else {
+            return executeInternal(sql);
+        }
+    }
+
+    private boolean executeInternal(String sql) throws SQLException {
         sql = Utils.changeCase(sql);
         sql = sql.trim();
         while (sql.endsWith(";"))
@@ -533,12 +607,29 @@ public class JDBCStatement implements Statement {
 
     @Override
     public int[] executeBatch() throws SQLException {
+        if (queryTimeout > 0) {
+            Future<int[]> future = executorService.submit(() -> executeBatchInternal());
+            try {
+                return future.get(queryTimeout, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                future.cancel(true);
+                cancelJobOperation();
+                throw new SQLTimeoutException("Statement execute batch timed out after " + queryTimeout + " seconds.", e);
+            } catch (Exception e) {
+                throw new SQLException(e);
+            }
+        } else {
+            return executeBatchInternal();
+        }
+    }
+
+    private int[] executeBatchInternal() throws SQLException {
         String[] strings = batch.toString().split(";");
         int[] arr_int = new int[strings.length];
         int index = 0;
         try {
             for(String item : strings){
-                arr_int[index] = executeUpdate(item);
+                arr_int[index] = executeUpdateInternal(item);
                 ++index;
             }
             batch.delete(0,batch.length());
