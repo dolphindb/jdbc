@@ -731,7 +731,7 @@ public class Utils {
         if (!columnParam.isEmpty()) {
             String[] columnParams = columnParam.split(",");
             for (int i = 0; i < columnParams.length; i++) {
-                String curCol = columnParams[i].replaceAll("^[\"']|[\"']$", "");
+                String curCol = columnParams[i].trim().replaceAll("^[\"']|[\"']$", "");
                 map.put(curCol.trim().toLowerCase(), i);
             }
 
