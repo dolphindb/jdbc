@@ -10157,6 +10157,145 @@ public class JDBCPrepareStatementTest {
         BasicTable re1 = (BasicTable) rs.getResult();
         org.junit.Assert.assertEquals("50000000", re1.getColumn(0).getString(0));
     }
+
+    @Test
+    public void test_PreparedStatement_insert_into_dfs_col_contain_quotes() throws SQLException {
+        createPartitionTable("INT");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("INSERt inTO pt(\"id\", 'dataType') Values(?,?)");
+        ps.setInt(1,1);
+        ps.setInt(2,100);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.INTEGER);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from pt");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_dfs_col_contain_quotes1() throws SQLException {
+        createPartitionTable("INT");
+        PreparedStatement ps = conn.prepareStatement("insert into \nloadTable('dfs://test_append_type','pt') ( \"id\" , \"dataType\" )\n"+" values(?,?)\n");
+        ps.setInt(1,1);
+        ps.setInt(2,100);
+        ps.executeUpdate();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.INTEGER);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_dfs_col_contain_quotes2() throws SQLException {
+        createPartitionTable("INT");
+        PreparedStatement ps = conn.prepareStatement("insert into \nloadTable('dfs://test_append_type','pt')( 'id' , 'dataType' )\n"+" values(?,?)\n");
+        ps.setInt(1,1);
+        ps.setInt(2,100);
+        ps.execute();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.INTEGER);
+        ps.execute();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_dfs_col_contain_quotes3() throws SQLException {
+        createPartitionTable("INT");
+        PreparedStatement ps = conn.prepareStatement("insert into \nloadTable('dfs://test_append_type','pt')( \"id' , 'dataType\" ) values( 1 2, 100 NULL)\n");
+        ps.execute();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt("dataType"), 100);
+        rs.next();
+        rs.getInt("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_columnName_special_characters_executeBatch() throws SQLException {
+        stm.execute("share table(2 3 as \"'ABC$#中问哦'\") as tt;");
+        PreparedStatement ps = conn.prepareStatement("insert into tt( \"'ABC$#中问哦'' ) values(?)");
+        ps.setInt(1,1);
+        ps.addBatch();
+        ps.executeBatch();
+        ps.setInt(1,4);
+        ps.executeUpdate();
+        ps.setInt(1,5);
+        ps.execute();
+        ResultSet rs = ps.executeQuery("select * from tt  where _\"'ABC$#中问哦'\" = 1");
+        org.junit.Assert.assertEquals(true, rs.next());
+        ResultSet rs1 = ps.executeQuery("select * from tt  where _\"'ABC$#中问哦'\" = 4");
+        org.junit.Assert.assertEquals(true, rs1.next());
+        ResultSet rs2 = ps.executeQuery("select * from tt  where _\"'ABC$#中问哦'\" = 5");
+        org.junit.Assert.assertEquals(true, rs2.next());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_memory_table_mul_col() throws SQLException {
+        stm.execute("share table(1:0,`id0`id1`id2`id3`id4`id5`id6`id7`id8`id9`id10,[INT ,INT ,INT ,INT ,INT ,INT ,INT ,INT ,INT ,INT ,INT]) as tt;");
+        PreparedStatement ps = conn.prepareStatement("insert into tt ( \"id0\",'id1', \"id2\" ,id3,'id4' ) values(?,?,?,?,?)");
+        ps.setInt(1,1);
+        ps.setInt(2,2);
+        ps.setInt(3,3);
+        ps.setInt(4,4);
+        ps.setInt(5,5);
+        ps.addBatch();
+        ps.executeBatch();
+        ps.setInt(1,11);
+        ps.setInt(2,12);
+        ps.setInt(3,13);
+        ps.setInt(4,14);
+        ps.setInt(5,15);
+        ps.executeUpdate();
+        ps.setInt(1,21);
+        ps.setInt(2,22);
+        ps.setInt(3,23);
+        ps.setInt(4,24);
+        ps.setInt(5,25);
+        ps.execute();
+        ResultSet rs = ps.executeQuery("select * from tt  ");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt(1), 1);
+        org.junit.Assert.assertEquals(rs.getInt(2), 2);
+        org.junit.Assert.assertEquals(rs.getInt(3), 3);
+        org.junit.Assert.assertEquals(rs.getInt(4), 4);
+        org.junit.Assert.assertEquals(rs.getInt(5), 5);
+        rs.getInt(6);
+        org.junit.Assert.assertTrue(rs.wasNull());
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt(1), 11);
+        org.junit.Assert.assertEquals(rs.getInt(2), 12);
+        org.junit.Assert.assertEquals(rs.getInt(3), 13);
+        org.junit.Assert.assertEquals(rs.getInt(4), 14);
+        org.junit.Assert.assertEquals(rs.getInt(5), 15);
+        rs.getInt(6);
+        org.junit.Assert.assertTrue(rs.wasNull());
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getInt(1), 21);
+        org.junit.Assert.assertEquals(rs.getInt(2), 22);
+        org.junit.Assert.assertEquals(rs.getInt(3), 23);
+        org.junit.Assert.assertEquals(rs.getInt(4), 24);
+        org.junit.Assert.assertEquals(rs.getInt(5), 25);
+        rs.getInt(6);
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
     @After
     public void Destroy(){
         LOGININFO = null;
