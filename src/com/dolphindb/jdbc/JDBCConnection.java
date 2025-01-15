@@ -8,6 +8,8 @@ import com.xxdb.comm.SqlStdEnum;
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
 import com.xxdb.io.ProgressListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.sql.*;
 import java.text.MessageFormat;
@@ -26,6 +28,8 @@ public class JDBCConnection implements Connection {
 	private DatabaseMetaData metaData;
 	private String user;
 	private String password;
+
+	private static final Logger log = LoggerFactory.getLogger(JDBCConnection.class);
 
 	public JDBCConnection(String url, Properties prop) throws SQLException {
 		this.url = url;
@@ -167,7 +171,7 @@ public class JDBCConnection implements Connection {
 		}
 	}
 
-	private String loadTables(String dbName, List<String> tableNames, boolean ignoreError){
+	private String loadTables(String dbName, List<String> tableNames){
 		StringBuilder sbInitScript = new StringBuilder();
 		for(String tableName:tableNames) {
 			StringBuilder builder = new StringBuilder();
@@ -176,12 +180,8 @@ public class JDBCConnection implements Connection {
 				this.dbConnection.run(builder.toString());
 				sbInitScript.append(tableName).append("=").append("loadTable(\"").append(dbName).append("\", \"").append(tableName).append("\");\n");
 			} catch (Exception e) {
-				if(ignoreError) {
-					System.out.println("Load table " + dbName + "." + tableName + " failed " + e.getMessage());
-					tableNames.remove(tableName);
-				}else{
-					throw new RuntimeException(e.getMessage());
-				}
+				log.error("Load table " + dbName + "." + tableName + " failed: " + e.getMessage());
+				throw new RuntimeException("Load table " + dbName + "." + tableName + " failed: " + e.getMessage());
 			}
 		}
 		return sbInitScript.toString();
@@ -216,7 +216,7 @@ public class JDBCConnection implements Connection {
 						if (!tableName.isEmpty())
 							dbtables.add(tableName);
 					}
-					String script=loadTables(this.database,dbtables,false);
+					String script=loadTables(this.database,dbtables);
 					sbInitScript.append(script);
 				} else {
 					// if not specific tableanme, load all tables; but need to authenticate every table.
@@ -224,7 +224,7 @@ public class JDBCConnection implements Connection {
 					for (int i = 0; i < vector.rows(); i++) {
 						dbtables.add(vector.getString(i));
 					}
-					String script=loadTables(this.database,dbtables,true);
+					String script=loadTables(this.database,dbtables);
 					sbInitScript.append(script);
 				}
 				this.tables = new BasicStringVector(dbtables);
