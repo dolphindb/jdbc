@@ -39,7 +39,7 @@ public class JDBCConnection implements Connection {
 		this.port = Integer.parseInt(this.clientInfo.getProperty("port"));
 		setUser(Optional.ofNullable(this.clientInfo.getProperty("user")).orElse(""));
 
-		initDBConnectionInternal(prop);
+		initDBConnectionInternal();
 
 		try {
 			connectInternal(this.hostName, this.port, this.clientInfo);
@@ -62,7 +62,7 @@ public class JDBCConnection implements Connection {
 		this.port = Integer.parseInt(this.clientInfo.getProperty("port"));
 		setUser(Optional.ofNullable(this.clientInfo.getProperty("user")).orElse(""));
 
-		initDBConnectionInternal(prop);
+		initDBConnectionInternal();
 
 		try {
 			connectInternal(this.hostName, this.port, this.clientInfo);
@@ -78,14 +78,18 @@ public class JDBCConnection implements Connection {
 		}
 	}
 
-	private void initDBConnectionInternal(Properties clientInfo) {
+	private void initDBConnectionInternal() {
 		String sqlStdProp = this.clientInfo.getProperty("sqlStd");
-		if (Objects.nonNull(sqlStdProp)) {
-			SqlStdEnum sqlStd = SqlStdEnum.getByName(sqlStdProp);
-			this.dbConnection = new DBConnection(sqlStd);
-		} else {
+		String useSSLStr = this.clientInfo.getProperty("useSSL");
+
+		if (Objects.nonNull(sqlStdProp) && Objects.nonNull(useSSLStr))
+			this.dbConnection = new DBConnection(false, Boolean.parseBoolean(useSSLStr), false, false, SqlStdEnum.getByName(sqlStdProp));
+		else if (Objects.nonNull(sqlStdProp))
+			this.dbConnection = new DBConnection(SqlStdEnum.getByName(sqlStdProp));
+		else if (Objects.nonNull(useSSLStr))
+			this.dbConnection = new DBConnection(Boolean.parseBoolean(useSSLStr));
+		else
 			this.dbConnection = new DBConnection();
-		}
 	}
 	
 	public DBConnection getDBConnection() {
