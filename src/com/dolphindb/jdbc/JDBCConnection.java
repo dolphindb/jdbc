@@ -87,7 +87,7 @@ public class JDBCConnection implements Connection {
 		else if (Objects.nonNull(sqlStdProp))
 			this.dbConnection = new DBConnection(SqlStdEnum.getByName(sqlStdProp));
 		else if (Objects.nonNull(useSSLStr))
-			this.dbConnection = new DBConnection(Boolean.parseBoolean(useSSLStr));
+			this.dbConnection = new DBConnection(false, Boolean.parseBoolean(useSSLStr));
 		else
 			this.dbConnection = new DBConnection();
 	}
