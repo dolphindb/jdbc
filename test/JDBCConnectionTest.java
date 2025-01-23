@@ -1,7 +1,4 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -2012,5 +2009,87 @@ public class JDBCConnectionTest {
 			re = ex.getMessage();
 		}
 		assertEquals(true,re.contains("getGroupList() => Only administrators execute function getGroupList"));
+	}
+	@Test
+	public void Test_getConnection_useSSL_true() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", PORT);
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("useSSL", "true");
+		String url = "jdbc:dolphindb://"+ HOST+":"+PORT;
+		String useSSLStr = info.getProperty("useSSL");
+		System.out.println("useSSLStr:" + useSSLStr);
+		assertEquals("true",useSSLStr);
+		Connection conn = null;
+		conn = DriverManager.getConnection(url,info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("1+1");
+		BasicInt re =(BasicInt)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("2",re.getString());
+	}
+
+	@Test
+	public void Test_getConnection_useSSL_false() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", PORT);
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("useSSL", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+PORT;
+		Connection conn = null;
+		String useSSLStr = info.getProperty("useSSL");
+		System.out.println("useSSLStr:" + useSSLStr);
+		assertEquals("false",useSSLStr);
+		conn = DriverManager.getConnection(url,info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("1+1");
+		BasicInt re =(BasicInt)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("2",re.getString());
+	}
+	@Test
+	public void Test_JDBCConnection_useSSL_true() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", PORT);
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("useSSL", "true");
+		String url = "jdbc:dolphindb://"+ HOST+":"+PORT;
+		String useSSLStr = info.getProperty("useSSL");
+		System.out.println("useSSLStr:" + useSSLStr);
+		assertEquals("true",useSSLStr);
+		Connection conn = null;
+		conn = new JDBCConnection(url,info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("1+1");
+		BasicInt re =(BasicInt)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("2",re.getString());
+	}
+
+	@Test
+	public void Test_JDBCConnection_useSSL_false() throws SQLException, ClassNotFoundException {
+		Properties info = new Properties();
+		info.put("hostName", HOST);
+		info.put("port", PORT);
+		info.put("user", "admin");
+		info.put("password", "123456");
+		info.put("useSSL", "false");
+		String url = "jdbc:dolphindb://"+ HOST+":"+PORT;
+		String useSSLStr = info.getProperty("useSSL");
+		System.out.println("useSSLStr:" + useSSLStr);
+		assertEquals("false",useSSLStr);
+		Connection conn = null;
+		conn = new JDBCConnection(url,info);
+		Statement stmt = conn.createStatement();
+		JDBCResultSet rs1 = (JDBCResultSet)stmt.executeQuery("1+1");
+		BasicInt re =(BasicInt)rs1.getResult();
+		System.out.println(re.getString());
+		assertEquals("2",re.getString());
 	}
 }
