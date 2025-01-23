@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 public class JDBCConnection implements Connection {
@@ -177,17 +178,28 @@ public class JDBCConnection implements Connection {
 
 	private String loadTables(String dbName, List<String> tableNames){
 		StringBuilder sbInitScript = new StringBuilder();
+		Set<String> allTablesSet;
+		try {
+			BasicStringVector allTables = (BasicStringVector) this.dbConnection.run("getClusterDFSTables()");
+			allTablesSet = new HashSet<>(Arrays.asList(allTables.getValues()));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
 		for(String tableName:tableNames) {
 			StringBuilder builder = new StringBuilder();
-			builder.append("loadTable(\"").append(dbName).append("\", \"").append(tableName).append("\");");
-			try {
-				this.dbConnection.run(builder.toString());
-				sbInitScript.append(tableName).append("=").append("loadTable(\"").append(dbName).append("\", \"").append(tableName).append("\");\n");
-			} catch (Exception e) {
-				log.error("Load table " + dbName + "." + tableName + " failed: " + e.getMessage());
-				throw new RuntimeException("Load table " + dbName + "." + tableName + " failed: " + e.getMessage());
+			if (allTablesSet.contains((dbName + "/" + tableName))) {
+				builder.append("loadTable(\"").append(dbName).append("\", \"").append(tableName).append("\");");
+				try {
+					this.dbConnection.run(builder.toString());
+					sbInitScript.append(tableName).append("=").append("loadTable(\"").append(dbName).append("\", \"").append(tableName).append("\");\n");
+				} catch (Exception e) {
+					log.error("Load table " + dbName + "." + tableName + " failed: " + e.getMessage());
+					throw new RuntimeException("Load table " + dbName + "." + tableName + " failed: " + e.getMessage());
+				}
 			}
 		}
+
 		return sbInitScript.toString();
 	}
 
