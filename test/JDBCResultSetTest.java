@@ -63,7 +63,7 @@ public class JDBCResultSetTest {
 					"db =database(\""+PATH+"/db1\");\n" +
 					"saveTable(db,t,`tb)";
 			db = new DBConnection();
-			db.connect(host, port);
+			db.connect(host, port,"admin","123456");
 			db.run(script);
 			success = true;
 		} catch (Exception e) {

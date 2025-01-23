@@ -44,7 +44,7 @@ public class JDBCMakeFileNewTest {
         sb.append("share t as trade");
         db = new DBConnection();
         try {
-            db.connect(HOST, PORT);
+            db.connect(HOST, PORT,"admin","123456");
             db.run(sb.toString());
         } catch (IOException e) {
             e.printStackTrace();
@@ -165,7 +165,7 @@ public class JDBCMakeFileNewTest {
                 "share tt as trade_re";
         DBConnection db = new DBConnection();
         try {
-            db.connect(HOST, PORT);
+            db.connect(HOST, PORT,"admin","123456");
             db.run(script);
         } catch (IOException e) {
             e.printStackTrace();

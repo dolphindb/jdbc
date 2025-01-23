@@ -44,7 +44,7 @@ public class JDBCUpdateTest {
                     "db=database('dfs://test_append_type', RANGE, 1 2001 4001 6001 8001 10001) \n"+
                     "db.createPartitionedTable(t, `pt, `id) \n";
             db = new DBConnection();
-            db.connect(HOST, PORT);
+            db.connect(HOST, PORT,"admin","123456");
             db.run(script);
             success = true;
         }catch(Exception e){
@@ -94,7 +94,7 @@ public class JDBCUpdateTest {
             sb.append("TT1= table(bool,char,short,int,long,float,double,string,symbol,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp,datehour,uuid,ipaddr,int128,blob,complex,point,decimal32,decimal64,decimal128);\n");
             sb.append("share TT1 as trade;");
             db = new DBConnection();
-            db.connect(HOST,PORT);
+            db.connect(HOST,PORT,"admin","123456");
             db.run(sb.toString());
             return false;
 

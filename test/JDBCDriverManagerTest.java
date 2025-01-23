@@ -48,7 +48,7 @@ public class JDBCDriverManagerTest {
 				"db.createPartitionedTable(t, `pt, `id).append!(t) \n"+
 				"db.createPartitionedTable(t, `pt1, `id).append!(t) \n";
 		db = new DBConnection();
-		db.connect(host, port);
+		db.connect(host, port,"admin","123456");
 		db.run(script);
 	}
     public static void CreateDfsTable(String host, Integer port) throws IOException {
@@ -59,7 +59,7 @@ public class JDBCDriverManagerTest {
 						"db.createPartitionedTable(t, `pt, `id).append!(t) \n"+
 						"db.createPartitionedTable(t, `pt1, `id).append!(t) \n";
 		DBConnection db = new DBConnection();
-		db.connect(host, port);
+		db.connect(host, port,"admin","123456");
 		db.run(script);
 		db.close();
     }
@@ -111,7 +111,7 @@ public class JDBCDriverManagerTest {
 
 	@Test
 	public void Test_getDriver_true() throws Exception {
-		String url1 = "jdbc:dolphindb://"+HOST+":"+PORT;
+		String url1 = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
 		CreateConnection1(url1);
 		Driver a = DriverManager.getDriver(url1);
 		boolean re = a.acceptsURL(url1);
@@ -120,7 +120,7 @@ public class JDBCDriverManagerTest {
 
 	@Test
 	public void Test_getPropertyInfo() throws Exception {
-		String url1 = "jdbc:dolphindb://"+HOST+":"+PORT;
+		String url1 = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
 		CreateConnection1(url1);
 		Driver a = DriverManager.getDriver(url1);
 		Properties pr = new Properties();
@@ -130,7 +130,7 @@ public class JDBCDriverManagerTest {
 
 	@Test
 	public void Test_getMajorVersion() throws Exception {
-		String url1 = "jdbc:dolphindb://"+HOST+":"+PORT;
+		String url1 = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
 		CreateConnection1(url1);
 		Driver a = DriverManager.getDriver(url1);
 		Properties pr = new Properties();
@@ -140,7 +140,7 @@ public class JDBCDriverManagerTest {
 
 	@Test
 	public void Test_getMinorVersion() throws Exception {
-		String url1 = "jdbc:dolphindb://"+HOST+":"+PORT;
+		String url1 = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
 		CreateConnection1(url1);
 		Driver a = DriverManager.getDriver(url1);
 		Properties pr = new Properties();
@@ -150,7 +150,7 @@ public class JDBCDriverManagerTest {
 
 	@Test
 	public void Test_jdbcCompliant() throws Exception {
-		String url1 = "jdbc:dolphindb://"+HOST+":"+PORT;
+		String url1 = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
 		CreateConnection1(url1);
 		Driver a = DriverManager.getDriver(url1);
 		Properties pr = new Properties();
@@ -160,7 +160,7 @@ public class JDBCDriverManagerTest {
 
 	@Test
 	public void Test_getParentLogger() throws Exception {
-		String url1 = "jdbc:dolphindb://"+HOST+":"+PORT;
+		String url1 = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
 		CreateConnection1(url1);
 		Driver a = DriverManager.getDriver(url1);
 		Properties pr = new Properties();
@@ -214,7 +214,7 @@ public class JDBCDriverManagerTest {
 
 	@Test
     public void Test_getConnection_with_host_port() throws Exception {
-        String url1 = "jdbc:dolphindb://"+HOST+":"+PORT;
+        String url1 = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
         boolean connected = CreateConnection1(url1);
         org.junit.Assert.assertTrue(connected);
     }
@@ -242,7 +242,7 @@ public class JDBCDriverManagerTest {
 			boolean connected = CreateConnection1(url1);
 			org.junit.Assert.assertTrue(connected);
 		}else{
-				String url1 = "jdbc:dolphindb://"+HOST+":"+PORT;
+				String url1 = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
 				boolean connected = CreateConnection1(url1);
 				org.junit.Assert.assertTrue(connected);
 		}

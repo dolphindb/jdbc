@@ -64,7 +64,7 @@ public class JDBCTypeCastTest {
                     "col_datehour = [datehour(2021.06.13 13:30:10),datehour(1969.06.13 13:30:10),datehour(1970.06.13 13:30:10),datehour(2038.01.13 13:30:10)]\n"+
                     "share table(col_sym,col_date,col_time,col_month,col_dt,col_str,col_char,col_float,col_doub,col_int,col_nanotime,col_nanotimestamp,col_bool,col_short,col_long,col_minute,col_second,col_datetime,col_timestamp,col_uuid,col_ipaddr,col_int128,col_blob,col_complex,col_point,col_decimal32,col_decimal64,col_decimal128,col_datehour) as tb";
             db = new DBConnection();
-            db.connect(host, port);
+            db.connect(host, port,"admin","123456");
             db.run(script);
             success = true;
         } catch (Exception e) {
@@ -89,7 +89,7 @@ public class JDBCTypeCastTest {
                     "insert into t values(,,,1,,,,,,,,,,,,,,,,,,,,,,,,,)\n" +
                     "share t as tb_null";
             db = new DBConnection();
-            db.connect(host, port);
+            db.connect(host, port,"admin","123456");
             db.run(script);
             success = true;
         } catch (Exception e) {

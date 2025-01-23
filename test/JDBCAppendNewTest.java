@@ -48,7 +48,7 @@ public class JDBCAppendNewTest {
                     "db=database('dfs://test_append_type', RANGE, 1 2001 4001 6001 8001 10001) \n"+
                     "db.createPartitionedTable(t, `pt, `id) \n";
             db = new DBConnection();
-            db.connect(HOST, PORT);
+            db.connect(HOST, PORT,"admin","123456");
             db.run(script);
             success = true;
         }catch(Exception e){
@@ -73,7 +73,7 @@ public class JDBCAppendNewTest {
                     "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                     "db.createPartitionedTable(t, `pt, `id,,`id) \n";
             db = new DBConnection();
-            db.connect(HOST, PORT);
+            db.connect(HOST, PORT,"admin","123456");
             db.run(script);
             success = true;
         }catch(Exception e){
@@ -115,7 +115,7 @@ public class JDBCAppendNewTest {
                     "t = table(string(1..6) as id, string(1..6) as val, 1..6 as price) \n"+
                     "pt = db.createPartitionedTable(t, \"config\", \"id\",,`price) \n";
             DBConnection db = new DBConnection();
-            db.connect(HOST, PORT);
+            db.connect(HOST, PORT,"admin","123456");
             db.run(script);
         stm.execute("pt=loadTable('dfs://test1','config')");
         PreparedStatement ps = conn.prepareStatement("insert into pt values(?,?,?)");

@@ -106,7 +106,7 @@ public class JDBCPrepareStatementTest {
                     "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001 10000000,,'TSDB') \n"+
                     "db.createPartitionedTable(t, `pt, `col1,,`col1)\n";
             db = new DBConnection();
-            db.connect(HOST, PORT);
+            db.connect(HOST, PORT,"admin","123456");
             db.run(script);
             success = true;
         }catch(Exception e){
@@ -118,7 +118,6 @@ public class JDBCPrepareStatementTest {
             }
             return success;
         }
-
     }
     public static boolean createPartitionTable_Array(String dataType) {
         boolean success = false;
@@ -135,7 +134,7 @@ public class JDBCPrepareStatementTest {
                     "db=database('dfs://test_append_array_tsdb1', RANGE, 1 2001 4001 6001 8001 10001 10000000,,'TSDB') \n"+
                     "db.createPartitionedTable(t, `pt, `col1,,`col1)\n";
             db = new DBConnection();
-            db.connect(HOST, PORT);
+            db.connect(HOST, PORT,"admin","123456");
             db.run(script);
             success = true;
         }catch(Exception e){
@@ -164,7 +163,7 @@ public class JDBCPrepareStatementTest {
                     "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
                     "pt.append!(t)\n";
             db = new DBConnection();
-            db.connect(HOST, PORT);
+            db.connect(HOST, PORT,"admin","123456");
             db.run(script);
             Connection conn;
             success = true;
@@ -192,7 +191,7 @@ public class JDBCPrepareStatementTest {
                     "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                     "db.createTable(t, `pt,,`col1)\n";
             db = new DBConnection();
-            db.connect(HOST, PORT);
+            db.connect(HOST, PORT,"admin","123456");
             db.run(script);
             success = true;
         }catch(Exception e){
@@ -217,7 +216,7 @@ public class JDBCPrepareStatementTest {
                     "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                     "db.createPartitionedTable(t, `pt, `id,,`id) \n";
             db = new DBConnection();
-            db.connect(HOST, PORT);
+            db.connect(HOST, PORT,"admin","123456");
             db.run(script);
             success = true;
         }catch(Exception e){
@@ -4178,7 +4177,7 @@ public class JDBCPrepareStatementTest {
                     "db=database('dfs://test_append_type', VALUE, 1 2 3,,'TSDB') \n"+
                     "db.createPartitionedTable(t, `pt, `id,,`id`dataType) \n";
             db = new DBConnection();
-            db.connect(HOST, PORT);
+            db.connect(HOST, PORT,"admin","123456");
             db.run(script);
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
         ps.setInt(1,1);
@@ -4210,7 +4209,7 @@ public class JDBCPrepareStatementTest {
                 "db=database('dfs://test_append_type', RANGE, 1 20 30,,'TSDB') \n"+
                 "db.createPartitionedTable(t, `pt, `id,,`id`dataType) \n";
         db = new DBConnection();
-        db.connect(HOST, PORT);
+        db.connect(HOST, PORT,"admin","123456");
         db.run(script);
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
         ps.setInt(1,1);
@@ -6767,7 +6766,7 @@ public class JDBCPrepareStatementTest {
                 "db=database('dfs://test_append_type', RANGE, 1 20 30,,'TSDB') \n"+
                 "db.createPartitionedTable(t, `pt, `id,,`id`dataType) \n";
         db = new DBConnection();
-        db.connect(HOST, PORT);
+        db.connect(HOST, PORT,"admin","123456");
         db.run(script);
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
         ps.setInt(1,1);
@@ -7263,7 +7262,7 @@ public class JDBCPrepareStatementTest {
                 "pt=db.createTable(t, `pt,,`col1)\n" +
                 "pt.append!(t)\n";
         DBConnection db = new DBConnection();
-        db.connect(HOST, PORT);
+        db.connect(HOST, PORT,"admin","123456");
         db.run(script);
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         for(int i =3;i<=10000;i++) {
@@ -7346,7 +7345,7 @@ public class JDBCPrepareStatementTest {
                 "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
                 "pt.append!(t)\n";
         DBConnection db = new DBConnection();
-        db.connect(HOST, PORT);
+        db.connect(HOST, PORT,"admin","123456");
         db.run(script);
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         for(int i =3;i<=10000;i++) {
@@ -7429,7 +7428,7 @@ public class JDBCPrepareStatementTest {
                 "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
                 "pt.append!(t)\n";
         DBConnection db = new DBConnection();
-        db.connect(HOST, PORT);
+        db.connect(HOST, PORT,"admin","123456");
         db.run(script);
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         for(int i =3;i<=10000;i++) {
@@ -7497,7 +7496,7 @@ public class JDBCPrepareStatementTest {
                 "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
                 "pt.append!(t)\n";
         DBConnection db = new DBConnection();
-        db.connect(HOST, PORT);
+        db.connect(HOST, PORT,"admin","123456");
         db.run(script);
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         for(int i =3;i<=10000;i++) {
@@ -7565,7 +7564,7 @@ public class JDBCPrepareStatementTest {
                 "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
                 "pt.append!(t)\n";
         DBConnection db = new DBConnection();
-        db.connect(HOST, PORT);
+        db.connect(HOST, PORT,"admin","123456");
         db.run(script);
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type_tsdb1','pt') values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         for(int i =3;i<=10000;i++) {
@@ -9899,8 +9898,8 @@ public class JDBCPrepareStatementTest {
         db.run("share table(take(`1aaa `2sss,100000000) as id) as table1;");
         JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
         Properties LOGININFO1 = new Properties();
-        //LOGININFO.put("user", "admin");
-        //LOGININFO.put("password", "123456");
+        LOGININFO1.put("user", "admin");
+        LOGININFO1.put("password", "123456");
         DB_URL = "jdbc:dolphindb://"+HOST+":"+PORT;
         Connection conn1 = JDBCTestUtil.getConnection(LOGININFO1);
         //Statement stmt = null;
@@ -9925,8 +9924,8 @@ public class JDBCPrepareStatementTest {
         db.run("share table(take(`1aaa `2sss,100000000) as id) as table1;");
         JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
         Properties LOGININFO1 = new Properties();
-        //LOGININFO.put("user", "admin");
-        //LOGININFO.put("password", "123456");
+        LOGININFO1.put("user", "admin");
+        LOGININFO1.put("password", "123456");
         DB_URL = "jdbc:dolphindb://"+HOST+":"+PORT;
         Connection conn1 = JDBCTestUtil.getConnection(LOGININFO1);
         PreparedStatement stmt = null;
@@ -10195,7 +10194,6 @@ public class JDBCPrepareStatementTest {
         rs.getInt("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
     }
-
     @Test
     public void test_PreparedStatement_insert_into_dfs_col_contain_quotes2() throws SQLException {
         createPartitionTable("INT");

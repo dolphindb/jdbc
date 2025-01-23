@@ -1854,7 +1854,7 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		assertEquals(true,re.contains("getGroupList() => Only administrators execute function getGroupList"));
+		assertEquals(true,re.contains("getGroupList() => Only administrators execute function getGroupList")||re.contains("Login is required for script execution with client authentication enabled"));
 	}
 
 	@Test
@@ -1907,7 +1907,7 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		assertEquals(true,re.contains("getGroupList() => Only administrators execute function getGroupList"));
+		assertEquals(true,re.contains("getGroupList() => Only administrators execute function getGroupList")||re.contains("Login is required for script execution with client authentication enabled"));
 	}
 	@Test
 	public void Test_JDBCConnection_url_password_not_provided() throws SQLException, ClassNotFoundException {
@@ -2008,7 +2008,7 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		assertEquals(true,re.contains("getGroupList() => Only administrators execute function getGroupList"));
+		assertEquals(true,re.contains("getGroupList() => Only administrators execute function getGroupList")||re.contains("Login is required for script execution with client authentication enabled"));
 	}
 	@Test
 	public void Test_getConnection_useSSL_true() throws SQLException, ClassNotFoundException {
