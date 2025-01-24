@@ -23,7 +23,7 @@ public class JDBCDataBaseMetaDataTest {
         LOGININFO = new Properties();
         LOGININFO.put("user", "admin");
         LOGININFO.put("password", "123456");
-        url = "jdbc:dolphindb://" + HOST + ":" + PORT;
+        url = "jdbc:dolphindb://" + HOST + ":" + PORT+"?user=admin&password=123456";
         prop.setProperty("hostName",HOST);
         prop.setProperty("port",String.valueOf(PORT));
         //prop.setProperty("sqlStd", String.valueOf(SqlStdEnum.Oracle));
@@ -293,7 +293,7 @@ public class JDBCDataBaseMetaDataTest {
         Statement stmt = null;
         try {
             Class.forName(JDBC_DRIVER);
-            conn = DriverManager.getConnection(url);
+            conn = DriverManager.getConnection(url,LOGININFO);
             stmt = conn.createStatement();
             ResultSet rs = null;
             DatabaseMetaData metaData = conn.getMetaData();

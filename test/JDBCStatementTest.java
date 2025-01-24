@@ -73,7 +73,7 @@ public class JDBCStatementTest {
 //					"db.createPartitionedTable(t, `pt, `id).append!(t) \n";
 
     		db = new DBConnection();
-    		db.connect(host, port);
+    		db.connect(host, port,"admin","123456");
     		db.run(script);
     		success = true;
     	}catch(Exception e){
@@ -3771,8 +3771,8 @@ public class JDBCStatementTest {
 		db.run("share table(take(`1aaa `2sss,100000000) as id) as table1;");
 		JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
 		Properties LOGININFO1 = new Properties();
-		//LOGININFO.put("user", "admin");
-		//LOGININFO.put("password", "123456");
+		LOGININFO1.put("user", "admin");
+		LOGININFO1.put("password", "123456");
 		DB_URL = "jdbc:dolphindb://"+HOST+":"+PORT;
 		Connection conn1 = JDBCTestUtil.getConnection(LOGININFO1);
 		Statement stmt = null;

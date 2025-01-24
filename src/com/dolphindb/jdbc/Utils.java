@@ -730,8 +730,10 @@ public class Utils {
         String columnParam = getInsertColumnString(sql);
         if (!columnParam.isEmpty()) {
             String[] columnParams = columnParam.split(",");
-            for (int i = 0; i < columnParams.length; i++)
-                map.put(columnParams[i].trim().toLowerCase(), i);
+            for (int i = 0; i < columnParams.length; i++) {
+                String curCol = columnParams[i].trim().replaceAll("^[\"']|[\"']$", "");
+                map.put(curCol.trim().toLowerCase(), i);
+            }
 
             return map;
         } else {
@@ -794,7 +796,7 @@ public class Utils {
 
     public static boolean checkServerVersionIfSupportCatalog(JDBCConnection connection) {
         try {
-            String version = connection.run("version()").getString();
+            String version = connection.run("version", new ArrayList<>()).getString();
             String[] _ = version.split(" ")[0].split("\\.");
             int v0 = Integer.parseInt(_[0]);
             int v1 = Integer.parseInt(_[1]);

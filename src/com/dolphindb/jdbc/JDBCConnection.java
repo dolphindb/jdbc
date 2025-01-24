@@ -8,10 +8,13 @@ import com.xxdb.comm.SqlStdEnum;
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
 import com.xxdb.io.ProgressListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 public class JDBCConnection implements Connection {
@@ -27,6 +30,8 @@ public class JDBCConnection implements Connection {
 	private String user;
 	private String password;
 
+	private static final Logger log = LoggerFactory.getLogger(JDBCConnection.class);
+
 	public JDBCConnection(String url, Properties prop) throws SQLException {
 		this.url = url;
 		Driver.parseProp(url, prop);
@@ -35,7 +40,7 @@ public class JDBCConnection implements Connection {
 		this.port = Integer.parseInt(this.clientInfo.getProperty("port"));
 		setUser(Optional.ofNullable(this.clientInfo.getProperty("user")).orElse(""));
 
-		initDBConnectionInternal(prop);
+		initDBConnectionInternal();
 
 		try {
 			connectInternal(this.hostName, this.port, this.clientInfo);
@@ -58,7 +63,7 @@ public class JDBCConnection implements Connection {
 		this.port = Integer.parseInt(this.clientInfo.getProperty("port"));
 		setUser(Optional.ofNullable(this.clientInfo.getProperty("user")).orElse(""));
 
-		initDBConnectionInternal(prop);
+		initDBConnectionInternal();
 
 		try {
 			connectInternal(this.hostName, this.port, this.clientInfo);
@@ -74,14 +79,18 @@ public class JDBCConnection implements Connection {
 		}
 	}
 
-	private void initDBConnectionInternal(Properties clientInfo) {
+	private void initDBConnectionInternal() {
 		String sqlStdProp = this.clientInfo.getProperty("sqlStd");
-		if (Objects.nonNull(sqlStdProp)) {
-			SqlStdEnum sqlStd = SqlStdEnum.getByName(sqlStdProp);
-			this.dbConnection = new DBConnection(sqlStd);
-		} else {
+		String useSSLStr = this.clientInfo.getProperty("useSSL");
+
+		if (Objects.nonNull(sqlStdProp) && Objects.nonNull(useSSLStr))
+			this.dbConnection = new DBConnection(false, Boolean.parseBoolean(useSSLStr), false, false, SqlStdEnum.getByName(sqlStdProp));
+		else if (Objects.nonNull(sqlStdProp))
+			this.dbConnection = new DBConnection(SqlStdEnum.getByName(sqlStdProp));
+		else if (Objects.nonNull(useSSLStr))
+			this.dbConnection = new DBConnection(false, Boolean.parseBoolean(useSSLStr));
+		else
 			this.dbConnection = new DBConnection();
-		}
 	}
 	
 	public DBConnection getDBConnection() {
@@ -167,23 +176,30 @@ public class JDBCConnection implements Connection {
 		}
 	}
 
-	private String loadTables(String dbName, List<String> tableNames, boolean ignoreError){
+	private String loadTables(String dbName, List<String> tableNames){
 		StringBuilder sbInitScript = new StringBuilder();
+		Set<String> allTablesSet;
+		try {
+			BasicStringVector allTables = (BasicStringVector) this.dbConnection.run("getClusterDFSTables()");
+			allTablesSet = new HashSet<>(Arrays.asList(allTables.getValues()));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
 		for(String tableName:tableNames) {
 			StringBuilder builder = new StringBuilder();
-			builder.append("loadTable(\"").append(dbName).append("\", \"").append(tableName).append("\");");
-			try {
-				this.dbConnection.run(builder.toString());
-				sbInitScript.append(tableName).append("=").append("loadTable(\"").append(dbName).append("\", \"").append(tableName).append("\");\n");
-			} catch (Exception e) {
-				if(ignoreError) {
-					System.out.println("Load table " + dbName + "." + tableName + " failed " + e.getMessage());
-					tableNames.remove(tableName);
-				}else{
-					throw new RuntimeException(e.getMessage());
+			if (allTablesSet.contains((dbName + "/" + tableName))) {
+				builder.append("loadTable(\"").append(dbName).append("\", \"").append(tableName).append("\");");
+				try {
+					this.dbConnection.run(builder.toString());
+					sbInitScript.append(tableName).append("=").append("loadTable(\"").append(dbName).append("\", \"").append(tableName).append("\");\n");
+				} catch (Exception e) {
+					log.error("Load table " + dbName + "." + tableName + " failed: " + e.getMessage());
+					throw new RuntimeException("Load table " + dbName + "." + tableName + " failed: " + e.getMessage());
 				}
 			}
 		}
+
 		return sbInitScript.toString();
 	}
 
@@ -216,7 +232,7 @@ public class JDBCConnection implements Connection {
 						if (!tableName.isEmpty())
 							dbtables.add(tableName);
 					}
-					String script=loadTables(this.database,dbtables,false);
+					String script=loadTables(this.database,dbtables);
 					sbInitScript.append(script);
 				} else {
 					// if not specific tableanme, load all tables; but need to authenticate every table.
@@ -224,7 +240,7 @@ public class JDBCConnection implements Connection {
 					for (int i = 0; i < vector.rows(); i++) {
 						dbtables.add(vector.getString(i));
 					}
-					String script=loadTables(this.database,dbtables,true);
+					String script=loadTables(this.database,dbtables);
 					sbInitScript.append(script);
 				}
 				this.tables = new BasicStringVector(dbtables);
