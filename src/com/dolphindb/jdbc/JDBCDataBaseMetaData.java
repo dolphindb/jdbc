@@ -258,10 +258,12 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             newColumnNames.add("DATA_TYPE");
             newColumnNames.add("EXTRA");
             newColumnNames.add("REMARKS");
-            newColumnNames.add("sensitive");
+            if (curTable.columns() == 6)
+                newColumnNames.add("sensitive");
             curTable.setColName(newColumnNames);
 
-            for (int j = 0; j < curTable.columns() - 1; j++)
+            int addColumnsNum = curTable.columns() == 6 ? curTable.columns() -1 : curTable.columns();
+            for (int j = 0; j < addColumnsNum; j++)
                 schemaAndTable.addColumn(curTable.getColumnName(j), curTable.getColumn(j));
 
             curTable = schemaAndTable;
