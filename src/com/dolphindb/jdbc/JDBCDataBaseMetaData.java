@@ -622,7 +622,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     BasicTable schemasMapTb = (BasicTable) connection.run("getSchemaByCatalog(\"" + curCatalog + "\");");
                     BasicStringVector curSchemaVec = (BasicStringVector) schemasMapTb.getColumn("schema");
                     schemaVec.Append(curSchemaVec);
-                    catalogVec.Append(new BasicStringVector(new ArrayList<>(Collections.nCopies(curSchemaVec.rows(), "\"" + curCatalog + "\""))));
+                    catalogVec.Append(new BasicStringVector(new ArrayList<>(Collections.nCopies(curSchemaVec.rows(), curCatalog))));
                 }
 
                 cols.add(schemaVec);
@@ -687,11 +687,11 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             return null;
 
         BasicTable colDefs;
-        List<String> colNames = new ArrayList<>(Arrays.asList("TABLE_CAT", "TABLE_NAME", "TABLE_SCHEM", "TABLE_TYPE", "REMARKS"));
+        List<String> colNames = new ArrayList<>(Arrays.asList("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "TABLE_TYPE", "REMARKS"));
         List<Vector> cols = new ArrayList<>();
         List<String> tableCatVal = new ArrayList<>();
-        List<String> tableNameVal = new ArrayList<>();
         List<String> tableSchemVal = new ArrayList<>();
+        List<String> tableNameVal = new ArrayList<>();
         List<String> tableTypeVal = new ArrayList<>();
         List<String> remarksVal = new ArrayList<>();
 
@@ -714,8 +714,8 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                             AbstractVector tableNameVec = (AbstractVector) connection.run(script);
                             for (int i = 0; i < tableNameVec.rows(); i++) {
                                 tableCatVal.add(catalog);
-                                tableNameVal.add(tableNameVec.getString(i));
                                 tableSchemVal.add(schemaPattern);
+                                tableNameVal.add(tableNameVec.getString(i));
                                 tableTypeVal.add("TABLE");
                                 remarksVal.add(null);
                             }
@@ -726,13 +726,13 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                         throw new RuntimeException("Current catalog " + catalog + " doesn't has any schema.");
                     }
 
-                    Stream.of(tableCatVal, tableNameVal, tableSchemVal, tableTypeVal, remarksVal)
+                    Stream.of(tableCatVal, tableSchemVal, tableNameVal, tableTypeVal, remarksVal)
                             .map(BasicStringVector::new)
                             .forEach(cols::add);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-            } else if (schemaPattern.trim().equals("%")) {
+            } else if (Objects.isNull(schemaPattern) || schemaPattern.trim().equals("%")) {
                 try {
                     BasicTable schemas = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\")");
                     if (schemas.rows() != 0) {
@@ -745,8 +745,8 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                             for (int j = 0; j < tableNameVec.rows(); j++) {
                                 // 针对表维度组装数据
                                 tableCatVal.add(catalog);
-                                tableNameVal.add(tableNameVec.getString(j));
                                 tableSchemVal.add(schemaVector.getString(i));
+                                tableNameVal.add(tableNameVec.getString(j));
                                 tableTypeVal.add("TABLE");
                                 remarksVal.add(null);
                             }
@@ -755,7 +755,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                         throw new RuntimeException("Current catalog " + catalog + " doesn't has any schema.");
                     }
 
-                    Stream.of(tableCatVal, tableNameVal, tableSchemVal, tableTypeVal, remarksVal)
+                    Stream.of(tableCatVal, tableSchemVal, tableNameVal, tableTypeVal, remarksVal)
                             .map(BasicStringVector::new)
                             .forEach(cols::add);
                 } catch (IOException e) {
@@ -770,9 +770,9 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 if (Objects.nonNull(name)) {
                     for (int i = 0; i < name.rows(); i ++) {
                         BasicString memTableName = (BasicString) name.get(i);
-                        tableNameVal.add(memTableName.getString());
                         tableCatVal.add(null);
                         tableSchemVal.add(null);
+                        tableNameVal.add(memTableName.getString());
                         remarksVal.add(null);
                     }
                 }
@@ -785,7 +785,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     }
                 }
 
-                Stream.of(tableCatVal, tableNameVal, tableSchemVal, tableTypeVal, remarksVal)
+                Stream.of(tableCatVal, tableSchemVal, tableNameVal, tableTypeVal, remarksVal)
                         .map(BasicStringVector::new)
                         .forEach(cols::add);
             } catch (IOException e) {
