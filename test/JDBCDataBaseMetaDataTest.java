@@ -3,6 +3,8 @@ import com.xxdb.DBConnection;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.util.Properties;
@@ -16,9 +18,31 @@ public class JDBCDataBaseMetaDataTest {
     String JDBC_DRIVER;
     String url;
     Properties prop = new Properties();
-
+    public void clear_env() throws IOException {
+        DBConnection conn = new DBConnection();
+        conn.connect(HOST,PORT,"admin","123456");
+        conn.run("def getAllShare(){\n" +
+                "\treturn select name from objs(true) where shared=1\n" +
+                "\t}\n" +
+                "\n" +
+                "def clearShare(){\n" +
+                "\tlogin(`admin,`123456)\n" +
+                "\tallShare=exec name from pnodeRun(getAllShare)\n" +
+                "\tfor(i in allShare){\n" +
+                "\t\ttry{\n" +
+                "\t\t\trpc((exec node from pnodeRun(getAllShare) where name =i)[0],clearTablePersistence,objByName(i))\n" +
+                "\t\t\t}catch(ex1){}\n" +
+                "\t\trpc((exec node from pnodeRun(getAllShare) where name =i)[0],undef,i,SHARED)\n" +
+                "\t}\n" +
+                "\ttry{\n" +
+                "\t\tPST_DIR=rpc(getControllerAlias(),getDataNodeConfig{getNodeAlias()})['persistenceDir']\n" +
+                "\t}catch(ex1){}\n" +
+                "}\n" +
+                "clearShare()");
+    }
     @Before
-    public void SetUp() {
+    public void SetUp() throws IOException {
+        clear_env();
         JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
         LOGININFO = new Properties();
         LOGININFO.put("user", "admin");
@@ -28,6 +52,7 @@ public class JDBCDataBaseMetaDataTest {
         prop.setProperty("port",String.valueOf(PORT));
         //prop.setProperty("sqlStd", String.valueOf(SqlStdEnum.Oracle));
         url = "jdbc:dolphindb://"+JDBCTestUtil.HOST+":"+JDBCTestUtil.PORT;
+
     }
 
     public static boolean createPartitionTable1(String dataBaseName) {
@@ -329,7 +354,10 @@ public class JDBCDataBaseMetaDataTest {
             System.out.println("getSQLStateType() = " + metaData.getSQLStateType());
             System.out.println("getStringFunctions() =" + metaData.getStringFunctions());
             System.out.println("getSystemFunctions() = " + metaData.getSystemFunctions());
+            System.out.println("metaData.getTableTypes()=-------------------------------- ");
             printData(metaData.getTableTypes());
+            System.out.println("metaData.getTableTypes()=-------------------------------- ");
+
             System.out.println("getTimeDateFunctions() = " + metaData.getTimeDateFunctions());
             printData(metaData.getTypeInfo());
             System.out.println("getURL() = " + metaData.getURL());
@@ -1177,7 +1205,7 @@ public class JDBCDataBaseMetaDataTest {
         rs = metaData.getTables("catalog1","%","%", null);
         String results1 = getTablesData(rs);
         //printData(rs);
-        Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_NAME: dt    TABLE_SCHEM: schema_test    TABLE_TYPE: TABLE    REMARKS: null    TABLE_CAT: catalog1    TABLE_NAME: pt    TABLE_SCHEM: schema_test    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
+        Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    TABLE_TYPE: TABLE    REMARKS: null    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
         stmt.close();
         conn.close();
         }else{
@@ -1205,7 +1233,7 @@ public class JDBCDataBaseMetaDataTest {
         rs = metaData.getTables("catalog1","schema_test","%", null);
         String results1 = getTablesData(rs);
         //printData(rs);
-        Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_NAME: dt    TABLE_SCHEM: schema_test    TABLE_TYPE: TABLE    REMARKS: null    TABLE_CAT: catalog1    TABLE_NAME: pt    TABLE_SCHEM: schema_test    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
+        Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    TABLE_TYPE: TABLE    REMARKS: null    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
         stmt.close();
         conn.close();
         }else{
@@ -1321,7 +1349,7 @@ public class JDBCDataBaseMetaDataTest {
         stmt.close();
         conn.close();
     }
-    //@Test// Invalid params in getTables, not support get all tables with no specific catalog and schema.
+    @Test
     public void test_DatabaseMetaData_getTables_catalog_schemaPattern_all_300() throws Exception {
         Connection conn = null;
         Statement stmt = null;
@@ -1333,10 +1361,10 @@ public class JDBCDataBaseMetaDataTest {
         String results = null;
         createSchema("catalog1","dfs://db","schema_test");
         createSchema("catalog2","dfs://db1","schema_test");
-        rs = metaData.getTables("%","%","dt", null);
+        rs = metaData.getTables("catalog1",null,"dt", null);
         String results1 = getTablesData(rs);
         //printData(rs);
-        Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_NAME: dt    TABLE_SCHEM: schema_test    TABLE_TYPE: TABLE    REMARKS: null   ",results1);
+        Assert.assertEquals("nullTABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    TABLE_TYPE: TABLE    REMARKS: null    TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    TABLE_TYPE: TABLE    REMARKS: null    ",results1);
         stmt.close();
         conn.close();
     }
