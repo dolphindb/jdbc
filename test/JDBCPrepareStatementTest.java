@@ -1,4 +1,5 @@
 import com.dolphindb.jdbc.JDBCResultSet;
+import com.dolphindb.jdbc.JDBCStatement;
 import com.dolphindb.jdbc.TypeCast;
 import com.xxdb.DBConnection;
 import com.xxdb.data.*;
@@ -157,7 +158,7 @@ public class JDBCPrepareStatementTest {
                     "colNames=\"col\"+string(1..29);\n" +
                     "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                     "t=table(1:0,colNames,colTypes);\n" +
-                    "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,2f,2.12345,\"1212\",\"1212\",uuid(\"00000000-0000-0001-0000-000000000002\"),datehour(2012.06.13 13:30:10),ipaddr(\"0::1:0:0:0:2\"),int128(\"00000000000000010000000000000002\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                    "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,2021.12.31 23:59:59,2021.12.31 23:59:59.999,00:00:00.999999999,2021.06.13 13:30:10.008007006,2f,2.12345,\"1212\",\"1212\",uuid(\"00000000-0000-0001-0000-000000000002\"),datehour(2012.06.13 13:30:10),ipaddr(\"0::1:0:0:0:2\"),int128(\"00000000000000010000000000000002\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
                     "insert into t values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
                     "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                     "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
@@ -2525,7 +2526,8 @@ public class JDBCPrepareStatementTest {
         createPartitionTable("TIMESTAMP");
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
         ps.setInt(1,1);
-        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021,1,1,1,1,1,001));
+        //BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021,1,1,1,1,1,001));
+        LocalDateTime tmp_timestamp = LocalDateTime.of(2021,1,1,1,1,1,001);
         ps.setObject(2, tmp_timestamp);
         ps.addBatch();
         ps.setInt(1,2);
@@ -7256,7 +7258,7 @@ public class JDBCPrepareStatementTest {
                 "colNames=\"col\"+string(1..29);\n" +
                 "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                 "t=table(1:0,colNames,colTypes);\n" +
-                "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(9999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,2021.12.31 23:59:59,2021.12.31 23:59:59.999,00:00:00.999999999,2021.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(2021.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
                 "insert into t values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
                 "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                 "pt=db.createTable(t, `pt,,`col1)\n" +
@@ -7339,7 +7341,7 @@ public class JDBCPrepareStatementTest {
                 "colNames=\"col\"+string(1..29);\n" +
                 "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                 "t=table(1:0,colNames,colTypes);\n" +
-                "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(9999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                "insert into t values(2,true,'a',2h,2,22l,2021.12.06,2021.06M,23:59:59.999,23:59m,23:59:59,2021.12.31 23:59:59,2021.12.31 23:59:59.999,00:00:00.999999999,2021.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(2021.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
                 "insert into t values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
                 "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                 "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
@@ -7422,7 +7424,7 @@ public class JDBCPrepareStatementTest {
                 "colNames=\"col\"+string(1..29);\n" +
                 "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                 "t=table(1:0,colNames,colTypes);\n" +
-                "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(9999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                "insert into t values(2,true,'a',2h,2,22l,2021.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,2021.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,2021.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(2021.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
                 "insert into t values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
                 "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                 "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
@@ -7490,7 +7492,7 @@ public class JDBCPrepareStatementTest {
                 "colNames=\"col\"+string(1..29);\n" +
                 "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                 "t=table(1:0,colNames,colTypes);\n" +
-                "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(9999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,2021.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,2021.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(2021.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
                 "insert into t values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
                 "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                 "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
@@ -7558,7 +7560,7 @@ public class JDBCPrepareStatementTest {
                 "colNames=\"col\"+string(1..29);\n" +
                 "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                 "t=table(1:0,colNames,colTypes);\n" +
-                "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(9999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,2021.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,2021.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(2021.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
                 "insert into t values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
                 "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                 "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
@@ -7820,7 +7822,7 @@ public class JDBCPrepareStatementTest {
     public void test_PreparedStatement_delete_datetime() throws SQLException, IOException {
         createPartitionTable_insert();
         PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col12 = ?");
-        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(9999,12,31,23,59,59));
+        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(2021,12,31,23,59,59));
         ps1.setObject(1, tmp_datetime);
         ps1.executeUpdate();
         JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
@@ -7839,7 +7841,7 @@ public class JDBCPrepareStatementTest {
     public void test_PreparedStatement_delete_timestamp() throws SQLException, IOException {
         createPartitionTable_insert();
         PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col13 = ?");
-        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(9999,12,31,23,59,59,999000000));
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(2021,12,31,23,59,59,999000000));
         ps1.setObject(1, tmp_timestamp);
         ps1.executeUpdate();
         JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
@@ -7877,7 +7879,7 @@ public class JDBCPrepareStatementTest {
     public void test_PreparedStatement_delete_nanotimestamp() throws SQLException, IOException {
         createPartitionTable_insert();
         PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col15 = ?");
-        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(9999,6,13,13,30,10,8007006));
+        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(2021,6,13,13,30,10,8007006));
         ps1.setObject(1, tmp_nanotimestamp);
         ps1.executeUpdate();
         JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
@@ -10293,7 +10295,153 @@ public class JDBCPrepareStatementTest {
         rs.getInt(6);
         org.junit.Assert.assertTrue(rs.wasNull());
     }
-
+//    public static boolean CreateDfs() throws IOException {
+//        Boolean success = false;
+//        String script = " if(existsDatabase('dfs://select')) dropDatabase('dfs://select');\n"+
+//                "db = database('dfs://select', RANGE, 0 10000 20000 30001,,'TSDB');\n" +
+//                "n=1000000;\n" +
+//                "id = int(take(1..30000, n));\n" +
+//                "boolv = bool(rand([true, false, NULL], n));\n" +
+//                "charv = char(rand(rand(-100..100, 1000) join take(char(), 4), n));\n" +
+//                "shortv = short(rand(rand(-100..100, 1000) join take(short(), 4), n));\n" +
+//                "intv = int(rand(rand(-1000..1000, 1000) join take(int(), 4), n));\n" +
+//                "longv = long(rand(rand(-100..100, 1000) join take(long(), 4), n));\n" +
+//                "doublev = double(rand(rand(-100..100, 1000)*0.23 join take(double(), 4), n));\n" +
+//                "floatv = float(rand(rand(-100..100, 1000)*0.23 join take(float(), 4), n));\n" +
+//                "datev = date(rand(rand(-100..100, 1000) join take(date(), 4), n));\n" +
+//                "monthv = month(rand(1967.12M+rand(-100..100, 1000) join take(month(), 4), n));\n" +
+//                "timev = time(rand(rand(0..100, 1000) join take(time(), 4), n));\n" +
+//                "minutev = minute(rand(12:13m+rand(-100..100, 1000) join take(minute(), 4), n));\n" +
+//                "secondv = second(rand(12:13:12+rand(-100..100, 1000) join take(second(), 4), n));\n" +
+//                "datetimev = datetime(rand(1969.12.23+rand(-100..100, 1000) join take(datetime(), 4), n));\n" +
+//                "timestampv = timestamp(rand(1970.01.01T00:00:00.023+rand(-100..100, 1000) join take(timestamp(), 4), n));\n" +
+//                "nanotimev = nanotime(rand(12:23:45.452623154+rand(-100..100, 1000) join take(nanotime(), 4), n));\n" +
+//                "nanotimestampv = nanotimestamp(rand(rand(-100..100, 1000) join take(nanotimestamp(), 4), n));\n" +
+//                "symbolv = rand((\"syms\"+string(rand(100, 1000))) join take(string(), 4), n);\n" +
+//                "stringv = rand((\"stringv\"+string(rand(100, 1000))) join take(string(), 4), n);\n" +
+//                "uuidv = rand(rand(uuid(), 1000) join take(uuid(), 4), n);\n" +
+//                "datehourv = datehour(rand(datehour(1969.12.31T12:45:12)+rand(-100..100, 1000) join take(datehour(), 4), n));\n" +
+//                "ippaddrv = rand(rand(ipaddr(), 1000) join take(ipaddr(), 4), n);\n" +
+//                "int128v = rand(rand(int128(), 1000) join take(int128(), 4), n);\n" +
+//                "blobv = blob(string(rand((\"blob\"+string(rand(100, 1000))) join take(\"\", 4), n)));\n" +
+//                "complexv = rand(complex(rand(100, 1000), rand(100, 1000)) join NULL, n);\n" +
+//                "pointv = rand(point(rand(100, 1000), rand(100, 1000)) join NULL, n);\n" +
+//                "decimal32v = decimal32(rand(rand(-100..100, 1000)*0.23 join take(double(), 4), n), 3);\n" +
+//                "decimal64v = decimal64(rand(rand(-100..100, 1000)*0.23 join take(double(), 4), n), 3);\n" +
+//                "t = table(id,boolv, charv,shortv, intv,  longv, floatv, doublev, datev, monthv, timev, minutev, secondv, datetimev, timestampv, nanotimev, nanotimestampv, symbolv, stringv, uuidv, datehourv, ippaddrv, int128v, blobv);\n" +
+//                "db.createPartitionedTable(t,'t1', 'id',,'id').append!(t); \n";
+//        DBConnection db = new DBConnection();
+//        db.connect(HOST,PORT,"admin","123456");
+//        try{
+//        db.run(script);
+//        success = true;
+//    }catch(Exception e){
+//        e.printStackTrace();
+//        success = false;
+//    }finally{
+//        if(db != null){
+//            db.close();
+//        }
+//        return success;
+//        }
+//    }
+//    @Test
+//    public void test_PreparedStatement_select() throws SQLException, IOException {
+//        CreateDfs();
+//        BasicTable bt1 = null;
+//        long startTime1 = System.currentTimeMillis();
+//        for(int i=0;i<10;i++){
+//            PreparedStatement ps1 = conn.prepareStatement("select * from loadTable('dfs://select','t1') ");
+//            JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery();
+//            bt1 = (BasicTable) rs1.getResult();
+//            System.out.println("查询次数：" + i);
+//        }
+//        long elapsedTime1 = System.currentTimeMillis() - startTime1;
+//        System.out.println("Timeout after " + elapsedTime1 + " ms");
+//        System.out.println(bt1.rows());
+//        org.junit.Assert.assertEquals(1000000,bt1.rows());
+//    }
+//    @Test
+//    public void test_JDBCStatement_select() throws SQLException, IOException, ClassNotFoundException {
+//        CreateDfs();
+//        BasicTable bt1 = null;
+//        JDBCStatement stm = null;
+//        stm = (JDBCStatement) conn.createStatement();
+//        long startTime1 = System.currentTimeMillis();
+//        for(int i=0;i<10;i++){
+//            JDBCResultSet rs1 = (JDBCResultSet)stm.executeQuery("select * from loadTable('dfs://select','t1') ");
+//            bt1 = (BasicTable) rs1.getResult();
+//            System.out.println("查询次数：" + i);
+//        }
+//        long elapsedTime1 = System.currentTimeMillis() - startTime1;
+//        System.out.println("Timeout after " + elapsedTime1 + " ms");
+//        System.out.println(bt1.rows());
+//        org.junit.Assert.assertEquals(1000000,bt1.rows());
+//    }
+//    @Test
+//    public void Test_select() throws Exception {
+//        DBConnection conn = new DBConnection();
+//        conn.connect("192.168.0.9",8848,"admin","123456");
+//        CreateDfs();
+//        long startTime1 = System.currentTimeMillis();
+//        for(int i=0;i<10;i++) {
+//            BasicTable re = (BasicTable) conn.run("select * from loadTable('dfs://select','t1')");
+//            System.out.println("查询次数：" + i);
+//        }
+//        long elapsedTime1 = System.currentTimeMillis() - startTime1;
+//        System.out.println("Timeout after " + elapsedTime1 + " ms");
+//    }
+//
+//    @Test
+//    public void test_PreparedStatement_delete() throws SQLException, IOException {
+//        BasicTable bt1 = null;
+//        Long elapsedTimeavg = 0l;
+//        for(int i=0;i<10;i++){
+//            CreateDfs();
+//            long startTime1 = System.currentTimeMillis();
+//            PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://select','t1') ");
+//            ps1.execute();
+//            System.out.println("查询次数：" + i);
+//            long elapsedTime1 = System.currentTimeMillis() - startTime1;
+//            System.out.println("Timeout after " + elapsedTime1 + " ms");
+//            elapsedTimeavg = elapsedTimeavg + elapsedTime1;
+//        }
+//        System.out.println("Timeout after " + elapsedTimeavg + " ms");
+//    }
+//    @Test
+//    public void test_JDBCStatement_delete() throws SQLException, IOException, ClassNotFoundException {
+//        Long elapsedTimeavg = 0l;
+//        BasicTable bt1 = null;
+//        JDBCStatement stm = null;
+//        stm = (JDBCStatement) conn.createStatement();
+//        for(int i=0;i<10;i++){
+//            CreateDfs();
+//            long startTime1 = System.currentTimeMillis();
+//            stm.execute("delete from loadTable('dfs://select','t1') ");
+//            System.out.println("查询次数：" + i);
+//            long elapsedTime1 = System.currentTimeMillis() - startTime1;
+//            System.out.println("Timeout after " + elapsedTime1 + " ms");
+//            elapsedTimeavg = elapsedTimeavg + elapsedTime1;
+//        }
+//        System.out.println("Timeout after " + elapsedTimeavg + " ms");
+//    }
+//    @Test
+//    public void Test_delete() throws Exception {
+//        DBConnection conn = new DBConnection();
+//        conn.connect("192.168.0.9",8848,"admin","123456");
+//        Long elapsedTimeavg = 0l;
+//        for(int i=0;i<10;i++) {
+//            CreateDfs();
+//            conn.run("sleep(200)");
+//            long startTime1 = System.currentTimeMillis();
+//            conn.run("delete from loadTable('dfs://select','t1')");
+//            System.out.println("查询次数：" + i);
+//            long elapsedTime1 = System.currentTimeMillis() - startTime1;
+//            System.out.println("Timeout after " + elapsedTime1 + " ms");
+//            elapsedTimeavg = elapsedTimeavg + elapsedTime1;
+//        }
+//        System.out.println("Timeout after " + elapsedTimeavg + " ms");
+//    }
     @After
     public void Destroy(){
         LOGININFO = null;

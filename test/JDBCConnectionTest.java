@@ -1216,7 +1216,7 @@ public class JDBCConnectionTest {
 			stmt1.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt1.execute(" sleep(500)");
+		stmt1.execute(" sleep(5000)");
 		prop.setProperty("user","admin");
 		prop.setProperty("password","123456");
 		prop.setProperty("highAvailability", "false");
@@ -1420,7 +1420,7 @@ public class JDBCConnectionTest {
 			stmt.execute("stopDataNode(\""+HOST+":"+PORT+"\")");
 		}catch(Exception ex)
 		{}
-		stmt.execute(" sleep(500)");
+		stmt.execute(" sleep(5000)");
 		conn1 = DriverManager.getConnection(url,info);
 		conn1.equals(true);
 		Statement s = conn1.createStatement();

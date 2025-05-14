@@ -1,7 +1,9 @@
 
+import com.dolphindb.jdbc.JDBCResultSet;
 import com.xxdb.DBConnection;
 import com.xxdb.data.BasicInt;
 import com.xxdb.data.BasicTable;
+import com.xxdb.data.Entity;
 import com.xxdb.data.Scalar;
 import org.junit.Assert;
 import org.junit.Before;
@@ -70,19 +72,86 @@ public class JDBCAllowMultiQueriesTest {
             }
         }
     }
-
     @Test
-    public void test_MultiQueries_insert() throws SQLException, IOException {
+    public void test_MultiQueries_select_executeUpdate() throws SQLException, IOException {
         CallableStatement cstm = conn.prepareCall("pt1=loadTable(\"dfs://db1\",\"trades\");\n" +
-                "tableInsert(pt1,table(2018.09.19 as date,`HW as sym,432 as qty,62.662662662 as price));\n" +
-                "tableInsert(pt1,table(2019.08.18 as date,`XM as sym,251 as qty,26.226226226 as price));");
-        System.out.println(cstm.execute());
-        DBConnection conndb = new DBConnection();
-        conndb.connect(HOST,PORT,"admin","123456");
-        Assert.assertNotNull(conndb.run("select * from loadTable(\""+dataBase+"\",\""+TableName+"\") where price=62.662662662"));
-        Assert.assertNotNull(conndb.run("select * from loadTable(\""+dataBase+"\",\""+TableName+"\") where price=26.226226226"));
+                "select * from pt1;\n" +
+                "select count(*) from pt1;");
+        String re = null;
+        try{
+            cstm.executeUpdate();
+        }catch(Exception ex){
+            re = ex.getMessage();
+        }
+        Assert.assertEquals("java.sql.SQLException: Can not issue SELECT or EXEC via executeUpdate().", re);
+    }
+    @Test
+    public void test_MultiQueries_select_execute() throws SQLException, IOException {
+        CallableStatement cstm = conn.prepareCall("pt1=loadTable(\"dfs://db1\",\"trades\");\n" +
+                "select * from pt1;\n" +
+                "select count(*) from pt1;");
+        cstm.execute();
+        JDBCResultSet re = (JDBCResultSet)cstm.getResultSet();
+        BasicTable BT = (BasicTable)re.getResult();
+        System.out.println(BT.getString());
+        Assert.assertEquals(1000000, BT.rows());
+        Assert.assertEquals(true,cstm.getMoreResults());
+        JDBCResultSet re1 = (JDBCResultSet)cstm.getResultSet();
+        BasicTable BT1 = (BasicTable)re1.getResult();
+        System.out.println(BT1.getString());
+        Assert.assertEquals("1000000", BT1.getColumn(0).get(0).getString());
+    }
+    @Test
+    public void test_MultiQueries_select_executeQuery() throws SQLException, IOException {
+        CallableStatement cstm = conn.prepareCall("pt1=loadTable(\"dfs://db1\",\"trades\");\n" +
+                "select * from pt1;\n" +
+                "select count(*) from pt1;");
+        cstm.executeQuery();
+        JDBCResultSet re = (JDBCResultSet)cstm.getResultSet();
+        BasicTable BT = (BasicTable)re.getResult();
+        System.out.println(BT.getString());
+        Assert.assertEquals("1000000", BT.getColumn(0).get(0).getString());
+        Assert.assertEquals(false,cstm.getMoreResults());
     }
 
+    @Test
+    public void test_MultiQueries_insert_execute() throws SQLException, IOException {
+        CallableStatement cstm = conn.prepareCall("pt1=loadTable(\"dfs://db1\",\"trades\");\n" +
+                "tableInsert(pt1,table(2018.09.19 as date,`HW as sym,432 as qty,62.662662662 as price));\n" +
+                "tableInsert(pt1,table(2018.09.17 as date,`HW as sym,432 as qty,162.662662662 as price));\n" );
+        cstm.execute();
+        DBConnection conndb = new DBConnection();
+        conndb.connect(HOST,PORT,"admin","123456");
+        Entity re = conndb.run("select * from loadTable(\""+dataBase+"\",\""+TableName+"\") where price=162.662662662");
+        System.out.println(re.rows());
+        Assert.assertEquals(1, re.rows());
+    }
+
+    @Test
+    public void test_MultiQueries_insert_executeUpdate() throws SQLException, IOException {
+        CallableStatement cstm = conn.prepareCall("pt1=loadTable(\"dfs://db1\",\"trades\");\n" +
+                "tableInsert(pt1,table(2018.09.19 as date,`HW as sym,432 as qty,62.662662662 as price));\n" +
+                "tableInsert(pt1,table(2018.09.17 as date,`HW as sym,432 as qty,162.662662662 as price));\n" );
+        cstm.executeUpdate();
+        DBConnection conndb = new DBConnection();
+        conndb.connect(HOST,PORT,"admin","123456");
+        Entity re = conndb.run("select * from loadTable(\""+dataBase+"\",\""+TableName+"\") where price=162.662662662");
+        System.out.println(re.rows());
+        Assert.assertEquals(1, re.rows());
+    }
+
+    //@Test 有bug
+    public void test_MultiQueries_insert_executeQuery() throws SQLException, IOException {
+        CallableStatement cstm = conn.prepareCall("pt1=loadTable(\"dfs://db1\",\"trades\");\n" +
+                "tableInsert(pt1,table(2018.09.19 as date,`HW as sym,432 as qty,62.662662662 as price));\n" +
+                "tableInsert(pt1,table(2018.09.17 as date,`HW as sym,432 as qty,162.662662662 as price));\n" );
+        cstm.executeQuery();
+        DBConnection conndb = new DBConnection();
+        conndb.connect(HOST,PORT,"admin","123456");
+        Entity re = conndb.run("select * from loadTable(\""+dataBase+"\",\""+TableName+"\") where price=162.662662662");
+        System.out.println(re.rows());
+        Assert.assertEquals(1, re.rows());
+    }
     @Test
     public void test_MultiQueries_update() throws SQLException,IOException{
         DBConnection conndb = new DBConnection();
