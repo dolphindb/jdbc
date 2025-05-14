@@ -1,6 +1,7 @@
 import com.dolphindb.jdbc.JDBCResultSet;
 import com.xxdb.DBConnection;
 import com.xxdb.data.BasicTable;
+import com.xxdb.streaming.client.PollingClient;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -15,8 +16,32 @@ public class JDBCPreLoadTest {
     static int PORT = JDBCTestUtil.PORT;
     static String url = "jdbc:dolphindb://"+HOST+":"+PORT;
     static int COLPORT = JDBCTestUtil.COLPORT ;
+    static String SITES = JDBCTestUtil.SITES ;
     Connection conn;
     Properties info = new Properties();
+    public void clear_env() throws IOException {
+        DBConnection conn = new DBConnection();
+        conn.connect(HOST,PORT,"admin","123456");
+        conn.run("def getAllShare(){\n" +
+                "\treturn select name from objs(true) where shared=1\n" +
+                "\t}\n" +
+                "\n" +
+                "def clearShare(){\n" +
+                "\tlogin(`admin,`123456)\n" +
+                "\tallShare=exec name from pnodeRun(getAllShare)\n" +
+                "\tfor(i in allShare){\n" +
+                "\t\ttry{\n" +
+                "\t\t\trpc((exec node from pnodeRun(getAllShare) where name =i)[0],clearTablePersistence,objByName(i))\n" +
+                "\t\t\t}catch(ex1){}\n" +
+                "\t\trpc((exec node from pnodeRun(getAllShare) where name =i)[0],undef,i,SHARED)\n" +
+                "\t}\n" +
+                "\ttry{\n" +
+                "\t\tPST_DIR=rpc(getControllerAlias(),getDataNodeConfig{getNodeAlias()})['persistenceDir']\n" +
+                "\t}catch(ex1){}\n" +
+                "}\n" +
+                "clearShare()");
+    }
+
     public static boolean createPartitionTable(){
         boolean success = false;
         DBConnection db = null;
@@ -113,7 +138,8 @@ public class JDBCPreLoadTest {
         }
     }
     @Before
-    public void setup() throws ClassNotFoundException {
+    public void setup() throws ClassNotFoundException, IOException {
+        clear_env();
         info.put("user","admin");
         info.put("password","123456");
         Class.forName("com.dolphindb.jdbc.Driver");
@@ -144,14 +170,14 @@ public class JDBCPreLoadTest {
         conn1 = DriverManager.getConnection(url1);
         stmt = conn1.createStatement();
         try{
-            stmt.execute("stopDataNode([\"192.168.1.167:18921\",\"192.168.1.167:18922\",\"192.168.1.167:18923\",\"192.168.1.167:18924\"])");
+            stmt.execute("stopDataNode([\"192.168.0.69:18921\",\"192.168.0.69:18922\",\"192.168.0.69:18923\",\"192.168.0.69:18924\"])");
         }catch(Exception ex)
         {
             System.out.println(ex.getMessage());
         }
         stmt.execute(" sleep(2000)");
         try{
-            stmt.execute("startDataNode([\"192.168.1.167:18921\",\"192.168.1.167:18922\",\"192.168.1.167:18923\",\"192.168.1.167:18924\"])");
+            stmt.execute("startDataNode([\"192.168.0.69:18921\",\"192.168.0.69:18922\",\"192.168.0.69:18923\",\"192.168.0.69:18924\"])");
         }catch(Exception ex)
         {
             System.out.println(ex.getMessage());
@@ -917,11 +943,11 @@ public class JDBCPreLoadTest {
                 "share  table(date,id) as t2;\n" +
                 "share table(date,id,x) as t3\n" ;
         connection.run(script);
-        conn = DriverManager.getConnection(url+"?tableAlias=t1:t1,t2:t2,t3:t3",info);
+        conn = DriverManager.getConnection(url+"?tableAlias=t11:t1,t22:t2,t33:t3",info);
         Statement stm = conn.createStatement();
-        JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select  * from t1");
-        JDBCResultSet rs1 = (JDBCResultSet)stm.executeQuery("select  * from t2");
-        JDBCResultSet rs2 = (JDBCResultSet)stm.executeQuery("select  * from t3");
+        JDBCResultSet rs = (JDBCResultSet)stm.executeQuery("select  * from t11");
+        JDBCResultSet rs1 = (JDBCResultSet)stm.executeQuery("select  * from t22");
+        JDBCResultSet rs2 = (JDBCResultSet)stm.executeQuery("select  * from t33");
         BasicTable rss = (BasicTable) rs.getResult();
         BasicTable rss1 = (BasicTable) rs1.getResult();
         BasicTable rss2 = (BasicTable) rs2.getResult();
@@ -968,7 +994,7 @@ public class JDBCPreLoadTest {
                 "share  table(date,id) as t2;\n" +
                 "share table(date,id,x) as t3\n" ;
         connection.run(script);
-        conn = DriverManager.getConnection(url+"?tableAlias=t1:t1,t2:t2,t3:t3,测试测试测试别名的呃呃呃:t1,w__dfd知道是的:t2,dfsdfsQAZWSXEDCRFVTGBYHNNNNNNNeeDFS___中国dfs:t3,mvcc123mvcc:t1,count:t2,COUNT:t3,",info);
+        conn = DriverManager.getConnection(url+"?tableAlias=t11:t1,t22:t2,t33:t3,测试测试测试别名的呃呃呃:t11,w__dfd知道是的:t22,dfsdfsQAZWSXEDCRFVTGBYHNNNNNNNeeDFS___中国dfs:t33,mvcc123mvcc:t11,count:t22,COUNT:t33,",info);
         //conn = DriverManager.getConnection(url+"?tableAlias=count1:t2,COUNT:t3,",info);
 
         Statement stm = conn.createStatement();
