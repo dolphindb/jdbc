@@ -1,7 +1,9 @@
 package com.dolphindb.jdbc;
 
+import com.xxdb.data.BasicArrayVector;
 import com.xxdb.data.BasicTable;
-import com.xxdb.data.Entity;
+import com.xxdb.data.Vector;
+
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -51,8 +53,11 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
 
     @Override
     public int getColumnType(int columnIndex) throws SQLException {
-        Entity.DATA_TYPE x = table.getColumn(adjustColumnIndex(columnIndex)).getDataType();
-        switch (x){
+        Vector column = table.getColumn(adjustColumnIndex(columnIndex));
+        if (column instanceof BasicArrayVector) {
+            return Types.ARRAY;
+        }
+        switch (column.getDataType()) {
             case DT_BOOL:
                 return Types.BOOLEAN;
             case DT_BYTE:
@@ -74,12 +79,16 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
                 return Types.FLOAT;
             case DT_DOUBLE:
                 return Types.DOUBLE;
+            case DT_DECIMAL32:
+            case DT_DECIMAL64:
+            case DT_DECIMAL128:
+                return Types.DECIMAL;
             case DT_STRING:
                 return Types.VARCHAR;
             case DT_BLOB:
-                return Types.VARCHAR;
+                return Types.BLOB;
             default:
-                return Types.VARCHAR;
+                return Types.OTHER;
         }
     }
 
