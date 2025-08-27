@@ -797,10 +797,10 @@ public class Utils {
     public static boolean checkServerVersionIfSupportCatalog(JDBCConnection connection) {
         try {
             String version = connection.run("version", new ArrayList<>()).getString();
-            String[] _ = version.split(" ")[0].split("\\.");
-            int v0 = Integer.parseInt(_[0]);
-            int v1 = Integer.parseInt(_[1]);
-            int v2 = Integer.parseInt(_[2]);
+            String[] versionParts = version.split(" ")[0].split("\\.");
+            int v0 = Integer.parseInt(versionParts[0]);
+            // int v1 = Integer.parseInt(versionParts[1]);
+            // int v2 = Integer.parseInt(versionParts[2]);
             if (v0 != 3)
                 return false;
             else
