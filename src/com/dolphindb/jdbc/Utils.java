@@ -3,13 +3,19 @@ package com.dolphindb.jdbc;
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.sql.Date;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.Month;
 import java.time.YearMonth;
 import java.util.*;
 import java.util.Set;
+import java.util.function.IntFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 
 public class Utils {
@@ -808,5 +814,172 @@ public class Utils {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static Object convertEntityToJavaObject(Entity entity, Entity.DATA_TYPE dataType) {
+        switch (dataType){
+            case DT_BOOL:
+                try {
+                    return entity.getString().equals ("") ? null : ((BasicBoolean) entity).booleanValue();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            case DT_BYTE:
+                return ((BasicByte) entity).byteValue();
+            case DT_SHORT:
+                try {
+                    return ((BasicShort) entity).shortValue();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            case DT_INT:
+                try {
+                    return ((BasicInt) entity).intValue();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            case DT_LONG:
+                try {
+                    return ((BasicLong) entity).longValue();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            case DT_DATE:
+                return entity.getString().equals("") ? null : java.sql.Date.valueOf(((BasicDate) entity).getDate());
+            case DT_TIME:
+                return entity.getString().equals("") ? null : java.sql.Time.valueOf(((BasicTime) entity).getTime());
+            case DT_DATETIME:
+                return ((BasicDateTime) entity).getDateTime();
+            case DT_TIMESTAMP:
+                return ((BasicTimestamp) entity).getTimestamp();
+            case DT_FLOAT:
+                try {
+                    return ((BasicFloat) entity).floatValue();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            case DT_DOUBLE:
+                try {
+                    return ((BasicDouble) entity).doubleValue();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            case DT_STRING:
+            case DT_BLOB:
+            case DT_IPADDR:
+            case DT_INT128:
+            case DT_COMPLEX:
+            case DT_POINT:
+                return entity.getString().equals("") ? null : entity.getString();
+            case DT_MONTH:
+                return ((BasicMonth) entity).getMonth();
+            case DT_MINUTE:
+                return ((BasicMinute) entity).getMinute();
+            case DT_SECOND:
+                return ((BasicSecond) entity).getSecond();
+            case DT_NANOTIME:
+                return ((BasicNanoTime) entity).getNanoTime();
+            case DT_NANOTIMESTAMP:
+                return ((BasicNanoTimestamp) entity).getNanoTimestamp();
+            case DT_SYMBOL:
+                return entity.getString().equals("") ? null : entity.getString();
+            case DT_UUID:
+                String string = entity.getString();
+                if (string.isEmpty())
+                    return null;
+                else
+                    return UUID.fromString(string);
+            case DT_DATEHOUR:
+                return ((BasicDateHour) entity).getDateHour();
+            case DT_DECIMAL32:
+            case DT_DECIMAL64:
+            case DT_DECIMAL128:
+                return entity.getString().equals("") ? null : new BigDecimal(entity.getString());
+            default:
+                return entity;
+        }
+    }
+
+    public static Object convertVectorToJavaObjectArray(Vector vector) throws SQLException {
+        try {
+            if (vector.rows() == 0) {
+                return new Object[0];
+            }
+            return createTypedArrayFromVector(vector, vector.getDataType(), 0, vector.rows());
+        } catch (Exception e) {
+            throw new SQLException("Failed to convert vector to Java array", e);
+        }
+    }
+
+    public static Object convertVectorToJavaObjectArray(Vector vector, int startIndex, int endIndex) throws SQLException {
+        try {
+            return createTypedArrayFromVector(vector, vector.getDataType(), startIndex, endIndex);
+        } catch (Exception e) {
+            throw new SQLException("Failed to convert vector to Java array", e);
+        }
+    }
+
+    private static Object createTypedArrayFromVector(Vector vector, Entity.DATA_TYPE dataType, int startIndex, int endIndex) {
+        switch (dataType) {
+            case DT_DOUBLE:
+                return createTypedArray(vector, dataType, startIndex, endIndex, Double[]::new);
+            case DT_FLOAT:
+                return createTypedArray(vector, dataType, startIndex, endIndex, Float[]::new);
+            case DT_INT:
+                return createTypedArray(vector, dataType, startIndex, endIndex, Integer[]::new);
+            case DT_LONG:
+                return createTypedArray(vector, dataType, startIndex, endIndex, Long[]::new);
+            case DT_SHORT:
+                return createTypedArray(vector, dataType, startIndex, endIndex, Short[]::new);
+            case DT_BYTE:
+                return createTypedArray(vector, dataType, startIndex, endIndex, Byte[]::new);
+            case DT_BOOL:
+                return createTypedArray(vector, dataType, startIndex, endIndex, Boolean[]::new);
+            case DT_STRING:
+            case DT_SYMBOL:
+            case DT_BLOB:
+            case DT_IPADDR:
+            case DT_INT128:
+            case DT_COMPLEX:
+            case DT_POINT:
+                return createTypedArray(vector, dataType, startIndex, endIndex, String[]::new);
+            case DT_DATE:
+                return createTypedArray(vector, dataType, startIndex, endIndex, Date[]::new);
+            case DT_TIME:
+                return createTypedArray(vector, dataType, startIndex, endIndex, Time[]::new);
+            case DT_DATETIME:
+                return createTypedArray(vector, dataType, startIndex, endIndex, LocalDateTime[]::new);
+            case DT_TIMESTAMP:
+                return createTypedArray(vector, dataType, startIndex, endIndex, Timestamp[]::new);
+            case DT_MONTH:
+                return createTypedArray(vector, dataType, startIndex, endIndex, Month[]::new);
+            case DT_MINUTE:
+                return createTypedArray(vector, dataType, startIndex, endIndex, LocalTime[]::new);
+            case DT_SECOND:
+                return createTypedArray(vector, dataType, startIndex, endIndex, LocalTime[]::new);
+            case DT_NANOTIME:
+                return createTypedArray(vector, dataType, startIndex, endIndex, LocalTime[]::new);
+            case DT_NANOTIMESTAMP:
+                return createTypedArray(vector, dataType, startIndex, endIndex, LocalDateTime[]::new);
+            case DT_UUID:
+                return createTypedArray(vector, dataType, startIndex, endIndex, UUID[]::new);
+            case DT_DATEHOUR:
+                return createTypedArray(vector, dataType, startIndex, endIndex, LocalDateTime[]::new);
+            case DT_DECIMAL32:
+            case DT_DECIMAL64:
+            case DT_DECIMAL128:
+                return createTypedArray(vector, dataType, startIndex, endIndex, BigDecimal[]::new);
+            default:
+                return createTypedArray(vector, dataType, startIndex, endIndex, Object[]::new);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T[] createTypedArray(Vector vector, Entity.DATA_TYPE dataType,
+                                            int startIndex, int endIndex,
+                                            IntFunction<T[]> arrayGenerator) {
+        return IntStream.range(startIndex, endIndex)
+                .mapToObj(i -> (T) convertEntityToJavaObject(vector.get(i), dataType))
+                .toArray(arrayGenerator);
     }
 }
