@@ -221,7 +221,7 @@ public class Utils {
         String tableName = null;
         if (sql.startsWith("insert") || sql.startsWith("INSERT")) {
             String checkString = INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + (isPrepareStatement ? VALUE_WITH_QUESTION_STRING : VALUE_STRING);
-            Pattern pattern = Pattern.compile(checkString);
+            Pattern pattern = Pattern.compile(checkString, Pattern.DOTALL);
             Matcher matcher = pattern.matcher(sql);
             if (sql.matches(checkString) && matcher.find()) {
                 tableName = matcher.group(3);
@@ -241,7 +241,7 @@ public class Utils {
             tableName = sql.split("\\.")[0];
         }else if(sql.startsWith("update")){
             String checkString = UPDATE_STRING + UPDATE_TABLE_NAME_COLUMN_STRING + UPDATE_SET_AND_WHERE_STRING;
-            Pattern pattern = Pattern.compile(checkString);
+            Pattern pattern = Pattern.compile(checkString, Pattern.DOTALL);
             Matcher matcher = pattern.matcher(sql);
             if(matcher.find()){
                 tableName = sql.substring(sql.indexOf("update") + "update".length(), sql.indexOf("set"));
@@ -703,7 +703,7 @@ public class Utils {
     }
 
     public static String getInsertColumnString(String sql) {
-        Pattern pattern = Pattern.compile(Utils.INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + Utils.VALUE_WITH_QUESTION_STRING);
+        Pattern pattern = Pattern.compile(INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + VALUE_WITH_QUESTION_STRING, Pattern.DOTALL);
         Matcher matcher = pattern.matcher(sql);
 
         //(insert)\s+(into)\s+((loadTable\(.+?\))*([a-zA-Z]{1}[a-zA-Z\d_]*)*)\s*(\((.+?)\))*\s+(values)\s*\(([\s?,]+)\)
@@ -718,7 +718,7 @@ public class Utils {
     }
 
     public static String getInsertValueQuestionString(String sql) {
-        Pattern pattern = Pattern.compile(Utils.INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + Utils.VALUE_WITH_QUESTION_STRING);
+        Pattern pattern = Pattern.compile(INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + VALUE_WITH_QUESTION_STRING, Pattern.DOTALL);
         //(insert)\s+(into)\s+((loadTable\(.+?\))*([a-zA-Z]{1}[a-zA-Z\d_]*)*)\s*(\((.+?)\))*\s+(values)\s*\(([\s?,]+)\)
         //(1     )   (2)      ((4               ) (5                      ) )   (7 (6  )  )    (8     )     (9      )
         Matcher matcher = pattern.matcher(sql);
