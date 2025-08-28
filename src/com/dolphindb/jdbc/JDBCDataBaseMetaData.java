@@ -226,29 +226,28 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             schemaAndTableColNames.add("TABLE_CAT");
             schemaAndTableColNames.add("TABLE_SCHEM");
             schemaAndTableColNames.add("TABLE_NAME");
-            if (Objects.nonNull(catalog) && !catalog.trim().equals("%")) {
-                List<String> catalogNameList = new ArrayList<>(Collections.nCopies(curTable.rows(), catalog));
-                BasicStringVector catalogNameVector = new BasicStringVector(catalogNameList);
-                schemaAndTableCols.add(catalogNameVector);
-            }
+            
+            String catalogName = (Objects.nonNull(catalog) && !catalog.trim().equals("%")) ? catalog : null;
+            List<String> catalogNameList = new ArrayList<>(Collections.nCopies(curTable.rows(), catalogName));
+            BasicStringVector catalogNameVector = new BasicStringVector(catalogNameList);
+            schemaAndTableCols.add(catalogNameVector);
 
-            if (Objects.nonNull(schemaPattern) && !schemaPattern.trim().equals("%")) {
-                List<String> schemaNameList = new ArrayList<>(Collections.nCopies(curTable.rows(), schemaPattern));
-                BasicStringVector schemaNameVector = new BasicStringVector(schemaNameList);
-                schemaAndTableCols.add(schemaNameVector);
-            }
+            String schemaName = (Objects.nonNull(schemaPattern) && !schemaPattern.trim().equals("%")) ? schemaPattern : null;
+            List<String> schemaNameList = new ArrayList<>(Collections.nCopies(curTable.rows(), schemaName));
+            BasicStringVector schemaNameVector = new BasicStringVector(schemaNameList);
+            schemaAndTableCols.add(schemaNameVector);
 
+            String tableName;
             if (Objects.nonNull(tableNamePattern) && !tableNamePattern.trim().equals("%")) {
-                List<String> tableNameList = new ArrayList<>(Collections.nCopies(curTable.rows(), tableNamePattern));
-                BasicStringVector tableNameVector = new BasicStringVector(tableNameList);
-                schemaAndTableCols.add(tableNameVector);
+                tableName = tableNamePattern;
             } else {
                 AbstractVector tableNameVec = (AbstractVector) originMetaData.get("tableNameVec");
                 Entity tableNameEn = tableNameVec.get(i);
-                List<String> tableNameList = new ArrayList<>(Collections.nCopies(curTable.rows(), tableNameEn.getString()));
-                BasicStringVector tableNameVector = new BasicStringVector(tableNameList);
-                schemaAndTableCols.add(tableNameVector);
+                tableName = tableNameEn.getString();
             }
+            List<String> tableNameList = new ArrayList<>(Collections.nCopies(curTable.rows(), tableName));
+            BasicStringVector tableNameVector = new BasicStringVector(tableNameList);
+            schemaAndTableCols.add(tableNameVector);
 
             BasicTable schemaAndTable = new BasicTable(schemaAndTableColNames, schemaAndTableCols);
 
