@@ -488,7 +488,12 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setArray(int parameterIndex, Array x) throws SQLException {
-		Driver.unused("setArray not implemented");
+		if (x instanceof DolphinDBArray) {
+			DolphinDBArray dolphinArray = (DolphinDBArray) x;
+			bind(parameterIndex, dolphinArray.getArray());
+		} else {
+            throw new SQLException("setArray method only supports DolphinDBArray parameter.");
+		}
 	}
 
 	@Override

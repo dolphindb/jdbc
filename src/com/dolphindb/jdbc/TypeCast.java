@@ -232,6 +232,109 @@ public class TypeCast {
     }
     //java/ddb object to string
     public static String castDbString(Object o){
+        if (o.getClass().isArray()) {
+            return castArrayToString(o);
+        }
+        
+        if (o instanceof Vector) {
+            Vector vector = (Vector) o;
+            // Array vector types start from 64
+            if (vector.getDataType().getValue() >= 64) {
+                return castArrayVectorToString(vector);
+            }
+        }
+        
+        return castSingleObjectToString(o);
+    }
+    
+    private static String castArrayToString(Object array) {
+        StringBuilder sb = new StringBuilder("[");
+        Class<?> componentType = array.getClass().getComponentType();
+        
+        if (componentType == int.class) {
+            int[] arr = (int[]) array;
+            for (int i = 0; i < arr.length; i++) {
+                if (i > 0) sb.append(",");
+                sb.append(arr[i]);
+            }
+        } else if (componentType == double.class) {
+            double[] arr = (double[]) array;
+            for (int i = 0; i < arr.length; i++) {
+                if (i > 0) sb.append(",");
+                sb.append(arr[i]);
+            }
+        } else if (componentType == float.class) {
+            float[] arr = (float[]) array;
+            for (int i = 0; i < arr.length; i++) {
+                if (i > 0) sb.append(",");
+                sb.append(arr[i]);
+            }
+        } else if (componentType == long.class) {
+            long[] arr = (long[]) array;
+            for (int i = 0; i < arr.length; i++) {
+                if (i > 0) sb.append(",");
+                sb.append(arr[i]);
+            }
+        } else if (componentType == boolean.class) {
+            boolean[] arr = (boolean[]) array;
+            for (int i = 0; i < arr.length; i++) {
+                if (i > 0) sb.append(",");
+                sb.append(arr[i]);
+            }
+        } else if (componentType == byte.class) {
+            byte[] arr = (byte[]) array;
+            for (int i = 0; i < arr.length; i++) {
+                if (i > 0) sb.append(",");
+                sb.append(arr[i]);
+            }
+        } else if (componentType == short.class) {
+            short[] arr = (short[]) array;
+            for (int i = 0; i < arr.length; i++) {
+                if (i > 0) sb.append(",");
+                sb.append(arr[i]);
+            }
+        } else {
+            Object[] arr = (Object[]) array;
+            for (int i = 0; i < arr.length; i++) {
+                if (i > 0) sb.append(",");
+                if (arr[i] == null) {
+                    sb.append("NULL");
+                } else {
+                    String elementStr = castSingleObjectToString(arr[i]);
+                    sb.append(elementStr != null ? elementStr : arr[i].toString());
+                }
+            }
+        }
+        
+        sb.append("]");
+        return sb.toString();
+    }
+    
+    private static String castArrayVectorToString(Vector vector) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("array(").append(vector.getDataType().name()).append(").append!([");
+        
+        int size = vector.rows();
+        for (int i = 0; i < size; i++) {
+            if (i > 0) sb.append(",");
+            try {
+                Entity element = vector.get(i);
+                if (element == null || ((Scalar)element).isNull()) {
+                    sb.append("NULL");
+                } else {
+                    String elementStr = castSingleObjectToString(element);
+                    sb.append(elementStr != null ? elementStr : element.toString());
+                }
+            } catch (Exception e) {
+                sb.append("NULL");
+            }
+        }
+        
+        sb.append("])");
+        return sb.toString();
+    }
+    
+    private static String castSingleObjectToString(Object o) {
         String srcClassName = o.getClass().getName();
         switch (srcClassName){
             case STRING:
