@@ -43,6 +43,9 @@ public class DolphinDBArray implements Array {
 
     @Override
     public Object getArray(Map<String, Class<?>> map) throws SQLException {
+        if (map != null && !map.isEmpty()) {
+            throw new SQLFeatureNotSupportedException("Type mapping is not supported in getArray(Map)");
+        }
         return getArray();
     }
 
@@ -68,6 +71,9 @@ public class DolphinDBArray implements Array {
 
     @Override
     public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
+        if (map != null && !map.isEmpty()) {
+            throw new SQLFeatureNotSupportedException("Type mapping is not supported in getArray(long, int, Map)");
+        }
         return getArray(index, count);
     }
 
