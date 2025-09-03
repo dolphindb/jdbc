@@ -3,7 +3,6 @@ package com.dolphindb.jdbc;
 import com.xxdb.data.BasicArrayVector;
 import com.xxdb.data.BasicTable;
 import com.xxdb.data.Vector;
-
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
