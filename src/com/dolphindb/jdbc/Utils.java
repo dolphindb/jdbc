@@ -804,13 +804,7 @@ public class Utils {
         try {
             String version = connection.run("version", new ArrayList<>()).getString();
             String[] versionParts = version.split(" ")[0].split("\\.");
-            int v0 = Integer.parseInt(versionParts[0]);
-            // int v1 = Integer.parseInt(versionParts[1]);
-            // int v2 = Integer.parseInt(versionParts[2]);
-            if (v0 != 3)
-                return false;
-            else
-                return true;
+            return Integer.parseInt(versionParts[0]) == 3;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
