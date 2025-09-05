@@ -234,9 +234,7 @@ public class TypeCast {
     public static String castDbString(Object o){
         if (o.getClass().isArray()) {
             return castArrayToString(o);
-        }
-        
-        if (o instanceof Vector) {
+        } else if (o instanceof Vector) {
             Vector vector = (Vector) o;
             // Array vector types start from 64
             if (vector.getDataType().getValue() >= 64) {
