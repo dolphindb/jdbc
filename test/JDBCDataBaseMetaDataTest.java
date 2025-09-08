@@ -7,6 +7,8 @@ import org.junit.Test;
 import java.io.IOException;
 import java.sql.*;
 import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import static com.dolphindb.jdbc.Utils.checkServerVersionIfSupportCatalog;
@@ -1617,4 +1619,25 @@ public class JDBCDataBaseMetaDataTest {
         stmt.close();
         conn.close();
     }
+
+    @Test
+    public void test_DatabaseMetaData_nullsAreSorted() throws Exception {
+        DBConnection connDB = new DBConnection();
+        connDB.connect(HOST,PORT,"admin","123456");
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        connDB.run("share table(1..10 as id) as table1");
+        DatabaseMetaData metaData = conn.getMetaData();
+        Assert.assertFalse(metaData.nullsAreSortedHigh());
+        Assert.assertTrue(metaData.nullsAreSortedLow());
+        Assert.assertFalse(metaData.nullsAreSortedAtStart());
+        Assert.assertFalse(metaData.nullsAreSortedAtEnd());
+        stmt.close();
+        conn.close();
+    }
+
 }
