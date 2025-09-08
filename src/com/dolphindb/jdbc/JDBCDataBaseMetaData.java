@@ -917,7 +917,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public boolean nullsAreSortedLow() throws SQLException {
-        return false;
+        return true;
     }
 
     @Override
