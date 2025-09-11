@@ -85,7 +85,7 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
             case DT_STRING:
                 return Types.VARCHAR;
             case DT_BLOB:
-                return Types.BLOB;
+                return Types.CLOB;
             default:
                 return Types.OTHER;
         }

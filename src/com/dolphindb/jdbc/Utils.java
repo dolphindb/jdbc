@@ -794,7 +794,7 @@ public class Utils {
             case "SYMBOL":
                 return Types.VARCHAR;
             case "BLOB":
-                return Types.BLOB;
+                return Types.CLOB;
             default:
                 return Types.OTHER;
         }
