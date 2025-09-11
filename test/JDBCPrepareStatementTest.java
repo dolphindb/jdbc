@@ -19,7 +19,10 @@ import java.util.Properties;
 import java.util.UUID;
 
 import static java.sql.Statement.SUCCESS_NO_INFO;
+import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 //import com.xxdb.DBConnection;
 
 public class JDBCPrepareStatementTest {
@@ -10247,6 +10250,35 @@ public class JDBCPrepareStatementTest {
     }
 
     @Test
+    public void test_PreparedStatement_insert_into_DFS_arrayVector_BOOL() throws SQLException, IOException {
+        createPartitionTable_Array("BOOL");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+
+        boolean[] tmp_bool = new boolean[]{true,true,false,false,false,true,true,false,true};
+        ps.setInt(1,1);
+        ps.setObject(2,tmp_bool);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.BOOLEAN);
+        ps.addBatch();
+        ps.executeBatch();
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col1=? ,col2=? ");
+        boolean[] tmp_bool1 = new boolean[]{false,false,false,false,false,false,false,false,false};
+        ps1.setObject(1,1);
+        ps1.setObject(2,tmp_bool1);
+//        ps.addBatch();
+        ps.execute();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals(rs.getObject(2).toString(), true);
+        rs.next();
+        rs.getBoolean("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
     public void test_PreparedStatement_insert_into_memory_table_mul_col() throws SQLException {
         stm.execute("share table(1:0,`id0`id1`id2`id3`id4`id5`id6`id7`id8`id9`id10,[INT ,INT ,INT ,INT ,INT ,INT ,INT ,INT ,INT ,INT ,INT]) as tt;");
         PreparedStatement ps = conn.prepareStatement("insert into tt ( \"id0\",'id1', \"id2\" ,id3,'id4' ) values(?,?,?,?,?)");
@@ -10295,7 +10327,372 @@ public class JDBCPrepareStatementTest {
         rs.getInt(6);
         org.junit.Assert.assertTrue(rs.wasNull());
     }
-//    public static boolean CreateDfs() throws IOException {
+
+    @Test
+    public void test_JDBCPrepareStatement_sql_insert() throws SQLException, ClassNotFoundException, IOException {
+        String script = "login(\"admin\", \"123456\"); \n"+
+                "try{undef(`users,SHARED)}catch(ex){};\n" +
+                "share table(10:0,`username`password,[STRING, STRING])  as users ;\n" ;
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run(script);
+
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        conn = DriverManager.getConnection(url);
+
+        String username = "admin'); DROP TABLE users; --";
+        String password = "password123";
+
+        PreparedStatement s = conn.prepareStatement("INSERT INTO users (username, password) VALUES (?,?)");
+        s.setObject(1,username);
+        s.setObject(2,password);
+        s.execute();
+        ResultSet rs = s.executeQuery("select * from users");
+        rs.next();
+        assertEquals(username, rs.getString("username"));
+        assertEquals(password, rs.getString("password"));
+        assertFalse(rs.next());
+    }
+
+    @Test
+    public void test_JDBCPrepareStatement_sql_insert_1() throws SQLException, ClassNotFoundException, IOException {
+        String script = "login(\"admin\", \"123456\"); \n"+
+                "try{undef(`users,SHARED)}catch(ex){};\n" +
+                "share table(10:0,`username`password,[STRING, STRING])  as users ;\n" ;
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run(script);
+
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        conn = DriverManager.getConnection(url);
+
+        String username = "admin');  DELETE FROM  users; --";
+        String password = "password123";
+
+        PreparedStatement s = conn.prepareStatement("INSERT INTO users (username, password) VALUES (?,?)");
+        s.setObject(1,username);
+        s.setObject(2,password);
+        s.execute();
+        ResultSet rs = s.executeQuery("select * from users");
+        rs.next();
+        assertEquals(username, rs.getString("username"));
+        assertEquals(password, rs.getString("password"));
+        assertFalse(rs.next());
+    }
+
+    @Test
+    public void test_JDBCPrepareStatement_sql_insert_2() throws SQLException, ClassNotFoundException, IOException {
+        String script = "login(\"admin\", \"123456\"); \n"+
+                "try{undef(`users,SHARED)}catch(ex){};\n" +
+                "share table(10:0,`username`password,[STRING, STRING])  as users ;\n" ;
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run(script);
+
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        conn = DriverManager.getConnection(url);
+
+        String username = "admin\",\"password123\"); \n delete from  users; --";
+        String password = "password123";
+
+        PreparedStatement s = conn.prepareStatement("INSERT INTO users (username, password) VALUES (?,?)");
+        s.setString(1,username);
+        s.setString(2,password);
+        s.execute();
+        ResultSet rs = s.executeQuery("select * from users");
+        rs.next();
+        assertEquals(username, rs.getString("username"));
+        assertEquals(password, rs.getString("password"));
+        assertFalse(rs.next());
+    }
+
+    @Test
+    public void test_JDBCPrepareStatement_sql_insert_execute() throws SQLException, ClassNotFoundException, IOException {
+        //连接数据库，建立一个数据表
+        String script = "login(\"admin\", \"123456\"); \n"+
+                "try{undef(`users,SHARED)}catch(ex){};\n" +
+                "share table(10:0,`username`password,[STRING, STRING])  as users ;\n" ;
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run(script);
+
+        //JDBC创建连接
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        conn = DriverManager.getConnection(url);
+
+        //prepareStatement中输入一个INSERT类型query
+        PreparedStatement s = conn.prepareStatement("INSERT INTO users (username, password) VALUES (?,?)");
+
+        //调用setString, 参数中输入恶意sql
+        String username = "admin\",\"password123\");   drop table users;  --";
+        String password = "password123";
+        s.setString(1,username);
+        s.setString(2,password);
+
+        //调用execute执行query
+        s.execute();
+
+        //检查表是否被删除（预期不能删除），校验表中数据结果
+        ResultSet rs = s.executeQuery("select * from users");
+        rs.next();
+        assertEquals(username, rs.getString("username"));
+        assertEquals(password, rs.getString("password"));
+        assertFalse(rs.next());
+    }
+
+    @Test
+    public void test_JDBCPrepareStatement_sql_insert_executeBatch() throws SQLException, ClassNotFoundException, IOException {
+        //连接数据库，建立一个数据表
+        String script = "login(\"admin\", \"123456\"); \n"+
+                "try{undef(`users,SHARED)}catch(ex){};\n" +
+                "share table(10:0,`username`password,[STRING, STRING])  as users ;\n" ;
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run(script);
+
+        //JDBC创建连接
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        conn = DriverManager.getConnection(url);
+
+        //prepareStatement中输入一个INSERT类型query
+        PreparedStatement s = conn.prepareStatement("INSERT INTO users (username, password) VALUES (?,?)");
+
+        //调用setString, 参数中输入恶意sql
+        String username = "admin\",\"password123\");  drop table users; --";
+        String password = "password123";
+        s.setString(1,username);
+        s.setString(2,password);
+        s.addBatch();
+        //调用executeBatch执行query
+        s.executeBatch();
+
+        //检查表是否被删除（预期不能删除），校验表中数据结果
+        ResultSet rs = s.executeQuery("select * from users");
+        rs.next();
+        assertEquals(username, rs.getString("username"));
+        assertEquals(password, rs.getString("password"));
+        assertFalse(rs.next());
+    }
+
+    @Test
+    public void test_JDBCPrepareStatement_sql_insert_executeUpdate() throws SQLException, ClassNotFoundException, IOException {
+        //连接数据库，建立一个数据表
+        String script = "login(\"admin\", \"123456\"); \n"+
+                "try{undef(`users,SHARED)}catch(ex){};\n" +
+                "share table(10:0,`username`password,[STRING, STRING])  as users ;\n" ;
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run(script);
+
+        //JDBC创建连接
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        conn = DriverManager.getConnection(url);
+
+        //prepareStatement中输入一个INSERT类型query
+        PreparedStatement s = conn.prepareStatement("INSERT INTO users (username, password) VALUES (?,?)");
+
+        //调用setString, 参数中输入恶意sql
+        String username = "admin\",\"password123\");  drop table users; --";
+        String password = "password123";
+        s.setString(1,username);
+        s.setString(2,password);
+
+        //调用executeUpdate执行query
+        s.executeUpdate();
+
+        //检查表是否被删除（预期不能删除），校验表中数据结果
+        ResultSet rs = s.executeQuery("select * from users");
+        rs.next();
+        assertEquals(username, rs.getString("username"));
+        assertEquals(password, rs.getString("password"));
+        assertFalse(rs.next());
+    }
+
+    @Test
+    public void test_JDBCPrepareStatement_sql_insert_setObject_execute() throws SQLException, ClassNotFoundException, IOException {
+        //连接数据库，建立一个数据表
+        String script = "login(\"admin\", \"123456\"); \n"+
+                "try{undef(`users,SHARED)}catch(ex){};\n" +
+                "share table(10:0,`username`password,[STRING, STRING])  as users ;\n" ;
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run(script);
+
+        //JDBC创建连接
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        conn = DriverManager.getConnection(url);
+
+        //prepareStatement中输入一个INSERT类型query
+        PreparedStatement s = conn.prepareStatement("INSERT INTO users (username, password) VALUES (?,?)");
+
+        //调用setString, 参数中输入恶意sql
+        String username = "admin\",\"password123\");   drop table users;  --";
+        String password = "password123";
+        s.setObject(1,username);
+        s.setObject(2,password);
+
+        //调用execute执行query
+        s.execute();
+
+        //检查表是否被删除（预期不能删除），校验表中数据结果
+        ResultSet rs = s.executeQuery("select * from users");
+        rs.next();
+        assertEquals(username, rs.getString("username"));
+        assertEquals(password, rs.getString("password"));
+        assertFalse(rs.next());
+    }
+
+    @Test
+    public void test_JDBCPrepareStatement_sql_insert_setObject_execute_1() throws SQLException, ClassNotFoundException, IOException {
+        //连接数据库，建立一个数据表
+        String script = "login(\"admin\", \"123456\"); \n"+
+                "try{undef(`users,SHARED)}catch(ex){};\n" +
+                "share table(10:0,`username`password,[STRING, STRING])  as users ;\n" ;
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run(script);
+
+        //JDBC创建连接
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        conn = DriverManager.getConnection(url);
+
+        //prepareStatement中输入一个INSERT类型query
+        PreparedStatement s = conn.prepareStatement("INSERT INTO users (username, password) VALUES (?,?)");
+
+        //调用setString, 参数中输入恶意sql
+        String username = "admin','password123');   drop table users;  --";
+        String password = "password123";
+        s.setObject(1,username);
+        s.setObject(2,password);
+
+        //调用execute执行query
+        s.execute();
+
+        //检查表是否被删除（预期不能删除），校验表中数据结果
+        ResultSet rs = s.executeQuery("select * from users");
+        rs.next();
+        assertEquals(username, rs.getString("username"));
+        assertEquals(password, rs.getString("password"));
+        assertFalse(rs.next());
+    }
+    @Test
+    public void test_JDBCPrepareStatement_sql_select() throws SQLException, ClassNotFoundException, IOException {
+        //连接数据库，建立一个数据表
+        String script = "login(\"admin\", \"123456\"); \n"+
+                "try{undef(`users,SHARED)}catch(ex){};\n" +
+                "share table(10:0,`id`username`password,[INT,STRING, STRING])  as users ;\n" +
+                "insert into users values(1,'admin','123456');\n" +
+                "insert into users values(2,'user1','123456');\n";
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run(script);
+        //JDBC创建连接
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        conn = DriverManager.getConnection(url);
+
+        //prepareStatement中输入一个select类型query
+        String sql = "SELECT * FROM users WHERE username = ?";
+        PreparedStatement s = conn.prepareStatement(sql);
+
+        //调用setString, 参数中输入双引号，且带有OR "1"="1
+        String username = "admin\" OR \"1\"=\"1";
+        s.setString(1,username);
+        s.execute();
+
+        //检查结果，因为username没有这样的值：admin" OR "1"="1  故预期查询不出数据
+        ResultSet resultSet = s.getResultSet();
+        assertFalse(resultSet.next());
+    }
+
+    @Test
+    public void test_JDBCPrepareStatement_sql_delete_execute() throws SQLException, ClassNotFoundException, IOException {
+        //连接数据库，建立一个数据表
+        String script = "login(\"admin\", \"123456\"); \n"+
+                "try{undef(`users,SHARED)}catch(ex){};\n" +
+                "share table(10:0,`id`username`password,[INT,STRING, STRING])  as users ;\n" +
+                "insert into users values(1,'admin','123456');\n" +
+                "insert into users values(2,'user1','123456');\n";
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run(script);
+
+        //JDBC创建连接
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+
+        //prepareStatement中输入一个delete类型query
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        conn = DriverManager.getConnection(url);
+
+        String sql = "delete FROM users WHERE username = ?";
+        PreparedStatement s = conn.prepareStatement(sql);
+
+        //调用setString, 参数中输入双引号，且带有OR "1"="1
+        String username = "admin\" OR \"1\"=\"1";
+        s.setString(1,username);
+        s.execute();
+
+        //检查结果，因为username没有这样的值：admin" OR "1"="1  故预期不会删除数据
+        ResultSet rs = s.executeQuery("select * from users");
+        assertTrue(rs.next());
+        assertTrue(rs.next());
+    }
+
+    @Test
+    public void test_JDBCPrepareStatement_sql_update_execute() throws SQLException, ClassNotFoundException, IOException {
+        //连接数据库，建立一个数据表
+        String script = "login(\"admin\", \"123456\"); \n"+
+                "try{undef(`users,SHARED)}catch(ex){};\n" +
+                "share table(10:0,`id`username`password,[INT,STRING, STRING])  as users ;\n" +
+                "insert into users values(1,'admin','123456');\n" +
+                "insert into users values(2,'user1','123456');\n";
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run(script);
+
+        //JDBC创建连接
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+
+        //prepareStatement中输入一个update类型query
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        conn = DriverManager.getConnection(url);
+
+        String sql = "update users set username = ?";
+        PreparedStatement s = conn.prepareStatement(sql);
+
+        //调用setString, 参数中有恶意sql
+        String username = "admin\"; DROP TABLE users; //";
+        s.setString(1,username);
+        s.execute();
+
+        //检查结果，恶意sql没有被执行,表不会被删除
+        ResultSet rs = s.executeQuery("select * from users");
+        assertTrue(rs.next());
+        assertEquals(username, rs.getString("username"));
+        assertTrue(rs.next());
+        assertEquals(username, rs.getString("username"));
+    }
+
+    //    public static boolean CreateDfs() throws IOException {
 //        Boolean success = false;
 //        String script = " if(existsDatabase('dfs://select')) dropDatabase('dfs://select');\n"+
 //                "db = database('dfs://select', RANGE, 0 10000 20000 30001,,'TSDB');\n" +
