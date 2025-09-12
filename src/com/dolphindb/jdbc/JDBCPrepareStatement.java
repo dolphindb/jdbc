@@ -24,6 +24,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private int batchSize;
 	private List<String> sqlBuffer;
 	private boolean isPreparedStatement;
+	private List<BasicDictionary> runSQLparamDictList;
 
 	public JDBCPrepareStatement(JDBCConnection conn, String sql) throws SQLException {
 		super(conn);
@@ -34,6 +35,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		String lastStatement  = sqlSplit.length == 0 ? "" : sqlSplit[sqlSplit.length - 1].trim();
 		this.sqlDmlType = Utils.getDml(lastStatement);
 		this.sqlBuffer = new ArrayList<>();
+		this.runSQLparamDictList = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
 		if (preProcessedSql.contains("?"))
 			isPreparedStatement = true;
@@ -115,7 +117,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			for (int i = 0; i < this.batchSize; i++) {
 				try {
 					if (isUpdateDML()) {
-						executeRes[i] = executeUpdateWithRunSQL();
+						executeRes[i] = executeUpdateWithRunSQL(i);
 					} else {
 						executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
 					}
@@ -218,6 +220,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		} else if (isStandardDML()) {
 			// Use runSQL for SELECT, EXEC, UPDATE, DELETE
 			this.sqlBuffer.add(generateSQLWithRunsql());
+				runSQLparamDictList.add(createParameterDictionary());
 		} else {
 			// Other types use original logic
 			this.sqlBuffer.add(generateSQL());
@@ -275,7 +278,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					objectQueue.offer(rs);
 					return 0;
 				} else if (isUpdateDML()) {
-					return executeUpdateWithRunSQL();
+					return executeUpdateWithRunSQL(0);
 				} else {
 					return super.executeUpdate(sqlBuffer.get(0));
 				}
@@ -435,6 +438,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public void clearParameters() throws SQLException {
 		if (Objects.nonNull(bufferArea)) {
 			Arrays.fill(bufferArea, null);
+		}
+
+		if (runSQLparamDictList.size() != 0) {
+			runSQLparamDictList.clear();
 		}
 	}
 
@@ -856,14 +863,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private ResultSet executeQueryWithRunSQL() throws SQLException {
 		try {
 			String sqlWithPlaceholders = sqlBuffer.get(0);
-			BasicDictionary paramDict = createParameterDictionary();
-			
 			List<Entity> params = new ArrayList<>();
 			params.add(new BasicString(sqlWithPlaceholders));
 			params.add(new BasicString("ddb"));
-			if (paramDict != null) {
-				params.add(paramDict);
-			}
+			params.add(runSQLparamDictList.get(0));
 			
 			Entity result = connection.run("runSQL", params);
 			if (result instanceof BasicTable) {
@@ -876,17 +879,13 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 	}
 	
-	private int executeUpdateWithRunSQL() throws SQLException {
+	private int executeUpdateWithRunSQL(int index) throws SQLException {
 		try {
-			String sqlWithPlaceholders = sqlBuffer.get(0);
-			BasicDictionary paramDict = createParameterDictionary();
-			
+			String sqlWithPlaceholders = sqlBuffer.get(index);
 			List<Entity> params = new ArrayList<>();
 			params.add(new BasicString(sqlWithPlaceholders));
 			params.add(new BasicString("ddb"));
-			if (paramDict != null) {
-				params.add(paramDict);
-			}
+			params.add(runSQLparamDictList.get(index));
 			
 			Entity result = connection.run("runSQL", params);
 			if (result instanceof Scalar && !((Scalar) result).isNull()) {
