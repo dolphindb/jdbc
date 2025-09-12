@@ -3820,7 +3820,7 @@ public class JDBCStatementTest {
 	public void test_JDBCStatement_executeQuery_timeout() throws SQLException, IOException, ClassNotFoundException {
 		DBConnection db = new DBConnection();
 		db.connect(HOST, PORT, "admin", "123456");
-		db.run("share table(take(1 2,100000000) as id) as table1;");
+		db.run("share table(take(1 2,1000000000) as id) as table1;");
 		stmt.setQueryTimeout(1);
 		org.junit.Assert.assertEquals(1, stmt.getQueryTimeout());
 		long startTime = System.currentTimeMillis();

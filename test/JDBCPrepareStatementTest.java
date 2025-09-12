@@ -11065,7 +11065,7 @@ public class JDBCPrepareStatementTest {
     }
 
     @Test
-    public void test_JDBCStatement_setFetchSize() throws Exception {
+    public void test_prepareStatement_setFetchSize() throws Exception {
         DBConnection db = new DBConnection();
         db.connect(HOST,PORT,"admin","123456");
         String script = "t=table(take(`C`AMZON`IBM`XM`GOOG`APPL`ORCL,50000) as sym," +
@@ -11084,7 +11084,7 @@ public class JDBCPrepareStatementTest {
         s.setFetchSize(10000);
         s.setObject(1,10000);
         s.execute();
-        rs = (JDBCResultSet) s.executeQuery("select * from st;");
+        rs = (JDBCResultSet)s.getResultSet();
         BasicTable bt = (BasicTable) rs.getResult();
         Assert.assertEquals(10000,bt.rows());
         int flag = 0;
