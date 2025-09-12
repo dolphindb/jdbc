@@ -871,7 +871,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			} catch (TimeoutException e) {
 				future.cancel(true);
 				cancelJobOperation();
-				throw new SQLTimeoutException("Statement execute update timed out after " + super.getQueryTimeout() + " seconds.", e);
+				throw new SQLTimeoutException("Statement execute query timed out after " + super.getQueryTimeout() + " seconds.", e);
 			} catch (Exception e) {
 				throw new SQLException(e);
 			}
