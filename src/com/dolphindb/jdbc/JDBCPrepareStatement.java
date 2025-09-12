@@ -823,6 +823,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				return TypeCast.BASIC_DOUBLE;
 			case "java.lang.String":
 				return TypeCast.BASIC_STRING;
+			case "java.lang.Character":
+				return TypeCast.BASIC_BYTE;
 			default:
 				return null;
 		}
