@@ -905,7 +905,16 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			params.add(new BasicString("ddb"));
 			params.add(runSQLparamDictList.get(0));
 
-			Entity entity = connection.run("runSQL", params);
+			Entity entity;
+			if(super.getFetchSize() != 0) {
+				if (super.getFetchSize() < 8192) {
+					throw new SQLException("The fetchSize param must be greater than 8192.");
+				}
+				entity = connection.run("runSQL", params, super.getFetchSize());
+			} else {
+				entity = connection.run("runSQL", params);
+			}
+
 			if (entity instanceof BasicTable || entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR
 					|| entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR || entity.getDataForm() == Entity.DATA_FORM.DF_MATRIX) {
 				resultSet = new JDBCResultSet(connection, this, entity, sqlWithPlaceholders, super.getMaxRows());
