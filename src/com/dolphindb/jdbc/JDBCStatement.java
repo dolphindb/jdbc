@@ -22,9 +22,8 @@ public class JDBCStatement implements Statement {
     protected boolean isClosed;
     private int fetchSize = 0;
     private int maxRows = -1;
-
     private int queryTimeout = 0;
-    private static final ExecutorService executorService = Executors.newCachedThreadPool();
+    protected static final ExecutorService executorService = Executors.newCachedThreadPool();
 
     public JDBCStatement(JDBCConnection cnn){
         this.connection = cnn;
@@ -165,7 +164,7 @@ public class JDBCStatement implements Statement {
         }
     }
 
-    private void cancelJobOperation() throws SQLException {
+    protected void cancelJobOperation() throws SQLException {
         DBConnection newConnection = null;
         try {
             newConnection = this.connection.createNewConnection();

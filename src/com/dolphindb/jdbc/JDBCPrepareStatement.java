@@ -11,6 +11,9 @@ import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
 import java.util.*;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 
@@ -861,32 +864,71 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private ResultSet executeQueryWithRunSQL() throws SQLException {
+		if (super.getQueryTimeout() > 0) {
+			Future<ResultSet> future = executorService.submit(() -> executeQueryWithRunSQLInternal());
+			try {
+				return future.get(super.getQueryTimeout(), TimeUnit.SECONDS);
+			} catch (TimeoutException e) {
+				future.cancel(true);
+				cancelJobOperation();
+				throw new SQLTimeoutException("Statement execute update timed out after " + super.getQueryTimeout() + " seconds.", e);
+			} catch (Exception e) {
+				throw new SQLException(e);
+			}
+		} else {
+			return executeQueryWithRunSQLInternal();
+		}
+	}
+
+	private int executeUpdateWithRunSQL(int index) throws SQLException {
+		if (super.getQueryTimeout() > 0) {
+			Future<Integer> future = executorService.submit(() -> executeUpdateWithRunSQLInternal(index));
+			try {
+				return future.get(super.getQueryTimeout(), TimeUnit.SECONDS);
+			} catch (TimeoutException e) {
+				future.cancel(true);
+				cancelJobOperation();
+				throw new SQLTimeoutException("Statement execute update timed out after " + super.getQueryTimeout() + " seconds.", e);
+			} catch (Exception e) {
+				throw new SQLException(e);
+			}
+		} else {
+			return executeUpdateWithRunSQLInternal(index);
+		}
+	}
+
+	private ResultSet executeQueryWithRunSQLInternal() throws SQLException {
 		try {
 			String sqlWithPlaceholders = sqlBuffer.get(0);
 			List<Entity> params = new ArrayList<>();
 			params.add(new BasicString(sqlWithPlaceholders));
 			params.add(new BasicString("ddb"));
 			params.add(runSQLparamDictList.get(0));
-			
-			Entity result = connection.run("runSQL", params);
-			if (result instanceof BasicTable) {
-				return new JDBCResultSet(connection, this, result, sqlWithPlaceholders, this.getMaxRows());
+
+			Entity entity = connection.run("runSQL", params);
+			if (entity instanceof BasicTable || entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR
+					|| entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR || entity.getDataForm() == Entity.DATA_FORM.DF_MATRIX) {
+				resultSet = new JDBCResultSet(connection, this, entity, sqlWithPlaceholders, super.getMaxRows());
+				return resultSet;
+			} else if(entity instanceof EntityBlockReader) {
+				resultSet = new JDBCResultSet(connection, this, (EntityBlockReader) entity, sqlWithPlaceholders, super.getMaxRows());
+				return resultSet;
 			} else {
-				throw new SQLException("Unexpected result type from runSQL: " + result.getClass().getSimpleName());
+				throw new SQLException("The given SQL statement produces anything other than a single ResultSet object.");
 			}
 		} catch (Exception e) {
-			throw new SQLException("Error executing query with runSQL", e);
+			throw new SQLException(e);
 		}
 	}
-	
-	private int executeUpdateWithRunSQL(int index) throws SQLException {
+
+	private int executeUpdateWithRunSQLInternal(int index) throws SQLException {
 		try {
 			String sqlWithPlaceholders = sqlBuffer.get(index);
 			List<Entity> params = new ArrayList<>();
 			params.add(new BasicString(sqlWithPlaceholders));
 			params.add(new BasicString("ddb"));
 			params.add(runSQLparamDictList.get(index));
-			
+
 			Entity result = connection.run("runSQL", params);
 			if (result instanceof Scalar && !((Scalar) result).isNull()) {
 				return ((Scalar) result).getNumber().intValue();
@@ -894,7 +936,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				return SUCCESS_NO_INFO;
 			}
 		} catch (Exception e) {
-			throw new SQLException("Error executing update with runSQL", e);
+			throw new SQLException(e);
 		}
 	}
 }
