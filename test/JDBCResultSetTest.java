@@ -2847,7 +2847,7 @@ public class JDBCResultSetTest {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
-		stmt.execute("try{undef('tt',`SHARED);\n}catch(ex){\n}\nintv = int(-2147483648 2147483647 0 -2147483647 -100 100 NULL);\nshortv = short(-32768  32767 0 -32767 -100 100 NULL);\n tt= table(intv,shortv);");
+		stmt.execute("try{undef(\"tt\",SHARED);\n}catch(ex){\n}\n go;\nintv = int(-2147483648 2147483647 0 -2147483647 -100 100 NULL);\nshortv = short(-32768  32767 0 -32767 -100 100 NULL);\n tt= table(intv,shortv);");
 		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
 		rs.next();
 		assertEquals(0, rs.getInt(1));
@@ -2876,7 +2876,7 @@ public class JDBCResultSetTest {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
-		stmt.execute("try{undef('tt',`SHARED);\n}catch(ex){\n}\nintv = int(-2147483648 2147483647 0 -2147483647 -100 100 NULL);\nshortv = short(-32768  32767 0 -32767 -100 100 NULL);\n longv = long(-9223372036854775808  9223372036854775807 0 -9223372036854775807 -100 100 NULL);\n tt= table(intv,shortv,longv);");
+		stmt.execute("try{undef('tt',SHARED);\n}catch(ex){\n}\ngo;\nintv = int(-2147483648 2147483647 0 -2147483647 -100 100 NULL);\nshortv = short(-32768  32767 0 -32767 -100 100 NULL);\n longv = long(-9223372036854775808  9223372036854775807 0 -9223372036854775807 -100 100 NULL);\n tt= table(intv,shortv,longv);");
 		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
 		rs.next();
 		assertEquals(0, rs.getLong(1));
@@ -2912,7 +2912,7 @@ public class JDBCResultSetTest {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
-		stmt.execute("try{undef('tt',`SHARED);\n}catch(ex){\n}\nfloatv = float(-2.14748364 21474.8364 0 -21474.83 100 NULL);\ndoublev = double(-2.14748364 21474.8364 0 -21474.83 100 NULL);\n tt= table(floatv,doublev);");
+		stmt.execute("try{undef(\"tt\",SHARED);\n}catch(ex){\n}\n go;\nfloatv = float(-2.14748364 21474.8364 0 -21474.83 100 NULL);\ndoublev = double(-2.14748364 21474.8364 0 -21474.83 100 NULL);\n tt= table(floatv,doublev);");
 		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
 		rs.next();
 		assertEquals(-2.14748364, rs.getDouble(1),4);
@@ -2938,7 +2938,7 @@ public class JDBCResultSetTest {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
-		stmt.execute("try{undef('tt',`SHARED);\n}catch(ex){\n}\n floatv = float(-2.14748364 21474.8364 0 -21474.83 100 NULL);\ndoublev = double(-2.14748364 21474.8364 0 -21474.83 100 NULL);\n tt= table(floatv,doublev);");
+		stmt.execute("try{undef(\"tt\",SHARED);\n}catch(ex){\n}\n go;\nfloatv = float(-2.14748364 21474.8364 0 -21474.83 100 NULL);\ndoublev = double(-2.14748364 21474.8364 0 -21474.83 100 NULL);\n tt= table(floatv,doublev);");
 		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
 		rs.next();
 		assertEquals("-2.1474835872650146", rs.getBigDecimal(1).toString());
@@ -2964,7 +2964,7 @@ public class JDBCResultSetTest {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
-		stmt.execute("try{undef('tt',`SHARED);\n}catch(ex){\n}\n" +
+		stmt.execute("try{undef('tt',SHARED);\n}catch(ex){\n}\ngo;\n" +
 				"charv = char('1' join char());\n" +
 				"symbolv = symbol(\"syms100\" join string());\n" +
 				"stringv = string(\"stringv100\" join string());\n" +

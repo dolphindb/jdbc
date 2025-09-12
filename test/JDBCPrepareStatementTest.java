@@ -10526,31 +10526,38 @@ public class JDBCPrepareStatementTest {
     }
 
     @Test
-    public void test_JDBCPrepareStatement_sql_insert_dfs() throws SQLException, ClassNotFoundException, IOException {
+    public void test_JDBCPrepareStatement_sql_insert_execute_dfs() throws SQLException, ClassNotFoundException, IOException {
+        //连接数据库，建立一个dfs表
         String script = "login(\"admin\", \"123456\"); \n"+
                 "if(existsDatabase('dfs://db_testStatement')){ dropDatabase('dfs://db_testStatement')} \n" +
                 "try{undef(\"users\",SHARED);\n}catch(ex){\n};\n"+
                 "users = table(10:0,`id`username`password,[INT, STRING, STRING]); \n" +
                 "db=database('dfs://db_testStatement', VALUE, 1..10); \n" +
                 "db.createPartitionedTable(users, `users, `id);\n";
-
         DBConnection db = new DBConnection();
         db.connect(HOST, PORT,"admin","123456");
         db.run(script);
 
+        //JDBC创建连接
         String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
         Class.forName(JDBC_DRIVER);
         String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
         conn = DriverManager.getConnection(url);
 
+        //prepareStatement中输入一个INSERT类型query
+        PreparedStatement s = conn.prepareStatement("INSERT INTO loadTable('dfs://db_testStatement','users') (id, username, password) VALUES (?,?,?)");
+
+        //调用setString, 参数中输入恶意sql
         String username = "admin'); DROP TABLE users; --";
         String password = "password123";
-
-        PreparedStatement s = conn.prepareStatement("INSERT INTO loadTable('dfs://db_testStatement','users') (id, username, password) VALUES (?,?,?)");
         s.setInt(1,1);
         s.setObject(2,username);
         s.setObject(3,password);
+
+        //调用execute执行query
         s.execute();
+
+        //检查表是否被删除（预期不能删除），校验表中数据结果
         ResultSet rs = s.executeQuery("select * from loadTable('dfs://db_testStatement','users')");
         rs.next();
         assertEquals(username, rs.getString("username"));
@@ -10628,7 +10635,7 @@ public class JDBCPrepareStatementTest {
     public void test_JDBCPrepareStatement_sql_select_execute_dfs() throws SQLException, ClassNotFoundException, IOException {
         //连接数据库，建立一个数据表
         String script = "login(\"admin\", \"123456\"); \n" +
-                "try{undef(\"users\",SHARED);\n}catch(ex){\n};\n"+
+                "try{undef(\"users\",SHARED);\n}catch(ex){\n}\n"+
                 "users = table(10:0,`id`username`password,[INT, STRING, STRING]);\n" +
                 "insert into users values(1,'admin','123456');\n" +
                 "insert into users values(2,'user1','123456');\n"+
@@ -10728,7 +10735,7 @@ public class JDBCPrepareStatementTest {
     public void test_JDBCPrepareStatement_sql_delete_execute_dfs() throws SQLException, ClassNotFoundException, IOException {
         //连接数据库，建立一个数据表
         String script = "login(\"admin\", \"123456\"); \n" +
-                "try{undef(\"users\",SHARED);\n}catch(ex){\n};\n"+
+                "try{undef(\"users\",SHARED);\n}catch(ex){\n}\n"+
                 "users = table(10:0,`id`username`password,[INT, STRING, STRING]);\n" +
                 "insert into users values(1,'admin','123456');\n" +
                 "insert into users values(2,'user1','123456');\n"+
