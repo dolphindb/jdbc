@@ -1,4 +1,5 @@
 import com.dolphindb.jdbc.JDBCResultSet;
+import com.dolphindb.jdbc.JDBCStatement;
 import com.dolphindb.jdbc.TypeCast;
 import com.xxdb.DBConnection;
 import com.xxdb.data.*;
@@ -10635,7 +10636,8 @@ public class JDBCPrepareStatementTest {
     public void test_JDBCPrepareStatement_sql_select_execute_dfs() throws SQLException, ClassNotFoundException, IOException {
         //连接数据库，建立一个数据表
         String script = "login(\"admin\", \"123456\"); \n" +
-                "try{undef(\"users\",SHARED);\n}catch(ex){\n}\n"+
+                "try{undef(\"users\",SHARED);\n}catch(ex){\n}\n" +
+                "go;\n"+
                 "users = table(10:0,`id`username`password,[INT, STRING, STRING]);\n" +
                 "insert into users values(1,'admin','123456');\n" +
                 "insert into users values(2,'user1','123456');\n"+
@@ -10736,6 +10738,7 @@ public class JDBCPrepareStatementTest {
         //连接数据库，建立一个数据表
         String script = "login(\"admin\", \"123456\"); \n" +
                 "try{undef(\"users\",SHARED);\n}catch(ex){\n}\n"+
+                "go;\n"+
                 "users = table(10:0,`id`username`password,[INT, STRING, STRING]);\n" +
                 "insert into users values(1,'admin','123456');\n" +
                 "insert into users values(2,'user1','123456');\n"+
@@ -11060,6 +11063,37 @@ public class JDBCPrepareStatementTest {
         assertTrue(rs.next());
         assertEquals(username, rs.getString("username"));
     }
+
+    @Test
+    public void test_JDBCStatement_setFetchSize() throws Exception {
+        DBConnection db = new DBConnection();
+        db.connect(HOST,PORT,"admin","123456");
+        String script = "t=table(take(`C`AMZON`IBM`XM`GOOG`APPL`ORCL,50000) as sym," +
+                "rand(198.99,50000) as price," +
+                "take(1..2000,50000) as qty, " +
+                "take(01:01:01..23:59:59,50000) as timestamp)" +
+                "share t as st";
+        db.run(script);
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        JDBCStatement stm = null;
+        JDBCResultSet rs = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url);
+        PreparedStatement s = conn.prepareStatement("select * from st where qty < ?");
+        s.setFetchSize(10000);
+        s.setObject(1,10000);
+        s.execute();
+        rs = (JDBCResultSet) s.executeQuery("select * from st;");
+        BasicTable bt = (BasicTable) rs.getResult();
+        Assert.assertEquals(10000,bt.rows());
+        int flag = 0;
+        while(rs.next()){
+            flag++;
+        }
+        Assert.assertEquals(50000,flag);
+    }
+
     @After
     public void Destroy(){
         LOGININFO = null;
