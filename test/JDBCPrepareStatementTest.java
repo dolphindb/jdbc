@@ -160,7 +160,7 @@ public class JDBCPrepareStatementTest {
                     "colNames=\"col\"+string(1..29);\n" +
                     "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                     "t=table(1:0,colNames,colTypes);\n" +
-                    "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,2f,2.12345,\"1212\",\"1212\",uuid(\"00000000-0000-0001-0000-000000000002\"),datehour(2012.06.13 13:30:10),ipaddr(\"0::1:0:0:0:2\"),int128(\"00000000000000010000000000000002\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                    "insert into t values(2,true,'a',2h,2,22l,1999.12.06,1999.06M,23:59:59.999,23:59m,23:59:59,1999.12.31 23:59:59,1999.12.31 23:59:59.999,00:00:00.999999999,1999.06.13 13:30:10.008007006,2f,2.12345,\"1212\",\"1212\",uuid(\"00000000-0000-0001-0000-000000000002\"),datehour(2012.06.13 13:30:10),ipaddr(\"0::1:0:0:0:2\"),int128(\"00000000000000010000000000000002\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
                     "insert into t values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
                     "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                     "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
@@ -7259,7 +7259,7 @@ public class JDBCPrepareStatementTest {
                 "colNames=\"col\"+string(1..29);\n" +
                 "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                 "t=table(1:0,colNames,colTypes);\n" +
-                "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(9999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                "insert into t values(2,true,'a',2h,2,22l,1999.12.06,1999.06M,23:59:59.999,23:59m,23:59:59,1999.12.31 23:59:59,1999.12.31 23:59:59.999,00:00:00.999999999,1999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
                 "insert into t values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
                 "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                 "pt=db.createTable(t, `pt,,`col1)\n" +
@@ -7342,7 +7342,7 @@ public class JDBCPrepareStatementTest {
                 "colNames=\"col\"+string(1..29);\n" +
                 "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                 "t=table(1:0,colNames,colTypes);\n" +
-                "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(9999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                "insert into t values(2,true,'a',2h,2,22l,1999.12.06,1999.06M,23:59:59.999,23:59m,23:59:59,1999.12.31 23:59:59,1999.12.31 23:59:59.999,00:00:00.999999999,1999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
                 "insert into t values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
                 "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                 "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
@@ -7425,7 +7425,7 @@ public class JDBCPrepareStatementTest {
                 "colNames=\"col\"+string(1..29);\n" +
                 "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                 "t=table(1:0,colNames,colTypes);\n" +
-                "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(9999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                "insert into t values(2,true,'a',2h,2,22l,1999.12.06,1999.06M,23:59:59.999,23:59m,23:59:59,1999.12.31 23:59:59,1999.12.31 23:59:59.999,00:00:00.999999999,1999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
                 "insert into t values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
                 "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                 "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
@@ -7493,7 +7493,7 @@ public class JDBCPrepareStatementTest {
                 "colNames=\"col\"+string(1..29);\n" +
                 "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                 "t=table(1:0,colNames,colTypes);\n" +
-                "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(9999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                "insert into t values(2,true,'a',2h,2,22l,1999.12.06,1999.06M,23:59:59.999,23:59m,23:59:59,1999.12.31 23:59:59,1999.12.31 23:59:59.999,00:00:00.999999999,1999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
                 "insert into t values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
                 "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                 "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
@@ -7561,7 +7561,7 @@ public class JDBCPrepareStatementTest {
                 "colNames=\"col\"+string(1..29);\n" +
                 "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                 "t=table(1:0,colNames,colTypes);\n" +
-                "insert into t values(2,true,'a',2h,2,22l,9999.12.06,9999.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(9999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
+                "insert into t values(2,true,'a',2h,2,22l,1999.12.06,1999.06M,23:59:59.999,23:59m,23:59:59,1999.12.31 23:59:59,1999.12.31 23:59:59.999,00:00:00.999999999,1999.06.13 13:30:10.008007006,2f,2.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1999.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
                 "insert into t values(1,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
                 "db=database('dfs://test_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n"+
                 "pt=db.createPartitionedTable(t, `pt,`col1,,`col1)\n" +
@@ -7730,7 +7730,7 @@ public class JDBCPrepareStatementTest {
     public void test_PreparedStatement_delete_date() throws SQLException, IOException {
         createPartitionTable_insert();
         PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col7 = ?");
-        ps1.setDate(1, Date.valueOf(LocalDate.of(9999,12,6)));
+        ps1.setDate(1, Date.valueOf(LocalDate.of(1999,12,6)));
         ps1.executeUpdate();
         JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
         BasicTable bt1 = (BasicTable) rs1.getResult();
@@ -7748,7 +7748,7 @@ public class JDBCPrepareStatementTest {
     public void test_PreparedStatement_delete_month() throws SQLException, IOException {
         createPartitionTable_insert();
         PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col8 = ?");
-        BasicMonth tmp_month = new BasicMonth(YearMonth.of(9999,6));
+        BasicMonth tmp_month = new BasicMonth(YearMonth.of(1999,6));
         ps1.setObject(1, tmp_month);
         ps1.executeUpdate();
         JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
@@ -7823,7 +7823,7 @@ public class JDBCPrepareStatementTest {
     public void test_PreparedStatement_delete_datetime() throws SQLException, IOException {
         createPartitionTable_insert();
         PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col12 = ?");
-        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(9999,12,31,23,59,59));
+        BasicDateTime tmp_datetime = new BasicDateTime(LocalDateTime.of(1999,12,31,23,59,59));
         ps1.setObject(1, tmp_datetime);
         ps1.executeUpdate();
         JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
@@ -7842,7 +7842,7 @@ public class JDBCPrepareStatementTest {
     public void test_PreparedStatement_delete_timestamp() throws SQLException, IOException {
         createPartitionTable_insert();
         PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col13 = ?");
-        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(9999,12,31,23,59,59,999000000));
+        BasicTimestamp tmp_timestamp = new BasicTimestamp(LocalDateTime.of(1999,12,31,23,59,59,999000000));
         ps1.setObject(1, tmp_timestamp);
         ps1.executeUpdate();
         JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
@@ -7880,7 +7880,7 @@ public class JDBCPrepareStatementTest {
     public void test_PreparedStatement_delete_nanotimestamp() throws SQLException, IOException {
         createPartitionTable_insert();
         PreparedStatement ps1 = conn.prepareStatement("delete from loadTable('dfs://test_append_type_tsdb1','pt') where col15 = ?");
-        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(9999,6,13,13,30,10,8007006));
+        BasicNanoTimestamp tmp_nanotimestamp = new BasicNanoTimestamp(LocalDateTime.of(1999,6,13,13,30,10,8007006));
         ps1.setObject(1, tmp_nanotimestamp);
         ps1.executeUpdate();
         JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
@@ -8952,8 +8952,8 @@ public class JDBCPrepareStatementTest {
                 "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                 "t=table(1:0,colNames,colTypes);\n" +
                 "insert into t values(1,true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"00000000-0000-0001-0000-000000000002\"),datehour(2012.06.13 13:30:10),ipaddr(\"0::1:0:0:0:2\"),int128(\"00000000000000010000000000000002\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
-                "insert into t values(2,false,'a',2333h,22222,-1111111111222222l,1969.12.06,1969.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,23333f,244444.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1969.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1222222.1,2),decimal64(3333333331.1,7),decimal128(133333333333333.1,19));\n" +
-                "insert into t values(3,true,'a',-23332h,-55555,1111111111222222l,1969.12.06,1969.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,-22222f,-222222.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1969.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(-1222222.1,2),decimal64(-3333333331.1,7),decimal128(-133333333333333.1,19));\n" +
+                "insert into t values(2,false,'a',2333h,22222,-1111111111222222l,1969.12.06,1969.06M,23:59:59.999,23:59m,23:59:59,1999.12.31 23:59:59,1999.12.31 23:59:59.999,00:00:00.999999999,1999.06.13 13:30:10.008007006,23333f,244444.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1969.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1222222.1,2),decimal64(3333333331.1,7),decimal128(133333333333333.1,19));\n" +
+                "insert into t values(3,true,'a',-23332h,-55555,1111111111222222l,1969.12.06,1969.06M,23:59:59.999,23:59m,23:59:59,1999.12.31 23:59:59,1999.12.31 23:59:59.999,00:00:00.999999999,1999.06.13 13:30:10.008007006,-22222f,-222222.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1969.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(-1222222.1,2),decimal64(-3333333331.1,7),decimal128(-133333333333333.1,19));\n" +
                 "insert into t values(4,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
                 "pt.append!(t)");
         BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type_tsdb1','pt') ");
@@ -9068,8 +9068,8 @@ public class JDBCPrepareStatementTest {
                 "colTypes=[INT,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(19)];\n" +
                 "t=table(1:0,colNames,colTypes);\n" +
                 "insert into t values(1,true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"00000000-0000-0001-0000-000000000002\"),datehour(2012.06.13 13:30:10),ipaddr(\"0::1:0:0:0:2\"),int128(\"00000000000000010000000000000002\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,19));\n" +
-                "insert into t values(2,false,'a',2333h,22222,-1111111111222222l,1969.12.06,1969.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,23333f,244444.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1969.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1222222.1,2),decimal64(3333333331.1,7),decimal128(133333333333333.1,19));\n" +
-                "insert into t values(3,true,'a',-23332h,-55555,1111111111222222l,1969.12.06,1969.06M,23:59:59.999,23:59m,23:59:59,9999.12.31 23:59:59,9999.12.31 23:59:59.999,00:00:00.999999999,9999.06.13 13:30:10.008007006,-22222f,-222222.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1969.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(-1222222.1,2),decimal64(-3333333331.1,7),decimal128(-133333333333333.1,19));\n" +
+                "insert into t values(2,false,'a',2333h,22222,-1111111111222222l,1969.12.06,1969.06M,23:59:59.999,23:59m,23:59:59,1999.12.31 23:59:59,1999.12.31 23:59:59.999,00:00:00.999999999,1999.06.13 13:30:10.008007006,23333f,244444.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1969.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1222222.1,2),decimal64(3333333331.1,7),decimal128(133333333333333.1,19));\n" +
+                "insert into t values(3,true,'a',-23332h,-55555,1111111111222222l,1969.12.06,1969.06M,23:59:59.999,23:59m,23:59:59,1999.12.31 23:59:59,1999.12.31 23:59:59.999,00:00:00.999999999,1999.06.13 13:30:10.008007006,-22222f,-222222.12345,\"\",\"\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f7\"),datehour(1969.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(-1222222.1,2),decimal64(-3333333331.1,7),decimal128(-133333333333333.1,19));\n" +
                 "insert into t values(4,,,,,,,,,,,,,,,,,,,,,,,,,,,,);\n" +
                 "pt.append!(t)");
         BasicTable re = (BasicTable) db.run("select * from loadTable('dfs://test_append_type_tsdb1','pt') ");
@@ -10526,6 +10526,39 @@ public class JDBCPrepareStatementTest {
     }
 
     @Test
+    public void test_JDBCPrepareStatement_sql_insert_dfs() throws SQLException, ClassNotFoundException, IOException {
+        String script = "login(\"admin\", \"123456\"); \n"+
+                "if(existsDatabase('dfs://db_testStatement')){ dropDatabase('dfs://db_testStatement')} \n" +
+                "try{undef(\"users\",SHARED);\n}catch(ex){\n};\n"+
+                "users = table(10:0,`id`username`password,[INT, STRING, STRING]); \n" +
+                "db=database('dfs://db_testStatement', VALUE, 1..10); \n" +
+                "db.createPartitionedTable(users, `users, `id);\n";
+
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run(script);
+
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        conn = DriverManager.getConnection(url);
+
+        String username = "admin'); DROP TABLE users; --";
+        String password = "password123";
+
+        PreparedStatement s = conn.prepareStatement("INSERT INTO loadTable('dfs://db_testStatement','users') (id, username, password) VALUES (?,?,?)");
+        s.setInt(1,1);
+        s.setObject(2,username);
+        s.setObject(3,password);
+        s.execute();
+        ResultSet rs = s.executeQuery("select * from loadTable('dfs://db_testStatement','users')");
+        rs.next();
+        assertEquals(username, rs.getString("username"));
+        assertEquals(password, rs.getString("password"));
+        assertFalse(rs.next());
+    }
+
+    @Test
     public void test_JDBCPrepareStatement_sql_insert_setObject_execute_1() throws SQLException, ClassNotFoundException, IOException {
         //连接数据库，建立一个数据表
         String script = "login(\"admin\", \"123456\"); \n"+
@@ -10592,13 +10625,16 @@ public class JDBCPrepareStatementTest {
     }
 
     @Test
-    public void test_JDBCPrepareStatement_sql_select_executeBatch() throws SQLException, ClassNotFoundException, IOException {
+    public void test_JDBCPrepareStatement_sql_select_execute_dfs() throws SQLException, ClassNotFoundException, IOException {
         //连接数据库，建立一个数据表
-        String script = "login(\"admin\", \"123456\"); \n"+
-                "try{undef(`users,SHARED)}catch(ex){};\n" +
-                "share table(10:0,`id`username`password,[INT,STRING, STRING])  as users ;\n" +
+        String script = "login(\"admin\", \"123456\"); \n" +
+                "try{undef(\"users\",SHARED);\n}catch(ex){\n};\n"+
+                "users = table(10:0,`id`username`password,[INT, STRING, STRING]);\n" +
                 "insert into users values(1,'admin','123456');\n" +
-                "insert into users values(2,'user1','123456');\n";
+                "insert into users values(2,'user1','123456');\n"+
+        "if(existsDatabase('dfs://db_testStatement')){ dropDatabase('dfs://db_testStatement')}; \n" +
+                "db=database('dfs://db_testStatement', VALUE, 1..10); \n" +
+                "db.createPartitionedTable(users, `users, `id).append!(users);\n";
         DBConnection db = new DBConnection();
         db.connect(HOST, PORT,"admin","123456");
         db.run(script);
@@ -10609,47 +10645,13 @@ public class JDBCPrepareStatementTest {
         conn = DriverManager.getConnection(url);
 
         //prepareStatement中输入一个select类型query
-        String sql = "SELECT * FROM users WHERE username = ?";
+        String sql = "SELECT * FROM loadTable('dfs://db_testStatement', `users) WHERE username = ?";
         PreparedStatement s = conn.prepareStatement(sql);
 
         //调用setString, 参数中输入双引号，且带有OR "1"="1
         String username = "admin\" OR \"1\"=\"1";
         s.setString(1,username);
-        s.addBatch();
-        //调用executeBatch执行query
-        s.executeBatch();
-
-        //检查结果，因为username没有这样的值：admin" OR "1"="1  故预期查询不出数据
-        ResultSet resultSet = s.getResultSet();
-        assertFalse(resultSet.next());
-    }
-
-    @Test
-    public void test_JDBCPrepareStatement_sql_select_executeUpdate() throws SQLException, ClassNotFoundException, IOException {
-        //连接数据库，建立一个数据表
-        String script = "login(\"admin\", \"123456\"); \n"+
-                "try{undef(`users,SHARED)}catch(ex){};\n" +
-                "share table(10:0,`id`username`password,[INT,STRING, STRING])  as users ;\n" +
-                "insert into users values(1,'admin','123456');\n" +
-                "insert into users values(2,'user1','123456');\n";
-        DBConnection db = new DBConnection();
-        db.connect(HOST, PORT,"admin","123456");
-        db.run(script);
-        //JDBC创建连接
-        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
-        Class.forName(JDBC_DRIVER);
-        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
-        conn = DriverManager.getConnection(url);
-
-        //prepareStatement中输入一个select类型query
-        String sql = "SELECT * FROM users WHERE username = ?";
-        PreparedStatement s = conn.prepareStatement(sql);
-
-        //调用setString, 参数中输入双引号，且带有OR "1"="1
-        String username = "admin\" OR \"1\"=\"1";
-        s.setString(1,username);
-        //调用executeBatch执行query
-        s.executeUpdate();
+        s.execute();
 
         //检查结果，因为username没有这样的值：admin" OR "1"="1  故预期查询不出数据
         ResultSet resultSet = s.getResultSet();
@@ -10718,6 +10720,43 @@ public class JDBCPrepareStatementTest {
 
         //检查结果，因为username没有这样的值：admin" OR "1"="1  故预期不会删除数据
         ResultSet rs = s.executeQuery("select * from users");
+        assertTrue(rs.next());
+        assertTrue(rs.next());
+    }
+
+    @Test
+    public void test_JDBCPrepareStatement_sql_delete_execute_dfs() throws SQLException, ClassNotFoundException, IOException {
+        //连接数据库，建立一个数据表
+        String script = "login(\"admin\", \"123456\"); \n" +
+                "try{undef(\"users\",SHARED);\n}catch(ex){\n};\n"+
+                "users = table(10:0,`id`username`password,[INT, STRING, STRING]);\n" +
+                "insert into users values(1,'admin','123456');\n" +
+                "insert into users values(2,'user1','123456');\n"+
+                "if(existsDatabase('dfs://db_testStatement')){ dropDatabase('dfs://db_testStatement')}; \n" +
+                "db=database('dfs://db_testStatement', VALUE, 1..10); \n" +
+                "db.createPartitionedTable(users, `users, `id).append!(users);\n";
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run(script);
+
+        //JDBC创建连接
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+
+        //prepareStatement中输入一个delete类型query
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        conn = DriverManager.getConnection(url);
+
+        String sql = "delete FROM loadTable('dfs://db_testStatement',`users) WHERE username = ?";
+        PreparedStatement s = conn.prepareStatement(sql);
+
+        //调用setString, 参数中输入双引号，且带有OR "1"="1
+        String username = "admin\" OR \"1\"=\"1";
+        s.setString(1,username);
+        s.execute();
+
+        //检查结果，因为username没有这样的值：admin" OR "1"="1  故预期不会删除数据
+        ResultSet rs = s.executeQuery("select * from loadTable('dfs://db_testStatement',`users)");
         assertTrue(rs.next());
         assertTrue(rs.next());
     }
@@ -10858,6 +10897,45 @@ public class JDBCPrepareStatementTest {
 
         //检查结果，恶意sql没有被执行,表不会被删除
         ResultSet rs = s.executeQuery("select * from users");
+        assertTrue(rs.next());
+        assertEquals(username, rs.getString("username"));
+        assertTrue(rs.next());
+        assertEquals(username, rs.getString("username"));
+    }
+
+    @Test
+    public void test_JDBCPrepareStatement_sql_update_execute_dfs() throws SQLException, ClassNotFoundException, IOException {
+        //连接数据库，建立一个数据表
+        String script = "login(\"admin\", \"123456\"); \n" +
+                "try{undef(\"users\",SHARED);\n}catch(ex){\n};\n"+
+                "users = table(10:0,`id`username`password,[INT, STRING, STRING]);\n" +
+                "insert into users values(1,'admin','123456');\n" +
+                "insert into users values(2,'user1','123456');\n"+
+                "if(existsDatabase('dfs://db_testStatement')){ dropDatabase('dfs://db_testStatement')}; \n" +
+                "db=database('dfs://db_testStatement', VALUE, 1..10); \n" +
+                "db.createPartitionedTable(users, `users, `id).append!(users);\n";
+        DBConnection db = new DBConnection();
+        db.connect(HOST, PORT,"admin","123456");
+        db.run(script);
+
+        //JDBC创建连接
+        String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+        Class.forName(JDBC_DRIVER);
+
+        //prepareStatement中输入一个update类型query
+        String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+        conn = DriverManager.getConnection(url);
+
+        String sql = "update loadTable('dfs://db_testStatement',`users) set username = ?";
+        PreparedStatement s = conn.prepareStatement(sql);
+
+        //调用setString, 参数中有恶意sql
+        String username = "admin\"; DROP TABLE users; //";
+        s.setString(1,username);
+        s.execute();
+
+        //检查结果，恶意sql没有被执行,表不会被删除
+        ResultSet rs = s.executeQuery("select * from loadTable('dfs://db_testStatement',`users)");
         assertTrue(rs.next());
         assertEquals(username, rs.getString("username"));
         assertTrue(rs.next());

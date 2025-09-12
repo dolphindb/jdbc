@@ -113,7 +113,8 @@ public class JDBCPreLoadTest {
         }
     }
     @Before
-    public void setup() throws ClassNotFoundException {
+    public void setup() throws ClassNotFoundException, IOException {
+        Prepare.clear_env();
         info.put("user","admin");
         info.put("password","123456");
         Class.forName("com.dolphindb.jdbc.Driver");

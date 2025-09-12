@@ -309,11 +309,11 @@ public class JDBCSQLSelectTest {
 			e.printStackTrace();
 		}
 	}
-
 	@Test
 	public void test_Statement_length_nvl_replace() throws IOException {
 		DBConnection db = new DBConnection();
 		db.connect(HOST,PORT,"admin","123456");
+		Prepare.clear_env();
 		String script = "t=table(`C`MS`MS`MS`IBM`IBM`C`C`C`APPL`XM as sym," +
 				"49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29 NULL NULL as price," +
 				"2200 1900 2100 3200 6800 5400 1300 2500 8800 1080 9000 as qty, " +
@@ -353,6 +353,7 @@ public class JDBCSQLSelectTest {
 	}
 	@Test
 	public void test_Statement_oracle_outer_join() throws IOException {
+		Prepare.clear_env();
 		DBConnection db = new DBConnection();
 		db.connect(HOST,PORT,"admin","123456");
 		String script = "t=table(`C`MS`MS`MS`IBM`IBM`C`C`C`APPL`XM as sym," +

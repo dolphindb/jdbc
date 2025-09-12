@@ -10,7 +10,6 @@ import org.junit.rules.ExpectedException;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 
-import java.awt.List;
 import java.io.IOException;
 import java.sql.*;
 import java.sql.Date;
@@ -19,7 +18,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.*;
-import java.util.logging.Logger;
 
 import com.xxdb.DBConnection;
 
@@ -33,7 +31,7 @@ public class JDBCStatementTest {
 	Connection conn = null;
 	Statement stmt = null;
 	@Before
-    public void SetUp(){
+    public void SetUp() throws IOException {
 		JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
 		Properties LOGININFO = new Properties();
 		LOGININFO.put("user", "admin");
@@ -47,6 +45,7 @@ public class JDBCStatementTest {
 		}catch (SQLException ex){
 
 		}
+		Prepare.clear_env();
     }
 	
     public static boolean CreateDfsTable(String host, Integer port){
