@@ -9,6 +9,7 @@ import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.awt.List;
 import java.io.IOException;
@@ -3956,5 +3957,41 @@ public class JDBCStatementTest {
 		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select count(*) from table1 where id = `3aaa");
 		BasicTable re1 = (BasicTable) rs.getResult();
 		org.junit.Assert.assertEquals("50000000", re1.getColumn(0).getString(0));
+	}
+
+	@Test
+	public void test_JDBCResultSet_executeQuery_ASCII_char() throws SQLException, ClassNotFoundException {
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://" + HOST + ":" + PORT + "?user=admin&password=123456";
+		Connection conn = null;
+		Statement stmt = null;
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		Statement s = conn.createStatement();
+		for (int i = 0; i <= 0x7F; i++) {
+			char c = (char) i;
+			System.out.printf("Unicode: \\u%04X | Dec: %3d | Char: %s%n",
+					i, i,
+					(i < 32 || i == 127) ? "[控制字符]" : c);
+			if((i == 9|| i == 10|| i == 32|| i == 33|| i == 36|| i == 37 || i == 38 || i == 42 || i == 43  || (i >= 45&&i <= 60)|| i == 62|| i == 64|| i == 92|| i == 94|| i == 96|| i == 101|| i == 124)){
+//				Entity re = connection.run(String.valueOf(c));
+				JDBCResultSet re0 =(JDBCResultSet)s.executeQuery(String.valueOf(c));
+				Entity re = re0.getResult();
+				System.out.println("------------------------------");
+				System.out.println("re: "+ re);
+				System.out.println("------------------------------");
+			}else{
+				String ex = null;
+				try{
+					s.execute(String.valueOf(c));
+				}catch(Exception e){
+					ex = e.getMessage();
+					System.out.println(ex);
+				}
+				//assertNotNull(ex);
+			}
+		}
 	}
 }
