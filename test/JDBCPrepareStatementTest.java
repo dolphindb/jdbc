@@ -1,3 +1,4 @@
+import com.dolphindb.jdbc.DolphinDBArray;
 import com.dolphindb.jdbc.JDBCResultSet;
 import com.dolphindb.jdbc.JDBCStatement;
 import com.dolphindb.jdbc.TypeCast;
@@ -15,6 +16,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -4233,7 +4236,7 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals(2,re.rows());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_BOOL_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_BOOL_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("BOOL");
         String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
@@ -4252,9 +4255,28 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[true,true,false]",re1.getColumn(1).get(0).getString());
         Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
         Assert.assertEquals("[true,false]",re1.getColumn(1).get(2).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update  loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new Boolean[]{true,true,false});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2= (BasicTable) rs1.getResult();
+        Assert.assertEquals("[true,true,false]",re1.getColumn(1).get(1).getString());
+
+//        PreparedStatement ps3 = conn.prepareStatement("update  loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+//        Array reww = new DolphinDBArray(new BasicBooleanVector(Arrays.asList(new Byte[]{0,1,1})));
+//        ps3.setArray(1,reww);
+//        ps3.setInt(2,2);
+//        ps3.addBatch();
+//        ps3.execute();
+//        JDBCResultSet rs2 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+//        BasicTable re3= (BasicTable) rs2.getResult();
+//        Assert.assertEquals("[true,false]",re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_CHAR_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_CHAR_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("CHAR");
         String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
@@ -4273,6 +4295,15 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("['A','F']",re1.getColumn(1).get(0).getString());
         Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
         Assert.assertEquals("['A','C']",re1.getColumn(1).get(2).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update  loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new byte[]{'A','C'});
+        ps1.setInt(2,1);
+        ps1.addBatch();
+        ps1.executeBatch();
+        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2= (BasicTable) rs1.getResult();
+        Assert.assertEquals("['A','C']",re2.getColumn(1).get(0).getString());
     }
     @Test
     public void test_PreparedStatement_insert_into_DFS_arrayVector_SHORT_executeBatch() throws SQLException, IOException {
