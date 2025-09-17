@@ -124,7 +124,40 @@ public class JDBCResultSetTest {
 			return success;
 		}
 	}
-
+	public static void Preparedata_array(long count1,long count2) throws IOException {
+		String script1 = "login(`admin, `123456); \n"+
+				"n="+count1+";\n" +
+				"m="+count2+";\n" +
+				"cbool = array(BOOL[]).append!(cut(take([true, false, NULL], n), m))\n" +
+				"cchar = array(CHAR[]).append!(cut(take(char(-100..100 join NULL), n), m))\n" +
+				"cshort = array(SHORT[]).append!(cut(take(short(-100..100 join NULL), n), m))\n" +
+				"cint = array(INT[]).append!(cut(take(-100..100 join NULL, n), m))\n" +
+				"clong = array(LONG[]).append!(cut(take(long(-100..100 join NULL), n), m))\n" +
+				"cdouble = array(DOUBLE[]).append!(cut(take(-100..100 join NULL, n) + 0.254, m))\n" +
+				"cfloat = array(FLOAT[]).append!(cut(take(-100..100 join NULL, n) + 0.254f, m))\n" +
+				"cdate = array(DATE[]).append!(cut(take(2012.01.01..2012.02.29, n), m))\n" +
+				"cmonth = array(MONTH[]).append!(cut(take(2012.01M..2013.12M, n), m))\n" +
+				"ctime = array(TIME[]).append!(cut(take(09:00:00.000 + 0..99 * 1000, n), m))\n" +
+				"cminute = array(MINUTE[]).append!(cut(take(09:00m..15:59m, n), m))\n" +
+				"csecond = array(SECOND[]).append!(cut(take(09:00:00 + 0..999, n), m))\n" +
+				"cdatetime = array(DATETIME[]).append!(cut(take(2012.01.01T09:00:00 + 0..999, n), m))\n" +
+				"ctimestamp = array(TIMESTAMP[]).append!(cut(take(2012.01.01T09:00:00.000 + 0..999 * 1000, n), m))\n" +
+				"cnanotime =array(NANOTIME[]).append!(cut(take(09:00:00.000000000 + 0..999 * 1000000000, n), m))\n" +
+				"cnanotimestamp = array(NANOTIMESTAMP[]).append!(cut(take(2012.01.01T09:00:00.000000000 + 0..999 * 1000000000, n), m))\n" +
+				"cuuid = array(UUID[]).append!(cut(take(uuid([\"5d212a78-cc48-e3b1-4235-b4d91473ee87\", \"5d212a78-cc48-e3b1-4235-b4d91473ee88\", \"5d212a78-cc48-e3b1-4235-b4d91473ee89\", \"\"]), n), m))\n" +
+				"cdatehour = array(DATEHOUR[]).append!(cut(take(datehour(1..10 join NULL), n), m))\n" +
+				"cipaddr = array(IPADDR[]).append!(cut(take(ipaddr([\"192.168.100.10\", \"192.168.100.11\", \"192.168.100.14\", \"\"]), n), m))\n" +
+				"cint128 = array(INT128[]).append!(cut(take(int128([\"e1671797c52e15f763380b45e841ec32\", \"e1671797c52e15f763380b45e841ec33\", \"e1671797c52e15f763380b45e841ec35\", \"\"]), n), m))\n" +
+				"ccomplex = array(	COMPLEX[]).append!(cut(rand(complex(rand(100, 1000), rand(100, 1000)) join NULL, n), m))\n" +
+				"cpoint = array(POINT[]).append!(cut(rand(point(rand(100, 1000), rand(100, 1000)) join NULL, n), m))\n" +
+				"cdecimal32 = array(DECIMAL32(2)[]).append!(cut(decimal32(take(-100..100 join NULL, n) + 0.254, 3), m))\n" +
+				"cdecimal64 = array(DECIMAL64(7)[]).append!(cut(decimal64(take(-100..100 join NULL, n) + 0.25, 4), m))\n" +
+				"cdecimal128 = array(DECIMAL128(19)[]).append!(cut(decimal128(take(-100..100 join NULL, n) + 0.25, 5), m))\n" +
+				"share table(cbool, cchar, cshort, cint, clong, cdouble, cfloat, cdate, cmonth, ctime, cminute, csecond, cdatetime, ctimestamp, cnanotime, cnanotimestamp, cdatehour, cuuid, cipaddr, cint128, cpoint, ccomplex,  cdecimal32, cdecimal64, cdecimal128) as data;\n" ;
+		DBConnection conn = new DBConnection();
+		conn.connect(HOST,PORT,"admin","123456");
+		conn.run(script1);
+	}
 	Connection conn = null;
 	Statement stmt = null;
 	ResultSet rs = null;
@@ -629,6 +662,7 @@ public class JDBCResultSetTest {
 			ColName[j] = "a" + (j + 3);
 			TestCase.assertEquals(ColName[j], rsmd.getColumnName(j + 1));
 			TestCase.assertEquals(ColName[j], rsmd.getColumnLabel(j + 1));
+			System.out.println("j:"+j);
 			TestCase.assertEquals(ColumnType[j], rsmd.getColumnType(j + 1));
 			System.out.println( rsmd.getColumnType(j + 1));
 			TestCase.assertEquals(ColumnTypeName[j], rsmd.getColumnTypeName(j + 1));
@@ -4249,6 +4283,73 @@ public class JDBCResultSetTest {
 		rs1.next();
 		assertEquals("25.00000",rs1.getObject(1).toString());
 	}
-
+	@Test
+	public void Test_ResultSet_MetaData_getColumnType() throws Exception {
+		DBConnection connection = new DBConnection();
+		connection.connect(HOST,PORT,"admin","123456");
+		connection.run("share table(100:0, `boolv`charv`shortv`intv`longv`doublev`floatv`datev`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`stringv`datehourv`uuidv`ippaddrv`int128v`blobv`pointv`complexv`decimal32v`decimal64v`decimal128v, [BOOL, CHAR, SHORT, INT, LONG, DOUBLE, FLOAT, DATE, MONTH, TIME, MINUTE, SECOND, DATETIME, TIMESTAMP, NANOTIME, NANOTIMESTAMP, STRING, DATEHOUR, UUID, IPADDR, INT128, BLOB, POINT, COMPLEX, DECIMAL32(3), DECIMAL64(8), DECIMAL128(10)]) as allDataType;;");
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		rs = stmt.executeQuery("select * from allDataType ");
+		ResultSetMetaData rsmd = rs.getMetaData();
+		for(int i=1;i<=rsmd.getColumnCount();i++){
+			System.out.println(rsmd.getColumnName(i)+":"+rsmd.getColumnType(i));
+//			assertEquals(2003,rsmd.getColumnType(i));
+		}assertEquals(16,rsmd.getColumnType(1));
+		assertEquals(1,rsmd.getColumnType(2));
+		assertEquals(3,rsmd.getColumnType(3));
+		assertEquals(-6,rsmd.getColumnType(4));
+		assertEquals(4,rsmd.getColumnType(5));
+		assertEquals(-5,rsmd.getColumnType(6));
+		assertEquals(8,rsmd.getColumnType(7));
+		assertEquals(91,rsmd.getColumnType(8));
+		assertEquals(1111,rsmd.getColumnType(9));
+		assertEquals(92,rsmd.getColumnType(10));
+		assertEquals(1111,rsmd.getColumnType(11));
+		assertEquals(1111,rsmd.getColumnType(12));
+		assertEquals(93,rsmd.getColumnType(13));
+		assertEquals(93,rsmd.getColumnType(14));
+		assertEquals(1111,rsmd.getColumnType(15));
+		assertEquals(1111,rsmd.getColumnType(16));
+		assertEquals(12,rsmd.getColumnType(17));
+		assertEquals(1111,rsmd.getColumnType(18));
+		assertEquals(1111,rsmd.getColumnType(19));
+		assertEquals(1111,rsmd.getColumnType(20));
+		assertEquals(1111,rsmd.getColumnType(21));
+		assertEquals(2005,rsmd.getColumnType(22));
+		assertEquals(1111,rsmd.getColumnType(23));
+		assertEquals(1111,rsmd.getColumnType(24));
+		assertEquals(3,rsmd.getColumnType(25));
+		assertEquals(3,rsmd.getColumnType(26));
+		assertEquals(3,rsmd.getColumnType(27));
+	}
+	@Test
+	public void Test_ResultSet_MetaData_getColumnType_array() throws Exception {
+		Preparedata_array(10,5);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		rs = stmt.executeQuery("select * from data ");
+		ResultSetMetaData rsmd = rs.getMetaData();
+		for(int i=1;i<=rsmd.getColumnCount();i++){
+//			System.out.println(rsmd.getColumnType(i));
+			assertEquals(2003,rsmd.getColumnType(i));
+		}
+	}
+	@Test
+	public void Test_ResultSet_MetaData_getColumnType_any() throws Exception {
+		DBConnection connection = new DBConnection();
+		connection.connect(HOST,PORT,"admin","123456");
+		connection.run("col1 = 1..3\n" +
+				"col2 = ((`ss,1),(`ss,1),(`ss,1))\n" +
+				"share table(col1,col2) table_any;");
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		rs = stmt.executeQuery("select * from table_any ");
+		ResultSetMetaData rsmd = rs.getMetaData();
+		assertEquals(1111,rsmd.getColumnType(2));
+	}
 }
 
