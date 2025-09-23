@@ -4593,7 +4593,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[23:59:59.000,00:00:02.000]", re1.getColumn(1).get(1).getString());
 
         PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps2.setObject(1,new LocalTime[]{LocalTime.of(12,12,12).truncatedTo(ChronoUnit.MILLIS),LocalTime.of(1,1,1).truncatedTo(ChronoUnit.MILLIS)});
+        ps2.setObject(1,new BasicTime[]{new BasicTime(LocalTime.of(12,12,12).truncatedTo(ChronoUnit.MILLIS)),new BasicTime(LocalTime.of(1,1,1).truncatedTo(ChronoUnit.MILLIS))});
         ps2.setInt(2,2);
         ps2.addBatch();
         ps2.executeBatch();
@@ -4602,7 +4602,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[12:12:12.000,01:01:01.000]", re2.getColumn(1).get(1).getString());
 
         PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps3.setObject(1,new LocalTime[]{LocalTime.of(1,1,1).truncatedTo(ChronoUnit.MILLIS), LocalTime.of(23,59,59).truncatedTo(ChronoUnit.MILLIS)});
+        ps3.setObject(1,new BasicTime[]{new BasicTime(LocalTime.of(1,1,1).truncatedTo(ChronoUnit.MILLIS)), new BasicTime(LocalTime.of(23,59,59).truncatedTo(ChronoUnit.MILLIS))});
         ps3.setInt(2,2);
         ps3.addBatch();
         ps3.executeUpdate();
@@ -4627,7 +4627,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
 
         PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps1.setObject(1,new LocalTime[]{LocalTime.of(17,21).truncatedTo(ChronoUnit.MINUTES),LocalTime.of(23,59).truncatedTo(ChronoUnit.MINUTES)});
+        ps1.setObject(1,new BasicMinute[]{new BasicMinute(LocalTime.of(17,21).truncatedTo(ChronoUnit.MINUTES)),new BasicMinute(LocalTime.of(23,59).truncatedTo(ChronoUnit.MINUTES))});
         ps1.setInt(2,2);
         ps1.addBatch();
         ps1.execute();
@@ -4636,7 +4636,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[17:21m,23:59m]", re1.getColumn(1).get(1).getString());
 
         PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps2.setObject(1,new LocalTime[]{LocalTime.of(23,59).truncatedTo(ChronoUnit.MINUTES),LocalTime.of(0,0).truncatedTo(ChronoUnit.MINUTES)});
+        ps2.setObject(1,new BasicMinute[]{new BasicMinute(LocalTime.of(23,59).truncatedTo(ChronoUnit.MINUTES)),new BasicMinute(LocalTime.of(0,0).truncatedTo(ChronoUnit.MINUTES))});
         ps2.setInt(2,2);
         ps2.addBatch();
         ps2.executeBatch();
@@ -4645,7 +4645,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[23:59m,00:00m]", re2.getColumn(1).get(1).getString());
 
         PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps3.setObject(1, new LocalTime[]{LocalTime.of(12,0).truncatedTo(ChronoUnit.MINUTES),LocalTime.of(6,30).truncatedTo(ChronoUnit.MINUTES)});
+        ps3.setObject(1, new BasicMinute[]{new BasicMinute(LocalTime.of(12,0).truncatedTo(ChronoUnit.MINUTES)),new BasicMinute(LocalTime.of(6,30).truncatedTo(ChronoUnit.MINUTES))});
         ps3.setInt(2,2);
         ps3.addBatch();
         ps3.executeUpdate();
@@ -4670,7 +4670,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
 
         PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps1.setObject(1,new LocalTime[]{LocalTime.of(15,34,35).truncatedTo(ChronoUnit.SECONDS),LocalTime.of(0,1,0).truncatedTo(ChronoUnit.SECONDS)});
+        ps1.setObject(1,new BasicSecond[]{new BasicSecond(LocalTime.of(15,34,35).truncatedTo(ChronoUnit.SECONDS)),new BasicSecond(LocalTime.of(0,1,0).truncatedTo(ChronoUnit.SECONDS))});
         ps1.setInt(2,2);
         ps1.addBatch();
         ps1.execute();
@@ -4679,7 +4679,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[15:34:35,00:01:00]", re1.getColumn(1).get(1).getString());
 
         PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps2.setObject(1,new LocalTime[]{LocalTime.of(16,0,0).truncatedTo(ChronoUnit.SECONDS)});
+        ps2.setObject(1,new BasicSecond[]{new BasicSecond(LocalTime.of(16,0,0).truncatedTo(ChronoUnit.SECONDS))});
         ps2.setInt(2,2);
         ps2.addBatch();
         ps2.executeBatch();
@@ -4688,7 +4688,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[16:00:00]", re2.getColumn(1).get(1).getString());
 
         PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps3.setObject(1,new LocalTime[]{LocalTime.of(1,2,0).truncatedTo(ChronoUnit.SECONDS)});
+        ps3.setObject(1,new BasicSecond[]{new BasicSecond(LocalTime.of(1,2,0).truncatedTo(ChronoUnit.SECONDS))});
         ps3.setInt(2,2);
         ps3.addBatch();
         ps3.executeUpdate();
@@ -4713,16 +4713,16 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
 
         PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps1.setObject(1,new LocalDateTime[]{LocalDateTime.of(2021,9,22,16,0,15).truncatedTo(ChronoUnit.SECONDS)});
+        ps1.setObject(1,new BasicDateTime[]{new BasicDateTime(LocalDateTime.of(2021,9,22,16,0,15).truncatedTo(ChronoUnit.SECONDS))});
         ps1.setInt(2,2);
         ps1.addBatch();
         ps1.execute();
         JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re1 = (BasicTable) rs1.getResult();
-        Assert.assertEquals("[2021.9.22T16:00:15]", re1.getColumn(1).get(1).getString());
+        Assert.assertEquals("[2021.09.22T16:00:15]", re1.getColumn(1).get(1).getString());
 
         PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps2.setObject(1,new LocalDateTime[]{LocalDateTime.of(2021,10,1,15,30,30).truncatedTo(ChronoUnit.SECONDS)});
+        ps2.setObject(1,new BasicDateTime[]{new BasicDateTime(LocalDateTime.of(2021,10,1,15,30,30).truncatedTo(ChronoUnit.SECONDS))});
         ps2.setInt(2,2);
         ps2.addBatch();
         ps2.executeBatch();
@@ -4731,7 +4731,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[2021.10.01T15:30:30]", re2.getColumn(1).get(1).getString());
 
         PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps3.setObject(1,new LocalDateTime[]{LocalDateTime.of(2016,1,2,10,25,10).truncatedTo(ChronoUnit.SECONDS)});
+        ps3.setObject(1,new BasicDateTime[]{new BasicDateTime(LocalDateTime.of(2016,1,2,10,25,10).truncatedTo(ChronoUnit.SECONDS))});
         ps3.setInt(2,2);
         ps3.addBatch();
         ps3.executeUpdate();
@@ -4756,31 +4756,31 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
 
         PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps1.setObject(1,new LocalDateTime[]{LocalDateTime.of(2035,6,6,17,30,15,123456789).truncatedTo(ChronoUnit.MICROS), LocalDateTime.of(2012,7,7,16,35,10).truncatedTo(ChronoUnit.MICROS)});
+        ps1.setObject(1,new BasicTimestamp[]{new BasicTimestamp(LocalDateTime.of(2035,6,6,17,30,15,123456789).truncatedTo(ChronoUnit.MILLIS)), new BasicTimestamp(LocalDateTime.of(2012,7,7,16,35,10).truncatedTo(ChronoUnit.MILLIS))});
         ps1.setInt(2,2);
         ps1.addBatch();
         ps1.execute();
         JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re1 = (BasicTable) rs1.getResult();
-        Assert.assertEquals("[2035.06.06T17:30:15.123456,2012.07.07T16:35:10.000000]", re1.getColumn(1).get(1).getString());
+        Assert.assertEquals("[2035.06.06T17:30:15.123,2012.07.07T16:35:10.000]", re1.getColumn(1).get(1).getString());
 
         PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps2.setObject(1,new LocalDateTime[]{LocalDateTime.of(2016,11,11,23,59,59,123456789).truncatedTo(ChronoUnit.MICROS)});
+        ps2.setObject(1,new BasicTimestamp[]{new BasicTimestamp(LocalDateTime.of(2016,11,11,23,59,59,123456789).truncatedTo(ChronoUnit.MILLIS))});
         ps2.setInt(2,2);
         ps2.addBatch();
         ps2.executeBatch();
         JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re2 = (BasicTable) rs2.getResult();
-        Assert.assertEquals("[2016.11.11T23:59:59.123456]", re2.getColumn(1).get(1).getString());
+        Assert.assertEquals("[2016.11.11T23:59:59.123]", re2.getColumn(1).get(1).getString());
 
         PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps3.setObject(1,new LocalDateTime[]{LocalDateTime.of(2019,12,12,23,59,59,123456789).truncatedTo(ChronoUnit.MICROS)});
+        ps3.setObject(1,new BasicTimestamp[]{new BasicTimestamp(LocalDateTime.of(2019,12,12,23,59,59,123456789).truncatedTo(ChronoUnit.MILLIS))});
         ps3.setInt(2,2);
         ps3.addBatch();
         ps3.executeUpdate();
         JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re3 = (BasicTable) rs3.getResult();
-        Assert.assertEquals("[2019.12.12T23:59:59.123456]", re3.getColumn(1).get(1).getString());
+        Assert.assertEquals("[2019.12.12T23:59:59.123]", re3.getColumn(1).get(1).getString());
     }
     @Test
     public void test_PreparedStatement_insert_into_DFS_update_arrayVector_NANOTIME_executeBatch() throws SQLException, IOException {
@@ -4799,7 +4799,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
 
         PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps1.setObject(1,new LocalTime[]{LocalTime.of(16,36,36,123456789),LocalTime.of(12,35,35,123456789)});
+        ps1.setObject(1,new BasicNanoTime[]{new BasicNanoTime(LocalTime.of(16,36,36,123456789)),new BasicNanoTime(LocalTime.of(12,35,35,123456789))});
         ps1.setInt(2,2);
         ps1.addBatch();
         ps1.execute();
@@ -4808,7 +4808,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[16:36:36.123456789,12:35:35.123456789]", re1.getColumn(1).get(1).getString());
 
         PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps2.setObject(1,new LocalTime[]{LocalTime.of(9,0,0),LocalTime.of(15,15,15,123)});
+        ps2.setObject(1,new BasicNanoTime[]{new BasicNanoTime(LocalTime.of(9,0,0)),new BasicNanoTime(LocalTime.of(15,15,15,123))});
         ps2.setInt(2,2);
         ps2.addBatch();
         ps2.executeBatch();
@@ -4817,7 +4817,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[09:00:00.000000000,15:15:15.000000123]", re2.getColumn(1).get(1).getString());
 
         PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps3.setObject(1,new LocalTime[]{LocalTime.of(16,40,40,123456789),LocalTime.of(23,59,59,999999999)});
+        ps3.setObject(1,new BasicNanoTime[]{new BasicNanoTime(LocalTime.of(16,40,40,123456789)),new BasicNanoTime(LocalTime.of(23,59,59,999999999))});
         ps3.setInt(2,2);
         ps3.addBatch();
         ps3.executeUpdate();
@@ -4842,7 +4842,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
 
         PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps1.setObject(1,new LocalDateTime[]{LocalDateTime.of(1969,1,1,1,1,1,1),LocalDateTime.of(2038,5,5,15,30,15,123)});
+        ps1.setObject(1,new BasicNanoTimestamp[]{new BasicNanoTimestamp(LocalDateTime.of(1969,1,1,1,1,1,1)),new BasicNanoTimestamp(LocalDateTime.of(2038,5,5,15,30,15,123))});
         ps1.setInt(2,2);
         ps1.addBatch();
         ps1.execute();
@@ -4851,7 +4851,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[1969.01.01T01:01:01.000000001,2038.05.05T15:30:15.000000123]", re1.getColumn(1).get(1).getString());
 
         PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps2.setObject(1,new LocalDateTime[]{LocalDateTime.of(2021,9,22,16,47,47,123456789)});
+        ps2.setObject(1,new BasicNanoTimestamp[]{new BasicNanoTimestamp(LocalDateTime.of(2021,9,22,16,47,47,123456789))});
         ps2.setInt(2,2);
         ps2.addBatch();
         ps2.executeBatch();
@@ -4860,7 +4860,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[2021.09.22T16:47:47.123456789]", re2.getColumn(1).get(1).getString());
 
         PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps3.setObject(1,new LocalDateTime[]{LocalDateTime.of(2000,6,14,7,17,5)});
+        ps3.setObject(1,new BasicNanoTimestamp[]{new BasicNanoTimestamp(LocalDateTime.of(2000,6,14,7,17,5))});
         ps3.setInt(2,2);
         ps3.addBatch();
         ps3.executeUpdate();
@@ -5039,7 +5039,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[2021.10.15T23,1999.04.15T15]", re1.getColumn(1).get(1).getString());
 
         PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps2.setObject(1,new LocalDateTime[]{LocalDateTime.of(2000,10,30,21,15).truncatedTo(ChronoUnit.HOURS),LocalDateTime.of(1969,6,1,11,20).truncatedTo(ChronoUnit.HOURS)});
+        ps2.setObject(1,new BasicDateHour[]{new BasicDateHour(LocalDateTime.of(2000,10,30,21,15).truncatedTo(ChronoUnit.HOURS)),new BasicDateHour(LocalDateTime.of(1969,6,1,11,20).truncatedTo(ChronoUnit.HOURS))});
         ps2.setInt(2,2);
         ps2.addBatch();
         ps2.executeBatch();
@@ -5048,7 +5048,7 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[2000.10.30T21,1969.06.01T11]", re2.getColumn(1).get(1).getString());
 
         PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps3.setObject(1,new LocalDateTime[]{LocalDateTime.of(1989,1,1,12,0).truncatedTo(ChronoUnit.HOURS),LocalDateTime.of(2004,6,17,9,1).truncatedTo(ChronoUnit.HOURS)});
+        ps3.setObject(1,new BasicDateHour[]{new BasicDateHour(LocalDateTime.of(1989,1,1,12,0).truncatedTo(ChronoUnit.HOURS)),new BasicDateHour(LocalDateTime.of(2004,6,17,9,1).truncatedTo(ChronoUnit.HOURS))});
         ps3.setInt(2,2);
         ps3.addBatch();
         ps3.executeUpdate();
@@ -5194,13 +5194,13 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
 
         PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps1.setObject(1, new BasicDecimal32[]{new BasicDecimal32("123.123456",6), new BasicDecimal32("123.123",6)});
+        ps1.setObject(1, new BasicDecimal32[]{new BasicDecimal32("123.123456",5), new BasicDecimal32("123.123",5)});
         ps1.setInt(2,2);
         ps1.addBatch();
         ps1.execute();
         JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re1 = (BasicTable) rs1.getResult();
-        Assert.assertEquals("[123.123456,123.123000]", re1.getColumn(1).get(1).getString());
+        Assert.assertEquals("[123.12345,123.123000]", re1.getColumn(1).get(1).getString());
 
         PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
         ps2.setObject(1,new BigDecimal[]{BigDecimal.valueOf(123456789,5)});
