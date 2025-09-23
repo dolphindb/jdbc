@@ -10,16 +10,16 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.*;
+import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Properties;
-import java.util.UUID;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 
 import static java.sql.Statement.SUCCESS_NO_INFO;
 import static junit.framework.TestCase.assertTrue;
@@ -4238,7 +4238,6 @@ public class JDBCPrepareStatementTest {
     @Test
     public void test_PreparedStatement_insert_into_DFS_update_arrayVector_BOOL_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("BOOL");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new boolean[]{true,true,false});
@@ -4251,20 +4250,37 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[true,true,false]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
-        Assert.assertEquals("[true,false]",re1.getColumn(1).get(2).getString());
+        BasicTable re = (BasicTable) rs.getResult();
+        Assert.assertEquals("[true,true,false]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+        Assert.assertEquals("[true,false]",re.getColumn(1).get(2).getString());
 
         PreparedStatement ps1 = conn.prepareStatement("update  loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
         ps1.setObject(1,new Boolean[]{true,true,false});
         ps1.setInt(2,2);
         ps1.addBatch();
         ps1.execute();
-        JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re2= (BasicTable) rs1.getResult();
+        JDBCResultSet rs1 = (JDBCResultSet) ps1.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
         Assert.assertEquals("[true,true,false]",re1.getColumn(1).get(1).getString());
 
+        PreparedStatement ps2 = conn.prepareStatement("update  loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1, new boolean[]{true,false});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps2.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[true,false]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update  loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1, new Boolean[]{true,false,false});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps3.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[true,false,false]", re3.getColumn(1).get(1).getString());
 //        PreparedStatement ps3 = conn.prepareStatement("update  loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
 //        Array reww = new DolphinDBArray(new BasicBooleanVector(Arrays.asList(new Byte[]{0,1,1})));
 //        ps3.setArray(1,reww);
@@ -4278,7 +4294,6 @@ public class JDBCPrepareStatementTest {
     @Test
     public void test_PreparedStatement_insert_into_DFS_update_arrayVector_CHAR_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("CHAR");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new byte[]{'A','F'});
@@ -4291,24 +4306,41 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("['A','F']",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
-        Assert.assertEquals("['A','C']",re1.getColumn(1).get(2).getString());
+        BasicTable re = (BasicTable) rs.getResult();
+        Assert.assertEquals("['A','F']",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+        Assert.assertEquals("['A','C']",re.getColumn(1).get(2).getString());
 
-        PreparedStatement ps1 = conn.prepareStatement("update  loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
         ps1.setObject(1,new byte[]{'A','C'});
         ps1.setInt(2,1);
         ps1.addBatch();
-        ps1.executeBatch();
+        ps1.execute();
         JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re2= (BasicTable) rs1.getResult();
-        Assert.assertEquals("['A','C']",re2.getColumn(1).get(0).getString());
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("['A','C']",re1.getColumn(1).get(0).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new Byte[]{'A','B'});
+        ps2.setInt(2,1);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps2.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("['A','B']",re2.getColumn(1).get(0).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new byte[]{'C','D'});
+        ps3.setInt(2,1);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps3.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("['C','D']",re3.getColumn(1).get(0).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_SHORT_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_SHORT_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("SHORT");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new short[]{(short)555,(short)-1,0});
@@ -4321,15 +4353,42 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[555,-1,0]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
-        Assert.assertEquals("[1555,-111,0]",re1.getColumn(1).get(2).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[555,-1,0]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+        Assert.assertEquals("[1555,-111,0]",re.getColumn(1).get(2).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new short[]{-1,0,555});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[-1,0,555]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new Short[]{555,-1,0});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[555,-1,0]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new short[]{1,3});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[1,3]", re3.getColumn(1).get(1).getString());
+
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_INT_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_INT_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("INT");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new int[]{12121,-11111,0});
@@ -4342,16 +4401,41 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        System.out.println(re1.getString());
-        Assert.assertEquals("[12121,-11111,0]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
-        Assert.assertEquals("[-12121,0,11111]",re1.getColumn(1).get(2).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[12121,-11111,0]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+        Assert.assertEquals("[-12121,0,11111]",re.getColumn(1).get(2).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new int[]{654321,-12345,0});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[654321,-12345,0]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new Integer[]{0,654321,-12345});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[0,654321,-12345]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new int[]{0,-1,1});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[0,-1,1]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_LONG_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_LONG_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("LONG");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new long[]{(long)1233,(long)-1233,(long)0});
@@ -4364,15 +4448,41 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[1233,-1233,0]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
-        Assert.assertEquals("[-133,13003,0]",re1.getColumn(1).get(2).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[1233,-1233,0]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+        Assert.assertEquals("[-133,13003,0]",re.getColumn(1).get(2).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new long[]{1234567890L,-123456L, 0L});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[1234567890,-123456,0]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new Long[]{0L,-1234567890L, 9876543210123456L});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[0,-1234567890, 9876543210123456]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new long[]{1L,0L,-3L});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[1,0,-3]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_DATE_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_DATE_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("DATE");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new java.util.Date[]{Date.valueOf(LocalDate.of(2008,1,12)),Date.valueOf(LocalDate.of(1969,1,1))});
@@ -4382,14 +4492,40 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[2008.01.12,1969.01.01]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re = (BasicTable) rs.getResult();
+        Assert.assertEquals("[2008.01.12,1969.01.01]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1, new java.util.Date[]{Date.valueOf("2010-06-12"),Date.valueOf("1969-02-24")});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[2010.06.12,1969.02.24]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new java.util.Date[]{Date.valueOf("1969-04-11"),Date.valueOf("2021-03-19")});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[1969.04.11,2021.03.19]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new java.util.Date[]{Date.valueOf("1987-09-01"),Date.valueOf("2024-12-31")});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[1987.09.01,2024.12.31]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_MONTH_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_MONTH_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("MONTH");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new LocalDate[]{LocalDate.of(1969,1,10),LocalDate.of(2021,1,10)});
@@ -4399,15 +4535,40 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[1969.01M,2021.01M]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[1969.01M,2021.01M]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
 
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new YearMonth[]{YearMonth.of(2021,4),YearMonth.of(1969,4)});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[2021.04M,1969.04M]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new YearMonth[]{YearMonth.of(1969,1),YearMonth.of(2020,2)});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[1969.01M,2020.02M]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new YearMonth[]{YearMonth.of(2017,11),YearMonth.of(1945,2)});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[2017.11M,1945.02M]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_TIME_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_TIME_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("TIME");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new Time[]{Time.valueOf(LocalTime.of(1,1,1)),Time.valueOf(LocalTime.of(23,59,59))});
@@ -4417,14 +4578,41 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[01:01:01.000,23:59:59.000]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re = (BasicTable) rs.getResult();
+        Assert.assertEquals("[01:01:01.000,23:59:59.000]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+//        ps1.setObject(1,new LocalTime[]{LocalTime.of(23,59,59).truncatedTo(ChronoUnit.MILLIS), LocalTime.of(0,0,2).truncatedTo(ChronoUnit.MILLIS)});
+        ps1.setObject(1,new BasicTime[]{new BasicTime(LocalTime.of(23,59,59)),new BasicTime(LocalTime.of(0,0,2))});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[23:59:59.000,00:00:02.000]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new LocalTime[]{LocalTime.of(12,12,12).truncatedTo(ChronoUnit.MILLIS),LocalTime.of(1,1,1).truncatedTo(ChronoUnit.MILLIS)});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[12:12:12.000,01:01:01.000]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new LocalTime[]{LocalTime.of(1,1,1).truncatedTo(ChronoUnit.MILLIS), LocalTime.of(23,59,59).truncatedTo(ChronoUnit.MILLIS)});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[01:01:01.000,23:59:59.000]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_MINUTE_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_MINUTE_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("MINUTE");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new LocalTime[]{LocalTime.of(0,1),LocalTime.of(23,59)});
@@ -4434,14 +4622,40 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[00:01m,23:59m]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re = (BasicTable) rs.getResult();
+        Assert.assertEquals("[00:01m,23:59m]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new LocalTime[]{LocalTime.of(17,21).truncatedTo(ChronoUnit.MINUTES),LocalTime.of(23,59).truncatedTo(ChronoUnit.MINUTES)});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[17:21m,23:59m]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new LocalTime[]{LocalTime.of(23,59).truncatedTo(ChronoUnit.MINUTES),LocalTime.of(0,0).truncatedTo(ChronoUnit.MINUTES)});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[23:59m,00:00m]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1, new LocalTime[]{LocalTime.of(12,0).truncatedTo(ChronoUnit.MINUTES),LocalTime.of(6,30).truncatedTo(ChronoUnit.MINUTES)});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[12:00m,06:30m]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_SECOND_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_SECOND_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("SECOND");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new LocalTime[]{LocalTime.of(1,1,1),LocalTime.of(23,59,59)});
@@ -4451,14 +4665,40 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[01:01:01,23:59:59]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[01:01:01,23:59:59]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new LocalTime[]{LocalTime.of(15,34,35).truncatedTo(ChronoUnit.SECONDS),LocalTime.of(0,1,0).truncatedTo(ChronoUnit.SECONDS)});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[15:34:35,00:01:00]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new LocalTime[]{LocalTime.of(16,0,0).truncatedTo(ChronoUnit.SECONDS)});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[16:00:00]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new LocalTime[]{LocalTime.of(1,2,0).truncatedTo(ChronoUnit.SECONDS)});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[01:02:00]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_DATETIME_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_DATETIME_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("DATETIME");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new LocalDateTime[]{LocalDateTime.of(2038,1,1,1,1,1),LocalDateTime.of(1969,12,31,23,59,59)});
@@ -4468,14 +4708,40 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[2038.01.01T01:01:01,1969.12.31T23:59:59]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[2038.01.01T01:01:01,1969.12.31T23:59:59]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new LocalDateTime[]{LocalDateTime.of(2021,9,22,16,0,15).truncatedTo(ChronoUnit.SECONDS)});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[2021.9.22T16:00:15]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new LocalDateTime[]{LocalDateTime.of(2021,10,1,15,30,30).truncatedTo(ChronoUnit.SECONDS)});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[2021.10.01T15:30:30]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new LocalDateTime[]{LocalDateTime.of(2016,1,2,10,25,10).truncatedTo(ChronoUnit.SECONDS)});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[2016.01.02T10:25:10]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_TIMESTAMP_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_TIMESTAMP_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("TIMESTAMP");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new LocalDateTime[]{LocalDateTime.of(2030,12,31,23,59,59,999999999),LocalDateTime.of(1969,1,1,1,1,1,001)});
@@ -4485,14 +4751,40 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[2030.12.31T23:59:59.999,1969.01.01T01:01:01.000]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[2030.12.31T23:59:59.999,1969.01.01T01:01:01.000]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new LocalDateTime[]{LocalDateTime.of(2035,6,6,17,30,15,123456789).truncatedTo(ChronoUnit.MICROS), LocalDateTime.of(2012,7,7,16,35,10).truncatedTo(ChronoUnit.MICROS)});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[2035.06.06T17:30:15.123456,2012.07.07T16:35:10.000000]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new LocalDateTime[]{LocalDateTime.of(2016,11,11,23,59,59,123456789).truncatedTo(ChronoUnit.MICROS)});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[2016.11.11T23:59:59.123456]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new LocalDateTime[]{LocalDateTime.of(2019,12,12,23,59,59,123456789).truncatedTo(ChronoUnit.MICROS)});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[2019.12.12T23:59:59.123456]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_NANOTIME_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_NANOTIME_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("NANOTIME");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new LocalDateTime[]{LocalDateTime.of(2030,12,31,23,59,59,999999999),LocalDateTime.of(1969,1,1,1,1,1,001)});
@@ -4502,14 +4794,40 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[23:59:59.999999999,01:01:01.000000001]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[23:59:59.999999999,01:01:01.000000001]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new LocalTime[]{LocalTime.of(16,36,36,123456789),LocalTime.of(12,35,35,123456789)});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[16:36:36.123456789,12:35:35.123456789]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new LocalTime[]{LocalTime.of(9,0,0),LocalTime.of(15,15,15,123)});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[09:00:00.000000000,15:15:15.000000123]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new LocalTime[]{LocalTime.of(16,40,40,123456789),LocalTime.of(23,59,59,999999999)});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[16:40:40.123456789,23:59:59.999999999]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_NANOTIMESTAMP_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_NANOTIMESTAMP_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("NANOTIMESTAMP");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new LocalDateTime[]{LocalDateTime.of(2030,12,31,23,59,59,999999999),LocalDateTime.of(1969,1,1,1,1,1,001)});
@@ -4519,14 +4837,40 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[2030.12.31T23:59:59.999999999,1969.01.01T01:01:01.000000001]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[2030.12.31T23:59:59.999999999,1969.01.01T01:01:01.000000001]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new LocalDateTime[]{LocalDateTime.of(1969,1,1,1,1,1,1),LocalDateTime.of(2038,5,5,15,30,15,123)});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[1969.01.01T01:01:01.000000001,2038.05.05T15:30:15.000000123]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new LocalDateTime[]{LocalDateTime.of(2021,9,22,16,47,47,123456789)});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[2021.09.22T16:47:47.123456789]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new LocalDateTime[]{LocalDateTime.of(2000,6,14,7,17,5)});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[2000.06.14T07:17:05.000000000]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_FLOAT_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_FLOAT_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("FLOAT");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new float[]{(float)11.11,(float)-343411.11,0});
@@ -4535,19 +4879,45 @@ public class JDBCPrepareStatementTest {
         ps.setNull(2,Types.FLOAT);
         ps.addBatch();
         ps.setInt(1,3);
-        ps.setObject(2,new Float[]{(float)11.11,(float)-34411.11, Float.valueOf(0)});
+        ps.setObject(2,new Float[]{(float)11.11,(float)-34411.11, (float) 0});
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[11.10999966,-343411.125,0]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
-        Assert.assertEquals("[11.10999966,-34411.109375,0]",re1.getColumn(1).get(2).getString());
+        BasicTable re = (BasicTable) rs.getResult();
+        Assert.assertEquals("[11.10999966,-343411.125,0]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+        Assert.assertEquals("[11.10999966,-34411.109375,0]",re.getColumn(1).get(2).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new float[]{11.11f,-343411.11f,0f});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("[11.11f,-343411.11f,0f].eqFloat(select col2 from loadTable('dfs://test_append_array_tsdb1','pt'))");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[11.10999966,-34411.109375,0]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new Float[]{-11.11f,343411.11f,0f});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[-11.10999966,34411.109375,0]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1, new float[]{1.6f,-3.9f,0f});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[1.6,-3.9,0]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_DOUBLE_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_DOUBLE_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("DOUBLE");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new double[]{11.11,-343411.11,0});
@@ -4560,15 +4930,41 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[11.11,-343411.11,0]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
-        Assert.assertEquals("[11.11,-34341.11,0]",re1.getColumn(1).get(2).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[11.11,-343411.11,0]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+        Assert.assertEquals("[11.11,-34341.11,0]",re.getColumn(1).get(2).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new double[]{-33.33,12.34,0});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[-33.33,12.34,0]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new Double[]{12.34, (double) 0,-33.33});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[12.34,0,-33.33]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new double[]{1.001,-0.0001,0});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[1.001,-0.0001,0]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_UUID_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_UUID_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("UUID");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
 //        ps.setObject(2,new UUID[]{UUID.fromString("00000000-0000-0001-0000-000000000002")});
@@ -4579,14 +4975,46 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[00000000-0000-0001-0000-000000000002]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[00000000-0000-0001-0000-000000000002]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+//        ps1.setObject(1, new String[]{"00000000-abcd-0003-0000-000000000003"});
+//        ps1.setObject(1, new UUID[]{UUID.fromString("00000000-abcd-0003-0000-000000000003")});
+        ps1.setObject(1, new BasicUuid[]{BasicUuid.fromString("00000000-abcd-0003-0000-000000000003")});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[00000000-abcd-0003-0000-000000000003]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+//        ps2.setObject(1,new String[]{"00000000-abcd-0001-0000-000000000002"});
+//        ps2.setObject(1, new UUID[]{UUID.fromString("00000000-abcd-0001-0000-000000000002")});
+        ps2.setObject(1, new BasicUuid[]{BasicUuid.fromString("00000000-abcd-0001-0000-000000000002")});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[00000000-abcd-0001-0000-000000000002]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+//        ps3.setObject(1,new String[]{"54321000-abcd-0001-0000-00000000000e"});
+//        ps3.setObject(1, new UUID[]{UUID.fromString("54321000-abcd-0001-0000-00000000000e")});
+        ps3.setObject(1, new BasicUuid[]{BasicUuid.fromString("54321000-abcd-0001-0000-00000000000e")});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[54321000-abcd-0001-0000-00000000000e]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_DATEHOUR_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_DATEHOUR_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("DATEHOUR");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new LocalDateTime[]{LocalDateTime.of(1967,1,1,1,1,1,123456),LocalDateTime.of(2099,1,1,1,1,1,123456)});
@@ -4596,14 +5024,41 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[1967.01.01T01,2099.01.01T01]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[1967.01.01T01,2099.01.01T01]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+//        ps1.setObject(1,new LocalDateTime[]{LocalDateTime.of(2021,10,15,23,59).truncatedTo(ChronoUnit.HOURS),LocalDateTime.of(1999,4,15,15,59).truncatedTo(ChronoUnit.HOURS)});
+        ps1.setObject(1,new BasicDateHour[]{new BasicDateHour(LocalDateTime.of(2021,10,15,23,59).truncatedTo(ChronoUnit.HOURS)),new BasicDateHour(LocalDateTime.of(1999,4,15,15,59).truncatedTo(ChronoUnit.HOURS))});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[2021.10.15T23,1999.04.15T15]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new LocalDateTime[]{LocalDateTime.of(2000,10,30,21,15).truncatedTo(ChronoUnit.HOURS),LocalDateTime.of(1969,6,1,11,20).truncatedTo(ChronoUnit.HOURS)});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[2000.10.30T21,1969.06.01T11]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new LocalDateTime[]{LocalDateTime.of(1989,1,1,12,0).truncatedTo(ChronoUnit.HOURS),LocalDateTime.of(2004,6,17,9,1).truncatedTo(ChronoUnit.HOURS)});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[1989.01.01T12,2004.06.17T09]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_IPADDR_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_IPADDR_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("IPADDR");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new String[]{"0::1:0:0:0:2","11::222:0:0:0:109"});
@@ -4613,14 +5068,40 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[0::1:0:0:0:2,11::222:0:0:0:109]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[0.0.0.0]",re1.getColumn(1).get(1).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0::1:0:0:0:2,11::222:0:0:0:109]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[0.0.0.0]",re.getColumn(1).get(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1, new BasicIPAddr[]{BasicIPAddr.fromString("192.168.0.1")});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[192.168.0.1]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new BasicIPAddr[]{BasicIPAddr.fromString("0::1:0:0:0:112"),BasicIPAddr.fromString("127.0.0.0")});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[0::1:0:0:0:112,127.0.0.0]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new BasicIPAddr[]{BasicIPAddr.fromString("192.168.0.123"),BasicIPAddr.fromString("124::64:192:16:254:255")});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[192.168.0.123,124::64:192:16:254:255]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_INT128_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_INT128_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("INT128");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new String[]{"00000000000000010000000000000002","e1671797c52e15f763380b45e841ec32"});
@@ -4630,9 +5111,36 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[00000000000000010000000000000002,e1671797c52e15f763380b45e841ec32]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[00000000000000010000000000000002,e1671797c52e15f763380b45e841ec32]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new BasicInt128[]{BasicInt128.fromString("e1671797c52e15f763380b45e841ec32")});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[e1671797c52e15f763380b45e841ec32]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new BasicInt128[]{BasicInt128.fromString("00000000000000010000000000000002")});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[00000000000000010000000000000002]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new BasicInt128[]{BasicInt128.fromString("e1671797c52e15f763380b45e841ec32"),BasicInt128.fromString("00000000000000010000000000000002")});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[e1671797c52e15f763380b45e841ec32,00000000000000010000000000000002]", re3.getColumn(1).get(1).getString());
     }
     @Ignore//NOT SUPPORT JAVAOS-147
     public void test_PreparedStatement_insert_into_DFS_arrayVector_COMPLEX() throws SQLException, IOException {
@@ -4669,9 +5177,8 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_DECIMAL32_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_DECIMAL32_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("DECIMAL32(5)");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
 //        ps.setObject(2,new BigDecimal[]{new BigDecimal(1.11),new BigDecimal(-1.11)},37,4);
@@ -4682,15 +5189,40 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
 
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1, new BasicDecimal32[]{new BasicDecimal32("123.123456",6), new BasicDecimal32("123.123",6)});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[123.123456,123.123000]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new BigDecimal[]{BigDecimal.valueOf(123456789,5)});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[1234.56789]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new BigDecimal[]{BigDecimal.valueOf(123456789,3),BigDecimal.valueOf(987654321,4)});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[123456.789,98765.4321]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_DECIMAL64_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_DECIMAL64_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("DECIMAL64(5)");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new Double[] {0.0,-123.00432,132.204234,100.0},38,4);
@@ -4700,14 +5232,40 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new BigDecimal[]{BigDecimal.valueOf(123456789098871234L,5)});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[1234567890988.71234]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new BigDecimal[]{BigDecimal.valueOf(987654321032145698L,5)});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[9876543210321.45698]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new BigDecimal[]{BigDecimal.valueOf(123456789098871234L,5),BigDecimal.valueOf(987654321032145698L,5)});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[1234567890988.71234,9876543210321.45698]", re3.getColumn(1).get(1).getString());
     }
     @Test
-    public void test_PreparedStatement_insert_into_DFS_arrayVector_DECIMAL128_executeBatch() throws SQLException, IOException {
+    public void test_PreparedStatement_insert_into_DFS_update_arrayVector_DECIMAL128_executeBatch() throws SQLException, IOException {
         createPartitionTable_Array("DECIMAL128(5)");
-        String re = null;
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
         ps.setObject(2,new String[] {"0.0","-123.00432","132.204234","100.0"},39,4);
@@ -4717,9 +5275,36 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
-        BasicTable re1= (BasicTable) rs.getResult();
-        Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
+
+        PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps1.setObject(1,new BasicDecimal128[]{new BasicDecimal128(BigInteger.valueOf(1234567890123456L),5)});
+        ps1.setInt(2,2);
+        ps1.addBatch();
+        ps1.execute();
+        JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1 = (BasicTable) rs1.getResult();
+        Assert.assertEquals("[1234567890123456.00000]", re1.getColumn(1).get(1).getString());
+
+        PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps2.setObject(1,new BasicDecimal128[]{new BasicDecimal128("666555444333222111",5)});
+        ps2.setInt(2,2);
+        ps2.addBatch();
+        ps2.executeBatch();
+        JDBCResultSet rs2 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re2 = (BasicTable) rs2.getResult();
+        Assert.assertEquals("[666555444333222111.00000]", re2.getColumn(1).get(1).getString());
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
+        ps3.setObject(1,new BasicDecimal128[]{new BasicDecimal128("1234",5),new BasicDecimal128("9876678912344321",5)});
+        ps3.setInt(2,2);
+        ps3.addBatch();
+        ps3.executeUpdate();
+        JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re3 = (BasicTable) rs3.getResult();
+        Assert.assertEquals("[1234.00000,9876678912344321.00000]", re3.getColumn(1).get(1).getString());
     }
 
     @Test
