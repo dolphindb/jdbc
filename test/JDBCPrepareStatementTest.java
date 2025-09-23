@@ -75,6 +75,31 @@ public class JDBCPrepareStatementTest {
             return success;
         }
     }
+    public static boolean createDFSTable(){
+        boolean success = false;
+        DBConnection db = null;
+        try{
+            String script = "login(`admin, `123456); \n"+
+                    "if(existsDatabase(\"dfs://example\")){ dropDatabase('dfs://example')}\n"
+                    + "t=table(`A`B`XOM`MS`IBM`IBM`C`C`C as sym,"
+                    + "33.56 59.67 62.35 81.09 88.63 19.57 0.82 51.78 55.58 as price"
+                    + ",2200 1900 2100 3200 6800 5400 1300 2500 8800 as qty, "
+                    + "13:42:18 13:50:34 13:54:28 14:17:30 14:32:33 15:00:20 15:32:07 16:00:02 16:02:24 as time)\n"
+                    + "db=database(\"dfs://example\", VALUE, `A`B`C`IBM`MS`XOM);\n"
+                    + "pt=db.createPartitionedTable(t, `pt, `sym).append!(t);" ;
+            db = new DBConnection();
+            db.connect(HOST, PORT,"admin","123456");
+            db.run(script);
+            success = true;
+        }catch(Exception e){
+            e.printStackTrace();
+        }finally{
+            if(db != null){
+                db.close();
+            }
+            return success;
+        }
+    }
     public static boolean createPartitionTable(String dataType){
         boolean success = false;
         DBConnection db = null;
@@ -11455,6 +11480,113 @@ public class JDBCPrepareStatementTest {
 //        }
 //        System.out.println("Timeout after " + elapsedTimeavg + " ms");
 //    }
+    @Test
+    public void test_JDBCStatement_DFS_table_execute_updateSql_regex() throws SQLException, ClassNotFoundException {
+        createDFSTable();
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(DB_URL+"?user=admin&password=123456");
+        PreparedStatement ps;
+        String updateSql;
+        ResultSet rs;
+        updateSql = "update loadTable(\"dfs://example\",\"pt\")\n" +
+                " set price =\n" +
+                " ?\n" +
+                " where time between ? \nand ?";
+        ps = conn.prepareStatement(updateSql);
+        ps.setDouble(1, 10.235);
+        ps.setObject(2, new BasicSecond(LocalTime.of(14,15).truncatedTo(ChronoUnit.SECONDS)));
+        ps.setObject(3, new BasicSecond(LocalTime.of(14,30).truncatedTo(ChronoUnit.SECONDS)));
+        ps.execute();
+        rs = ps.executeQuery("select * from loadTable(\"dfs://example\",\"pt\") where time between 14:15:00 and 14:30:00");
+        rs.next();
+        org.junit.Assert.assertEquals("10.235",rs.getObject("price").toString());
+
+        updateSql = "update loadTable(\"dfs://example\",\"pt\")\t" +
+                " set price =\t" +
+                " ?\t" +
+                " where time between ? \tand ?";
+        ps = conn.prepareStatement(updateSql);
+        ps.setDouble(1, 10.2);
+        ps.setObject(2, new BasicSecond(LocalTime.of(14,15).truncatedTo(ChronoUnit.SECONDS)));
+        ps.setObject(3, new BasicSecond(LocalTime.of(14,30).truncatedTo(ChronoUnit.SECONDS)));
+        ps.execute();
+        rs = ps.executeQuery("select * from loadTable(\"dfs://example\",\"pt\") where time between 14:15:00 and 14:30:00");
+        rs.next();
+        org.junit.Assert.assertEquals("10.2",rs.getObject("price").toString());
+    }
+
+    @Test
+    public void test_JDBCStatement_DFS_table_executeUpdate_updateSql_regex() throws SQLException, ClassNotFoundException {
+        createDFSTable();
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(DB_URL+"?user=admin&password=123456");
+        PreparedStatement ps;
+        String updateSql;
+        ResultSet rs;
+        updateSql = "update loadTable(\"dfs://example\",\"pt\")\n" +
+                " set price =\n" +
+                " ?\n" +
+                " where time between ? \nand ?";
+        ps = conn.prepareStatement(updateSql);
+        ps.setDouble(1, 10.235);
+        ps.setObject(2, new BasicSecond(LocalTime.of(14,15).truncatedTo(ChronoUnit.SECONDS)));
+        ps.setObject(3, new BasicSecond(LocalTime.of(14,30).truncatedTo(ChronoUnit.SECONDS)));
+        ps.executeUpdate();
+        rs = ps.executeQuery("select * from loadTable(\"dfs://example\",\"pt\") where time between 14:15:00 and 14:30:00");
+        rs.next();
+        org.junit.Assert.assertEquals("10.235",rs.getObject("price").toString());
+
+        updateSql = "update loadTable(\"dfs://example\",\"pt\")\t" +
+                " set price =\t" +
+                " ?\t" +
+                " where time between ? \tand ?";
+        ps = conn.prepareStatement(updateSql);
+        ps.setDouble(1, 10.2);
+        ps.setObject(2, new BasicSecond(LocalTime.of(14,15).truncatedTo(ChronoUnit.SECONDS)));
+        ps.setObject(3, new BasicSecond(LocalTime.of(14,30).truncatedTo(ChronoUnit.SECONDS)));
+        ps.executeUpdate();
+        rs = ps.executeQuery("select * from loadTable(\"dfs://example\",\"pt\") where time between 14:15:00 and 14:30:00");
+        rs.next();
+        org.junit.Assert.assertEquals("10.2",rs.getObject("price").toString());
+    }
+
+    @Test
+    public void test_JDBCStatement_DFS_table_executeBatch_updateSql_regex() throws SQLException, ClassNotFoundException {
+        createDFSTable();
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(DB_URL+"?user=admin&password=123456");
+        PreparedStatement ps;
+        String updateSql;
+        ResultSet rs;
+        updateSql = "update loadTable(\"dfs://example\",\"pt\")\n" +
+                " set price =\n" +
+                " ?\n" +
+                " where time between ? \nand ?";
+        ps = conn.prepareStatement(updateSql);
+        ps.setDouble(1, 10.235);
+        ps.setObject(2, new BasicSecond(LocalTime.of(14,15).truncatedTo(ChronoUnit.SECONDS)));
+        ps.setObject(3, new BasicSecond(LocalTime.of(14,30).truncatedTo(ChronoUnit.SECONDS)));
+        ps.addBatch();
+        ps.executeBatch();
+        rs = ps.executeQuery("select * from loadTable(\"dfs://example\",\"pt\") where time between 14:15:00 and 14:30:00");
+        rs.next();
+        org.junit.Assert.assertEquals("10.235",rs.getObject("price").toString());
+
+        updateSql = "update loadTable(\"dfs://example\",\"pt\")\t" +
+                " set price =\t" +
+                " ?\t" +
+                " where time between ? \tand ?";
+        ps = conn.prepareStatement(updateSql);
+        ps.setDouble(1, 10.2);
+        ps.setObject(2, new BasicSecond(LocalTime.of(14,15).truncatedTo(ChronoUnit.SECONDS)));
+        ps.setObject(3, new BasicSecond(LocalTime.of(14,30).truncatedTo(ChronoUnit.SECONDS)));
+        ps.addBatch();
+        ps.executeBatch();
+        rs = ps.executeQuery("select * from loadTable(\"dfs://example\",\"pt\") where time between 14:15:00 and 14:30:00");
+        rs.next();
+        org.junit.Assert.assertEquals("10.2",rs.getObject("price").toString());
+    }
+
     @After
     public void Destroy(){
         LOGININFO = null;
