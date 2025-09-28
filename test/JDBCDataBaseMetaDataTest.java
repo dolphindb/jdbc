@@ -1447,6 +1447,31 @@ public class JDBCDataBaseMetaDataTest {
             System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getTables_catalog_schemaPattern_table_not_exist");
         }
     }
+    @Test
+    public void test_DatabaseMetaData_getColumns_memoryTable_300_catalogNamePattern_schemaNamePattern_null() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+            DBConnection connDB = new DBConnection();
+            connDB.connect(HOST,PORT,"admin","123456");
+            Connection conn = null;
+            Statement stmt = null;
+            Class.forName(JDBC_DRIVER);
+            conn = DriverManager.getConnection(url,LOGININFO);
+            stmt = conn.createStatement();
+            ResultSet rs = null;
+            DatabaseMetaData metaData = conn.getMetaData();
+            String results = null;
+            connDB.run("share table(1..10 as id) as table1");
+            rs = metaData.getColumns(null,null,"table1", "%");
+            String results1 = getTablesData(rs);
+            //printData(rs);
+            Assert.assertEquals("nullTABLE_CAT: null    TABLE_SCHEM: null    TABLE_NAME: table1    COLUMN_NAME: id    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    ",results1);
+            stmt.close();
+            conn.close();
+        }else{
+            System.out.println("SKIP THIS CASE : test_DatabaseMetaData_getTables_catalog_schemaPattern_table_not_exist");
+        }
+    }
     //@Test not support
     public void test_DatabaseMetaData_getColumns_columnNamePattern_null_300() throws Exception {
         JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
