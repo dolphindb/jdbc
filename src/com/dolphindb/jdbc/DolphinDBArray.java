@@ -102,4 +102,9 @@ public class DolphinDBArray implements Array {
     public void free() throws SQLException {
         freed = true;
     }
+
+    @Override
+    public String toString() {
+        return vector.getString();
+    }
 }
