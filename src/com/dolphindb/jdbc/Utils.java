@@ -770,7 +770,7 @@ public class Utils {
             case "CHAR":
                 return Types.CHAR;
             case "SHORT":
-                return Types.TINYINT;
+                return Types.SMALLINT;
             case "INT":
                 return Types.INTEGER;
             case "LONG":
@@ -778,9 +778,11 @@ public class Utils {
             case "DATE":
                 return Types.DATE;
             case "TIME":
+            case "NANOTIME":
                 return Types.TIME;
             case "DATETIME":
             case "TIMESTAMP":
+            case "NANOTIMESTAMP":
                 return Types.TIMESTAMP;
             case "FLOAT":
                 return Types.FLOAT;

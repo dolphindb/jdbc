@@ -62,7 +62,7 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
             case DT_BYTE:
                 return Types.CHAR;
             case DT_SHORT:
-                return Types.TINYINT;
+                return Types.SMALLINT;
             case DT_INT:
                 return Types.INTEGER;
             case DT_LONG:
@@ -70,9 +70,11 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
             case DT_DATE:
                 return Types.DATE;
             case DT_TIME:
+            case DT_NANOTIME:
                 return Types.TIME;
             case DT_DATETIME:
             case DT_TIMESTAMP:
+            case DT_NANOTIMESTAMP:
                 return Types.TIMESTAMP;
             case DT_FLOAT:
                 return Types.FLOAT;
