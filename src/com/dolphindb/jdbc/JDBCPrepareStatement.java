@@ -11,6 +11,9 @@ import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
 import java.util.*;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 
@@ -24,6 +27,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private int batchSize;
 	private List<String> sqlBuffer;
 	private boolean isPreparedStatement;
+	private List<BasicDictionary> runSQLparamDictList;
 
 	public JDBCPrepareStatement(JDBCConnection conn, String sql) throws SQLException {
 		super(conn);
@@ -34,6 +38,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		String lastStatement  = sqlSplit.length == 0 ? "" : sqlSplit[sqlSplit.length - 1].trim();
 		this.sqlDmlType = Utils.getDml(lastStatement);
 		this.sqlBuffer = new ArrayList<>();
+		this.runSQLparamDictList = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
 		if (preProcessedSql.contains("?"))
 			isPreparedStatement = true;
@@ -114,7 +119,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				return tableAppend(true);
 			for (int i = 0; i < this.batchSize; i++) {
 				try {
-					executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
+					if (isStandardDML()) {
+						executeRes[i] = executeUpdateWithRunSQL(i);
+					} else {
+						executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
+					}
 				} catch (Exception e) {
 					throw new BatchUpdateException(e.getMessage(), Arrays.copyOf(executeRes, i));
 				}
@@ -178,6 +187,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 	}
 
+	private boolean isStandardDML() {
+		return sqlDmlType == Utils.DML_UPDATE ||
+		       sqlDmlType == Utils.DML_DELETE;
+	}
+
 	private void combineOneRowData(boolean isBatch) throws SQLException {
 		if (sqlDmlType == Utils.DML_INSERT) {
 			checkInsertBindsLegal(isBatch);
@@ -196,7 +210,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					}
 				}
 			}
+		} else if (sqlDmlType == Utils.DML_SELECT || sqlDmlType == Utils.DML_EXEC || sqlDmlType == Utils.DML_UPDATE || sqlDmlType == Utils.DML_DELETE) {
+			this.sqlBuffer.add(generateSQLWithRunsql());
+			this.runSQLparamDictList.add(createParameterDictionary());
 		} else {
+			// Other types use original logic
 			this.sqlBuffer.add(generateSQL());
 		}
 	}
@@ -206,7 +224,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		try{
 			if (isPreparedStatement) {
 				combineOneRowData(false);
-				return super.executeQuery(sqlBuffer.get(0));
+				if (sqlDmlType == Utils.DML_SELECT || sqlDmlType == Utils.DML_EXEC) {
+					return executeQueryWithRunSQL();
+				} else {
+					return super.executeQuery(sqlBuffer.get(0));
+				}
 			} else {
 				return super.executeQuery(sqlBuffer.get(0));
 			}
@@ -242,6 +264,13 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						return 1;
 					else
 						return 0;
+				} else if (this.sqlDmlType == Utils.DML_SELECT) {
+					// Special handling for SELECT in executeUpdate - set ResultSet for getResultSet()
+					ResultSet rs = executeQueryWithRunSQL();
+					objectQueue.offer(rs);
+					return 0;
+				} else if (isStandardDML()) {
+					return executeUpdateWithRunSQL(0);
 				} else {
 					return super.executeUpdate(sqlBuffer.get(0));
 				}
@@ -401,6 +430,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public void clearParameters() throws SQLException {
 		if (Objects.nonNull(bufferArea)) {
 			Arrays.fill(bufferArea, null);
+		}
+
+		if (!runSQLparamDictList.isEmpty()) {
+			runSQLparamDictList.clear();
 		}
 	}
 
@@ -685,5 +718,228 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 
 		return stringBuilder.toString();
+	}
+
+	private String generateSQLWithRunsql() throws SQLException {
+		if(Utils.isEmpty(this.preProcessedSql))
+			throw new SQLException("preProcessedSql is null. ");
+		String[] sqlSplitByQuestionMark = this.preProcessedSql.split("\\?");
+		StringBuilder stringBuilder = new StringBuilder();
+		if(this.bufferArea.length > sqlSplitByQuestionMark.length)
+			throw new SQLException("error size of bufferArea. ");
+
+		if (this.bufferArea.length != 0) {
+			for (int i = 0; i < this.bufferArea.length; i++) {
+				stringBuilder.append(sqlSplitByQuestionMark[i]);
+				stringBuilder.append("arg" + (i + 1));
+			}
+
+			if (sqlSplitByQuestionMark.length > this.bufferArea.length && Objects.nonNull(sqlSplitByQuestionMark[this.bufferArea.length]))
+				stringBuilder.append(sqlSplitByQuestionMark[this.bufferArea.length]);
+		} else {
+			// no placeholder
+			stringBuilder.append(sqlSplitByQuestionMark[0]);
+		}
+
+		return stringBuilder.toString();
+	}
+
+	private BasicDictionary createParameterDictionary() throws SQLException {
+		if (bufferArea.length == 0) {
+			return null;
+		}
+
+		List<String> keys = new ArrayList<>();
+		BasicAnyVector valueVector = new BasicAnyVector(bufferArea.length);
+		
+		for (int i = 0; i < bufferArea.length; i++) {
+			if (bufferArea[i] == null || bufferArea[i].getValue() == null) {
+				throw new SQLException("No value specified for parameter " + (i + 1));
+			}
+			
+			keys.add("arg" + (i + 1));
+			Object value = bufferArea[i].getValue();
+			
+			try {
+				Entity entity;
+				if (value instanceof Entity) {
+					entity = (Entity) value;
+				} else {
+					entity = convertToEntity(value);
+				}
+				valueVector.set(i, entity);
+			} catch (Exception e) {
+				throw new SQLException("Failed to convert parameter " + (i + 1) + " to DolphinDB entity", e);
+			}
+		}
+		
+		BasicDictionary dict = new BasicDictionary(Entity.DATA_TYPE.DT_STRING, Entity.DATA_TYPE.DT_ANY);
+		for (int i = 0; i < keys.size(); i++) {
+			dict.put(new BasicString(keys.get(i)), valueVector.get(i));
+		}
+		return dict;
+	}
+	
+	private Entity convertToEntity(Object value) throws Exception {
+		if (value == null) {
+			return new Void();
+		}
+
+		String valueClassName = value.getClass().getName();
+		
+		// Try basic type conversion first
+		String targetType = getAppropriateBasicType(valueClassName);
+		if (targetType != null) {
+			Entity basicResult = TypeCast.basicType_java2db(value, targetType);
+			if (basicResult != null) {
+				return basicResult;
+			}
+		}
+		
+		// Try datetime conversion
+		String dateTimeType = getAppropiateDateTimeType(valueClassName);
+		if (dateTimeType != null) {
+			Entity dateTimeResult = TypeCast.dataTime_java2db(value, dateTimeType);
+			if (dateTimeResult != null) {
+				return dateTimeResult;
+			}
+		}
+		
+		// Fallback conversion for unsupported types
+		return new BasicString(value.toString());
+	}
+	
+	private String getAppropriateBasicType(String valueClassName) {
+		switch (valueClassName) {
+			case "java.lang.Boolean":
+				return TypeCast.BASIC_BOOLEAN;
+			case "java.lang.Byte":
+				return TypeCast.BASIC_BYTE;
+			case "java.lang.Short":
+				return TypeCast.BASIC_SHORT;
+			case "java.lang.Integer":
+				return TypeCast.BASIC_INT;
+			case "java.lang.Long":
+				return TypeCast.BASIC_LONG;
+			case "java.lang.Float":
+				return TypeCast.BASIC_FLOAT;
+			case "java.lang.Double":
+				return TypeCast.BASIC_DOUBLE;
+			case "java.lang.String":
+				return TypeCast.BASIC_STRING;
+			case "java.lang.Character":
+				return TypeCast.BASIC_BYTE;
+			default:
+				return null;
+		}
+	}
+	
+	private String getAppropiateDateTimeType(String valueClassName) {
+		switch (valueClassName) {
+			case "java.sql.Date":
+				return TypeCast.BASIC_DATE;
+			case "java.sql.Time":
+				return TypeCast.BASIC_NANOTIME;
+			case "java.sql.Timestamp":
+				return TypeCast.BASIC_NANOTIMESTAMP;
+			case "java.util.Date":
+				return TypeCast.BASIC_NANOTIMESTAMP;
+			case "java.time.LocalDate":
+				return TypeCast.BASIC_DATE;
+			case "java.time.LocalTime":
+				return TypeCast.BASIC_NANOTIME;
+			case "java.time.LocalDateTime":
+				return TypeCast.BASIC_NANOTIMESTAMP;
+			case "java.time.YearMonth":
+				return TypeCast.BASIC_MONTH;
+			default:
+				return null;
+		}
+	}
+
+	private ResultSet executeQueryWithRunSQL() throws SQLException {
+		if (super.getQueryTimeout() > 0) {
+			Future<ResultSet> future = executorService.submit(() -> executeQueryWithRunSQLInternal());
+			try {
+				return future.get(super.getQueryTimeout(), TimeUnit.SECONDS);
+			} catch (TimeoutException e) {
+				future.cancel(true);
+				cancelJobOperation();
+				throw new SQLTimeoutException("PrepareStatement execute query timed out after " + super.getQueryTimeout() + " seconds.", e);
+			} catch (Exception e) {
+				throw new SQLException(e);
+			}
+		} else {
+			return executeQueryWithRunSQLInternal();
+		}
+	}
+
+	private int executeUpdateWithRunSQL(int index) throws SQLException {
+		if (super.getQueryTimeout() > 0) {
+			Future<Integer> future = executorService.submit(() -> executeUpdateWithRunSQLInternal(index));
+			try {
+				return future.get(super.getQueryTimeout(), TimeUnit.SECONDS);
+			} catch (TimeoutException e) {
+				future.cancel(true);
+				cancelJobOperation();
+				throw new SQLTimeoutException("PrepareStatement execute update timed out after " + super.getQueryTimeout() + " seconds.", e);
+			} catch (Exception e) {
+				throw new SQLException(e);
+			}
+		} else {
+			return executeUpdateWithRunSQLInternal(index);
+		}
+	}
+
+	private ResultSet executeQueryWithRunSQLInternal() throws SQLException {
+		try {
+			String sqlWithPlaceholders = sqlBuffer.get(0);
+			List<Entity> params = new ArrayList<>();
+			params.add(new BasicString(sqlWithPlaceholders));
+			params.add(new BasicString("ddb"));
+			params.add(runSQLparamDictList.get(0));
+
+			Entity entity;
+			if(super.getFetchSize() != 0) {
+				if (super.getFetchSize() < 8192) {
+					throw new SQLException("The fetchSize param must be greater than 8192.");
+				}
+				entity = connection.run("runSQL", params, super.getFetchSize());
+			} else {
+				entity = connection.run("runSQL", params);
+			}
+
+			if (entity instanceof BasicTable || entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR
+					|| entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR || entity.getDataForm() == Entity.DATA_FORM.DF_MATRIX) {
+				resultSet = new JDBCResultSet(connection, this, entity, sqlWithPlaceholders, super.getMaxRows());
+				return resultSet;
+			} else if(entity instanceof EntityBlockReader) {
+				resultSet = new JDBCResultSet(connection, this, (EntityBlockReader) entity, sqlWithPlaceholders, super.getMaxRows());
+				return resultSet;
+			} else {
+				throw new SQLException("The given SQL statement produces anything other than a single ResultSet object.");
+			}
+		} catch (Exception e) {
+			throw new SQLException(e);
+		}
+	}
+
+	private int executeUpdateWithRunSQLInternal(int index) throws SQLException {
+		try {
+			String sqlWithPlaceholders = sqlBuffer.get(index);
+			List<Entity> params = new ArrayList<>();
+			params.add(new BasicString(sqlWithPlaceholders));
+			params.add(new BasicString("ddb"));
+			params.add(runSQLparamDictList.get(index));
+
+			Entity result = connection.run("runSQL", params);
+			if (result instanceof Scalar && !((Scalar) result).isNull()) {
+				return ((Scalar) result).getNumber().intValue();
+			} else {
+				return SUCCESS_NO_INFO;
+			}
+		} catch (Exception e) {
+			throw new SQLException(e);
+		}
 	}
 }

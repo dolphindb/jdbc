@@ -579,6 +579,10 @@ public class JDBCConnection implements Connection {
 		return this.dbConnection.run(function, arguments);
 	}
 
+	protected Entity run(String function, List<Entity> arguments, int fetchSize) throws IOException {
+		return this.dbConnection.run(function, arguments, 4, 64, fetchSize, true);
+	}
+
 	// Automatic switching node
 	public Entity run(String script) throws IOException {
 		return this.dbConnection.run(script);
