@@ -778,7 +778,6 @@ public class Utils {
             case "DATE":
                 return Types.DATE;
             case "TIME":
-            case "NANOTIME":
                 return Types.TIME;
             case "DATETIME":
             case "TIMESTAMP":

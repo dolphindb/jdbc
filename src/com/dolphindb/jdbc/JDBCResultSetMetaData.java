@@ -70,7 +70,6 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
             case DT_DATE:
                 return Types.DATE;
             case DT_TIME:
-            case DT_NANOTIME:
                 return Types.TIME;
             case DT_DATETIME:
             case DT_TIMESTAMP:
