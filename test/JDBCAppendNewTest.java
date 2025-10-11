@@ -16,8 +16,6 @@ import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.UUID;
 
-import static com.dolphindb.jdbc.Main.printData;
-
 public class JDBCAppendNewTest {
     static String HOST = JDBCTestUtil.HOST;
     static int PORT = JDBCTestUtil.PORT;
@@ -84,6 +82,17 @@ public class JDBCAppendNewTest {
                 db.close();
             }
             return success;
+        }
+    }
+    public static void printData(ResultSet rs) throws SQLException {
+        ResultSetMetaData resultSetMetaData = rs.getMetaData();
+        int len = resultSetMetaData.getColumnCount();
+        while (rs.next()) {
+            for (int i = 1; i <= len; ++i) {
+                System.out.print(
+                        MessageFormat.format("{0}: {1},    ", resultSetMetaData.getColumnName(i), rs.getObject(i)));
+            }
+            System.out.print("\n");
         }
     }
 
