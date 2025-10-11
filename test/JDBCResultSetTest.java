@@ -1,29 +1,22 @@
 //import jdk.internal.dynalink.beans.StaticClass;
-import com.dolphindb.jdbc.JDBCConnection;
-import com.dolphindb.jdbc.JDBCResultSet;
-import com.dolphindb.jdbc.JDBCStatement;
 
+import com.dolphindb.jdbc.DolphinDBArray;
+import com.dolphindb.jdbc.JDBCResultSet;
+import com.xxdb.DBConnection;
 import com.xxdb.data.*;
 import junit.framework.TestCase;
+import org.junit.Test;
 import org.junit.*;
-import org.junit.Assert.*;
-
 
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.sql.*;
 import java.text.MessageFormat;
 import java.time.*;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.xxdb.DBConnection;
-import org.junit.Test;
-
-import static com.dolphindb.jdbc.Main.printData;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 
 public class JDBCResultSetTest {
@@ -4298,11 +4291,11 @@ public class JDBCResultSetTest {
 //			assertEquals(2003,rsmd.getColumnType(i));
 		}assertEquals(16,rsmd.getColumnType(1));
 		assertEquals(1,rsmd.getColumnType(2));
-		assertEquals(3,rsmd.getColumnType(3));
-		assertEquals(-6,rsmd.getColumnType(4));
-		assertEquals(4,rsmd.getColumnType(5));
-		assertEquals(-5,rsmd.getColumnType(6));
-		assertEquals(8,rsmd.getColumnType(7));
+		assertEquals(5,rsmd.getColumnType(3));
+		assertEquals(4,rsmd.getColumnType(4));
+		assertEquals(-5,rsmd.getColumnType(5));
+		assertEquals(8,rsmd.getColumnType(6));
+		assertEquals(6,rsmd.getColumnType(7));
 		assertEquals(91,rsmd.getColumnType(8));
 		assertEquals(1111,rsmd.getColumnType(9));
 		assertEquals(92,rsmd.getColumnType(10));
@@ -4311,7 +4304,7 @@ public class JDBCResultSetTest {
 		assertEquals(93,rsmd.getColumnType(13));
 		assertEquals(93,rsmd.getColumnType(14));
 		assertEquals(1111,rsmd.getColumnType(15));
-		assertEquals(1111,rsmd.getColumnType(16));
+		assertEquals(93,rsmd.getColumnType(16));
 		assertEquals(12,rsmd.getColumnType(17));
 		assertEquals(1111,rsmd.getColumnType(18));
 		assertEquals(1111,rsmd.getColumnType(19));
@@ -4350,6 +4343,70 @@ public class JDBCResultSetTest {
 		rs = stmt.executeQuery("select * from table_any ");
 		ResultSetMetaData rsmd = rs.getMetaData();
 		assertEquals(1111,rsmd.getColumnType(2));
+	}
+
+	@Test
+	public void Test_JDBCResultSet_getarray() throws Exception {
+		DBConnection connection = new DBConnection();
+		connection.connect(HOST,PORT,"admin","123456");
+		Preparedata_array(100,5);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		rs = stmt.executeQuery("select * from data");
+
+		BasicTable re = (BasicTable)connection.run("select * from data");
+		for(int rows=0; rows<20; rows++){
+			rs.next();
+			for(int i=1;i<=25;i++){
+				assertEquals(re.getColumn(i-1).get(rows).getString(), rs.getObject(i).toString());
+				assertEquals(re.getColumn(i-1).get(rows).getString(),rs.getArray(i).toString());
+				assertEquals(re.getColumn(i-1).get(rows).getString(),rs.getString(i));
+			}
+		}
+	}
+
+	@Test
+	public void Test_JDBCResultSet_getarray_null() throws Exception {
+		DBConnection connection = new DBConnection();
+		connection.connect(HOST,PORT,"admin","123456");
+		connection.run("colNames=\"col\"+string(1..26);\n" +
+				"colTypes=[INT,BOOL[],CHAR[],SHORT[],INT[],LONG[],DOUBLE[],FLOAT[],DATE[],MONTH[],TIME[],MINUTE[],SECOND[],DATETIME[],TIMESTAMP[],NANOTIME[],NANOTIMESTAMP[], DATEHOUR[],UUID[],IPADDR[],INT128[],POINT[],COMPLEX[],DECIMAL32(2)[],DECIMAL64(7)[],DECIMAL128(10)[]];\n" +
+				"share table(1:0,colNames,colTypes) as table_array;\n" +
+				"insert into table_array values(1,,,,,,,,,,,,,,,,,,,,,,,,,);");
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		rs = stmt.executeQuery("select * from table_array ");
+		rs.next();
+		BasicTable re = (BasicTable)connection.run("select * from table_array");
+		for(int i=2;i<=26;i++){
+			assertEquals(re.getColumn(i-1).get(0).getString(), rs.getObject(i).toString());
+			assertEquals(re.getColumn(i-1).get(0).getString(),rs.getArray(i).toString());
+			assertEquals(re.getColumn(i-1).get(0).getString(),rs.getString(i));
+		}
+		assertFalse(rs.next());
+	}
+
+	@Test
+	public void Test_JDBCResultSet_getarray_any() throws Exception {
+		DBConnection connection = new DBConnection();
+		connection.connect(HOST,PORT,"admin","123456");
+		connection.run("share table(1..1 as id,[[[1,2],[3]]] as any1) as table_any");
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		rs = stmt.executeQuery("select * from table_any");
+		rs.next();
+		BasicTable re = (BasicTable)connection.run("select * from table_any");
+		assertEquals(re.getColumn(1).get(0).getString(), rs.getObject(2).toString());
+		assertEquals(re.getColumn(1).get(0).getString(),rs.getArray(2).toString());
+		assertEquals(re.getColumn(1).get(0).getString(),rs.getString(2));
+		assertEquals(re.getColumn(1).get(0).getString(),rs.getString(2));
+
+		DolphinDBArray array1 = (DolphinDBArray)rs.getArray(2);
+		assertEquals("ANY",array1.getBaseTypeName());
+		assertEquals(1111,array1.getBaseType());
 	}
 }
 
