@@ -79,8 +79,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             if (Utils.checkServerVersionIfSupportCatalog(connection)) {
                 allCatalogStringVector = (BasicStringVector) connection.run("getAllCatalogs()");
             } else {
-                // substr dfs://
-                allCatalogStringVector = (BasicStringVector) connection.run("substr(getDFSDatabases(), 6)");
+                allCatalogStringVector = new BasicStringVector(new String[]{DATABASE_NAME});
             }
             cols.add(allCatalogStringVector);
         } catch (IOException e) {
@@ -166,12 +165,12 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                         throw new RuntimeException("Current catalog '" + catalog + "' doesn't has any schema.");
                     }
                 } else {
-                    BasicBoolean catalogExists = (BasicBoolean) connection.run("in (\"" + catalog + "\", substr(getDFSDatabases(), 6))");
-                    if (!catalogExists.getBoolean()) {
-                        throw new RuntimeException("The catalog '" + catalog + "' doesn't exist.");
+                    BasicBoolean schemaExists = (BasicBoolean) connection.run("in (\"" + schemaPattern + "\", substr(getDFSDatabases(), 6))");
+                    if (!schemaExists.getBoolean()) {
+                        throw new RuntimeException("The database '" + schemaPattern + "' doesn't exist.");
                     }
 
-                    String dbUrl = "dfs://" + catalog;
+                    String dbUrl = "dfs://" + schemaPattern;
                     originMetaData.put("dbUrl", dbUrl);
 
                     if (tableNamePattern.trim().equals("%")) {
@@ -640,9 +639,8 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         List<Vector> cols = new ArrayList<>();
 
         try {
-            BasicStringVector catalogsVec;
             if (Utils.checkServerVersionIfSupportCatalog(connection)) {
-                catalogsVec = (BasicStringVector) connection.run("getAllCatalogs();");
+                BasicStringVector catalogsVec = (BasicStringVector) connection.run("getAllCatalogs();");
                 if (catalogsVec.rows() != 0) {
                     BasicStringVector schemaVec = new BasicStringVector(0);
                     BasicStringVector catalogVec = new BasicStringVector(0);
@@ -660,10 +658,10 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     Schemas = new JDBCResultSet(connection, statement, (Entity) null,"");
                 }
             } else {
-                // substr dfs://
-                catalogsVec = (BasicStringVector) connection.run("substr(getDFSDatabases(), 6)");
-                cols.add(catalogsVec);
-                cols.add(catalogsVec);
+                BasicStringVector schemaVec = (BasicStringVector) connection.run("substr(getDFSDatabases(), 6)");
+                BasicStringVector catalogVec = new BasicStringVector(Collections.nCopies(schemaVec.rows(), DATABASE_NAME));
+                cols.add(schemaVec);
+                cols.add(catalogVec);
                 Schemas = new JDBCResultSet(connection, statement, new BasicTable(colNames, cols),"");
             }
         } catch (IOException e) {
@@ -689,15 +687,14 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     catalogVec.Append(new BasicStringVector(new ArrayList<>(Collections.nCopies(curSchemaVec.rows(), catalog))));
                     cols.add(schemaVec);
                     cols.add(catalogVec);
+                } else if (DATABASE_NAME.equals(catalog)) {
+                    BasicStringVector schemaVec = (BasicStringVector) connection.run("substr(getDFSDatabases(), 6)");
+                    BasicStringVector catalogVec = new BasicStringVector(Collections.nCopies(schemaVec.rows(), DATABASE_NAME));
+                    cols.add(schemaVec);
+                    cols.add(catalogVec);
+                    Schemas = new JDBCResultSet(connection, statement, new BasicTable(colNames, cols),"");
                 } else {
-                    BasicBoolean catalogExists = (BasicBoolean) connection.run("in (\"" + catalog + "\", substr(getDFSDatabases(), 6))");
-                    if (catalogExists.getBoolean()) {
-                        BasicStringVector catalogVec = new BasicStringVector(new ArrayList<>(Collections.singletonList(catalog)));
-                        cols.add(catalogVec);
-                        cols.add(catalogVec);
-                    } else {
-                        throw new RuntimeException("The catalog '" + catalog + "' doesn't exist.");
-                    }
+                    throw new IllegalArgumentException("Catalog must be \"DolphinDB\" and schemaPattern must be \"%\".");
                 }
                 Schemas = new JDBCResultSet(connection, statement, new BasicTable(colNames, cols),"");
             } catch (IOException e) {
@@ -784,20 +781,22 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 } else {
                     throw new RuntimeException("Current catalog " + catalog + " doesn't has any schema.");
                 }
-            } else {
-                BasicBoolean catalogExists = (BasicBoolean) connection.run("in (\"" + catalog + "\", substr(getDFSDatabases(), 6))");
-                if (!catalogExists.getBoolean()) {
-                    throw new SQLException("The catalog '" + catalog + "' doesn't exist.");
+            } else if (DATABASE_NAME.equals(catalog)) {
+                BasicBoolean schemaExists = (BasicBoolean) connection.run("in (\"" + schemaPattern + "\", substr(getDFSDatabases(), 6))");
+                if (!schemaExists.getBoolean()) {
+                    throw new SQLException("The database '" + schemaPattern + "' doesn't exist.");
                 }
 
-                BasicStringVector tableNameVec = (BasicStringVector) connection.run("getTables(database(\"dfs://" + catalog + "\"))");
+                BasicStringVector tableNameVec = (BasicStringVector) connection.run("getTables(database(\"dfs://" + schemaPattern + "\"))");
                 for (int i = 0; i < tableNameVec.rows(); i++) {
-                    tableCatVal.add(catalog);
-                    tableSchemVal.add(catalog);
+                    tableCatVal.add(DATABASE_NAME);  // TABLE_CAT = "DolphinDB"
+                    tableSchemVal.add(schemaPattern); // TABLE_SCHEM = DBName
                     tableNameVal.add(tableNameVec.getString(i));
                     tableTypeVal.add("TABLE");
                     remarksVal.add(null);
                 }
+            } else {
+                throw new IllegalArgumentException("Catalog must be \"DolphinDB\" and schemaPattern must be a valid database name.");
             }
 
             Stream.of(tableCatVal, tableSchemVal, tableNameVal, tableTypeVal, remarksVal)
@@ -836,20 +835,21 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 } else {
                     throw new RuntimeException("Current catalog " + catalog + " doesn't has any schema.");
                 }
+            } else if (DATABASE_NAME.equals(catalog)) {
+                BasicStringVector databases = (BasicStringVector) connection.run("substr(getDFSDatabases(), 6)");
+                for (int i = 0; i < databases.rows(); i++) {
+                    String dbName = databases.getString(i);
+                    BasicStringVector tableNameVec = (BasicStringVector) connection.run("getTables(database(\"dfs://" + dbName + "\"))");
+                    for (int j = 0; j < tableNameVec.rows(); j++) {
+                        tableCatVal.add(DATABASE_NAME); // TABLE_CAT = "DolphinDB"
+                        tableSchemVal.add(dbName);       // TABLE_SCHEM = DBName
+                        tableNameVal.add(tableNameVec.getString(j));
+                        tableTypeVal.add("TABLE");
+                        remarksVal.add(null);
+                    }
+                }
             } else {
-                BasicBoolean catalogExists = (BasicBoolean) connection.run("in (\"" + catalog + "\", substr(getDFSDatabases(), 6))");
-                if (!catalogExists.getBoolean()) {
-                    throw new SQLException("The catalog '" + catalog + "' doesn't exist.");
-                }
-
-                BasicStringVector tableNameVec = (BasicStringVector) connection.run("getTables(database(\"dfs://" + catalog + "\"))");
-                for (int i = 0; i < tableNameVec.rows(); i++) {
-                    tableCatVal.add(catalog);
-                    tableSchemVal.add(catalog);
-                    tableNameVal.add(tableNameVec.getString(i));
-                    tableTypeVal.add("TABLE");
-                    remarksVal.add(null);
-                }
+                throw new IllegalArgumentException("Catalog must be \"DolphinDB\" for old version servers.");
             }
 
             Stream.of(tableCatVal, tableSchemVal, tableNameVal, tableTypeVal, remarksVal)
