@@ -28,6 +28,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private List<String> sqlBuffer;
 	private boolean isPreparedStatement;
 	private List<BasicDictionary> runSQLparamDictList;
+	private boolean supportRunSQL;
 
 	public JDBCPrepareStatement(JDBCConnection conn, String sql) throws SQLException {
 		super(conn);
@@ -40,6 +41,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.sqlBuffer = new ArrayList<>();
 		this.runSQLparamDictList = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
+		this.supportRunSQL = Utils.checkServerVersionIfSupportRunSql(conn);
 		if (preProcessedSql.contains("?"))
 			isPreparedStatement = true;
 		if (isPreparedStatement) {
@@ -119,7 +121,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				return tableAppend(true);
 			for (int i = 0; i < this.batchSize; i++) {
 				try {
-					if (isStandardDML()) {
+					if (supportRunSQL && isStandardDML()) {
 						executeRes[i] = executeUpdateWithRunSQL(i);
 					} else {
 						executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
@@ -210,11 +212,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					}
 				}
 			}
-		} else if (sqlDmlType == Utils.DML_SELECT || sqlDmlType == Utils.DML_EXEC || sqlDmlType == Utils.DML_UPDATE || sqlDmlType == Utils.DML_DELETE) {
+		} else if (supportRunSQL && (sqlDmlType == Utils.DML_SELECT || sqlDmlType == Utils.DML_EXEC || sqlDmlType == Utils.DML_UPDATE || sqlDmlType == Utils.DML_DELETE)) {
 			this.sqlBuffer.add(generateSQLWithRunsql());
 			this.runSQLparamDictList.add(createParameterDictionary());
 		} else {
-			// Other types use original logic
+			// Other types or server doesn't support runSQL, use original logic
 			this.sqlBuffer.add(generateSQL());
 		}
 	}
@@ -224,7 +226,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		try{
 			if (isPreparedStatement) {
 				combineOneRowData(false);
-				if (sqlDmlType == Utils.DML_SELECT || sqlDmlType == Utils.DML_EXEC) {
+				if (supportRunSQL && (sqlDmlType == Utils.DML_SELECT || sqlDmlType == Utils.DML_EXEC)) {
 					return executeQueryWithRunSQL();
 				} else {
 					return super.executeQuery(sqlBuffer.get(0));
@@ -264,12 +266,12 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						return 1;
 					else
 						return 0;
-				} else if (this.sqlDmlType == Utils.DML_SELECT) {
+				} else if (supportRunSQL && this.sqlDmlType == Utils.DML_SELECT) {
 					// Special handling for SELECT in executeUpdate - set ResultSet for getResultSet()
 					ResultSet rs = executeQueryWithRunSQL();
 					objectQueue.offer(rs);
 					return 0;
-				} else if (isStandardDML()) {
+				} else if (supportRunSQL && isStandardDML()) {
 					return executeUpdateWithRunSQL(0);
 				} else {
 					return super.executeUpdate(sqlBuffer.get(0));

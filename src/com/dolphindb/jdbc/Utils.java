@@ -811,6 +811,28 @@ public class Utils {
         }
     }
 
+    public static boolean checkServerVersionIfSupportRunSql(JDBCConnection connection) {
+        try {
+            String version = connection.run("version", new ArrayList<>()).getString();
+            String[] versionParts = version.split(" ")[0].split("\\.");
+            int part1 = Integer.parseInt(versionParts[0]);
+            int part2 = Integer.parseInt(versionParts[1]);
+            int part3 = Integer.parseInt(versionParts[2]);
+
+            // ≥ 3.00.3
+            if (part1 >= 4 || (part1 == 3 && part2 >= 0 && part3 >= 3)) {
+                return true;
+            }
+
+            // ≥ 2.00.15
+            return part1 == 2 && part2 >= 0 && part3 >= 15;
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
     public static Object convertEntityToJavaObject(Entity entity, Entity.DATA_TYPE dataType) {
         switch (dataType){
             case DT_BOOL:
