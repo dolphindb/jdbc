@@ -5,6 +5,8 @@ import com.dolphindb.jdbc.TypeCast;
 import com.xxdb.DBConnection;
 import com.xxdb.data.*;
 //import java.util.Date;
+import com.xxdb.io.Double2;
+import com.xxdb.io.Long2;
 import org.junit.*;
 import org.junit.Test;
 
@@ -4340,7 +4342,7 @@ public class JDBCPrepareStatementTest {
         ps1.setObject(1,new byte[]{'A','C'});
         ps1.setInt(2,1);
         ps1.addBatch();
-        ps1.execute();
+        ps1.executeBatch();
         JDBCResultSet rs1 = (JDBCResultSet)ps1.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re1 = (BasicTable) rs1.getResult();
         Assert.assertEquals("['A','C']",re1.getColumn(1).get(0).getString());
@@ -4435,7 +4437,7 @@ public class JDBCPrepareStatementTest {
         ps1.setObject(1,new int[]{654321,-12345,0});
         ps1.setInt(2,2);
         ps1.addBatch();
-        ps1.execute();
+        ps1.executeBatch();
         JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re1 = (BasicTable) rs1.getResult();
         Assert.assertEquals("[654321,-12345,0]", re1.getColumn(1).get(1).getString());
@@ -4784,7 +4786,7 @@ public class JDBCPrepareStatementTest {
         ps1.setObject(1,new BasicTimestamp[]{new BasicTimestamp(LocalDateTime.of(2035,6,6,17,30,15,123456789).truncatedTo(ChronoUnit.MILLIS)), new BasicTimestamp(LocalDateTime.of(2012,7,7,16,35,10).truncatedTo(ChronoUnit.MILLIS))});
         ps1.setInt(2,2);
         ps1.addBatch();
-        ps1.execute();
+        ps1.executeBatch();
         JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re1 = (BasicTable) rs1.getResult();
         Assert.assertEquals("[2035.06.06T17:30:15.123,2012.07.07T16:35:10.000]", re1.getColumn(1).get(1).getString());
@@ -10643,7 +10645,7 @@ public class JDBCPrepareStatementTest {
                 re = ex.getMessage();
             }
             System.out.println(re);
-            org.junit.Assert.assertEquals("Statement execute query timed out after 1 seconds.", re);
+            org.junit.Assert.assertEquals("PrepareStatement execute query timed out after 1 seconds.", re);
         }
 
         @Test
@@ -10727,7 +10729,7 @@ public class JDBCPrepareStatementTest {
             re = ex.getMessage();
         }
         System.out.println(re);
-        org.junit.Assert.assertEquals("Statement execute update timed out after 1 seconds.", re);
+        org.junit.Assert.assertEquals("PrepareStatement execute update timed out after 1 seconds.", re);
     }
 
     @Test
@@ -10794,7 +10796,7 @@ public class JDBCPrepareStatementTest {
             re = ex.getMessage();
         }
         System.out.println(re);
-        org.junit.Assert.assertEquals("Statement execute update timed out after 1 seconds.", re);
+        org.junit.Assert.assertEquals("PrepareStatement execute update timed out after 1 seconds.", re);
         stmt.setQueryTimeout(3);
         stmt.executeBatch();
         stmt = conn.prepareStatement("select count(*) from table1 where id = `3aaa");
@@ -11871,6 +11873,377 @@ public class JDBCPrepareStatementTest {
         rs = ps.executeQuery("select * from loadTable(\"dfs://example\",\"pt\") where time between 14:15:00 and 14:30:00");
         rs.next();
         org.junit.Assert.assertEquals("10.2",rs.getObject("price").toString());
+    }
+
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_BOOL() throws SQLException, IOException {
+        createPartitionTable_Array("BOOL");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicBooleanVector biv1 = new BasicBooleanVector(new boolean[]{true,true,false});
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re = (BasicTable) rs.getResult();
+        Assert.assertEquals("[true,true,false]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_CHAR() throws SQLException, IOException {
+        createPartitionTable_Array("CHAR");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicByteVector biv1 = new BasicByteVector(new byte[]{(byte)'A',(byte)'F'});
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re = (BasicTable) rs.getResult();
+        Assert.assertEquals("['A','F']",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_SHORT() throws SQLException, IOException {
+        createPartitionTable_Array("SHORT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicShortVector biv1 = new BasicShortVector(new short[]{(short)555,(short)-1,0});
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[555,-1,0]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_INT() throws SQLException, IOException {
+        createPartitionTable_Array("INT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicIntVector biv1 = new BasicIntVector(new int[]{12121,-11111,0});
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[12121,-11111,0]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_LONG() throws SQLException, IOException {
+        createPartitionTable_Array("LONG");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicLongVector biv1 = new BasicLongVector(new long[]{(long)1233,(long)-1233,(long)0});
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[1233,-1233,0]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_DATE() throws SQLException, IOException {
+        createPartitionTable_Array("DATE");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicDateVector biv1 = new BasicDateVector(new int[]{12121,-11111,0});
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re = (BasicTable) rs.getResult();
+        Assert.assertEquals("[2003.03.10,1939.08.01,1970.01.01]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_MONTH() throws SQLException, IOException {
+        createPartitionTable_Array("MONTH");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicMonthVector biv1 = new BasicMonthVector(new int[]{1,12,0});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0000.02M,0001.01M,0000.01M]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_TIME() throws SQLException, IOException {
+        createPartitionTable_Array("TIME");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicTimeVector biv1 = new BasicTimeVector(new int[]{19999,11110000});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re = (BasicTable) rs.getResult();
+        Assert.assertEquals("[00:00:19.000,03:05:10.000]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_MINUTE() throws SQLException, IOException {
+        createPartitionTable_Array("MINUTE");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicMinuteVector biv1 = new BasicMinuteVector(new int[]{11,122});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re = (BasicTable) rs.getResult();
+        Assert.assertEquals("[00:11m,02:02m]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_SECOND() throws SQLException, IOException {
+        createPartitionTable_Array("SECOND");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicSecondVector biv1 = new BasicSecondVector(new int[]{11,122});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[00:00:11,00:02:02]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_DATETIME() throws SQLException, IOException {
+        createPartitionTable_Array("DATETIME");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        ps.setObject(2,new LocalDateTime[]{LocalDateTime.of(2038,1,1,1,1,1),LocalDateTime.of(1969,12,31,23,59,59)});
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[2038.01.01T01:01:01,1969.12.31T23:59:59]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_TIMESTAMP() throws SQLException, IOException {
+        createPartitionTable_Array("TIMESTAMP");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicTimestampVector biv1 = new BasicTimestampVector(new long[]{11,122});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[1970.01.01T00:00:00.011,1970.01.01T00:00:00.122]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_NANOTIME() throws SQLException, IOException {
+        createPartitionTable_Array("NANOTIME");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicNanoTimeVector biv1 = new BasicNanoTimeVector(new long[]{11,122});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[00:00:00.000000011,00:00:00.000000122]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_NANOTIMESTAMP() throws SQLException, IOException {
+        createPartitionTable_Array("NANOTIMESTAMP");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicNanoTimestampVector biv1 = new BasicNanoTimestampVector(new long[]{11,122});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[1970.01.01T00:00:00.000000011,1970.01.01T00:00:00.000000122]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_FLOAT() throws SQLException, IOException {
+        createPartitionTable_Array("FLOAT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicFloatVector biv1 = new BasicFloatVector(new float[]{(float)11.11,(float)-343411.11,0});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re = (BasicTable) rs.getResult();
+        Assert.assertEquals("[11.10999966,-343411.125,0]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_DOUBLE() throws SQLException, IOException {
+        createPartitionTable_Array("DOUBLE");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicDoubleVector biv1 = new BasicDoubleVector(new double[]{11.11,-343411.11,0});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[11.11,-343411.11,0]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_UUID() throws SQLException, IOException {
+        createPartitionTable_Array("UUID");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicUuidVector biv1 = new BasicUuidVector(new Long2[]{new Long2(46,29),new Long2(28,12)});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[00000000-0000-002e-0000-00000000001d,00000000-0000-001c-0000-00000000000c]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_DATEHOUR() throws SQLException, IOException {
+        createPartitionTable_Array("DATEHOUR");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicDateHourVector biv1 = new BasicDateHourVector(new int[]{10,50});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[1970.01.01T10,1970.01.03T02]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_IPADDR() throws SQLException, IOException {
+        createPartitionTable_Array("IPADDR");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicIPAddrVector biv1 = new BasicIPAddrVector(new Long2[]{new Long2(46,29),new Long2(28,12)});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0::2e:0:0:0:1d,0::1c:0:0:0:c]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_INT128() throws SQLException, IOException {
+        createPartitionTable_Array("INT128");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicInt128Vector biv1 = new BasicInt128Vector(new Long2[]{new Long2(46,29),new Long2(28,12)});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[000000000000002e000000000000001d,000000000000001c000000000000000c]",re.getColumn(1).get(0).getString());
+    }
+    //@Ignore//NOT SUPPORT
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_COMPLEX() throws SQLException, IOException {
+        createPartitionTable_Array("COMPLEX");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicComplexVector biv1 = new BasicComplexVector(new Double2[]{new Double2(1.1,3.9)});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[1.1+3.9i]",re1.getColumn(1).get(0).getString());
+    }
+    //@Ignore//NOT SUPPORT
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_POINT() throws SQLException, IOException {
+        createPartitionTable_Array("POINT");
+        String re = null;
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicPointVector biv1 = new BasicPointVector(new Double2[]{new Double2(1.1,3.9)});
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re1= (BasicTable) rs.getResult();
+        Assert.assertEquals("[(1.1, 3.9)]",re1.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_DECIMAL32() throws SQLException, IOException {
+        createPartitionTable_Array("DECIMAL32(5)");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicDecimal32Vector biv1 = new BasicDecimal32Vector(new String[]{"0.0","-123.00432","132.204234","100.0"},2);
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_DECIMAL64() throws SQLException, IOException {
+        createPartitionTable_Array("DECIMAL64(5)");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicDecimal64Vector biv1 = new BasicDecimal64Vector(new String[]{"0.0","-123.00432","132.204234","100.0"},4);
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re.getColumn(1).get(0).getString());
+    }
+    @Test
+    public void test_PreparedStatement_setArray_arrayVector_DECIMAL128() throws SQLException, IOException {
+        createPartitionTable_Array("DECIMAL128(5)");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
+        ps.setInt(1,1);
+        BasicDecimal128Vector biv1 = new BasicDecimal128Vector(new String[]{"0.0","-123.00432","132.204234","100.0"},4);
+        System.out.println(biv1.getString());
+        DolphinDBArray array1 = new DolphinDBArray(biv1);
+        ps.setArray(2, array1);
+        ps.addBatch();
+        ps.executeBatch();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
+        BasicTable re= (BasicTable) rs.getResult();
+        Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re.getColumn(1).get(0).getString());
     }
 
     @After

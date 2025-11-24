@@ -201,6 +201,5 @@ public class DolphinDBArrayTest {
             re = ex.getMessage();
         }
         Assert.assertEquals("This DolphinDBArray object has been freed.", re);
-
     }
 }
