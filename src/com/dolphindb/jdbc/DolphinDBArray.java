@@ -17,6 +17,10 @@ public class DolphinDBArray implements Array {
         this.vector = vector;
     }
 
+    public Vector getVector() {
+        return vector;
+    }
+
     private void checkFreed() throws SQLException {
         if (freed) {
             throw new SQLException("This DolphinDBArray object has been freed.");

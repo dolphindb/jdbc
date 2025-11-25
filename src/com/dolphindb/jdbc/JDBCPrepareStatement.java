@@ -145,11 +145,15 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 			Vector column = this.columnBindValues.get(index).getBindValues();
 			try {
-				Entity data = BasicEntityFactory.createScalar(column.getDataType(), obj, this.columnBindValues.get(index).getScale());
-				if (data.isScalar())
-					column.Append((Scalar)data);
-				else
-					column.Append((Vector) data);
+				if (obj instanceof Vector) {
+					column.Append((Vector) obj);
+				} else {
+					Entity data = BasicEntityFactory.createScalar(column.getDataType(), obj, this.columnBindValues.get(index).getScale());
+					if (data.isScalar())
+						column.Append((Scalar) data);
+					else
+						column.Append((Vector) data);
+				}
 			} catch (Exception e) {
 				throw new SQLException(e);
 			}
@@ -525,7 +529,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public void setArray(int parameterIndex, Array x) throws SQLException {
 		if (x instanceof DolphinDBArray) {
 			DolphinDBArray dolphinArray = (DolphinDBArray) x;
-			bind(parameterIndex, dolphinArray.getArray());
+			bind(parameterIndex, dolphinArray.getVector());
 		} else {
             throw new SQLException("setArray method only supports DolphinDBArray parameter.");
 		}
@@ -788,8 +792,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 
 		String valueClassName = value.getClass().getName();
-		
-		// Try basic type conversion first
+
+		// Try basic type conversion
 		String targetType = getAppropriateBasicType(valueClassName);
 		if (targetType != null) {
 			Entity basicResult = TypeCast.basicType_java2db(value, targetType);
@@ -799,7 +803,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 		
 		// Try datetime conversion
-		String dateTimeType = getAppropiateDateTimeType(valueClassName);
+		String dateTimeType = getAppropriateDateTimeType(valueClassName);
 		if (dateTimeType != null) {
 			Entity dateTimeResult = TypeCast.dataTime_java2db(value, dateTimeType);
 			if (dateTimeResult != null) {
@@ -836,7 +840,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 	}
 	
-	private String getAppropiateDateTimeType(String valueClassName) {
+	private String getAppropriateDateTimeType(String valueClassName) {
 		switch (valueClassName) {
 			case "java.sql.Date":
 				return TypeCast.BASIC_DATE;
