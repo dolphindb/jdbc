@@ -11987,7 +11987,7 @@ public class JDBCPrepareStatementTest {
         ps.executeBatch();
         JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re = (BasicTable) rs.getResult();
-        Assert.assertEquals("[00:00:19.000,03:05:10.000]",re.getColumn(1).get(0).getString());
+        Assert.assertEquals("[00:00:19.999,03:05:10.000]",re.getColumn(1).get(0).getString());
     }
     @Test
     public void test_PreparedStatement_setArray_arrayVector_MINUTE() throws SQLException, IOException {
@@ -12205,7 +12205,7 @@ public class JDBCPrepareStatementTest {
         createPartitionTable_Array("DECIMAL32(5)");
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
-        BasicDecimal32Vector biv1 = new BasicDecimal32Vector(new String[]{"0.0","-123.00432","132.204234","100.0"},2);
+        BasicDecimal32Vector biv1 = new BasicDecimal32Vector(new String[]{"0.0","-123.00432","132.204234","100.0"},5);
         System.out.println(biv1.getString());
         DolphinDBArray array1 = new DolphinDBArray(biv1);
         ps.setArray(2, array1);
@@ -12220,7 +12220,7 @@ public class JDBCPrepareStatementTest {
         createPartitionTable_Array("DECIMAL64(5)");
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
-        BasicDecimal64Vector biv1 = new BasicDecimal64Vector(new String[]{"0.0","-123.00432","132.204234","100.0"},4);
+        BasicDecimal64Vector biv1 = new BasicDecimal64Vector(new String[]{"0.0","-123.00432","132.204234","100.0"},5);
         System.out.println(biv1.getString());
         DolphinDBArray array1 = new DolphinDBArray(biv1);
         ps.setArray(2, array1);
@@ -12235,7 +12235,7 @@ public class JDBCPrepareStatementTest {
         createPartitionTable_Array("DECIMAL128(5)");
         PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,?)");
         ps.setInt(1,1);
-        BasicDecimal128Vector biv1 = new BasicDecimal128Vector(new String[]{"0.0","-123.00432","132.204234","100.0"},4);
+        BasicDecimal128Vector biv1 = new BasicDecimal128Vector(new String[]{"0.0","-123.00432","132.204234","100.0"},5);
         System.out.println(biv1.getString());
         DolphinDBArray array1 = new DolphinDBArray(biv1);
         ps.setArray(2, array1);

@@ -15,8 +15,7 @@ import java.time.*;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 
 public class JDBCResultSetTest {
@@ -4350,6 +4349,7 @@ public class JDBCResultSetTest {
 		DBConnection connection = new DBConnection();
 		connection.connect(HOST,PORT,"admin","123456");
 		Preparedata_array(100,5);
+		BasicStringVector colNames = (BasicStringVector)connection.run("exec name from schema(data).colDefs");
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -4361,6 +4361,7 @@ public class JDBCResultSetTest {
 			for(int i=1;i<=25;i++){
 				assertEquals(re.getColumn(i-1).get(rows).getString(), rs.getObject(i).toString());
 				assertEquals(re.getColumn(i-1).get(rows).getString(),rs.getArray(i).toString());
+				assertEquals(re.getColumn(i-1).get(rows).getString(),rs.getArray(colNames.getString(i-1)).toString());
 				assertEquals(re.getColumn(i-1).get(rows).getString(),rs.getString(i));
 			}
 		}
@@ -4374,6 +4375,7 @@ public class JDBCResultSetTest {
 				"colTypes=[INT,BOOL[],CHAR[],SHORT[],INT[],LONG[],DOUBLE[],FLOAT[],DATE[],MONTH[],TIME[],MINUTE[],SECOND[],DATETIME[],TIMESTAMP[],NANOTIME[],NANOTIMESTAMP[], DATEHOUR[],UUID[],IPADDR[],INT128[],POINT[],COMPLEX[],DECIMAL32(2)[],DECIMAL64(7)[],DECIMAL128(10)[]];\n" +
 				"share table(1:0,colNames,colTypes) as table_array;\n" +
 				"insert into table_array values(1,,,,,,,,,,,,,,,,,,,,,,,,,);");
+		BasicStringVector colNames = (BasicStringVector)connection.run("exec name from schema(table_array).colDefs");
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
@@ -4383,6 +4385,7 @@ public class JDBCResultSetTest {
 		for(int i=2;i<=26;i++){
 			assertEquals(re.getColumn(i-1).get(0).getString(), rs.getObject(i).toString());
 			assertEquals(re.getColumn(i-1).get(0).getString(),rs.getArray(i).toString());
+			assertEquals(re.getColumn(i-1).get(0).getString(),rs.getArray(colNames.getString(i-1)).toString());
 			assertEquals(re.getColumn(i-1).get(0).getString(),rs.getString(i));
 		}
 		assertFalse(rs.next());
@@ -4401,12 +4404,50 @@ public class JDBCResultSetTest {
 		BasicTable re = (BasicTable)connection.run("select * from table_any");
 		assertEquals(re.getColumn(1).get(0).getString(), rs.getObject(2).toString());
 		assertEquals(re.getColumn(1).get(0).getString(),rs.getArray(2).toString());
+		assertEquals(re.getColumn(1).get(0).getString(),rs.getArray("any1").toString());
 		assertEquals(re.getColumn(1).get(0).getString(),rs.getString(2));
 		assertEquals(re.getColumn(1).get(0).getString(),rs.getString(2));
 
 		DolphinDBArray array1 = (DolphinDBArray)rs.getArray(2);
 		assertEquals("ANY",array1.getBaseTypeName());
 		assertEquals(1111,array1.getBaseType());
+	}
+
+	@Test
+	public void Test_JDBCResultSet_arrayVector_wasNull_false() throws Exception {
+		DBConnection connection = new DBConnection();
+		connection.connect(HOST,PORT,"admin","123456");
+		Preparedata_array(10,5);
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		rs = stmt.executeQuery("select * from data");
+		for(int rows=0; rows<20; rows++){
+			rs.next();
+			for(int i=1;i<=25;i++){
+				Array a = rs.getArray(i);
+				assertFalse(rs.wasNull());
+			}
+		}
+	}
+	@Test
+	public void Test_JDBCResultSet_arrayVector_wasNull_true() throws Exception {
+		DBConnection connection = new DBConnection();
+		connection.connect(HOST,PORT,"admin","123456");
+		connection.run("colNames=\"col\"+string(1..26);\n" +
+				"colTypes=[INT,BOOL[],CHAR[],SHORT[],INT[],LONG[],DOUBLE[],FLOAT[],DATE[],MONTH[],TIME[],MINUTE[],SECOND[],DATETIME[],TIMESTAMP[],NANOTIME[],NANOTIMESTAMP[], DATEHOUR[],UUID[],IPADDR[],INT128[],POINT[],COMPLEX[],DECIMAL32(2)[],DECIMAL64(7)[],DECIMAL128(10)[]];\n" +
+				"share table(1:0,colNames,colTypes) as table_array;\n" +
+				"insert into table_array values(1,,,,,,,,,,,,,,,,,,,,,,,,,);");
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		rs = stmt.executeQuery("select * from table_array ");
+		rs.next();
+		for(int i=2;i<=26;i++){
+			Array a = rs.getArray(i);
+			assertTrue(rs.wasNull());
+		}
+		assertFalse(rs.next());
 	}
 }
 
