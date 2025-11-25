@@ -6,9 +6,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.sql.Date;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.Month;
 import java.time.YearMonth;
 import java.util.*;
 import java.util.Set;
@@ -887,7 +884,8 @@ public class Utils {
             case DT_INT128:
             case DT_COMPLEX:
             case DT_POINT:
-                return entity.getString().equals("") ? null : entity.getString();
+            case DT_SYMBOL:
+                return entity.getString().isEmpty() ? null : entity.getString();
             case DT_MONTH:
                 return ((BasicMonth) entity).getMonth();
             case DT_MINUTE:
@@ -898,8 +896,6 @@ public class Utils {
                 return ((BasicNanoTime) entity).getNanoTime();
             case DT_NANOTIMESTAMP:
                 return ((BasicNanoTimestamp) entity).getNanoTimestamp();
-            case DT_SYMBOL:
-                return entity.getString().equals("") ? null : entity.getString();
             case DT_UUID:
                 String string = entity.getString();
                 if (string.isEmpty())
@@ -911,7 +907,7 @@ public class Utils {
             case DT_DECIMAL32:
             case DT_DECIMAL64:
             case DT_DECIMAL128:
-                return entity.getString().equals("") ? null : new BigDecimal(entity.getString());
+                return entity.getString().isEmpty() ? null : new BigDecimal(entity.getString());
             default:
                 return entity;
         }
@@ -922,7 +918,7 @@ public class Utils {
             if (vector.rows() == 0) {
                 return new Object[0];
             }
-            return createTypedArrayFromVector(vector, vector.getDataType(), 0, vector.rows());
+            return createTypedArray(vector, vector.getDataType(), 0, vector.rows(), Object[]::new);
         } catch (Exception e) {
             throw new SQLException("Failed to convert vector to Java array", e);
         }
@@ -930,64 +926,9 @@ public class Utils {
 
     public static Object convertVectorToJavaObjectArray(Vector vector, int startIndex, int endIndex) throws SQLException {
         try {
-            return createTypedArrayFromVector(vector, vector.getDataType(), startIndex, endIndex);
+            return createTypedArray(vector, vector.getDataType(), startIndex, endIndex, Object[]::new);
         } catch (Exception e) {
             throw new SQLException("Failed to convert vector to Java array", e);
-        }
-    }
-
-    private static Object createTypedArrayFromVector(Vector vector, Entity.DATA_TYPE dataType, int startIndex, int endIndex) {
-        switch (dataType) {
-            case DT_DOUBLE:
-                return createTypedArray(vector, dataType, startIndex, endIndex, Double[]::new);
-            case DT_FLOAT:
-                return createTypedArray(vector, dataType, startIndex, endIndex, Float[]::new);
-            case DT_INT:
-                return createTypedArray(vector, dataType, startIndex, endIndex, Integer[]::new);
-            case DT_LONG:
-                return createTypedArray(vector, dataType, startIndex, endIndex, Long[]::new);
-            case DT_SHORT:
-                return createTypedArray(vector, dataType, startIndex, endIndex, Short[]::new);
-            case DT_BYTE:
-                return createTypedArray(vector, dataType, startIndex, endIndex, Byte[]::new);
-            case DT_BOOL:
-                return createTypedArray(vector, dataType, startIndex, endIndex, Boolean[]::new);
-            case DT_STRING:
-            case DT_SYMBOL:
-            case DT_BLOB:
-            case DT_IPADDR:
-            case DT_INT128:
-            case DT_COMPLEX:
-            case DT_POINT:
-                return createTypedArray(vector, dataType, startIndex, endIndex, String[]::new);
-            case DT_DATE:
-                return createTypedArray(vector, dataType, startIndex, endIndex, Date[]::new);
-            case DT_TIME:
-                return createTypedArray(vector, dataType, startIndex, endIndex, Time[]::new);
-            case DT_DATETIME:
-                return createTypedArray(vector, dataType, startIndex, endIndex, LocalDateTime[]::new);
-            case DT_TIMESTAMP:
-                return createTypedArray(vector, dataType, startIndex, endIndex, Timestamp[]::new);
-            case DT_MONTH:
-                return createTypedArray(vector, dataType, startIndex, endIndex, Month[]::new);
-            case DT_MINUTE:
-                return createTypedArray(vector, dataType, startIndex, endIndex, LocalTime[]::new);
-            case DT_SECOND:
-                return createTypedArray(vector, dataType, startIndex, endIndex, LocalTime[]::new);
-            case DT_NANOTIME:
-                return createTypedArray(vector, dataType, startIndex, endIndex, LocalTime[]::new);
-            case DT_NANOTIMESTAMP:
-                return createTypedArray(vector, dataType, startIndex, endIndex, LocalDateTime[]::new);
-            case DT_UUID:
-                return createTypedArray(vector, dataType, startIndex, endIndex, UUID[]::new);
-            case DT_DATEHOUR:
-                return createTypedArray(vector, dataType, startIndex, endIndex, LocalDateTime[]::new);
-            case DT_DECIMAL32:
-            case DT_DECIMAL64:
-            case DT_DECIMAL128:
-                return createTypedArray(vector, dataType, startIndex, endIndex, BigDecimal[]::new);
-            default:
-                return createTypedArray(vector, dataType, startIndex, endIndex, Object[]::new);
         }
     }
 
