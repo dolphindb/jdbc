@@ -82,6 +82,9 @@ public class TypeCast {
     public static final String BASIC_UUID = PACKAGE_NAME + "BasicUuid";
     public static final String BASIC_SYMBOL = PACKAGE_NAME + "BasicString";
     public static final String BASIC_BLOB = PACKAGE_NAME + "BasicString";
+    public static final String BASIC_DECIMAL32 = PACKAGE_NAME + "BasicDecimal32";
+    public static final String BASIC_DECIMAL64 = PACKAGE_NAME + "BasicDecimal64";
+    public static final String BASIC_DECIMAL128 = PACKAGE_NAME + "BasicDecimal128";
 
     public static final String BASIC_BOOLEAN_VECTOR = BASIC_BOOLEAN + VECTOR;
     public static final String BASIC_BYTE_VECTOR = BASIC_BYTE + VECTOR;
@@ -116,6 +119,9 @@ public class TypeCast {
 
 
     public static final HashMap<Integer,String> TYPEINT2STRING = new LinkedHashMap<>();
+
+    private static final Map<String, String> JAVA_TO_DDB_TYPE_MAP = new HashMap<>();
+
 	public static Scalar[] NULL = {new BasicBoolean(false), new BasicByte((byte) 0), new BasicShort((short) 0), new BasicInt(0),
             new BasicLong(0), new BasicFloat(0), new BasicDouble(0), new BasicString(""),
             new BasicDate(LocalDate.of(2020,1,1)), new BasicTimestamp(LocalDateTime.of(2020, 1, 1, 0, 0)),
@@ -192,6 +198,41 @@ public class TypeCast {
     	for (Scalar n : NULL) {
 			n.setNull();
 		}
+
+        // Primitive types
+        JAVA_TO_DDB_TYPE_MAP.put("int", "INT");
+        JAVA_TO_DDB_TYPE_MAP.put("double", "DOUBLE");
+        JAVA_TO_DDB_TYPE_MAP.put("float", "FLOAT");
+        JAVA_TO_DDB_TYPE_MAP.put("long", "LONG");
+        JAVA_TO_DDB_TYPE_MAP.put("boolean", "BOOL");
+        JAVA_TO_DDB_TYPE_MAP.put("byte", "CHAR");
+        JAVA_TO_DDB_TYPE_MAP.put("short", "SHORT");
+
+        // Wrapper types
+        JAVA_TO_DDB_TYPE_MAP.put(INT, "INT");
+        JAVA_TO_DDB_TYPE_MAP.put(DOUBLE, "DOUBLE");
+        JAVA_TO_DDB_TYPE_MAP.put(FLOAT, "FLOAT");
+        JAVA_TO_DDB_TYPE_MAP.put(LONG, "LONG");
+        JAVA_TO_DDB_TYPE_MAP.put(BOOLEAN, "BOOL");
+        JAVA_TO_DDB_TYPE_MAP.put(BYTE, "CHAR");
+        JAVA_TO_DDB_TYPE_MAP.put(SHORT, "SHORT");
+
+        // String type
+        JAVA_TO_DDB_TYPE_MAP.put(STRING, "STRING");
+
+        // Date and time types - java.time
+        JAVA_TO_DDB_TYPE_MAP.put(LOCAL_DATE, "DATE");
+        JAVA_TO_DDB_TYPE_MAP.put(LOCAL_TIME, "NANOTIME");
+        JAVA_TO_DDB_TYPE_MAP.put(LOCAL_DATETIME, "NANOTIMESTAMP");
+        JAVA_TO_DDB_TYPE_MAP.put(YEAR_MONTH, "MONTH");
+
+        // Date and time types - java.sql
+        JAVA_TO_DDB_TYPE_MAP.put(DATE, "DATE");
+        JAVA_TO_DDB_TYPE_MAP.put(TIME, "NANOTIME");
+        JAVA_TO_DDB_TYPE_MAP.put(TIMESTAMP, "NANOTIMESTAMP");
+
+        // java.util.Date -> NANOTIMESTAMP
+        JAVA_TO_DDB_TYPE_MAP.put(UDATE, "NANOTIMESTAMP");
     }
 
     public static Object nullScalar(Entity.DATA_TYPE type) throws SQLException {
@@ -246,9 +287,26 @@ public class TypeCast {
     }
     
     private static String castArrayToString(Object array) {
-        StringBuilder sb = new StringBuilder("[");
         Class<?> componentType = array.getClass().getComponentType();
-        
+        StringBuilder sb = new StringBuilder();
+        String ddbType = getDolphinDBArrayType(componentType);
+        if (ddbType.startsWith("DECIMAL") && !componentType.isPrimitive()) {
+            Object[] arr = (Object[]) array;
+            if (arr.length > 0 && arr[0] != null) {
+                int scale = 0;
+                if (arr[0] instanceof BasicDecimal32) {
+                    scale = ((BasicDecimal32) arr[0]).getScale();
+                } else if (arr[0] instanceof BasicDecimal64) {
+                    scale = ((BasicDecimal64) arr[0]).getScale();
+                } else if (arr[0] instanceof BasicDecimal128) {
+                    scale = ((BasicDecimal128) arr[0]).getScale();
+                }
+                ddbType = ddbType + "(" + scale + ")";
+            }
+        }
+
+        sb.append("array(").append(ddbType).append("[]).append!([[");
+
         if (componentType == int.class) {
             int[] arr = (int[]) array;
             for (int i = 0; i < arr.length; i++) {
@@ -265,13 +323,13 @@ public class TypeCast {
             float[] arr = (float[]) array;
             for (int i = 0; i < arr.length; i++) {
                 if (i > 0) sb.append(",");
-                sb.append(arr[i]);
+                sb.append(arr[i]).append("f");
             }
         } else if (componentType == long.class) {
             long[] arr = (long[]) array;
             for (int i = 0; i < arr.length; i++) {
                 if (i > 0) sb.append(",");
-                sb.append(arr[i]);
+                sb.append(arr[i]).append("l");
             }
         } else if (componentType == boolean.class) {
             boolean[] arr = (boolean[]) array;
@@ -283,13 +341,13 @@ public class TypeCast {
             byte[] arr = (byte[]) array;
             for (int i = 0; i < arr.length; i++) {
                 if (i > 0) sb.append(",");
-                sb.append(arr[i]);
+                sb.append(arr[i]).append("c");
             }
         } else if (componentType == short.class) {
             short[] arr = (short[]) array;
             for (int i = 0; i < arr.length; i++) {
                 if (i > 0) sb.append(",");
-                sb.append(arr[i]);
+                sb.append(arr[i]).append("h");
             }
         } else {
             Object[] arr = (Object[]) array;
@@ -298,16 +356,39 @@ public class TypeCast {
                 if (arr[i] == null) {
                     sb.append("NULL");
                 } else {
-                    String elementStr = castSingleObjectToString(arr[i]);
-                    sb.append(elementStr != null ? elementStr : arr[i].toString());
+                    sb.append(castSingleObjectToString(arr[i]));
                 }
             }
         }
-        
-        sb.append("]");
+
+        sb.append("]])");
         return sb.toString();
     }
-    
+
+    private static String getDolphinDBArrayType(Class<?> componentType) {
+        String ddbType;
+
+        if (Entity.class.isAssignableFrom(componentType)) {
+            String typeName = componentType.getSimpleName().substring(5).toUpperCase();
+            ddbType = Entity.DATA_TYPE.valueOfTypeName(typeName).getName();
+            if (ddbType != null) {
+                return ddbType;
+            }
+        }
+
+        ddbType = JAVA_TO_DDB_TYPE_MAP.get(componentType.getName());
+        if (ddbType != null) {
+            return ddbType;
+        }
+
+        ddbType = JAVA_TO_DDB_TYPE_MAP.get(componentType.getSimpleName().toLowerCase());
+        if (ddbType != null) {
+            return ddbType;
+        }
+
+        return "STRING";
+    }
+
     private static String castArrayVectorToString(Vector vector) {
         StringBuilder sb = new StringBuilder();
         sb.append("array(").append(vector.getDataType().name()).append(").append!([");
@@ -401,6 +482,12 @@ public class TypeCast {
                 double a = ((BasicPoint)o).getX();
                 double b = ((BasicPoint)o).getY();
                 return "point(" + a + "," + b + ")";
+            case BASIC_DECIMAL32:
+                return "decimal32(\"" + ((BasicDecimal32)o).getString() + "\"," + ((BasicDecimal32)o).getScale() + ")";
+            case BASIC_DECIMAL64:
+                return "decimal64(\"" + ((BasicDecimal64)o).getString() + "\"," + ((BasicDecimal64)o).getScale() + ")";
+            case BASIC_DECIMAL128:
+                return "decimal128(\"" + ((BasicDecimal128)o).getString() + "\"," + ((BasicDecimal128)o).getScale() + ")";
             case BASIC_VOID:
                 return "NULL";
             default:
