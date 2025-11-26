@@ -165,7 +165,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                         throw new RuntimeException("Current catalog '" + catalog + "' doesn't has any schema.");
                     }
                 } else {
-                    BasicBoolean schemaExists = (BasicBoolean) connection.run("in (\"" + schemaPattern + "\", substr(getDFSDatabases(), 6))");
+                    BasicBoolean schemaExists = (BasicBoolean) connection.run("in (\"" + schemaPattern + "\", substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6))");
                     if (!schemaExists.getBoolean()) {
                         throw new RuntimeException("The database '" + schemaPattern + "' doesn't exist.");
                     }
@@ -658,7 +658,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     Schemas = new JDBCResultSet(connection, statement, (Entity) null,"");
                 }
             } else {
-                BasicStringVector schemaVec = (BasicStringVector) connection.run("substr(getDFSDatabases(), 6)");
+                BasicStringVector schemaVec = (BasicStringVector) connection.run("substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6)");
                 BasicStringVector catalogVec = new BasicStringVector(Collections.nCopies(schemaVec.rows(), DATABASE_NAME));
                 cols.add(schemaVec);
                 cols.add(catalogVec);
@@ -688,7 +688,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     cols.add(schemaVec);
                     cols.add(catalogVec);
                 } else if (DATABASE_NAME.equals(catalog)) {
-                    BasicStringVector schemaVec = (BasicStringVector) connection.run("substr(getDFSDatabases(), 6)");
+                    BasicStringVector schemaVec = (BasicStringVector) connection.run("substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6)");
                     BasicStringVector catalogVec = new BasicStringVector(Collections.nCopies(schemaVec.rows(), DATABASE_NAME));
                     cols.add(schemaVec);
                     cols.add(catalogVec);
@@ -782,7 +782,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     throw new RuntimeException("Current catalog " + catalog + " doesn't has any schema.");
                 }
             } else if (DATABASE_NAME.equals(catalog)) {
-                BasicBoolean schemaExists = (BasicBoolean) connection.run("in (\"" + schemaPattern + "\", substr(getDFSDatabases(), 6))");
+                BasicBoolean schemaExists = (BasicBoolean) connection.run("in (\"" + schemaPattern + "\", substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6))");
                 if (!schemaExists.getBoolean()) {
                     throw new SQLException("The database '" + schemaPattern + "' doesn't exist.");
                 }
@@ -836,7 +836,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                     throw new RuntimeException("Current catalog " + catalog + " doesn't has any schema.");
                 }
             } else if (DATABASE_NAME.equals(catalog)) {
-                BasicStringVector databases = (BasicStringVector) connection.run("substr(getDFSDatabases(), 6)");
+                BasicStringVector databases = (BasicStringVector) connection.run("substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6)");
                 for (int i = 0; i < databases.rows(); i++) {
                     String dbName = databases.getString(i);
                     BasicStringVector tableNameVec = (BasicStringVector) connection.run("getTables(database(\"dfs://" + dbName + "\"))");
