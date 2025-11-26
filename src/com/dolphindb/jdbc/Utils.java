@@ -2,6 +2,7 @@ package com.dolphindb.jdbc;
 
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
+import com.xxdb.data.Void;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.*;
@@ -940,4 +941,83 @@ public class Utils {
                 .mapToObj(i -> (T) convertEntityToJavaObject(vector.get(i), dataType))
                 .toArray(arrayGenerator);
     }
+
+    public static Entity convertJavaObjectToEntity(Object value) throws Exception {
+        if (value == null) {
+            return new Void();
+        }
+
+        String valueClassName = value.getClass().getName();
+
+        // Try basic type and primitive array conversion
+        String targetType = getAppropriateBasicType(valueClassName);
+        if (targetType != null) {
+            Entity basicResult = TypeCast.basicType_java2db(value, targetType);
+            if (basicResult != null) {
+                return basicResult;
+            }
+        }
+
+        // Try datetime conversion
+        String dateTimeType = getAppropriateDateTimeType(valueClassName);
+        if (dateTimeType != null) {
+            Entity dateTimeResult = TypeCast.dataTime_java2db(value, dateTimeType);
+            if (dateTimeResult != null) {
+                return dateTimeResult;
+            }
+        }
+
+        // Fallback conversion for unsupported types
+        return new BasicString(value.toString());
+    }
+
+    private static String getAppropriateBasicType(String valueClassName) {
+        switch (valueClassName) {
+            case "java.lang.Boolean":
+            case "[Z":
+                return TypeCast.BASIC_BOOLEAN;
+            case "java.lang.Byte":
+            case "[B":
+                return TypeCast.BASIC_BYTE;
+            case "java.lang.Short":
+            case "[S":
+                return TypeCast.BASIC_SHORT;
+            case "java.lang.Integer":
+            case "[I":
+                return TypeCast.BASIC_INT;
+            case "java.lang.Long":
+            case "[J":
+                return TypeCast.BASIC_LONG;
+            case "java.lang.Float":
+            case "[F":
+                return TypeCast.BASIC_FLOAT;
+            case "java.lang.Double":
+            case "[D":
+                return TypeCast.BASIC_DOUBLE;
+            case "java.lang.String":
+                return TypeCast.BASIC_STRING;
+            default:
+                return null;
+        }
+    }
+
+    private static String getAppropriateDateTimeType(String valueClassName) {
+        switch (valueClassName) {
+            case "java.sql.Date":
+            case "java.time.LocalDate":
+                return TypeCast.BASIC_DATE;
+            case "java.sql.Time":
+            case "java.time.LocalTime":
+                return TypeCast.BASIC_NANOTIME;
+            case "java.sql.Timestamp":
+            case "java.util.Date":
+            case "java.time.LocalDateTime":
+                return TypeCast.BASIC_NANOTIMESTAMP;
+            case "java.time.YearMonth":
+                return TypeCast.BASIC_MONTH;
+            default:
+                return null;
+        }
+    }
+
 }

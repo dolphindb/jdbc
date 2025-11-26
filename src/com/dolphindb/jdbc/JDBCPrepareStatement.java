@@ -771,7 +771,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				if (value instanceof Entity) {
 					entity = (Entity) value;
 				} else {
-					entity = convertToEntity(value);
+					entity = Utils.convertJavaObjectToEntity(value);
 				}
 				valueVector.set(i, entity);
 			} catch (Exception e) {
@@ -784,83 +784,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			dict.put(new BasicString(keys.get(i)), valueVector.get(i));
 		}
 		return dict;
-	}
-	
-	private Entity convertToEntity(Object value) throws Exception {
-		if (value == null) {
-			return new Void();
-		}
-
-		String valueClassName = value.getClass().getName();
-
-		// Try basic type conversion
-		String targetType = getAppropriateBasicType(valueClassName);
-		if (targetType != null) {
-			Entity basicResult = TypeCast.basicType_java2db(value, targetType);
-			if (basicResult != null) {
-				return basicResult;
-			}
-		}
-		
-		// Try datetime conversion
-		String dateTimeType = getAppropriateDateTimeType(valueClassName);
-		if (dateTimeType != null) {
-			Entity dateTimeResult = TypeCast.dataTime_java2db(value, dateTimeType);
-			if (dateTimeResult != null) {
-				return dateTimeResult;
-			}
-		}
-		
-		// Fallback conversion for unsupported types
-		return new BasicString(value.toString());
-	}
-	
-	private String getAppropriateBasicType(String valueClassName) {
-		switch (valueClassName) {
-			case "java.lang.Boolean":
-				return TypeCast.BASIC_BOOLEAN;
-			case "java.lang.Byte":
-				return TypeCast.BASIC_BYTE;
-			case "java.lang.Short":
-				return TypeCast.BASIC_SHORT;
-			case "java.lang.Integer":
-				return TypeCast.BASIC_INT;
-			case "java.lang.Long":
-				return TypeCast.BASIC_LONG;
-			case "java.lang.Float":
-				return TypeCast.BASIC_FLOAT;
-			case "java.lang.Double":
-				return TypeCast.BASIC_DOUBLE;
-			case "java.lang.String":
-				return TypeCast.BASIC_STRING;
-			case "java.lang.Character":
-				return TypeCast.BASIC_BYTE;
-			default:
-				return null;
-		}
-	}
-	
-	private String getAppropriateDateTimeType(String valueClassName) {
-		switch (valueClassName) {
-			case "java.sql.Date":
-				return TypeCast.BASIC_DATE;
-			case "java.sql.Time":
-				return TypeCast.BASIC_NANOTIME;
-			case "java.sql.Timestamp":
-				return TypeCast.BASIC_NANOTIMESTAMP;
-			case "java.util.Date":
-				return TypeCast.BASIC_NANOTIMESTAMP;
-			case "java.time.LocalDate":
-				return TypeCast.BASIC_DATE;
-			case "java.time.LocalTime":
-				return TypeCast.BASIC_NANOTIME;
-			case "java.time.LocalDateTime":
-				return TypeCast.BASIC_NANOTIMESTAMP;
-			case "java.time.YearMonth":
-				return TypeCast.BASIC_MONTH;
-			default:
-				return null;
-		}
 	}
 
 	private ResultSet executeQueryWithRunSQL() throws SQLException {
