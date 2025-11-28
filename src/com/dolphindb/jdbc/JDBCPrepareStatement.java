@@ -109,6 +109,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.batchSize = 0;
 		if(this.sqlBuffer != null)
 			this.sqlBuffer.clear();
+		if(this.runSQLparamDictList != null)
+			this.runSQLparamDictList.clear();
 		if(this.columnBindValues != null)
 			this.columnBindValues.forEach(ColumnBindValue::clear);
 	}
