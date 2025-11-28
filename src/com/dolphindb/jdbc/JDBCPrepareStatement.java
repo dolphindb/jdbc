@@ -149,7 +149,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			try {
 				if (obj instanceof Vector) {
 					column.Append((Vector) obj);
-				} else {
+				} else if (obj instanceof DolphinDBArray) {
+                    column.Append(((DolphinDBArray) obj).getVector());
+                } else {
 					Entity data = BasicEntityFactory.createScalar(column.getDataType(), obj, this.columnBindValues.get(index).getScale());
 					if (data.isScalar())
 						column.Append((Scalar) data);
@@ -530,8 +532,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	@Override
 	public void setArray(int parameterIndex, Array x) throws SQLException {
 		if (x instanceof DolphinDBArray) {
-			DolphinDBArray dolphinArray = (DolphinDBArray) x;
-			bind(parameterIndex, dolphinArray.getVector());
+			bind(parameterIndex, x);
 		} else {
             throw new SQLException("setArray method only supports DolphinDBArray parameter.");
 		}
@@ -759,18 +760,20 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 		List<String> keys = new ArrayList<>();
 		BasicAnyVector valueVector = new BasicAnyVector(bufferArea.length);
-		
+
 		for (int i = 0; i < bufferArea.length; i++) {
 			if (bufferArea[i] == null || bufferArea[i].getValue() == null) {
 				throw new SQLException("No value specified for parameter " + (i + 1));
 			}
-			
+
 			keys.add("arg" + (i + 1));
 			Object value = bufferArea[i].getValue();
-			
+
 			try {
 				Entity entity;
-				if (value instanceof Entity) {
+				if (value instanceof DolphinDBArray) {
+					entity = ((DolphinDBArray) value).getVector();
+				} else if (value instanceof Entity) {
 					entity = (Entity) value;
 				} else {
 					entity = Utils.convertJavaObjectToEntity(value);
@@ -780,7 +783,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				throw new SQLException("Failed to convert parameter " + (i + 1) + " to DolphinDB entity", e);
 			}
 		}
-		
+
 		BasicDictionary dict = new BasicDictionary(Entity.DATA_TYPE.DT_STRING, Entity.DATA_TYPE.DT_ANY);
 		for (int i = 0; i < keys.size(); i++) {
 			dict.put(new BasicString(keys.get(i)), valueVector.get(i));

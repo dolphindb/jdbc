@@ -275,14 +275,12 @@ public class TypeCast {
     public static String castDbString(Object o){
         if (o.getClass().isArray()) {
             return castArrayToString(o);
+        } else if (o instanceof DolphinDBArray) {
+            return castArrayVectorToString(((DolphinDBArray) o).getVector());
         } else if (o instanceof Vector) {
-            Vector vector = (Vector) o;
-            // Array vector types start from 64
-            if (vector.getDataType().getValue() >= 64) {
-                return castArrayVectorToString(vector);
-            }
+            return castArrayVectorToString((Vector) o);
         }
-        
+
         return castSingleObjectToString(o);
     }
     
@@ -391,25 +389,42 @@ public class TypeCast {
 
     private static String castArrayVectorToString(Vector vector) {
         StringBuilder sb = new StringBuilder();
-        sb.append("array(").append(vector.getDataType().name()).append(").append!([");
-        
         int size = vector.rows();
-        for (int i = 0; i < size; i++) {
-            if (i > 0) sb.append(",");
-            try {
-                Entity element = vector.get(i);
-                if (element == null || ((Scalar)element).isNull()) {
-                    sb.append("NULL");
-                } else {
-                    String elementStr = castSingleObjectToString(element);
-                    sb.append(elementStr != null ? elementStr : element.toString());
-                }
-            } catch (Exception e) {
-                sb.append("NULL");
+
+        // Check if this is a single NULL element
+        boolean isSingleNull = false;
+        if (size == 1) {
+            Entity element = vector.get(0);
+            if (element == null || ((Scalar)element).isNull()) {
+                isSingleNull = true;
             }
         }
-        
-        sb.append("])");
+
+        if (isSingleNull) {
+            // Format: array(TYPE[]).append!(NULL)
+            sb.append("array(").append(vector.getDataType().getName()).append("[]).append!(NULL)");
+        } else {
+            // Format: append!(array(TYPE), [values])
+            sb.append("append!(array(").append(vector.getDataType().getName()).append("), [");
+
+            for (int i = 0; i < size; i++) {
+                if (i > 0) sb.append(",");
+                try {
+                    Entity element = vector.get(i);
+                    if (element == null || ((Scalar)element).isNull()) {
+                        sb.append("NULL");
+                    } else {
+                        String elementStr = castSingleObjectToString(element);
+                        sb.append(elementStr != null ? elementStr : element.toString());
+                    }
+                } catch (Exception e) {
+                    sb.append("NULL");
+                }
+            }
+
+            sb.append("])");
+        }
+
         return sb.toString();
     }
     
