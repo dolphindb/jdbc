@@ -4884,8 +4884,8 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[-33.33,12.34,0]", re1.getColumn(1).get(1).getString());
 
         PreparedStatement ps2 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-//        ps2.setObject(1,new BasicDoubleVector(new double[]{12.34, (double) 0,-33.33}));
-        ps2.setObject(1,new BasicDouble[]{new BasicDouble(12.34), new BasicDouble( 0),new BasicDouble(-33.33)});
+        ps2.setObject(1,new BasicDoubleVector(new double[]{12.34, (double) 0,-33.33}));
+//        ps2.setObject(1,new BasicDouble[]{new BasicDouble(12.34), new BasicDouble( 0),new BasicDouble(-33.33)});
         ps2.setInt(2,2);
         ps2.addBatch();
         ps2.executeBatch();
@@ -12044,7 +12044,7 @@ public class JDBCPrepareStatementTest {
         ps1.execute();
         JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re1 = (BasicTable) rs1.getResult();
-        Assert.assertEquals("[-1,0,555]", re1.getColumn(1).get(1).getString());
+        Assert.assertEquals("[555,-1,0]", re1.getColumn(1).get(1).getString());
         Assert.assertEquals("[]",re1.getColumn(1).get(0).getString());
     }
     @Test
@@ -12217,8 +12217,8 @@ public class JDBCPrepareStatementTest {
         ps1.execute();
         JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re1 = (BasicTable) rs1.getResult();
-        Assert.assertEquals("[00:00:19.999,03:05:10.000]",re1.getColumn(1).get(0).getString());
-        Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+        Assert.assertEquals("[00:00:19.999,03:05:10.000]",re1.getColumn(1).get(1).getString());
+        Assert.assertEquals("[]",re1.getColumn(1).get(0).getString());
     }
     @Test
     public void test_PreparedStatement_setArray_arrayVector_MINUTE() throws SQLException, IOException {
@@ -12383,8 +12383,11 @@ public class JDBCPrepareStatementTest {
         Assert.assertEquals("[]",re.getColumn(1).get(1).getString());
 
         PreparedStatement ps1 = conn.prepareStatement("update loadTable('dfs://test_append_array_tsdb1','pt') set col2 = ? where col1 = ?");
-        ps1.setObject(1,new BasicNanoTimeVector(new long[]{11,122}));
+        ps1.setArray(1, array1);
         ps1.setInt(2,2);
+        ps1.execute();
+        ps1.setObject(1,array2);
+        ps1.setInt(2,1);
         ps1.execute();
         JDBCResultSet rs1 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re1 = (BasicTable) rs1.getResult();
