@@ -400,12 +400,25 @@ public class TypeCast {
             }
         }
 
+        String typeName = vector.getDataType().getName();
+        if (typeName.equals("DECIMAL32") || typeName.equals("DECIMAL64") || typeName.equals("DECIMAL128")) {
+            int scale = 0;
+            if (vector instanceof BasicDecimal32Vector) {
+                scale = ((BasicDecimal32Vector)vector).getScale();
+            } else if (vector instanceof BasicDecimal64Vector) {
+                scale = ((BasicDecimal64Vector)vector).getScale();
+            } else if (vector instanceof BasicDecimal128Vector) {
+                scale = ((BasicDecimal128Vector)vector).getScale();
+            }
+            typeName =  typeName + "(" + scale + ")";
+        }
+
         if (isSingleNull) {
             // Format: array(TYPE[]).append!(NULL)
-            sb.append("array(").append(vector.getDataType().getName()).append("[]).append!(NULL)");
+            sb.append("array(").append(typeName).append("[]).append!(NULL)");
         } else {
             // Format: append!(array(TYPE), [values])
-            sb.append("append!(array(").append(vector.getDataType().getName()).append("), [");
+            sb.append("append!(array(").append(typeName).append("), [");
 
             for (int i = 0; i < size; i++) {
                 if (i > 0) sb.append(",");
