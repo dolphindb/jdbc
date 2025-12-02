@@ -275,10 +275,19 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public boolean wasNull() throws SQLException {
-        if (Objects.nonNull(o))
-            return ((Scalar) o).isNull();
-        else
+        if (Objects.nonNull(o)) {
+            if (o instanceof Scalar) {
+                return ((Scalar) o).isNull();
+            } else if (o instanceof Vector) {
+                // For Array Vector types, check if the vector represents a null array
+                Vector vector = (Vector) o;
+                return vector.rows() == 0;
+            } else {
+                return false;
+            }
+        } else {
             return true;
+        }
     }
 
     @Override
@@ -1031,7 +1040,9 @@ public class JDBCResultSet implements ResultSet{
     @Override
     public Array getArray(int columnIndex) throws SQLException {
         Vector column = table.getColumn(adjustColumnIndex(columnIndex));
-        return new DolphinDBArray((Vector) column.get(currentRow));
+        Entity entity = column.get(currentRow);
+        o = entity;
+        return new DolphinDBArray((Vector) entity);
     }
 
     @Override
