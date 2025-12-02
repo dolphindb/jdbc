@@ -281,7 +281,7 @@ public class JDBCResultSet implements ResultSet{
             } else if (o instanceof Vector) {
                 // For Array Vector types, check if the vector represents a null array
                 Vector vector = (Vector) o;
-                return vector.rows() == 0;
+                return vector.rows() == 1 && vector.isNull(0);
             } else {
                 return false;
             }
@@ -1039,10 +1039,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Array getArray(int columnIndex) throws SQLException {
-        Vector column = table.getColumn(adjustColumnIndex(columnIndex));
-        Entity entity = column.get(currentRow);
-        o = entity;
-        return new DolphinDBArray((Vector) entity);
+        return (Array)getObject(columnIndex);
     }
 
     @Override
