@@ -784,7 +784,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             } else if (DATABASE_NAME.equals(catalog)) {
                 BasicBoolean schemaExists = (BasicBoolean) connection.run("in (\"" + schemaPattern + "\", substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6))");
                 if (!schemaExists.getBoolean()) {
-                    throw new SQLException("The database '" + schemaPattern + "' doesn't exist.");
+                    throw new SQLException("The database " + schemaPattern + " does not exist or contains no tables.");
                 }
 
                 BasicStringVector tableNameVec = (BasicStringVector) connection.run("getTables(database(\"dfs://" + schemaPattern + "\"))");
