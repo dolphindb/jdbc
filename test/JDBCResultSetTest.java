@@ -641,7 +641,7 @@ public class JDBCResultSetTest {
 		stmt.execute("pt=loadTable('"+PATH+"/db1', 'tb')");
 		rs = stmt.executeQuery("select * from pt ");
 
-		int[] ColumnType = {16, 1, -6, 4, -5, 6, 8, 12, 91, 92, 93, 12, 93, 12, 12, 12, 12};
+		int[] ColumnType = {16, 1, 5, 4, -5, 6, 8, 12, 91, 92, 93, 1111, 93, 93, 1111, 1111, 1111};
 		String[] ColumnTypeName = {"DT_BOOL", "DT_BYTE", "DT_SHORT", "DT_INT", "DT_LONG", "DT_FLOAT", "DT_DOUBLE", "DT_STRING", "DT_DATE", "DT_TIME", "DT_TIMESTAMP", "DT_MONTH", "DT_DATETIME", "DT_NANOTIMESTAMP", "DT_MINUTE", "DT_SECOND", "DT_NANOTIME"};
 		String[] ColName = new String[18];
 		String [] CatalogName={"LOGICAL","INTEGRAL","INTEGRAL","INTEGRAL","INTEGRAL","FLOATING","FLOATING","LITERAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL","TEMPORAL"};
@@ -4417,7 +4417,7 @@ public class JDBCResultSetTest {
 	public void Test_JDBCResultSet_arrayVector_wasNull_false() throws Exception {
 		DBConnection connection = new DBConnection();
 		connection.connect(HOST,PORT,"admin","123456");
-		Preparedata_array(10,5);
+		Preparedata_array(100,5);
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();

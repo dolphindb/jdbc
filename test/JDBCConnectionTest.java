@@ -1,17 +1,11 @@
 import java.io.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
-import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import com.dolphindb.jdbc.JDBCConnection;
@@ -1747,7 +1741,7 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		assertEquals(true,re.contains("Server response: The user name or password is incorrect.. function: login"));
+		assertEquals(true,re.contains("Server response: The user name or password is incorrect. function: login"));
 	}
 	@Test
 	public void Test_getConnection_url() throws SQLException, ClassNotFoundException {
@@ -1816,7 +1810,7 @@ public class JDBCConnectionTest {
 		}catch(Exception ex){
 			re = ex.getMessage();
 		}
-		assertEquals(true,re.contains("Server response: The user name or password is incorrect.. function: login"));
+		assertEquals(true,re.contains("Server response: The user name or password is incorrect. function: login"));
 	}
 	@Test
 	public void Test_getConnection_url_password_not_provided() throws SQLException, ClassNotFoundException {
