@@ -8025,15 +8025,15 @@ public class JDBCPrepareStatementTest {
         ps3.setInt(2,2);
         ps3.executeUpdate();
 
-        BasicDecimal32Vector bv= new BasicDecimal32Vector(1);
+        BasicDecimal32Vector bv= new BasicDecimal32Vector(1,0);
         bv.setNull(0);
         ps3.setObject(1,bv);
-        ps3.setInt(2,3);
+        ps3.setInt(2,1);
         ps3.executeUpdate();
         JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re3 = (BasicTable) rs3.getResult();
         Assert.assertEquals("[-0.01000,-123.00432,132.20423,100.00000]", re3.getColumn(1).get(1).getString());
-        Assert.assertEquals("[]", re3.getColumn(1).get(2).getString());
+        Assert.assertEquals("[]", re3.getColumn(1).get(0).getString());
 
     }
     @Test
@@ -8057,15 +8057,15 @@ public class JDBCPrepareStatementTest {
         ps3.setInt(2,2);
         ps3.executeUpdate();
 
-        BasicDecimal64Vector bv= new BasicDecimal64Vector(1);
+        BasicDecimal64Vector bv= new BasicDecimal64Vector(1,2);
         bv.setNull(0);
         ps3.setObject(1,bv);
-        ps3.setInt(2,3);
+        ps3.setInt(2,1);
         ps3.executeUpdate();
         JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re3 = (BasicTable) rs3.getResult();
         Assert.assertEquals("[-1234567890988.71235,9876543210321.45698]", re3.getColumn(1).get(1).getString());
-        Assert.assertEquals("[]", re3.getColumn(1).get(2).getString());
+        Assert.assertEquals("[]", re3.getColumn(1).get(0).getString());
 
     }
     @Test
@@ -8089,16 +8089,15 @@ public class JDBCPrepareStatementTest {
         ps3.setInt(2,2);
         ps3.executeUpdate();
 
-        BasicDecimal128Vector bv= new BasicDecimal128Vector(1);
+        BasicDecimal128Vector bv= new BasicDecimal128Vector(1,2);
         bv.setNull(0);
         ps3.setObject(1,bv);
-        ps3.setInt(2,3);
+        ps3.setInt(2,1);
         ps3.executeUpdate();
         JDBCResultSet rs3 = (JDBCResultSet) ps.executeQuery("select * from loadTable('dfs://test_append_array_tsdb1','pt')");
         BasicTable re3 = (BasicTable) rs3.getResult();
         Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]", re3.getColumn(1).get(1).getString());
-        Assert.assertEquals("[]", re3.getColumn(1).get(2).getString());
-
+        Assert.assertEquals("[]", re3.getColumn(1).get(0).getString());
     }
     @Test
     public void test_PreparedStatement_insert_into_DFS_arrayVector_DECIMAL32_executeUpdate_String() throws SQLException, IOException {
@@ -12887,7 +12886,7 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
 
         ps.setInt(1,2);
-        BasicDecimal32Vector biv2 = new BasicDecimal32Vector(1);
+        BasicDecimal32Vector biv2 = new BasicDecimal32Vector(1,0);
         biv2.setNull(0);
         DolphinDBArray array2 = new DolphinDBArray(biv2);
         ps.setArray(2, array2);
@@ -12922,7 +12921,7 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
 
         ps.setInt(1,2);
-        BasicDecimal64Vector biv2 = new BasicDecimal64Vector(1);
+        BasicDecimal64Vector biv2 = new BasicDecimal64Vector(1,0);
         biv2.setNull(0);
         DolphinDBArray array2 = new DolphinDBArray(biv2);
         ps.setArray(2, array2);
@@ -12957,7 +12956,7 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
 
         ps.setInt(1,2);
-        BasicDecimal128Vector biv2 = new BasicDecimal128Vector(1);
+        BasicDecimal128Vector biv2 = new BasicDecimal128Vector(1,0);
         biv2.setNull(0);
         DolphinDBArray array2 = new DolphinDBArray(biv2);
         ps.setArray(2, array2);
