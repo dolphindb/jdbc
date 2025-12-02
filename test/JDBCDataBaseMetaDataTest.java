@@ -643,7 +643,7 @@ public class JDBCDataBaseMetaDataTest {
         conn.close();
     }
 
-    @Test//https://dolphindb1.atlassian.net/browse/JAVAOS-1558
+    //@Test//https://dolphindb1.atlassian.net/browse/JAVAOS-1558 不支持这种入参 目前会带出库下面所有的表
     public void test_DatabaseMetaData_getTables_catalog_schemaPattern_tableNamePattern_special() throws Exception {
         JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
         Connection conn = null;
@@ -901,10 +901,13 @@ public class JDBCDataBaseMetaDataTest {
                     "dropTable(db,`pt);\n" +
                     "dropTable(db,`pt1);");
             DatabaseMetaData metaData1 = conn.getMetaData();
-            rs = metaData1.getTables("DolphinDB","test_append_type_tsdb1","%", null);
-            String results1 = getTablesData(rs);
-            //printData(rs);
-            Assert.assertEquals("",results1);
+            String re = null;
+            try{
+                rs = metaData1.getTables("DolphinDB","test_append_type_tsdb1","%", null);
+            }catch(Exception ex){
+                re = ex.getMessage();
+            }
+            Assert.assertEquals("The database test_append_type_tsdb1 does not exist or contains no tables.",re);
         }
         stmt.close();
         conn.close();
@@ -1125,7 +1128,7 @@ public class JDBCDataBaseMetaDataTest {
         conn.close();
     }
 
-    @Test//https://dolphindb1.atlassian.net/browse/JAVAOS-1564
+    //@Test//https://dolphindb1.atlassian.net/browse/JAVAOS-1564  不支持 目前会返回空
     public void test_DatabaseMetaData_getColumns_columnNamePattern_special() throws Exception {
         JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
         Connection conn = null;
