@@ -762,6 +762,10 @@ public class Utils {
 
     public static int transferColDefsTypesToSqlTypes(String type) {
         type = type.replaceAll("\\(.*?\\)", "");
+        // Check if it's an array type (ends with [])
+        if (type.endsWith("[]")) {
+            return Types.ARRAY;
+        }
         switch (type){
             case "BOOL":
                 return Types.BOOLEAN;

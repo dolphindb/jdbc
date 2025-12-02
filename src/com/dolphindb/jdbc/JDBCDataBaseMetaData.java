@@ -300,7 +300,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 List<Integer> decimalDigits = new ArrayList<>();
                 for (int j = 0; j < typeStringColumn.rows(); j ++) {
                     String dataType = typeStringColumn.get(j).getString();
-                    dataType = dataType.replaceAll("\\(.*?\\)", "");
+                    dataType = dataType.replaceAll("\\(.*?\\)", "").replaceAll("\\[\\]$", "");
                     BasicTable curColDefs = (BasicTable) schema.get(new BasicString("colDefs"));
                     BasicIntVector extraVec = (BasicIntVector) curColDefs.getColumn("extra");
                     int scale = -1;
