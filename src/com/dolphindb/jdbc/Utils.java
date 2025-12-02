@@ -982,6 +982,8 @@ public class Utils {
                 return TypeCast.BASIC_BOOLEAN;
             case "java.lang.Byte":
             case "[B":
+            case "java.lang.Character":
+            case "[C":
                 return TypeCast.BASIC_BYTE;
             case "java.lang.Short":
             case "[S":
