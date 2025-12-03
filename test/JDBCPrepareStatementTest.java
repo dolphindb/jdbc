@@ -1,7 +1,4 @@
-import com.dolphindb.jdbc.DolphinDBArray;
-import com.dolphindb.jdbc.JDBCResultSet;
-import com.dolphindb.jdbc.JDBCStatement;
-import com.dolphindb.jdbc.TypeCast;
+import com.dolphindb.jdbc.*;
 import com.xxdb.DBConnection;
 import com.xxdb.data.*;
 //import java.util.Date;
@@ -23,6 +20,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+import static com.dolphindb.jdbc.Utils.checkServerVersionIfSupportRunSql;
 import static java.sql.Statement.SUCCESS_NO_INFO;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -8130,6 +8128,148 @@ public class JDBCPrepareStatementTest {
         BasicTable re1= (BasicTable) rs.getResult();
         Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re1.getColumn(1).get(0).getString());
         Assert.assertEquals("[]",re1.getColumn(1).get(1).getString());
+    }
+
+    @Test//旧版本才支持这种场景 2.00.15以前版本 3.00.3以前版本
+    public void test_PreparedStatement_update_arrayVector_executeUpdate_setObject_empty_vector() throws SQLException, IOException {
+        if(!checkServerVersionIfSupportRunSql((JDBCConnection) conn)){
+            JDBCResultSetTest.Preparedata_array(5,5);
+            DBConnection connection = new DBConnection();
+            connection.connect(HOST,PORT,"admin","123456");
+            connection.run("colNames=[\"cbool\", \"cchar\", \"cshort\", \"cint\", \"clong\", \"cdouble\", \"cfloat\", \"cdate\", \"cmonth\", \"ctime\", \"cminute\", \"csecond\", \"cdatetime\", \"ctimestamp\", \"cnanotime\", \"cnanotimestamp\", \"cdatehour\", \"cuuid\", \"cipaddr\", \"cint128\", \"cpoint\", \"ccomplex\", \"cdecimal32\", \"cdecimal64\", \"cdecimal128\"];\n" +
+                    "colTypes=[BOOL[],CHAR[],SHORT[],INT[],LONG[],DOUBLE[],FLOAT[],DATE[],MONTH[],TIME[],MINUTE[],SECOND[],DATETIME[],TIMESTAMP[],NANOTIME[],NANOTIMESTAMP[], DATEHOUR[],UUID[],IPADDR[],INT128[],POINT[],COMPLEX[],DECIMAL32(2)[],DECIMAL64(7)[],DECIMAL128(10)[]];\n" +
+                    "share table(1:0,colNames,colTypes) as table_array;\n" +
+                    "insert into table_array values(,,,,,,,,,,,,,,,,,,,,,,,,);");
+            PreparedStatement ps1 = conn.prepareStatement("update data set cbool = ?, cchar = ?, cshort = ?, cint = ?, clong = ?, cdouble = ?, cfloat = ?, cdate = ?, cmonth = ?, ctime = ?, cminute = ?, csecond = ?, cdatetime = ?, ctimestamp = ?, cnanotime = ?, cnanotimestamp = ?, cdatehour = ?, cuuid = ?, cipaddr = ?, cint128 = ?, cpoint = ?, ccomplex = ?, cdecimal32 = ?, cdecimal64 = ?, cdecimal128 = ?");
+            ps1.setObject(1,new BasicBooleanVector(0));
+            ps1.setObject(2,new BasicByteVector(0));
+            ps1.setObject(3,new BasicShortVector(0));
+            ps1.setObject(4,new BasicIntVector(0));
+            ps1.setObject(5,new BasicLongVector(0));
+            ps1.setObject(6,new BasicDoubleVector(0));
+            ps1.setObject(7,new BasicFloatVector(0));
+            ps1.setObject(8,new BasicDateVector(0));
+            ps1.setObject(9,new BasicMonthVector(0));
+            ps1.setObject(10,new BasicTimeVector(0));
+            ps1.setObject(11,new BasicMinuteVector(0));
+            ps1.setObject(12,new BasicSecondVector(0));
+            ps1.setObject(13,new BasicDateTimeVector(0));
+            ps1.setObject(14,new BasicTimestampVector(0));
+            ps1.setObject(15,new BasicNanoTimeVector(0));
+            ps1.setObject(16,new BasicNanoTimestampVector(0));
+            ps1.setObject(17,new BasicDateHourVector(0));
+            ps1.setObject(18,new BasicUuidVector(0));
+            ps1.setObject(19,new BasicIPAddrVector(0));
+            ps1.setObject(20,new BasicInt128Vector(0));
+            ps1.setObject(21,new BasicPointVector(0));
+            ps1.setObject(22,new BasicComplexVector(0));
+            ps1.setObject(23,new BasicDecimal32Vector(0,2));
+            ps1.setObject(24,new BasicDecimal64Vector(0,2));
+            ps1.setObject(25,new BasicDecimal128Vector(0,2));
+            ps1.executeUpdate();
+            JDBCResultSet rs1 = (JDBCResultSet) ps1.executeQuery("select * from data");
+            BasicTable re1 = (BasicTable) rs1.getResult();
+//            System.out.println(re1.getString());
+            BasicTable ex = (BasicTable)connection.run("select * from table_array");
+            Assert.assertEquals(ex.getString(),re1.getString());
+        }else{
+            System.out.println("该版本不支持setObject empty vector,该案例跳过");
+        }
+    }
+
+    @Test//旧版本才支持这种场景 2.00.15以前版本 3.00.3以前版本
+    public void test_PreparedStatement_update_arrayVector_execute_setObject_empty_vector() throws SQLException, IOException {
+        if(!checkServerVersionIfSupportRunSql((JDBCConnection) conn)){
+            JDBCResultSetTest.Preparedata_array(5,5);
+            DBConnection connection = new DBConnection();
+            connection.connect(HOST,PORT,"admin","123456");
+            connection.run("colNames=[\"cbool\", \"cchar\", \"cshort\", \"cint\", \"clong\", \"cdouble\", \"cfloat\", \"cdate\", \"cmonth\", \"ctime\", \"cminute\", \"csecond\", \"cdatetime\", \"ctimestamp\", \"cnanotime\", \"cnanotimestamp\", \"cdatehour\", \"cuuid\", \"cipaddr\", \"cint128\", \"cpoint\", \"ccomplex\", \"cdecimal32\", \"cdecimal64\", \"cdecimal128\"];\n" +
+                    "colTypes=[BOOL[],CHAR[],SHORT[],INT[],LONG[],DOUBLE[],FLOAT[],DATE[],MONTH[],TIME[],MINUTE[],SECOND[],DATETIME[],TIMESTAMP[],NANOTIME[],NANOTIMESTAMP[], DATEHOUR[],UUID[],IPADDR[],INT128[],POINT[],COMPLEX[],DECIMAL32(2)[],DECIMAL64(7)[],DECIMAL128(10)[]];\n" +
+                    "share table(1:0,colNames,colTypes) as table_array;\n" +
+                    "insert into table_array values(,,,,,,,,,,,,,,,,,,,,,,,,);");
+            PreparedStatement ps1 = conn.prepareStatement("update data set cbool = ?, cchar = ?, cshort = ?, cint = ?, clong = ?, cdouble = ?, cfloat = ?, cdate = ?, cmonth = ?, ctime = ?, cminute = ?, csecond = ?, cdatetime = ?, ctimestamp = ?, cnanotime = ?, cnanotimestamp = ?, cdatehour = ?, cuuid = ?, cipaddr = ?, cint128 = ?, cpoint = ?, ccomplex = ?, cdecimal32 = ?, cdecimal64 = ?, cdecimal128 = ?");
+            ps1.setObject(1,new BasicBooleanVector(0));
+            ps1.setObject(2,new BasicByteVector(0));
+            ps1.setObject(3,new BasicShortVector(0));
+            ps1.setObject(4,new BasicIntVector(0));
+            ps1.setObject(5,new BasicLongVector(0));
+            ps1.setObject(6,new BasicDoubleVector(0));
+            ps1.setObject(7,new BasicFloatVector(0));
+            ps1.setObject(8,new BasicDateVector(0));
+            ps1.setObject(9,new BasicMonthVector(0));
+            ps1.setObject(10,new BasicTimeVector(0));
+            ps1.setObject(11,new BasicMinuteVector(0));
+            ps1.setObject(12,new BasicSecondVector(0));
+            ps1.setObject(13,new BasicDateTimeVector(0));
+            ps1.setObject(14,new BasicTimestampVector(0));
+            ps1.setObject(15,new BasicNanoTimeVector(0));
+            ps1.setObject(16,new BasicNanoTimestampVector(0));
+            ps1.setObject(17,new BasicDateHourVector(0));
+            ps1.setObject(18,new BasicUuidVector(0));
+            ps1.setObject(19,new BasicIPAddrVector(0));
+            ps1.setObject(20,new BasicInt128Vector(0));
+            ps1.setObject(21,new BasicPointVector(0));
+            ps1.setObject(22,new BasicComplexVector(0));
+            ps1.setObject(23,new BasicDecimal32Vector(0,2));
+            ps1.setObject(24,new BasicDecimal64Vector(0,2));
+            ps1.setObject(25,new BasicDecimal128Vector(0,2));
+            ps1.execute();
+            JDBCResultSet rs1 = (JDBCResultSet) ps1.executeQuery("select * from data");
+            BasicTable re1 = (BasicTable) rs1.getResult();
+//            System.out.println(re1.getString());
+            BasicTable ex = (BasicTable)connection.run("select * from table_array");
+            Assert.assertEquals(ex.getString(),re1.getString());
+        }else{
+            System.out.println("该版本不支持setObject empty vector,该案例跳过");
+        }
+    }
+
+    @Test//旧版本才支持这种场景 2.00.15以前版本 3.00.3以前版本
+    public void test_PreparedStatement_update_arrayVector_executeBatch_setObject_empty_vector() throws SQLException, IOException {
+        if(!checkServerVersionIfSupportRunSql((JDBCConnection) conn)){
+            JDBCResultSetTest.Preparedata_array(5,5);
+            DBConnection connection = new DBConnection();
+            connection.connect(HOST,PORT,"admin","123456");
+            connection.run("colNames=[\"cbool\", \"cchar\", \"cshort\", \"cint\", \"clong\", \"cdouble\", \"cfloat\", \"cdate\", \"cmonth\", \"ctime\", \"cminute\", \"csecond\", \"cdatetime\", \"ctimestamp\", \"cnanotime\", \"cnanotimestamp\", \"cdatehour\", \"cuuid\", \"cipaddr\", \"cint128\", \"cpoint\", \"ccomplex\", \"cdecimal32\", \"cdecimal64\", \"cdecimal128\"];\n" +
+                    "colTypes=[BOOL[],CHAR[],SHORT[],INT[],LONG[],DOUBLE[],FLOAT[],DATE[],MONTH[],TIME[],MINUTE[],SECOND[],DATETIME[],TIMESTAMP[],NANOTIME[],NANOTIMESTAMP[], DATEHOUR[],UUID[],IPADDR[],INT128[],POINT[],COMPLEX[],DECIMAL32(2)[],DECIMAL64(7)[],DECIMAL128(10)[]];\n" +
+                    "share table(1:0,colNames,colTypes) as table_array;\n" +
+                    "insert into table_array values(,,,,,,,,,,,,,,,,,,,,,,,,);");
+            PreparedStatement ps1 = conn.prepareStatement("update data set cbool = ?, cchar = ?, cshort = ?, cint = ?, clong = ?, cdouble = ?, cfloat = ?, cdate = ?, cmonth = ?, ctime = ?, cminute = ?, csecond = ?, cdatetime = ?, ctimestamp = ?, cnanotime = ?, cnanotimestamp = ?, cdatehour = ?, cuuid = ?, cipaddr = ?, cint128 = ?, cpoint = ?, ccomplex = ?, cdecimal32 = ?, cdecimal64 = ?, cdecimal128 = ?");
+            ps1.setObject(1,new BasicBooleanVector(0));
+            ps1.setObject(2,new BasicByteVector(0));
+            ps1.setObject(3,new BasicShortVector(0));
+            ps1.setObject(4,new BasicIntVector(0));
+            ps1.setObject(5,new BasicLongVector(0));
+            ps1.setObject(6,new BasicDoubleVector(0));
+            ps1.setObject(7,new BasicFloatVector(0));
+            ps1.setObject(8,new BasicDateVector(0));
+            ps1.setObject(9,new BasicMonthVector(0));
+            ps1.setObject(10,new BasicTimeVector(0));
+            ps1.setObject(11,new BasicMinuteVector(0));
+            ps1.setObject(12,new BasicSecondVector(0));
+            ps1.setObject(13,new BasicDateTimeVector(0));
+            ps1.setObject(14,new BasicTimestampVector(0));
+            ps1.setObject(15,new BasicNanoTimeVector(0));
+            ps1.setObject(16,new BasicNanoTimestampVector(0));
+            ps1.setObject(17,new BasicDateHourVector(0));
+            ps1.setObject(18,new BasicUuidVector(0));
+            ps1.setObject(19,new BasicIPAddrVector(0));
+            ps1.setObject(20,new BasicInt128Vector(0));
+            ps1.setObject(21,new BasicPointVector(0));
+            ps1.setObject(22,new BasicComplexVector(0));
+            ps1.setObject(23,new BasicDecimal32Vector(0,2));
+            ps1.setObject(24,new BasicDecimal64Vector(0,2));
+            ps1.setObject(25,new BasicDecimal128Vector(0,2));
+            ps1.addBatch();
+            ps1.executeBatch();
+            JDBCResultSet rs1 = (JDBCResultSet) ps1.executeQuery("select * from data");
+            BasicTable re1 = (BasicTable) rs1.getResult();
+//            System.out.println(re1.getString());
+            BasicTable ex = (BasicTable)connection.run("select * from table_array");
+            Assert.assertEquals(ex.getString(),re1.getString());
+        }else{
+            System.out.println("该版本不支持setObject empty vector,该案例跳过");
+        }
     }
     @Test
     public void test_PreparedStatement_delete_dimension_execute() throws SQLException, IOException {
