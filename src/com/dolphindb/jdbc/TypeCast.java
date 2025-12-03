@@ -392,14 +392,8 @@ public class TypeCast {
         int size = vector.rows();
 
         // Check if this is a single NULL element
-        boolean isSingleNull = false;
-        if (size == 1) {
-            Entity element = vector.get(0);
-            if (element == null || ((Scalar)element).isNull()) {
-                isSingleNull = true;
-            }
-        }
-
+        boolean isSingleNull = (size == 0)
+                || (size == 1 && (vector.get(0) == null || ((Scalar) vector.get(0)).isNull()));
         String typeName = vector.getDataType().getName();
         if (typeName.equals("DECIMAL32") || typeName.equals("DECIMAL64") || typeName.equals("DECIMAL128")) {
             int scale = 0;
