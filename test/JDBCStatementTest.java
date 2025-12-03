@@ -1,4 +1,5 @@
 
+import com.dolphindb.jdbc.JDBCConnection;
 import com.dolphindb.jdbc.JDBCResultSet;
 import com.dolphindb.jdbc.JDBCStatement;
 import com.xxdb.data.*;
@@ -7,6 +8,7 @@ import org.junit.*;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static com.dolphindb.jdbc.Utils.checkServerVersionIfSupportRunSql;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -3458,7 +3460,7 @@ public class JDBCStatementTest {
 		}
 	}
 	@Test
-	public void test_execute_insert_into_memoryTable_arrayVector_all_dateType() throws SQLException, IOException, ClassNotFoundException {
+	public void test_execute_insert_into_update_memoryTable_arrayVector_all_dateType() throws SQLException, IOException, ClassNotFoundException {
 		createMemoryTable_Array();
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
@@ -3500,6 +3502,22 @@ public class JDBCStatementTest {
 			for (int j = 0; j < 10; j++) {
 				Assert.assertEquals(re1.getColumn(i).get(j).getString(), re.getColumn(i).get(j).getString());
 			}
+		}
+		if(checkServerVersionIfSupportRunSql((JDBCConnection) conn)){
+		stmt.execute("update tt set col2 = array(BOOL).append!(NULL) , col3 = array(CHAR).append!(NULL) , col4 = array(SHORT).append!(NULL) , col5 = array(INT).append!(NULL) , col6 = array(LONG).append!(NULL) , col7 = array(DATE).append!(NULL) , col8 = array(MONTH).append!(NULL) , col9 = array(TIME).append!(NULL) , col10 = array(MINUTE).append!(NULL) , col11 = array(SECOND).append!(NULL) , col12 = array(DATETIME).append!(NULL) , col13 = array(TIMESTAMP).append!(NULL) , col14 = array(NANOTIME).append!(NULL) , col15 = array(NANOTIMESTAMP).append!(NULL) , col16 = array(FLOAT).append!(NULL) , col17 = array(DOUBLE).append!(NULL) , col18 = array(UUID).append!(NULL) , col19 = array(DATEHOUR).append!(NULL) , col20 = array(IPADDR).append!(NULL) , col21 = array(INT128).append!(NULL) , col22 = array(COMPLEX).append!(NULL) , col23 = array(POINT).append!(NULL) , col24 = array(DECIMAL32(2)).append!(NULL) , col25 = array(DECIMAL64(7)).append!(NULL) , col26 = array(DECIMAL128(19)).append!(NULL) ");
+		JDBCResultSet rs2 = (JDBCResultSet) stmt.executeQuery("select * from tt limit 1");
+		BasicTable re2 = (BasicTable) rs2.getResult();
+		for (int i = 1; i <= 25; i++) {
+			if(i==19){
+				Assert.assertEquals("[[0.0.0.0]]", re2.getColumn(i).getString());
+			} else if (i==22) {
+				Assert.assertEquals("[[(,)]]", re2.getColumn(i).getString());
+			}else {
+				Assert.assertEquals("[[]]", re2.getColumn(i).getString());
+			}
+		}
+		}else{
+			System.out.println("The server version does not support update array vector; update will be skipped.");
 		}
 	}
 	@Test
