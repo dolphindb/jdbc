@@ -107,8 +107,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public void clearBatch() throws SQLException {
 		super.clearBatch();
 		this.batchSize = 0;
-		if(this.sqlBuffer != null)
+		if(this.sqlBuffer != null) {
 			this.sqlBuffer.clear();
+			if (!isPreparedStatement && preProcessedSql != null && !preProcessedSql.isEmpty())
+				this.sqlBuffer.add(preProcessedSql);
+		}
 		if(this.runSQLparamDictList != null)
 			this.runSQLparamDictList.clear();
 		if(this.columnBindValues != null)
