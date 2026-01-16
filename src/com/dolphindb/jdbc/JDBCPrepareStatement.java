@@ -41,7 +41,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.sqlBuffer = new ArrayList<>();
 		this.runSQLparamDictList = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
-		this.supportRunSQL = Utils.checkServerVersionIfSupportRunSql(conn);
+		this.supportRunSQL = conn.isRunSqlSupported();
 		if (preProcessedSql.contains("?"))
 			isPreparedStatement = true;
 		if (isPreparedStatement) {

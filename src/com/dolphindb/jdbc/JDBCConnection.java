@@ -29,6 +29,10 @@ public class JDBCConnection implements Connection {
 	private DatabaseMetaData metaData;
 	private String user;
 	private String password;
+	private String serverVersion;
+	private boolean supportCatalog;
+	private boolean supportRunSql;
+	private boolean supportRowCount;
 
 	private static final Logger log = LoggerFactory.getLogger(JDBCConnection.class);
 
@@ -211,6 +215,16 @@ public class JDBCConnection implements Connection {
 		StringBuffer sbInitScript = buildInitialScript(prop);
 		if(sbInitScript.length()>0)
 			this.connect(hostname, port, prop, sbInitScript.toString());
+
+		cacheServerVersion();
+	}
+
+	private void cacheServerVersion() throws IOException {
+		Entity entity = run("version", new ArrayList<>());
+		this.serverVersion = entity == null ? null : entity.getString();
+		this.supportCatalog = Utils.checkServerVersionIfSupportCatalog(this.serverVersion);
+		this.supportRunSql = Utils.checkServerVersionIfSupportRunSql(this.serverVersion);
+		this.supportRowCount = Utils.checkServerVersionIfSupportRowCount(this.serverVersion);
 	}
 
 	private StringBuffer buildInitialScript(Properties prop) throws IOException {
@@ -594,6 +608,22 @@ public class JDBCConnection implements Connection {
 
 	public String getUrl() {
 		return url;
+	}
+
+	public String getServerVersion() {
+		return serverVersion;
+	}
+
+	public boolean isCatalogSupported() {
+		return supportCatalog;
+	}
+
+	public boolean isRunSqlSupported() {
+		return supportRunSql;
+	}
+
+	public boolean isRowCountSupported() {
+		return supportRowCount;
 	}
 
 	public String getHostName() {

@@ -18,6 +18,7 @@ public class JDBCStatement implements Statement {
     protected Object result;
     protected Deque<ResultSet> resultSets;
     protected HashMap<String,String> tableTypes;
+    protected boolean supportRowCount;
     protected static final String IN_MEMORY_TABLE = "IN-MEMORY TABLE";
     protected boolean isClosed;
     private int fetchSize = 0;
@@ -30,6 +31,7 @@ public class JDBCStatement implements Statement {
         this.objectQueue = new LinkedList<>();
         this.resultSets = new LinkedList<>();
         this.batch = new StringBuilder();
+        this.supportRowCount = cnn.isRowCountSupported();
     }
 
     @Override
@@ -182,6 +184,40 @@ public class JDBCStatement implements Statement {
         }
     }
 
+    protected int extractRowCount(Entity entity) {
+        if (entity instanceof Scalar && !((Scalar) entity).isNull()) {
+            return ((BasicInt) entity).getInt();
+        }
+        return SUCCESS_NO_INFO;
+    }
+
+    protected String appendRowCountSql(String sql) {
+        if (sql == null) {
+            return "row_count()";
+        }
+        String trimmed = sql.trim();
+        while (trimmed.endsWith(";")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1).trim();
+        }
+        if (trimmed.isEmpty()) {
+            return "row_count()";
+        }
+        return trimmed + ";\nrow_count()";
+    }
+
+    protected int executeUpdateWithRowCount(String sql) throws SQLException {
+        try {
+            if (!supportRowCount) {
+                connection.run(sql);
+                return SUCCESS_NO_INFO;
+            }
+            Entity entity = connection.run(appendRowCountSql(sql));
+            return extractRowCount(entity);
+        } catch (IOException e) {
+            throw new SQLException(e);
+        }
+    }
+
     @Override
     public int executeUpdate(String sql) throws SQLException {
         if (queryTimeout > 0) {
@@ -216,19 +252,14 @@ public class JDBCStatement implements Statement {
                 if (tableName != null) {
                     tableType = getTableType(tableName);
                     if (tableType.equals(IN_MEMORY_TABLE)) {
-                        try {
-                            connection.run(sql);
-                            return SUCCESS_NO_INFO;
-                        } catch (IOException e) {
-                            throw new SQLException(e);
-                        }
+                        return executeUpdateWithRowCount(sql);
                     } else {
                         String INSERT_SQL_COMMA_SPLIT_REGEX = ",(?=(?:[^()]*\\([^()]*\\))*[^()]*$)";
                         String[] values = lastStatement.substring(lastStatement.indexOf("values") + "values".length()).replaceAll("^\\(|\\)$", "").split(INSERT_SQL_COMMA_SPLIT_REGEX, -1);
-                        String runSql = processValueInSql(tableName, values);
+                        String runSql = processValueInSqlWithRowCount(tableName, values);
                         try {
-                            connection.run(runSql);
-                            return SUCCESS_NO_INFO;
+                            Entity entity = connection.run(runSql);
+                            return extractRowCount(entity);
                         } catch (IOException e) {
                             throw new SQLException(e);
                         }
@@ -239,12 +270,7 @@ public class JDBCStatement implements Statement {
             case Utils.DML_UPDATE:
             case Utils.DML_DELETE:
                 if (tableName != null) {
-                    try {
-                        connection.run(sql);
-                        return SUCCESS_NO_INFO;
-                    } catch (IOException e) {
-                        throw new SQLException(e);
-                    }
+                    return executeUpdateWithRowCount(sql);
                 } else {
                     throw new SQLException("check the Query " + sql);
                 }
@@ -265,8 +291,8 @@ public class JDBCStatement implements Statement {
         }
     }
 
-    protected String processValueInSql(String tableName, String[] values) {
-        StringBuilder sqlSb = new StringBuilder("append!(").append(tableName).append(",").append("table(");
+    protected String buildAppendTableSql(String tableName, String[] values) {
+        StringBuilder sqlSb = new StringBuilder("table(");
 
         String colName = "col";
         int colIndex = 1;
@@ -314,9 +340,19 @@ public class JDBCStatement implements Statement {
         }
 
         sqlSb.delete(sqlSb.length() - ",".length(), sqlSb.length());
-        sqlSb.append("))");
+        sqlSb.append(")");
 
         return sqlSb.toString();
+    }
+
+    protected String processValueInSql(String tableName, String[] values) {
+        return "append!(" + tableName + "," + buildAppendTableSql(tableName, values) + ")";
+    }
+
+    protected String processValueInSqlWithRowCount(String tableName, String[] values) {
+        String tempTableName = "jdbc_tmp_insert_" + Thread.currentThread().getId();
+        String tableSql = buildAppendTableSql(tableName, values);
+        return tempTableName + "=" + tableSql + ";append!(" + tableName + "," + tempTableName + ");rows(" + tempTableName + ")";
     }
 
     protected AbstractVector getNULLValueType(String tableName) throws IOException {

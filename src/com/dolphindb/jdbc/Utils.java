@@ -299,6 +299,70 @@ public class Utils {
         cols.add(vector);
         return new BasicTable(colNames, cols);
     }
+
+    private static int parseVersionPart(String part) {
+        try {
+            return Integer.parseInt(part);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private static int[] parseVersionParts(String version) {
+        if (version == null)
+            return new int[]{0, 0, 0};
+
+        String[] tokens = version.split(" ");
+        String core = tokens.length > 0 ? tokens[0].trim() : "";
+        if (core.isEmpty())
+            return new int[]{0, 0, 0};
+
+        String[] parts = core.split("\\.");
+        int part1 = parts.length > 0 ? parseVersionPart(parts[0]) : 0;
+        int part2 = parts.length > 1 ? parseVersionPart(parts[1]) : 0;
+        int part3 = parts.length > 2 ? parseVersionPart(parts[2]) : 0;
+        return new int[]{part1, part2, part3};
+    }
+
+    public static boolean checkServerVersionIfSupportCatalog(String version) {
+        int[] parts = parseVersionParts(version);
+        return parts[0] == 3;
+    }
+
+    public static boolean checkServerVersionIfSupportRunSql(String version) {
+        int[] parts = parseVersionParts(version);
+        int part1 = parts[0];
+        int part2 = parts[1];
+        int part3 = parts[2];
+
+        // greater than 3.00.3
+        if (part1 >= 4 || (part1 == 3 && (part2 > 0 || (part2 == 0 && part3 >= 3)))) {
+            return true;
+        }
+
+        // greater than 2.00.15
+        return part1 == 2 && (part2 > 0 || (part2 == 0 && part3 >= 15));
+    }
+
+    public static boolean checkServerVersionIfSupportRowCount(String version) {
+        int[] parts = parseVersionParts(version);
+        int part1 = parts[0];
+        int part2 = parts[1];
+        int part3 = parts[2];
+
+        if (part1 >= 4)
+            return true;
+
+        // greater than 3.00.5
+        if (part1 == 3)
+            return part2 > 0 || (part2 == 0 && part3 >= 5);
+
+        // greater than 2.00.18
+        if (part1 == 2)
+            return part2 > 0 || (part2 == 0 && part3 >= 18);
+
+        return false;
+    }
     private static boolean isKeyChar(char chr){
         return (chr >='a'&&chr <= 'z')||(chr >= 'A'&&chr <= 'Z')||(chr >= '0'&&chr <= '9')||(chr == '_');
     }
@@ -804,36 +868,16 @@ public class Utils {
     }
 
     public static boolean checkServerVersionIfSupportCatalog(JDBCConnection connection) {
-        try {
-            String version = connection.run("version", new ArrayList<>()).getString();
-            String[] versionParts = version.split(" ")[0].split("\\.");
-            return Integer.parseInt(versionParts[0]) == 3;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return checkServerVersionIfSupportCatalog(connection.getServerVersion());
     }
 
     public static boolean checkServerVersionIfSupportRunSql(JDBCConnection connection) {
-        try {
-            String version = connection.run("version", new ArrayList<>()).getString();
-            String[] versionParts = version.split(" ")[0].split("\\.");
-            int part1 = Integer.parseInt(versionParts[0]);
-            int part2 = Integer.parseInt(versionParts[1]);
-            int part3 = Integer.parseInt(versionParts[2]);
-
-            // ≥ 3.00.3
-            if (part1 >= 4 || (part1 == 3 && part2 >= 0 && part3 >= 3)) {
-                return true;
-            }
-
-            // ≥ 2.00.15
-            return part1 == 2 && part2 >= 0 && part3 >= 15;
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return checkServerVersionIfSupportRunSql(connection.getServerVersion());
     }
 
+    public static boolean checkServerVersionIfSupportRowCount(JDBCConnection connection) {
+        return checkServerVersionIfSupportRowCount(connection.getServerVersion());
+    }
 
     public static Object convertEntityToJavaObject(Entity entity, Entity.DATA_TYPE dataType) {
         switch (dataType){

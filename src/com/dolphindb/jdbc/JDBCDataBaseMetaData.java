@@ -76,7 +76,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         List<Vector> cols = new ArrayList<>();
         BasicStringVector allCatalogStringVector;
         try {
-            if (Utils.checkServerVersionIfSupportCatalog(connection)) {
+            if (connection.isCatalogSupported()) {
                 allCatalogStringVector = (BasicStringVector) connection.run("getAllCatalogs()");
             } else {
                 allCatalogStringVector = new BasicStringVector(new String[]{DATABASE_NAME});
@@ -124,7 +124,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         if (Utils.isNotEmpty(catalog) && !catalog.equals("%") && Utils.isNotEmpty(schemaPattern) && !schemaPattern.equals("%")
                 && Utils.isNotEmpty(tableNamePattern) && Utils.isNotEmpty(columnNamePattern) && columnNamePattern.equals("%")) {
             try {
-                if (Utils.checkServerVersionIfSupportCatalog(connection)) {
+                if (connection.isCatalogSupported()) {
                     if (!((BasicBoolean) connection.run("existsCatalog(\"" + catalog + "\")")).getBoolean())
                         throw new RuntimeException("The catalog '" + catalog + "' doesn't exist.");
                     BasicTable schemas = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\")");
@@ -639,7 +639,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         List<Vector> cols = new ArrayList<>();
 
         try {
-            if (Utils.checkServerVersionIfSupportCatalog(connection)) {
+            if (connection.isCatalogSupported()) {
                 BasicStringVector catalogsVec = (BasicStringVector) connection.run("getAllCatalogs();");
                 if (catalogsVec.rows() != 0) {
                     BasicStringVector schemaVec = new BasicStringVector(0);
@@ -678,7 +678,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
         if (Utils.isNotEmpty(catalog) && schemaPattern.equals("%")) {
             try {
-                if (Utils.checkServerVersionIfSupportCatalog(connection)) {
+                if (connection.isCatalogSupported()) {
                     BasicStringVector schemaVec = new BasicStringVector(0);
                     BasicStringVector catalogVec = new BasicStringVector(0);
                     BasicTable schemasMapTb = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\");");
@@ -753,7 +753,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         List<String> remarksVal = new ArrayList<>();
 
         try {
-            if (Utils.checkServerVersionIfSupportCatalog(connection)) {
+            if (connection.isCatalogSupported()) {
                 BasicTable schemas = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\")");
                 if (schemas.rows() != 0) {
                     int pos = -1;
@@ -815,7 +815,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         List<String> remarksVal = new ArrayList<>();
 
         try {
-            if (Utils.checkServerVersionIfSupportCatalog(connection)) {
+            if (connection.isCatalogSupported()) {
                 BasicTable schemas = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\")");
                 if (schemas.rows() != 0) {
                     BasicStringVector schemaVector = (BasicStringVector) schemas.getColumn("schema");
