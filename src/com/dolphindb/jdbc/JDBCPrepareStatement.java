@@ -310,7 +310,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			if (arguments.get(0).rows() != size)
 				Arrays.fill(value, EXECUTE_FAILED);
 			else
-				Arrays.fill(value, SUCCESS_NO_INFO);
+				Arrays.fill(value, 1);
 			return value;
 		} catch (Exception e) {
 			throw new SQLException(e);
@@ -864,6 +864,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private int executeUpdateWithRunSQLInternal(int index) throws SQLException {
 		try {
 			String sqlWithPlaceholders = sqlBuffer.get(index);
+			if (supportRowCount) {
+				sqlWithPlaceholders = sqlWithPlaceholders.isEmpty() ? "row_count()" : sqlWithPlaceholders + ";row_count()";
+			}
 			List<Entity> params = new ArrayList<>();
 			params.add(new BasicString(sqlWithPlaceholders));
 			params.add(new BasicString("ddb"));
