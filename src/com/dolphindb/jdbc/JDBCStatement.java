@@ -191,27 +191,14 @@ public class JDBCStatement implements Statement {
         return SUCCESS_NO_INFO;
     }
 
-    protected String appendRowCountSql(String sql) {
-        if (sql == null) {
-            return "row_count()";
-        }
-        String trimmed = sql.trim();
-        while (trimmed.endsWith(";")) {
-            trimmed = trimmed.substring(0, trimmed.length() - 1).trim();
-        }
-        if (trimmed.isEmpty()) {
-            return "row_count()";
-        }
-        return trimmed + ";\nrow_count()";
-    }
-
     protected int executeUpdateWithRowCount(String sql) throws SQLException {
         try {
             if (!supportRowCount) {
                 connection.run(sql);
                 return SUCCESS_NO_INFO;
             }
-            Entity entity = connection.run(appendRowCountSql(sql));
+            sql = sql.isEmpty() ? "row_count()" : sql + ";row_count()";
+            Entity entity = connection.run(sql);
             return extractRowCount(entity);
         } catch (IOException e) {
             throw new SQLException(e);
