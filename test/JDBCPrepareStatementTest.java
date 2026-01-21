@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
+//import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import static com.dolphindb.jdbc.Utils.checkServerVersionIfSupportRunSql;
@@ -3900,22 +3900,23 @@ public class JDBCPrepareStatementTest {
         ps.setString(17, "12.23");
         ps.setString(18, "test1");
         ps.setString(19, "test1");
-        BasicUuid uuids = new BasicUuid(1,2);
-        ps.setObject(20, uuids);
+        ps.setString(20, "00000000-0000-0001-0000-000000000002");
+//        ps.setString(21, "2012.01.01T01");//not support
+        ps.setString(22, "0::1:0:0:0:2");
+        ps.setString(23, "00000000000000010000000000000002");
+        ps.setString(24, "TEST BLOB");
+//        ps.setString(25, "1.0+2.0i"); //not support
+//        ps.setString(26, "(0.0, 0.0)");//not support
+        ps.setString(27, "123421.00012");
+        ps.setString(28, "123421.00012");
+        ps.setString(29,"123421.00012");
+
         BasicDateHour tmp_datehour = new BasicDateHour(LocalDateTime.of(2021,1,1,1,1,1,123456));
         ps.setObject(21, tmp_datehour);
-        BasicIPAddr ipaddrs = new BasicIPAddr(1,2);
-        ps.setObject(22, ipaddrs);
-        BasicInt128 int128 = new BasicInt128(1,2);
-        ps.setObject(23, int128);
-        ps.setObject(24, "TEST BLOB");
         BasicComplex complexs = new BasicComplex(1,2);
         ps.setObject(25, complexs);
         BasicPoint points = new BasicPoint(0,0);
         ps.setObject(26, points);
-        ps.setString(27, "123421.00012");
-        ps.setString(28, "123421.00012");
-        ps.setString(29,"123421.00012");
         ps.addBatch();
         ps.executeBatch();
         ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt')");
@@ -11385,8 +11386,8 @@ public class JDBCPrepareStatementTest {
                 " where time between ? \nand ?";
         ps = conn.prepareStatement(updateSql);
         ps.setDouble(1, 10.235);
-        ps.setObject(2, new BasicSecond(LocalTime.of(14,15).truncatedTo(ChronoUnit.SECONDS)));
-        ps.setObject(3, new BasicSecond(LocalTime.of(14,30).truncatedTo(ChronoUnit.SECONDS)));
+        ps.setObject(2, new BasicSecond(LocalTime.of(14,15)));
+        ps.setObject(3, new BasicSecond(LocalTime.of(14,30)));
         ps.execute();
         rs = ps.executeQuery("select * from loadTable(\"dfs://example\",\"pt\") where time between 14:15:00 and 14:30:00");
         rs.next();
@@ -11398,8 +11399,8 @@ public class JDBCPrepareStatementTest {
                 " where time between ? \tand ?";
         ps = conn.prepareStatement(updateSql);
         ps.setDouble(1, 10.2);
-        ps.setObject(2, new BasicSecond(LocalTime.of(14,15).truncatedTo(ChronoUnit.SECONDS)));
-        ps.setObject(3, new BasicSecond(LocalTime.of(14,30).truncatedTo(ChronoUnit.SECONDS)));
+        ps.setObject(2, new BasicSecond(LocalTime.of(14,15)));
+        ps.setObject(3, new BasicSecond(LocalTime.of(14,30)));
         ps.execute();
         rs = ps.executeQuery("select * from loadTable(\"dfs://example\",\"pt\") where time between 14:15:00 and 14:30:00");
         rs.next();
@@ -11420,8 +11421,8 @@ public class JDBCPrepareStatementTest {
                 " where time between ? \nand ?";
         ps = conn.prepareStatement(updateSql);
         ps.setDouble(1, 10.235);
-        ps.setObject(2, new BasicSecond(LocalTime.of(14,15).truncatedTo(ChronoUnit.SECONDS)));
-        ps.setObject(3, new BasicSecond(LocalTime.of(14,30).truncatedTo(ChronoUnit.SECONDS)));
+        ps.setObject(2, new BasicSecond(LocalTime.of(14,15)));
+        ps.setObject(3, new BasicSecond(LocalTime.of(14,30)));
         ps.executeUpdate();
         rs = ps.executeQuery("select * from loadTable(\"dfs://example\",\"pt\") where time between 14:15:00 and 14:30:00");
         rs.next();
@@ -11433,8 +11434,8 @@ public class JDBCPrepareStatementTest {
                 " where time between ? \tand ?";
         ps = conn.prepareStatement(updateSql);
         ps.setDouble(1, 10.2);
-        ps.setObject(2, new BasicSecond(LocalTime.of(14,15).truncatedTo(ChronoUnit.SECONDS)));
-        ps.setObject(3, new BasicSecond(LocalTime.of(14,30).truncatedTo(ChronoUnit.SECONDS)));
+        ps.setObject(2, new BasicSecond(LocalTime.of(14,15)));
+        ps.setObject(3, new BasicSecond(LocalTime.of(14,30)));
         ps.executeUpdate();
         rs = ps.executeQuery("select * from loadTable(\"dfs://example\",\"pt\") where time between 14:15:00 and 14:30:00");
         rs.next();
@@ -11455,8 +11456,8 @@ public class JDBCPrepareStatementTest {
                 " where time between ? \nand ?";
         ps = conn.prepareStatement(updateSql);
         ps.setDouble(1, 10.235);
-        ps.setObject(2, new BasicSecond(LocalTime.of(14,15).truncatedTo(ChronoUnit.SECONDS)));
-        ps.setObject(3, new BasicSecond(LocalTime.of(14,30).truncatedTo(ChronoUnit.SECONDS)));
+        ps.setObject(2, new BasicSecond(LocalTime.of(14,15)));
+        ps.setObject(3, new BasicSecond(LocalTime.of(14,30)));
         ps.addBatch();
         ps.executeBatch();
         rs = ps.executeQuery("select * from loadTable(\"dfs://example\",\"pt\") where time between 14:15:00 and 14:30:00");
@@ -11469,8 +11470,8 @@ public class JDBCPrepareStatementTest {
                 " where time between ? \tand ?";
         ps = conn.prepareStatement(updateSql);
         ps.setDouble(1, 10.2);
-        ps.setObject(2, new BasicSecond(LocalTime.of(14,15).truncatedTo(ChronoUnit.SECONDS)));
-        ps.setObject(3, new BasicSecond(LocalTime.of(14,30).truncatedTo(ChronoUnit.SECONDS)));
+        ps.setObject(2, new BasicSecond(LocalTime.of(14,15)));
+        ps.setObject(3, new BasicSecond(LocalTime.of(14,30)));
         ps.addBatch();
         ps.executeBatch();
         rs = ps.executeQuery("select * from loadTable(\"dfs://example\",\"pt\") where time between 14:15:00 and 14:30:00");
@@ -12348,6 +12349,153 @@ public class JDBCPrepareStatementTest {
         BasicTable re1 = (BasicTable) rs1.getResult();
         Assert.assertEquals("[0.00000,-123.00432,132.20423,100.00000]",re1.getColumn(1).get(1).getString());
         Assert.assertEquals("[]",re1.getColumn(1).get(0).getString());
+    }
+
+    @Test
+    public void test_PreparedStatement_memory_no_parameters_executeUpdate_RowCount() throws SQLException, IOException {
+        Statement stmt = conn.createStatement();
+        stmt.execute("t=table(`XOM`GS`FB as ticker, 100 80 120 as volume);");
+        PreparedStatement ps = conn.prepareStatement("insert into t values ('AMD', 1);");
+        int insert_rows = ps.executeUpdate();
+        assertEquals(1, insert_rows);
+
+        PreparedStatement ps1 = conn.prepareStatement("insert into t values ('AMD', 4), ('NVDA', 2),('NVDA1', 3);");
+        int insert_rows1 = ps1.executeUpdate();
+        assertEquals(3, insert_rows1);
+
+        PreparedStatement ps2 = conn.prepareStatement("insert into t values(('AMD12','NVDA12'), (5 6));");
+        int insert_rows2 = ps2.executeUpdate();
+        assertEquals(2, insert_rows2);
+
+        PreparedStatement ps3 = conn.prepareStatement("update t set ticker = `AMD12 where volume > 2");
+        int update_rows = ps3.executeUpdate();
+        assertEquals(7, update_rows);
+
+        PreparedStatement ps4 = conn.prepareStatement("delete from t where volume in (select volume from t where volume > 2)");
+        int delete_rows0 = ps4.executeUpdate();
+        assertEquals(7, delete_rows0);
+        PreparedStatement ps5 = conn.prepareStatement("delete from t");
+        int delete_rows1 = ps5.executeUpdate();
+        assertEquals(2, delete_rows1);
+    }
+
+    @Test
+    public void test_PreparedStatement_colume_no_parameters_dfs_executeUpdate_RowCount() throws SQLException, IOException {
+        createPartitionTable("INT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt')  ValUes(1,100)");
+        int insert_rows = ps.executeUpdate();
+        assertEquals(1, insert_rows);
+
+        PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(2,100);");
+        int insert_rows1 = ps1.executeUpdate();
+        assertEquals(1, insert_rows1);
+
+        PreparedStatement ps2 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(3,NULL)");
+        int insert_rows2 = ps2.executeUpdate();
+        assertEquals(1, insert_rows2);
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_type','pt') set DAtaType = 101 where ID > 1");
+        int update_rows = ps3.executeUpdate();
+        assertEquals(2, update_rows);
+
+        PreparedStatement ps4 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where iD in (select iD from loadTable('dfs://test_append_type','pt') where Id > 1)");
+        int delete_rows0 = ps4.executeUpdate();
+        assertEquals(2, delete_rows0);
+        PreparedStatement ps5 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt')");
+        int delete_rows1 = ps5.executeUpdate();
+        assertEquals(1, delete_rows1);
+    }
+
+    @Test
+    public void test_PreparedStatement_memory_executeUpdate_RowCount() throws SQLException, IOException {
+        Statement stmt = conn.createStatement();
+        stmt.execute("t=table(`XOM`GS`FB as ticker, 100 80 120 as volume);");
+        PreparedStatement ps = conn.prepareStatement("insert into t values (?, ?);");
+        ps.setString(1, "aa4");
+        ps.setInt(2, 1);
+        int insert_rows = ps.executeUpdate();
+        assertEquals(1, insert_rows);
+
+        PreparedStatement ps1 = conn.prepareStatement("update t set ticker = ? where volume > ?");
+        ps1.setString(1, "AMD112");
+        ps1.setInt(2, 2);
+        int update_rows = ps1.executeUpdate();
+        //assertEquals(3, update_rows);
+
+        PreparedStatement ps2 = conn.prepareStatement("delete from t where volume in (select volume from t where volume > ?)");
+        ps2.setInt(1, 2);
+        int delete_rows0 = ps2.executeUpdate();
+        assertEquals(3, delete_rows0);
+        PreparedStatement ps3 = conn.prepareStatement("delete from t");
+        int delete_rows1 = ps3.executeUpdate();
+        assertEquals(1, delete_rows1);
+    }
+
+    @Test
+    public void test_PreparedStatement_dfs_executeUpdate_RowCount() throws SQLException, IOException {
+        createPartitionTable("INT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt')  values(?,?)");
+        ps.setInt(1, 1);
+        ps.setInt(2, 100);
+        int insert_rows = ps.executeUpdate();
+        assertEquals(1, insert_rows);
+
+        PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(?, ?);");
+        ps1.setInt(1, 2);
+        ps1.setInt(2, 100);
+        int insert_rows1 = ps1.executeUpdate();
+        assertEquals(1, insert_rows1);
+
+        PreparedStatement ps2 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(?,?)");
+        ps2.setInt(1, 3);
+        ps2.setNull(2,Types.INTEGER);
+        int insert_rows2 = ps2.executeUpdate();
+        assertEquals(1, insert_rows2);
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_type','pt') set DAtaType = ? where ID > ?");
+        ps3.setInt(1, 101);
+        ps3.setInt(2, 1);
+        int update_rows = ps3.executeUpdate();
+        //assertEquals(2, update_rows);
+
+        PreparedStatement ps4 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where iD in (select iD from loadTable('dfs://test_append_type','pt') where Id > ?)");
+        ps4.setInt(1, 1);
+        int delete_rows0 = ps4.executeUpdate();
+        assertEquals(2, delete_rows0);
+        PreparedStatement ps5 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt')");
+        int delete_rows1 = ps5.executeUpdate();
+        assertEquals(1, delete_rows1);
+    }
+
+    //@Test//not support
+    public void test_PreparedStatement_insert_many_rows() throws SQLException, IOException, ClassNotFoundException {
+        Statement stmt = conn.createStatement();
+        stmt.execute("t=table(`XOM`GS`FB as ticker, 100 80 120 as volume);");
+
+        PreparedStatement pstmt = conn.prepareStatement("insert into t values ('AMD', 60), ('NVDA', 400);");
+        int insert_rows = pstmt.executeUpdate();
+        System.out.println(insert_rows);
+        pstmt = conn.prepareStatement("insert into t values (?, ?), (?, ?);");
+        pstmt.setString(1, "aa4");
+        pstmt.setInt(2, 4);
+        pstmt.setString(3, "zz4");
+        pstmt.setInt(4, 22);
+        int insert_rows1 = pstmt.executeUpdate();
+        System.out.println(insert_rows1);
+
+        PreparedStatement ps2 = conn.prepareStatement("insert into t values((?,?), (? ?));");
+        ps2.setString(1, "AMD12");
+        ps2.setString(2, "NVDA12");
+        ps2.setInt(3, 5);
+        ps2.setInt(4, 6);
+        int insert_rows2 = ps2.executeUpdate();
+        assertEquals(2, insert_rows2);
+
+        //insert into dfs two rows
+        createPartitionTable("INT");
+        PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(2,100),(4,100);");
+        int insert_rows3 = ps1.executeUpdate();
+        assertEquals(2, insert_rows3);
     }
 
     @After
