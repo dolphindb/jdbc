@@ -273,7 +273,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				combineOneRowData(false);
 				if (this.sqlDmlType == Utils.DML_INSERT) {
 					int[] ret = tableAppend(false);
-					if (ret[0] == 0)
+					if (ret[0] == 1)
 						return 1;
 					else
 						return 0;
