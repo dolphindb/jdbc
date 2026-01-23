@@ -326,7 +326,7 @@ public class Utils {
 
     public static boolean checkServerVersionIfSupportCatalog(String version) {
         int[] parts = parseVersionParts(version);
-        return parts[0] == 3;
+        return parts[0] >= 3;
     }
 
     public static boolean checkServerVersionIfSupportRunSql(String version) {
