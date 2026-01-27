@@ -305,12 +305,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		List<Entity> param = new ArrayList<>();
 		param.add(basicTable);
 		try {
-			int size = ((Scalar)connection.run("tableInsert{" + tableName + "}", param)).getNumber().intValue();
+			connection.run("tableInsert{" + tableName + "}", param);
 			int[] value = new int[arguments.get(0).rows()];
-			if (arguments.get(0).rows() != size)
-				Arrays.fill(value, EXECUTE_FAILED);
-			else
-				Arrays.fill(value, 1);
+			Arrays.fill(value, SUCCESS_NO_INFO);
 			return value;
 		} catch (Exception e) {
 			throw new SQLException(e);
