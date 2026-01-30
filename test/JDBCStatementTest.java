@@ -4193,4 +4193,124 @@ public class JDBCStatementTest {
 		int delete_rows1 = stmt.executeUpdate(" delete from pt ");
 		assertEquals(1, delete_rows1);
 	}
+
+	@Test
+	public void test_JDBCStatement_MemoryTable_executeBatch_RowCount() throws SQLException, IOException, ClassNotFoundException {
+		createMemoryTable("BOOL");
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.addBatch("insert into tt values(1,true)");
+		stmt.addBatch("insert into tt values(2,NULL)");
+		int[] insert_rows = stmt.executeBatch();
+		assertEquals(2, insert_rows.length);
+		assertEquals(1, insert_rows[0]);
+		assertEquals(1, insert_rows[1]);
+
+		stmt.addBatch(" update tt set id = 2,dataType = true where id =1");
+		stmt.addBatch(" update tt set id = 3,dataType = true");
+		int[] update_rows = stmt.executeBatch();
+		assertEquals(2, update_rows.length);
+		assertEquals(1, update_rows[0]);
+		assertEquals(2, update_rows[1]);
+
+		stmt.addBatch(" delete from tt");
+		int[] delete_rows = stmt.executeBatch();
+		assertEquals(1, delete_rows.length);
+		assertEquals(2, delete_rows[0]);
+	}
+
+	@Test
+	public void test_JDBCStatement_keyedTable_executeBatch_RowCount() throws SQLException, IOException, ClassNotFoundException {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("try{undef(`tt,SHARED)}catch(ex){}\n" +
+				"tt= keyedTable(`id, 1:0, `id`val, [INT, INT]);");
+		stmt.addBatch("insert into tt values(1, 1)");
+		stmt.addBatch("insert into tt values( table(1..10 as c1, 11..20 as c2))");
+		int[] insert_rows = stmt.executeBatch();
+		assertEquals(2, insert_rows.length);
+		assertEquals(1, insert_rows[0]);
+		assertEquals(9, insert_rows[1]);
+
+		stmt.addBatch(" update tt set val = 20 where id =10");
+		stmt.addBatch(" update tt set val = 20");
+		int[] update_rows = stmt.executeBatch();
+		assertEquals(2, update_rows.length);
+		assertEquals(1, update_rows[0]);
+		assertEquals(10, update_rows[1]);
+
+		stmt.addBatch(" delete from tt");
+		int[] delete_rows = stmt.executeBatch();
+		assertEquals(1, delete_rows.length);
+		assertEquals(10, delete_rows[0]);
+	}
+
+	@Test
+	public void test_JDBCStatement_dfs_executeBatch_RowCount() throws SQLException, IOException, ClassNotFoundException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST, PORT,"admin","123456");
+		db.run("colNames=\"col\"+string(1..28)\n" +
+				"colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
+				"t=table(1:0,colNames,colTypes)\n" +
+				"try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
+				"db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
+				"db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		Statement stmt = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.addBatch("insert into loadTable('dfs://test_allDataType','pt') values(true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
+		int[] insert_rows = stmt.executeBatch();
+		assertEquals(1, insert_rows.length);
+		assertEquals(1, insert_rows[0]);
+
+		stmt.addBatch(" update loadTable('dfs://test_allDataType','pt') set col1 = false ,col2='3' ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18) where col4 = 2");
+		int[] update_rows = stmt.executeBatch();
+		assertEquals(1, update_rows.length);
+		assertEquals(1, update_rows[0]);
+
+		stmt.addBatch(" delete from  loadTable('dfs://test_allDataType','pt') ");
+		int[] delete_rows1 = stmt.executeBatch();
+		assertEquals(1, delete_rows1.length);
+		assertEquals(1, delete_rows1[0]);
+	}
+
+	@Test
+	public void test_JDBCStatement_dfs_executeBatch_RowCount_1() throws SQLException, IOException, ClassNotFoundException {
+		DBConnection db = new DBConnection();
+		db.connect(HOST, PORT,"admin","123456");
+		db.run("colNames=\"col\"+string(1..28)\n" +
+				"colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
+				"t=table(1:0,colNames,colTypes)\n" +
+				"try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
+				"db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
+				"db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
+		String JDBC_DRIVER = "com.dolphindb.jdbc.Driver";
+		String url = "jdbc:dolphindb://"+HOST+":"+PORT+"?user=admin&password=123456";
+		Connection conn = null;
+		Statement stmt = null;
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("pt=loadTable('dfs://test_allDataType','pt')");
+		stmt.addBatch("insert into pt values(true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
+		int[] insert_rows = stmt.executeBatch();
+		assertEquals(1, insert_rows.length);
+		assertEquals(1, insert_rows[0]);
+
+		stmt.addBatch(" update pt set col1 = false ,col2='3' ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18) where col4 = 2");
+		int[] update_rows = stmt.executeBatch();
+		assertEquals(1, update_rows.length);
+		assertEquals(1, update_rows[0]);
+
+		stmt.addBatch(" delete from pt ");
+		int[] delete_rows1 = stmt.executeBatch();
+		assertEquals(1, delete_rows1.length);
+		assertEquals(1, delete_rows1[0]);
+	}
 }

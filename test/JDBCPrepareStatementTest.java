@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter;
 //import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-import static com.dolphindb.jdbc.Utils.checkServerVersionIfSupportRunSql;
+import static com.dolphindb.jdbc.Utils.*;
 import static java.sql.Statement.SUCCESS_NO_INFO;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -12420,7 +12420,7 @@ public class JDBCPrepareStatementTest {
         ps1.setString(1, "AMD112");
         ps1.setInt(2, 2);
         int update_rows = ps1.executeUpdate();
-        //assertEquals(3, update_rows);
+        assertEquals(3, update_rows);
 
         PreparedStatement ps2 = conn.prepareStatement("delete from t where volume in (select volume from t where volume > ?)");
         ps2.setInt(1, 2);
@@ -12496,6 +12496,153 @@ public class JDBCPrepareStatementTest {
         PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(2,100),(4,100);");
         int insert_rows3 = ps1.executeUpdate();
         assertEquals(2, insert_rows3);
+    }
+
+    @Test
+    public void test_PreparedStatement_memory_executeBatch_RowCount() throws SQLException, IOException {
+        Statement stmt = conn.createStatement();
+        stmt.execute("t=table(`XOM`GS`FB as ticker, 100 80 120 as volume);");
+        PreparedStatement ps = conn.prepareStatement("insert into t values (?, ?);");
+        ps.setString(1, "aa4");
+        ps.setInt(2, 1);
+        ps.addBatch();
+        int[] insert_rows = ps.executeBatch();
+        assertEquals(1, insert_rows.length);
+        assertEquals(1, insert_rows[0]);
+
+        PreparedStatement ps1 = conn.prepareStatement("update t set ticker = ? where volume > ?");
+        ps1.setString(1, "AMD112");
+        ps1.setInt(2, 2);
+        ps1.addBatch();
+        int[] update_rows = ps1.executeBatch();
+        assertEquals(1, update_rows.length);
+        assertEquals(3, update_rows[0]);
+
+        PreparedStatement ps2 = conn.prepareStatement("delete from t where volume in (select volume from t where volume > ?)");
+        ps2.setInt(1, 2);
+        ps2.addBatch();
+        int[] delete_rows0 = ps2.executeBatch();
+        assertEquals(1, delete_rows0.length);
+        assertEquals(3, delete_rows0[0]);
+    }
+
+    @Test
+    public void test_PreparedStatement_memory_executeBatch_RowCount_1() throws SQLException, IOException {
+        Statement stmt = conn.createStatement();
+        stmt.execute("t=table(`XOM`GS`FB as ticker, 100 80 120 as volume);");
+        PreparedStatement ps = conn.prepareStatement("insert into t values (?, ?);");
+        ps.setString(1, "aa4");
+        ps.setInt(2, 1);
+        ps.addBatch();
+        ps.setString(1, "aa41");
+        ps.setInt(2, 2);
+        ps.addBatch();
+        int[] insert_rows = ps.executeBatch();
+        assertEquals(1, insert_rows.length);
+        assertEquals(1, insert_rows[0]);
+
+        PreparedStatement ps1 = conn.prepareStatement("update t set ticker = ? where volume > ?");
+        ps1.setString(1, "AMD112");
+        ps1.setInt(2, 2);
+        ps1.addBatch();
+        int[] update_rows = ps1.executeBatch();
+        assertEquals(1, update_rows.length);
+        assertEquals(3, update_rows[0]);
+
+        PreparedStatement ps2 = conn.prepareStatement("delete from t where volume in (select volume from t where volume > ?)");
+        ps2.setInt(1, 2);
+        ps2.addBatch();
+        int[] delete_rows0 = ps2.executeBatch();
+        assertEquals(1, delete_rows0.length);
+        assertEquals(3, delete_rows0[0]);
+    }
+
+    @Test//JAVAOS-1730
+    public void test_PreparedStatement_keyedTable_executeBatch_RowCount() throws SQLException, IOException {
+        Statement stmt = conn.createStatement();
+        stmt.execute("t= keyedTable(`id, 1:0, `id`val, [INT, INT]);");
+        PreparedStatement ps = conn.prepareStatement("insert into t values (?, ?);");
+        ps.setInt(1, 1);
+        ps.setInt(2, 1);
+        ps.addBatch();
+        ps.setInt(1, 1);
+        ps.setInt(2, 11);
+        ps.addBatch();
+        ps.setInt(1, 2);
+        ps.setInt(2, 12);
+        ps.addBatch();
+        ps.setInt(1, 3);
+        ps.setInt(2, 13);
+        ps.addBatch();
+        int[] insert_rows = ps.executeBatch();
+        assertEquals(4, insert_rows.length);
+        assertEquals(-2, insert_rows[0]);
+
+        PreparedStatement ps1 = conn.prepareStatement("update tt set val = ? where id =?");
+        ps1.setInt(1, 20);
+        ps1.setInt(2, 1);
+        ps1.addBatch();
+        ps1.setInt(1, 2);
+        ps1.setInt(2, 1);
+        ps1.addBatch();
+        int[] update_rows = ps1.executeBatch();
+        assertEquals(2, update_rows.length);
+        assertEquals(0, update_rows[0]);
+
+        PreparedStatement ps2 = conn.prepareStatement("delete from t where id in (select id from t where id > ?)");
+        ps2.setInt(1, 2);
+        ps2.addBatch();
+        int[] delete_rows0 = ps2.executeBatch();
+        assertEquals(1, delete_rows0.length);
+        assertEquals(1, delete_rows0[0]);
+    }
+
+    @Test
+    public void test_PreparedStatement_dfs_executeBatch_RowCount() throws SQLException, IOException {
+        createPartitionTable("INT");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt')  values(?,?)");
+        ps.setInt(1, 1);
+        ps.setInt(2, 100);
+        ps.addBatch();
+        int[] insert_rows = ps.executeBatch();
+        assertEquals(1, insert_rows.length);
+        assertEquals(1, insert_rows[0]);
+
+        PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(?, ?);");
+        ps1.setInt(1, 2);
+        ps1.setInt(2, 100);
+        ps1.addBatch();
+        int[] insert_rows1 = ps1.executeBatch();
+        assertEquals(1, insert_rows1.length);
+        assertEquals(1, insert_rows1[0]);
+
+        PreparedStatement ps2 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(?,?)");
+        ps2.setInt(1, 3);
+        ps2.setNull(2,Types.INTEGER);
+        ps2.addBatch();
+
+        ps2.setInt(1, 4);
+        ps2.setNull(2,Types.INTEGER);
+        ps2.addBatch();
+        int[] insert_rows2 = ps2.executeBatch();
+        assertEquals(2, insert_rows2.length);
+        assertEquals(1, insert_rows2[0]);
+        assertEquals(1, insert_rows2[1]);
+
+        PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_type','pt') set DAtaType = ? where ID > ?");
+        ps3.setInt(1, 101);
+        ps3.setInt(2, 1);
+        ps3.addBatch();
+        int[] update_rows = ps3.executeBatch();
+        assertEquals(1, update_rows.length);
+        assertEquals(3, update_rows[0]);
+
+        PreparedStatement ps4 = conn.prepareStatement("delete from loadTable('dfs://test_append_type','pt') where iD in (select iD from loadTable('dfs://test_append_type','pt') where Id > ?)");
+        ps4.setInt(1, 1);
+        ps4.addBatch();
+        int[] delete_rows0 = ps4.executeBatch();
+        assertEquals(1, delete_rows0.length);
+        assertEquals(3, delete_rows0[0]);
     }
 
     @After
