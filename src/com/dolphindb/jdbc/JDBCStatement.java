@@ -619,7 +619,7 @@ public class JDBCStatement implements Statement {
 
     @Override
     public void addBatch(String sql) throws SQLException {
-        batch.append(sql).append(";\n");
+        batch.append(sql).append(";");
     }
 
     @Override
