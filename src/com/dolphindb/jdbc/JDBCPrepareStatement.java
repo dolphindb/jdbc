@@ -862,7 +862,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		try {
 			String sqlWithPlaceholders = sqlBuffer.get(index);
 			if (supportRowCount) {
-				sqlWithPlaceholders = sqlWithPlaceholders.isEmpty() ? "row_count()" : sqlWithPlaceholders + ";row_count()";
+				sqlWithPlaceholders = sqlWithPlaceholders.isEmpty() ? "matchedRowCount()" : sqlWithPlaceholders + ";matchedRowCount()";
 			}
 			List<Entity> params = new ArrayList<>();
 			params.add(new BasicString(sqlWithPlaceholders));

@@ -197,7 +197,7 @@ public class JDBCStatement implements Statement {
                 connection.run(sql);
                 return SUCCESS_NO_INFO;
             }
-            sql = sql.isEmpty() ? "row_count()" : sql + ";row_count()";
+            sql = sql.isEmpty() ? "matchedRowCount()" : sql + ";matchedRowCount()";
             Entity entity = connection.run(sql);
             return extractRowCount(entity);
         } catch (IOException e) {
