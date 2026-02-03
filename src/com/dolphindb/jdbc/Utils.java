@@ -357,10 +357,6 @@ public class Utils {
         if (part1 == 3)
             return part2 > 0 || (part2 == 0 && part3 >= 5);
 
-        // greater than 2.00.18
-        if (part1 == 2)
-            return part2 > 0 || (part2 == 0 && part3 >= 18);
-
         return false;
     }
     private static boolean isKeyChar(char chr){
