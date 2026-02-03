@@ -272,11 +272,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			if (isPreparedStatement) {
 				combineOneRowData(false);
 				if (this.sqlDmlType == Utils.DML_INSERT) {
-					int[] ret = tableAppend(false);
-					if (ret[0] == 1)
-						return 1;
-					else
-						return 0;
+					return tableAppend(false)[0];
 				} else if (supportRunSQL && this.sqlDmlType == Utils.DML_SELECT) {
 					// Special handling for SELECT in executeUpdate - set ResultSet for getResultSet()
 					ResultSet rs = executeQueryWithRunSQL();
@@ -305,10 +301,14 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		List<Entity> param = new ArrayList<>();
 		param.add(basicTable);
 		try {
-			connection.run("tableInsert{" + tableName + "}", param);
-			int[] value = new int[arguments.get(0).rows()];
-			Arrays.fill(value, SUCCESS_NO_INFO);
-			return value;
+			int size = ((Scalar)connection.run("tableInsert{" + tableName + "}", param)).getNumber().intValue();
+			if (isBatch) {
+				int[] value = new int[arguments.get(0).rows()];
+				Arrays.fill(value, SUCCESS_NO_INFO);
+				return value;
+			} else {
+				return new int[]{size};
+			}
 		} catch (Exception e) {
 			throw new SQLException(e);
 		}
