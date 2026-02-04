@@ -13,7 +13,7 @@ public class JDBCStatement implements Statement {
 
     protected JDBCConnection connection;
     protected ResultSet resultSet;
-    protected StringBuilder batch;
+    protected List<String> batch;
     protected Queue<Object> objectQueue;
     protected Object result;
     protected Deque<ResultSet> resultSets;
@@ -30,7 +30,7 @@ public class JDBCStatement implements Statement {
         this.connection = cnn;
         this.objectQueue = new LinkedList<>();
         this.resultSets = new LinkedList<>();
-        this.batch = new StringBuilder();
+        this.batch = new ArrayList<>();
         this.supportRowCount = cnn.isRowCountSupported();
     }
 
@@ -619,12 +619,12 @@ public class JDBCStatement implements Statement {
 
     @Override
     public void addBatch(String sql) throws SQLException {
-        batch.append(sql).append(";");
+        batch.add(sql);
     }
 
     @Override
     public void clearBatch() throws SQLException {
-        batch.delete(0,batch.length());
+        batch.clear();
     }
 
     @Override
@@ -646,18 +646,17 @@ public class JDBCStatement implements Statement {
     }
 
     private int[] executeBatchInternal() throws SQLException {
-        String[] strings = batch.toString().split(";");
-        int[] arr_int = new int[strings.length];
+        int[] arr_int = new int[batch.size()];
         int index = 0;
         try {
-            for(String item : strings){
+            for (String item : batch) {
                 arr_int[index] = executeUpdateInternal(item);
                 ++index;
             }
-            batch.delete(0,batch.length());
+            batch.clear();
             return arr_int;
         }catch (SQLException e){
-            batch.delete(0,batch.length());
+            batch.clear();
             throw new BatchUpdateException(e.getMessage(),Arrays.copyOf(arr_int,index));
         }
     }
