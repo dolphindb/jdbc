@@ -4016,7 +4016,7 @@ public class JDBCStatementTest {
 		}
 		System.out.println(re);
 		org.junit.Assert.assertEquals("Statement execute batch timed out after 1 seconds.", re);
-		stmt.setQueryTimeout(100);
+		stmt.setQueryTimeout(3);
 		stmt.executeBatch();
 		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select count(*) from table1 where id = `3aaa");
 		BasicTable re1 = (BasicTable) rs.getResult();
