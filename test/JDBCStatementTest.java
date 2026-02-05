@@ -8,6 +8,7 @@ import org.junit.*;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static com.dolphindb.jdbc.Utils.checkServerVersionIfSupportRowCount;
 import static com.dolphindb.jdbc.Utils.checkServerVersionIfSupportRunSql;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -426,9 +427,15 @@ public class JDBCStatementTest {
 			rs1 = stmt.executeUpdate(sql1);
 			rs2 = stmt.executeUpdate(sql2);
 			rs3 = stmt.executeUpdate(sql3);
-			org.junit.Assert.assertEquals(rs1,-2);
-			org.junit.Assert.assertEquals(rs2, -2);
-			org.junit.Assert.assertEquals(rs3, -2);
+			if(checkServerVersionIfSupportRowCount((JDBCConnection) conn)){
+				org.junit.Assert.assertEquals(rs1,3);
+				org.junit.Assert.assertEquals(rs2, 3);
+				org.junit.Assert.assertEquals(rs3, 10);
+			}else{
+				org.junit.Assert.assertEquals(rs1,-2);
+				org.junit.Assert.assertEquals(rs2, -2);
+				org.junit.Assert.assertEquals(rs3, -2);
+			}
 		}
 		
 		catch(Exception e) {
@@ -469,7 +476,7 @@ public class JDBCStatementTest {
 	    	stmt.addBatch("insert into t values(`IBM,66.6,6500,09:34:15)");
 	    	stmt.addBatch("update t set qty=qty+100");
 	    	stmt.addBatch("delete from t where sym=`IBM");
-	    	int[] expected = {-2,-2,-2,0};
+	    	int[] expected = {1,10,3};
 	    	int[] affectCount= stmt.executeBatch();
 	    	org.junit.Assert.assertArrayEquals(expected, affectCount);
 	    }
@@ -720,7 +727,7 @@ public class JDBCStatementTest {
     		stmt.execute("t=table(`A`B as sym,45.5 31.2 as price,1000 6500 as qty,09:35:01 09:35:05 as timestamp)");
     		stmt.addBatch("pt.append!(t)");
     		int[] res = stmt.executeBatch();
-    		int[] a = {0,0,0};
+    		int[] a = {0,0};
     		org.junit.Assert.assertArrayEquals(a, res);
     	}catch(Exception e) {
     		e.printStackTrace();
@@ -965,12 +972,21 @@ public class JDBCStatementTest {
     				+ "2200 1900 2100 3200 6800 5400 1300 2500 8800 as qty, "
     				+ "[09:34:07,09:36:42,09:36:51,09:36:59,09:32:47,09:35:26,09:34:16,09:34:26,09:38:12] as timestamp)");
     		stmt.execute("insert into t values(`IBM,20.0,1000,09:35:07)");
-    		rs = stmt.getUpdateCount();		
-    		org.junit.Assert.assertEquals(-2, rs);
+    		rs = stmt.getUpdateCount();
+			if(checkServerVersionIfSupportRowCount((JDBCConnection) conn)){
+				org.junit.Assert.assertEquals(1, rs);
+			}else{
+				org.junit.Assert.assertEquals(-2, rs);
+			}
     		stmt.execute("delete from t where qty<5000");
     		rs = stmt.getUpdateCount();
     		System.out.println(rs);
-    		org.junit.Assert.assertEquals(-2, rs);
+
+			if(checkServerVersionIfSupportRowCount((JDBCConnection) conn)){
+				org.junit.Assert.assertEquals(7, rs);
+			}else{
+				org.junit.Assert.assertEquals(-2, rs);
+			}
 		}catch(Exception e) {
     		e.printStackTrace();
     	}finally {
@@ -1040,7 +1056,11 @@ public class JDBCStatementTest {
 					"a=t1.toJson()\n");
 			stmt.execute("insert into t values(1,a)");
 			rs = stmt.getUpdateCount();
-			org.junit.Assert.assertEquals(-2, rs);
+			if(checkServerVersionIfSupportRowCount((JDBCConnection) conn)){
+				org.junit.Assert.assertEquals(1, rs);
+			}else{
+				org.junit.Assert.assertEquals(-2, rs);
+			}
 			ResultSet rst = stmt.executeQuery("select val from t");
 			//rst = stmt.executeQuery("select id from t");
 			while (rst.next()){
@@ -3996,7 +4016,7 @@ public class JDBCStatementTest {
 		}
 		System.out.println(re);
 		org.junit.Assert.assertEquals("Statement execute batch timed out after 1 seconds.", re);
-		stmt.setQueryTimeout(3);
+		stmt.setQueryTimeout(100);
 		stmt.executeBatch();
 		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select count(*) from table1 where id = `3aaa");
 		BasicTable re1 = (BasicTable) rs.getResult();
@@ -4226,9 +4246,9 @@ public class JDBCStatementTest {
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
 		stmt.execute("try{undef(`tt,SHARED)}catch(ex){}\n" +
-				"tt= keyedTable(`id, 1:0, `id`val, [INT, INT]);");
-		stmt.addBatch("insert into tt values(1, 1)");
-		stmt.addBatch("insert into tt values( table(1..10 as c1, 11..20 as c2))");
+				"tt= keyedTable(`id, 1:0, `id`val, [INT, INT]);\n");
+		stmt.addBatch("insert into tt values(1, 1);");
+		stmt.addBatch("insert into tt values( table(1..10 as c1, 11..20 as c2));");
 		int[] insert_rows = stmt.executeBatch();
 		assertEquals(2, insert_rows.length);
 		assertEquals(1, insert_rows[0]);

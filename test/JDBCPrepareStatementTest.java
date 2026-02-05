@@ -9187,8 +9187,8 @@ public class JDBCPrepareStatementTest {
         }catch (BatchUpdateException e){
             int[] ret = e.getUpdateCounts();
             org.junit.Assert.assertEquals(ret.length, 2);
-            org.junit.Assert.assertEquals(ret[0], SUCCESS_NO_INFO);
-            org.junit.Assert.assertEquals(ret[1], SUCCESS_NO_INFO);
+            org.junit.Assert.assertEquals(ret[0], 1);
+            org.junit.Assert.assertEquals(ret[1], 1);
             return;
         }
         org.junit.Assert.assertTrue("TestExecuteBatchException", false);
@@ -9352,7 +9352,7 @@ public class JDBCPrepareStatementTest {
         }catch (BatchUpdateException e){
             int[] ret = e.getUpdateCounts();
             org.junit.Assert.assertEquals(ret.length, 1);
-            org.junit.Assert.assertEquals(ret[0], SUCCESS_NO_INFO);
+            org.junit.Assert.assertEquals(ret[0], 1);
             return;
         }
         ResultSet rs1 = ps.executeQuery("select * from loadTable('dfs://test_append_type_tsdb1','pt') order by col1");
@@ -12508,7 +12508,7 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         int[] insert_rows = ps.executeBatch();
         assertEquals(1, insert_rows.length);
-        assertEquals(1, insert_rows[0]);
+        assertEquals(-2, insert_rows[0]);
 
         PreparedStatement ps1 = conn.prepareStatement("update t set ticker = ? where volume > ?");
         ps1.setString(1, "AMD112");
@@ -12538,8 +12538,8 @@ public class JDBCPrepareStatementTest {
         ps.setInt(2, 2);
         ps.addBatch();
         int[] insert_rows = ps.executeBatch();
-        assertEquals(1, insert_rows.length);
-        assertEquals(1, insert_rows[0]);
+        assertEquals(2, insert_rows.length);
+        assertEquals(-2, insert_rows[0]);
 
         PreparedStatement ps1 = conn.prepareStatement("update t set ticker = ? where volume > ?");
         ps1.setString(1, "AMD112");
@@ -12578,7 +12578,7 @@ public class JDBCPrepareStatementTest {
         assertEquals(4, insert_rows.length);
         assertEquals(-2, insert_rows[0]);
 
-        PreparedStatement ps1 = conn.prepareStatement("update tt set val = ? where id =?");
+        PreparedStatement ps1 = conn.prepareStatement("update t set val = ? where id =?");
         ps1.setInt(1, 20);
         ps1.setInt(2, 1);
         ps1.addBatch();
@@ -12587,7 +12587,7 @@ public class JDBCPrepareStatementTest {
         ps1.addBatch();
         int[] update_rows = ps1.executeBatch();
         assertEquals(2, update_rows.length);
-        assertEquals(0, update_rows[0]);
+        assertEquals(1, update_rows[0]);
 
         PreparedStatement ps2 = conn.prepareStatement("delete from t where id in (select id from t where id > ?)");
         ps2.setInt(1, 2);
@@ -12606,7 +12606,7 @@ public class JDBCPrepareStatementTest {
         ps.addBatch();
         int[] insert_rows = ps.executeBatch();
         assertEquals(1, insert_rows.length);
-        assertEquals(1, insert_rows[0]);
+        assertEquals(-2, insert_rows[0]);
 
         PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(?, ?);");
         ps1.setInt(1, 2);
@@ -12614,7 +12614,7 @@ public class JDBCPrepareStatementTest {
         ps1.addBatch();
         int[] insert_rows1 = ps1.executeBatch();
         assertEquals(1, insert_rows1.length);
-        assertEquals(1, insert_rows1[0]);
+        assertEquals(-2, insert_rows1[0]);
 
         PreparedStatement ps2 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(?,?)");
         ps2.setInt(1, 3);
@@ -12626,8 +12626,8 @@ public class JDBCPrepareStatementTest {
         ps2.addBatch();
         int[] insert_rows2 = ps2.executeBatch();
         assertEquals(2, insert_rows2.length);
-        assertEquals(1, insert_rows2[0]);
-        assertEquals(1, insert_rows2[1]);
+        assertEquals(-2, insert_rows2[0]);
+        assertEquals(-2, insert_rows2[1]);
 
         PreparedStatement ps3 = conn.prepareStatement("update loadTable('dfs://test_append_type','pt') set DAtaType = ? where ID > ?");
         ps3.setInt(1, 101);

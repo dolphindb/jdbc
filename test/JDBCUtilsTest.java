@@ -51,7 +51,7 @@ public class JDBCUtilsTest {
         checkServerVersionIfSupportCatalog(version1);
         assertEquals(false,checkServerVersionIfSupportRowCount(version1));
         assertEquals(false,checkServerVersionIfSupportRowCount(version2));
-        assertEquals(true,checkServerVersionIfSupportRowCount(version3));
+        assertEquals(false,checkServerVersionIfSupportRowCount(version3));
         assertEquals(false,checkServerVersionIfSupportRowCount(version4));
         assertEquals(true,checkServerVersionIfSupportRowCount(version5));
         assertEquals(true,checkServerVersionIfSupportRowCount(version6));

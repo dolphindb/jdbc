@@ -3056,7 +3056,7 @@ public class JDBCResultSetTest {
 		assertEquals("label",metaData.getColumnName(2));
 		assertEquals("B",metaData.getColumnName(3));
 		String results1 = getTablesData(rs);
-		Assert.assertEquals("nulllabel: 21-1-1 上午12:00    label: 1    B: 6    label: 21-1-2 上午12:00    label: 2    B: 7    label: 21-1-3 上午12:00    label: 3    B: 8    label: 21-1-4 上午12:00    label: 4    B: 9    label: 21-1-5 上午12:00    label: 5    B: 10    ",results1);
+		Assert.assertEquals("nulllabel: 2021/1/1 00:00    label: 1    B: 6    label: 2021/1/2 00:00    label: 2    B: 7    label: 2021/1/3 00:00    label: 3    B: 8    label: 2021/1/4 00:00    label: 4    B: 9    label: 2021/1/5 00:00    label: 5    B: 10    ",results1);
 	}
 	@Test
 	public void Test_ResultSet_Matrix_getResult_int() throws SQLException, ClassNotFoundException {
