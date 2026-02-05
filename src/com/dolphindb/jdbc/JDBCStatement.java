@@ -629,8 +629,15 @@ public class JDBCStatement implements Statement {
 
     @Override
     public int[] executeBatch() throws SQLException {
+        List<String> batchSnapshot;
+        if (batch == null || batch.isEmpty()) {
+            batchSnapshot = Collections.emptyList();
+        } else {
+            batchSnapshot = new ArrayList<>(batch);
+            batch.clear();
+        }
         if (queryTimeout > 0) {
-            Future<int[]> future = executorService.submit(() -> executeBatchInternal());
+            Future<int[]> future = executorService.submit(() -> executeBatchInternal(batchSnapshot));
             try {
                 return future.get(queryTimeout, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
@@ -641,23 +648,21 @@ public class JDBCStatement implements Statement {
                 throw new SQLException(e);
             }
         } else {
-            return executeBatchInternal();
+            return executeBatchInternal(batchSnapshot);
         }
     }
 
-    private int[] executeBatchInternal() throws SQLException {
-        int[] arr_int = new int[batch.size()];
+
+    private int[] executeBatchInternal(List<String> batchSnapshot) throws SQLException {
+        int[] results = new int[batchSnapshot.size()];
         int index = 0;
         try {
-            for (String item : batch) {
-                arr_int[index] = executeUpdateInternal(item);
-                ++index;
+            for (String sql : batchSnapshot) {
+                results[index++] = executeUpdateInternal(sql);
             }
-            batch.clear();
-            return arr_int;
-        }catch (SQLException e){
-            batch.clear();
-            throw new BatchUpdateException(e.getMessage(),Arrays.copyOf(arr_int,index));
+            return results;
+        } catch (SQLException e) {
+            throw new BatchUpdateException(e.getMessage(), Arrays.copyOf(results, index));
         }
     }
 
