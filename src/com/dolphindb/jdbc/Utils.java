@@ -7,7 +7,11 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.sql.Date;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.Set;
 import java.util.function.IntFunction;
@@ -1066,4 +1070,106 @@ public class Utils {
         }
     }
 
+    public static Scalar createScalar(Entity.DATA_TYPE dataType, String value, int extraParam) {
+        if (value == null && dataType.getValue() < Entity.DATA_TYPE.DT_BOOL_ARRAY.getValue()) {
+            Scalar scalar = BasicEntityFactory.instance().createScalarWithDefaultValue(dataType);
+            scalar.setNull();
+            return scalar;
+        }
+        try {
+            switch (dataType) {
+                case DT_BOOL:
+                    if (!"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
+                        throw new IllegalArgumentException("Invalid boolean value: '" + value + "'. Expected 'true' or 'false'.");
+                    }
+                    return new BasicBoolean(Boolean.parseBoolean(value));
+                case DT_BYTE:
+                    return new BasicByte(Byte.parseByte(value));
+                case DT_SHORT:
+                    return new BasicShort(Short.parseShort(value));
+                case DT_INT:
+                    return new BasicInt(Integer.parseInt(value));
+                case DT_LONG:
+                    return new BasicLong(Long.parseLong(value));
+                case DT_FLOAT:
+                    return new BasicFloat(Float.parseFloat(value));
+                case DT_DOUBLE:
+                    return new BasicDouble(Double.parseDouble(value));
+                case DT_DATE:
+                    return new BasicDate(LocalDate.parse(value));
+                case DT_MONTH:
+                    return new BasicMonth(YearMonth.parse(value));
+                case DT_TIME:
+                    return new BasicTime(LocalTime.parse(value));
+                case DT_MINUTE:
+                    return new BasicMinute(LocalTime.parse(value));
+                case DT_SECOND:
+                    return new BasicSecond(LocalTime.parse(value));
+                case DT_DATETIME:
+                    return new BasicDateTime(LocalDateTime.parse(value));
+                case DT_TIMESTAMP:
+                    return new BasicTimestamp(LocalDateTime.parse(value));
+                case DT_NANOTIME:
+                    return new BasicNanoTime(LocalTime.parse(value));
+                case DT_NANOTIMESTAMP:
+                    return new BasicNanoTimestamp(LocalDateTime.parse(value));
+                case DT_DATEHOUR:
+                    return new BasicDateHour(LocalDateTime.parse(value));
+                case DT_INT128:
+                    return BasicInt128.fromString(value);
+                case DT_UUID:
+                    return BasicUuid.fromString(value);
+                case DT_IPADDR:
+                    return BasicIPAddr.fromString(value);
+                case DT_SYMBOL:
+                case DT_BLOB:
+                    return new BasicString(value, dataType== Entity.DATA_TYPE.DT_BLOB);
+                case DT_STRING:
+                    return new BasicString(value);
+                case DT_DECIMAL32:
+                    try {
+                        return new BasicDecimal32(value, extraParam);
+                    } catch (RuntimeException e) {
+                        throw new IllegalArgumentException("Invalid decimal value '" + value + "' for DATA_TYPE DT_DECIMAL32 with scale=" + extraParam, e);
+                    }
+                case DT_DECIMAL64:
+                    try {
+                        return new BasicDecimal64(value, extraParam);
+                    } catch (RuntimeException e) {
+                        throw new IllegalArgumentException("Invalid decimal value '" + value + "' for DATA_TYPE DT_DECIMAL32 with scale=" + extraParam, e);
+                    }
+                case DT_DECIMAL128:
+                    try {
+                        return new BasicDecimal128(value, extraParam);
+                    } catch (RuntimeException e) {
+                        throw new IllegalArgumentException("Invalid decimal value '" + value + "' for DATA_TYPE DT_DECIMAL32 with scale=" + extraParam, e);
+                    }
+                default:
+                    throw new IllegalArgumentException("Unsupported DATA_TYPE for String conversion: " + dataType);
+            }
+        } catch (NumberFormatException | DateTimeParseException e) {
+            throw new IllegalArgumentException("Invalid value '" + value + "' for DATA_TYPE " + dataType + (dataType.name().startsWith("DT_DECIMAL") ? " with scale=" + extraParam : ""), e);
+        }
+    }
+
+    public static Vector createStringVector(Entity.DATA_TYPE dataType, String[] values, int extraParam) throws Exception {
+        if (dataType.getValue() < Entity.DATA_TYPE.DT_BOOL_ARRAY.getValue()) {
+            throw new IllegalArgumentException("Invalid data type for String[]. Expected an array DATA_TYPE (value >= 64), " + "but got " + dataType + " (value=" + dataType.getValue() + ").");
+        }
+
+        Entity.DATA_TYPE baseType = Entity.DATA_TYPE.valueOf(dataType.getValue() - 64);
+        if (values == null) {
+            return BasicEntityFactory.instance().createVectorWithDefaultValue(baseType, 0, extraParam);
+        }
+
+        int count = values.length;
+        Vector vector = BasicEntityFactory.instance().createVectorWithDefaultValue(baseType, count, extraParam);
+
+        for (int i = 0; i < count; i++) {
+            Scalar scalar = createScalar(baseType, values[i], extraParam);
+            vector.set(i, scalar);
+        }
+
+        return vector;
+    }
 }

@@ -153,9 +153,18 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				if (obj instanceof Vector) {
 					column.Append((Vector) obj);
 				} else if (obj instanceof DolphinDBArray) {
-                    column.Append(((DolphinDBArray) obj).getVector());
-                } else {
-					Entity data = BasicEntityFactory.createScalar(column.getDataType(), obj, this.columnBindValues.get(index).getScale());
+					column.Append(((DolphinDBArray) obj).getVector());
+				} else {
+					Entity data;
+					Entity.DATA_TYPE dataType = column.getDataType();
+					int scale = this.columnBindValues.get(index).getScale();
+					if (obj instanceof String) {
+						data = Utils.createScalar(dataType, (String) obj, scale);
+					} else if (obj instanceof String[]) {
+						data = Utils.createStringVector(dataType, (String[]) obj, scale);
+					} else {
+						data = BasicEntityFactory.createScalar(dataType, obj, scale);
+					}
 					if (data.isScalar())
 						column.Append((Scalar) data);
 					else
