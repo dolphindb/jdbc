@@ -66,9 +66,9 @@ public class JDBCUtilsTest {
         BasicBoolean  re2 = (BasicBoolean)createScalar(Entity.DATA_TYPE.DT_BOOL, "false",0);
         assertEquals("false",re2.getString());
 
-        BasicBoolean  re3 = (BasicBoolean)createScalar(Entity.DATA_TYPE.DT_BOOL, "1",0);
+        BasicBoolean  re3 = (BasicBoolean)createScalar(Entity.DATA_TYPE.DT_BOOL, "true",0);
         assertEquals("true",re1.getString());
-        BasicBoolean  re4 = (BasicBoolean)createScalar(Entity.DATA_TYPE.DT_BOOL, "0",0);
+        BasicBoolean  re4 = (BasicBoolean)createScalar(Entity.DATA_TYPE.DT_BOOL, "false",0);
         assertEquals("false",re2.getString());
         BasicBoolean  re5 = (BasicBoolean)createScalar(Entity.DATA_TYPE.DT_BOOL, null,0);
         assertEquals("false",re2.getString());
