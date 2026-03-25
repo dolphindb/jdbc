@@ -382,7 +382,13 @@ public class JDBCConnection implements Connection {
 			throw new SQLException("The param catalog cannot be null or empty.");
 
 		try {
-			this.dbConnection.run("use CATALOG " + catalog + ";");
+			if (supportCatalog) {
+				this.dbConnection.run("use CATALOG " + catalog + ";");
+			} else {
+				if (!"DolphinDB".equals(catalog)) {
+					throw new SQLException("Current server version does not support catalog. Only virtual catalog \"DolphinDB\" is allowed. param catalog=" + catalog);
+				}
+			}
 			this.catalog = catalog;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
