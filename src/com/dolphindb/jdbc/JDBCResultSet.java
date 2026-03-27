@@ -3,6 +3,7 @@ package com.dolphindb.jdbc;
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
 import javax.sql.rowset.serial.SerialBlob;
+import javax.sql.rowset.serial.SerialClob;
 import java.io.*;
 import java.math.BigDecimal;
 import java.net.URL;
@@ -1034,7 +1035,14 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Clob getClob(int columnIndex) throws SQLException {
-        return null;
+        Object value = getObject(columnIndex);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Clob) {
+            return (Clob) value;
+        }
+        return new SerialClob(value.toString().toCharArray());
     }
 
     @Override
@@ -1054,7 +1062,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Clob getClob(String columnLabel) throws SQLException {
-        return null;
+        return getClob(findColumn(columnLabel));
     }
 
     @Override
