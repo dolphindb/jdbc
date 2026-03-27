@@ -1,6 +1,9 @@
 package com.dolphindb.jdbc;
 
 import com.xxdb.data.BasicArrayVector;
+import com.xxdb.data.BasicDecimal128Vector;
+import com.xxdb.data.BasicDecimal32Vector;
+import com.xxdb.data.BasicDecimal64Vector;
 import com.xxdb.data.BasicTable;
 import com.xxdb.data.Vector;
 import java.sql.ResultSetMetaData;
@@ -41,7 +44,7 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
 
     @Override
     public int getColumnDisplaySize(int columnIndex) throws SQLException {
-        return 0;
+        return getPrecision(columnIndex);
     }
 
     @Override
@@ -99,12 +102,56 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
 
     @Override
     public int getPrecision(int columnIndex) throws SQLException {
-        return 0;
+        Vector column = table.getColumn(adjustColumnIndex(columnIndex));
+        int temporalScale = getTemporalScale(column);
+        switch (column.getDataType()) {
+            case DT_DATE:
+                return 10;
+            case DT_MONTH:
+                return 7;
+            case DT_MINUTE:
+                return 5;
+            case DT_SECOND:
+                return 8;
+            case DT_DATEHOUR:
+                return 13;
+            case DT_DATETIME:
+                return 19;
+            case DT_TIME:
+            case DT_NANOTIME:
+                return 8 + (temporalScale > 0 ? 1 + temporalScale : 0);
+            case DT_TIMESTAMP:
+            case DT_NANOTIMESTAMP:
+                return 19 + (temporalScale > 0 ? 1 + temporalScale : 0);
+            case DT_DECIMAL32:
+            case DT_DECIMAL64:
+            case DT_DECIMAL128:
+                return getDecimalScale(column);
+            default:
+                return 0;
+        }
     }
 
     @Override
     public int getScale(int columnIndex) throws SQLException {
-        return 0;
+        Vector column = table.getColumn(adjustColumnIndex(columnIndex));
+        if (column instanceof BasicArrayVector) {
+            return 0;
+        }
+        switch (column.getDataType()) {
+            case DT_TIME:
+            case DT_TIMESTAMP:
+                return 3;
+            case DT_NANOTIME:
+            case DT_NANOTIMESTAMP:
+                return 9;
+            case DT_DECIMAL32:
+            case DT_DECIMAL64:
+            case DT_DECIMAL128:
+                return getDecimalScale(column);
+            default:
+                return 0;
+        }
     }
 
     @Override
@@ -174,5 +221,31 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
 
     private int adjustColumnIndex(int columnIndex){
         return columnIndex-1;
+    }
+
+    private int getDecimalScale(Vector column) {
+        if (column instanceof BasicDecimal32Vector) {
+            return ((BasicDecimal32Vector) column).getScale();
+        }
+        if (column instanceof BasicDecimal64Vector) {
+            return ((BasicDecimal64Vector) column).getScale();
+        }
+        if (column instanceof BasicDecimal128Vector) {
+            return ((BasicDecimal128Vector) column).getScale();
+        }
+        return 0;
+    }
+
+    private int getTemporalScale(Vector column) {
+        switch (column.getDataType()) {
+            case DT_TIME:
+            case DT_TIMESTAMP:
+                return 3;
+            case DT_NANOTIME:
+            case DT_NANOTIMESTAMP:
+                return 9;
+            default:
+                return 0;
+        }
     }
 }
