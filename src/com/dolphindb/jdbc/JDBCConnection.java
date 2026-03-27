@@ -33,7 +33,13 @@ public class JDBCConnection implements Connection {
 	private boolean supportCatalog;
 	private boolean supportRunSql;
 	private boolean supportRowCount;
+	private boolean autoAdjustFetchSize;
 
+	private int minimumFetchSize = MIN_FETCH_SIZE;
+
+	private static final int MIN_FETCH_SIZE = 8192;
+	private static final String AUTO_ADJUST_FETCH_SIZE_PROP = "autoAdjustFetchSize";
+	private static final String MINIMUM_FETCH_SIZE_PROP = "minimumFetchSize";
 	private static final Logger log = LoggerFactory.getLogger(JDBCConnection.class);
 
 	private static final String v200CatalogDictInitialScript = "tbs = getClusterDFSTables()\n" +
@@ -59,6 +65,7 @@ public class JDBCConnection implements Connection {
 		this.url = url;
 		Driver.parseProp(url, prop);
 		this.clientInfo = prop;
+		initFetchSizeConfig();
 		this.hostName = this.clientInfo.getProperty("hostName");
 		this.port = Integer.parseInt(this.clientInfo.getProperty("port"));
 		setUser(Optional.ofNullable(this.clientInfo.getProperty("user")).orElse(""));
@@ -82,6 +89,7 @@ public class JDBCConnection implements Connection {
 	protected JDBCConnection(Properties prop, String url) throws SQLException {
 		this.url = url;
 		this.clientInfo = prop;
+		initFetchSizeConfig();
 		this.hostName = this.clientInfo.getProperty("hostName");
 		this.port = Integer.parseInt(this.clientInfo.getProperty("port"));
 		setUser(Optional.ofNullable(this.clientInfo.getProperty("user")).orElse(""));
@@ -114,6 +122,30 @@ public class JDBCConnection implements Connection {
 			this.dbConnection = new DBConnection(false, Boolean.parseBoolean(useSSLStr));
 		else
 			this.dbConnection = new DBConnection();
+	}
+
+	private void initFetchSizeConfig() throws SQLException {
+		String autoAdjustFetchSizeProp = this.clientInfo.getProperty(AUTO_ADJUST_FETCH_SIZE_PROP);
+		this.autoAdjustFetchSize = Boolean.parseBoolean(autoAdjustFetchSizeProp);
+		String minimumFetchSizeProp = this.clientInfo.getProperty(MINIMUM_FETCH_SIZE_PROP);
+		if (minimumFetchSizeProp == null)
+			return;
+
+		try {
+			this.minimumFetchSize = Integer.parseInt(minimumFetchSizeProp.trim());
+		} catch (NumberFormatException e) {
+			throw new SQLException("The connection property " + MINIMUM_FETCH_SIZE_PROP + " must be a valid integer.", e);
+		}
+
+		if (this.minimumFetchSize < MIN_FETCH_SIZE) {
+			throw new SQLException("The connection property " + MINIMUM_FETCH_SIZE_PROP
+					+ " must be greater than or equal to " + MIN_FETCH_SIZE + ".");
+		}
+
+		if (!this.autoAdjustFetchSize) {
+			throw new SQLException("The connection property " + MINIMUM_FETCH_SIZE_PROP
+					+ " requires " + AUTO_ADJUST_FETCH_SIZE_PROP + "=true.");
+		}
 	}
 	
 	public DBConnection getDBConnection() {
@@ -656,6 +688,14 @@ public class JDBCConnection implements Connection {
 
 	public boolean isRowCountSupported() {
 		return supportRowCount;
+	}
+
+	public boolean isAutoAdjustFetchSizeEnabled() {
+		return autoAdjustFetchSize;
+	}
+
+	public int getMinimumFetchSize() {
+		return minimumFetchSize;
 	}
 
 	public String getHostName() {
