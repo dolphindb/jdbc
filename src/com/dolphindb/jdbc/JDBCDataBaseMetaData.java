@@ -673,10 +673,18 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getSchemas(String catalog, String schemaPattern)  throws SQLException {
+        if (schemaPattern == null) {
+            schemaPattern = "%";
+        }
+
+        if (catalog == null && "%".equals(schemaPattern)) {
+            return getSchemas();
+        }
+
         List<String> colNames = Arrays.asList("TABLE_SCHEM", "TABLE_CATALOG");
         List<Vector> cols = new ArrayList<>();
 
-        if (Utils.isNotEmpty(catalog) && schemaPattern.equals("%")) {
+        if (Utils.isNotEmpty(catalog) && "%".equals(schemaPattern)) {
             try {
                 if (connection.isCatalogSupported()) {
                     BasicStringVector schemaVec = new BasicStringVector(0);
