@@ -224,7 +224,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public boolean next() throws SQLException {
-        if (this.getFetchSize() != 0) {
+        if (this.reader != null) {
             // When no segments of the large table have been read or when the number of rows read from a segment exceeds the limit, an attempt is made to read the next segment.
             if (this.table == null || this.currentRow >= this.offsetRows - 1) {
                 if(this.maxRows != -1 && globalRows >= this.maxRows)
@@ -1064,32 +1064,32 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Date getDate(int columnIndex, Calendar calendar) throws SQLException {
-    	return null;
+        return getDate(columnIndex);
     }
 
     @Override
     public Date getDate(String columnLabel, Calendar calendar) throws SQLException {
-    	return null;
+        return getDate(columnLabel);
     }
 
     @Override
     public Time getTime(int columnIndex, Calendar calendar) throws SQLException {
-    	return null;
+        return getTime(columnIndex);
     }
 
     @Override
     public Time getTime(String columnLabel, Calendar calendar) throws SQLException {
-    	return null;
+        return getTime(columnLabel);
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex, Calendar calendar) throws SQLException {
-    	return null;
+        return getTimestamp(columnIndex);
     }
 
     @Override
     public Timestamp getTimestamp(String columnLabel, Calendar calendar) throws SQLException {
-    	return null;
+        return getTimestamp(columnLabel);
     }
 
     @Override
