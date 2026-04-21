@@ -370,76 +370,17 @@ public class Utils {
         return chr=='\''||chr=='"'||chr=='`';
     }
 
-    public static String changeCase(String sql){
-        if (sql==null)
-            return sql;
-
-        sql = sql.replaceAll("\r", "");
-
-        createHashSet();
-        StringBuilder sbSql=new StringBuilder();
-        StringBuilder sbKey1=new StringBuilder();
-        char chr = 0;
-        char isInString = 0;
-        int continueSplashCount=0;
-        for (int i = 0;i < sql.length();i++){
-            chr=sql.charAt(i);
-            int prevContinueSplashCount=continueSplashCount;
-            if(isInString != 0) {// is in string
-                if(isInString=='`'){//check ` end flag
-                    if(!isKeyChar(chr)){//end with no key char
-                        isInString=0;
-                        continueSplashCount=0;
-                        if(isStringChar(chr)){
-                            isInString=chr;
-                        }
-                    }
-                }else{// string
-                    if(chr=='\\')
-                        continueSplashCount++;
-                    else
-                        continueSplashCount=0;
-                    if(chr == isInString){// is end chr?
-                        if(prevContinueSplashCount%2==0)// check not \, like \" or \'
-                            isInString=0;
-                    }
-                }
-                sbSql.append(chr);
-                continue;
-            }else{//not in string
-                if(isStringChar(chr)){//start of string
-                    isInString=chr;
-                    sbSql.append(chr);
-                    continueSplashCount=0;
-                    continue;
-                }
+    private static void appendBufferedKey(StringBuilder sbSql, String key, String tableAliasValue) {
+        String lowerKey = key.toLowerCase();
+        if (sqlWareHouse.contains(lowerKey)) {
+            if (Utils.isEmpty(tableAliasValue) || !tableAliasValue.contains(key)) {
+                sbSql.append(lowerKey);
+            } else {
+                sbSql.append(key);
             }
-            if (isKeyChar(chr)){
-                sbKey1.append(chr);
-            }else {
-                if (sbKey1.length()>0){
-                    String key = sbKey1.toString();
-                    String lowerKey=key.toLowerCase();
-                    if (sqlWareHouse.contains(lowerKey))
-                        sbSql.append(lowerKey);
-                    else{
-                        sbSql.append(key);
-                    }
-                }
-                sbSql.append(chr);
-                sbKey1.delete(0, sbKey1.length());
-            }
-            if (i==sql.length()-1&&sbKey1.length()>0){
-                String key = sbKey1.toString();
-                String lowerKey=key.toLowerCase();
-                if (sqlWareHouse.contains(lowerKey))
-                    sbSql.append(lowerKey);
-                else{
-                    sbSql.append(key);
-                }
-            }
+        } else {
+            sbSql.append(key);
         }
-        return sbSql.toString();
     }
 
     public static String changeCase(String sql, JDBCConnection connection){
@@ -451,11 +392,15 @@ public class Utils {
         createHashSet();
         StringBuilder sbSql=new StringBuilder();
         StringBuilder sbKey1=new StringBuilder();
-        String tableAliasValue;
-        try {
-            tableAliasValue = connection.getClientInfo("tableAlias");
-        } catch (SQLException e) {
-            throw new RuntimeException("get tableAlias prop has error!");
+        String tableAliasValue = "";
+        if (connection != null) {
+            try {
+                tableAliasValue = connection.getClientInfo("tableAlias");
+                if (tableAliasValue == null)
+                    tableAliasValue = "";
+            } catch (SQLException e) {
+                throw new RuntimeException("get tableAlias prop has error!");
+            }
         }
         char chr = 0;
         char isInString = 0;
@@ -489,21 +434,7 @@ public class Utils {
                     isInString=chr;
                     if (sbKey1.length() > 0) {
                         String key = sbKey1.toString();
-                        String lowerKey=key.toLowerCase();
-                        if (sqlWareHouse.contains(lowerKey)) {
-                            if (Utils.isNotEmpty(tableAliasValue) && !tableAliasValue.contains(key)) {
-                                sbSql.append(lowerKey);
-                            } else {
-                                if (Utils.isEmpty(tableAliasValue)) {
-                                    sbSql.append(lowerKey);
-                                } else {
-                                    sbSql.append(key);
-                                }
-                            }
-                        } else {
-                            sbSql.append(key);
-                        }
-
+                        appendBufferedKey(sbSql, key, tableAliasValue);
                         sbKey1.delete(0, sbKey1.length());
                     }
                     sbSql.append(chr);
@@ -517,21 +448,7 @@ public class Utils {
             } else {
                 if (sbKey1.length()>0){
                     String key = sbKey1.toString();
-                    String lowerKey=key.toLowerCase();
-                    if (sqlWareHouse.contains(lowerKey)) {
-                        if (Utils.isNotEmpty(tableAliasValue) && !tableAliasValue.contains(key)) {
-                            sbSql.append(lowerKey);
-                        } else {
-                            if (Utils.isEmpty(tableAliasValue)) {
-                                sbSql.append(lowerKey);
-                            } else {
-                                sbSql.append(key);
-                            }
-                        }
-                    }
-                    else{
-                        sbSql.append(key);
-                    }
+                    appendBufferedKey(sbSql, key, tableAliasValue);
                 }
                 sbSql.append(chr);
                 sbKey1.delete(0, sbKey1.length());
@@ -539,16 +456,7 @@ public class Utils {
 
             if (i==sql.length()-1&&sbKey1.length()>0) {
                 String key = sbKey1.toString();
-                String lowerKey=key.toLowerCase();
-                if (sqlWareHouse.contains(lowerKey) && (!sqlWareHouse.contains(key))) {
-                    if (Utils.isNotEmpty(tableAliasValue) && !tableAliasValue.contains(key)) {
-                        sbSql.append(lowerKey);
-                    } else {
-                        sbSql.append(key);
-                    }
-                } else{
-                    sbSql.append(key);
-                }
+                appendBufferedKey(sbSql, key, tableAliasValue);
             }
         }
         return sbSql.toString();

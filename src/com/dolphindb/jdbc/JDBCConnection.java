@@ -170,7 +170,7 @@ public class JDBCConnection implements Connection {
 		String userId = Optional.ofNullable(prop.getProperty("user")).orElse("");
 		String password = Optional.ofNullable(prop.getProperty("password")).orElse("");
 		String initialScript = Optional.ofNullable(prop.getProperty("initialScript"))
-				.map(Utils::changeCase)
+				.map(sql -> Utils.changeCase(sql, null))
 				.orElse("");
 
 		if (initialScript.equals("select 1"))

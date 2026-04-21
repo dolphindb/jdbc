@@ -26,7 +26,7 @@ public class JDBCCallableStatement extends JDBCPrepareStatement implements Calla
 
     public JDBCCallableStatement(JDBCConnection connection, String sql) throws SQLException {
         super(connection,sql);
-        sql = Utils.changeCase(sql);
+        sql = Utils.changeCase(sql, null);
         this.connection = connection;
         this.preSql = sql.trim();
         while (preSql.endsWith(";"))
