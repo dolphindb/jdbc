@@ -282,7 +282,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             newColumnNames.add("COLUMN_NAME");
             newColumnNames.add("TYPE_NAME");
             newColumnNames.add("DATA_TYPE");
-            newColumnNames.add("EXTRA");
+            newColumnNames.add("COLUMN_SIZE");
             newColumnNames.add("REMARKS");
             if (curTable.columns() == 6)
                 newColumnNames.add("sensitive");
@@ -294,31 +294,39 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
             curTable = schemaAndTable;
 
-            // set 'DECIMAL_DIGITS'
+            try {
+                BasicStringVector typeNameColumn = (BasicStringVector) curTable.getColumn(4);
+                for (int j = 0; j < typeNameColumn.rows(); j++) {
+                    typeNameColumn.setString(j, getDisplayTypeName(typeNameColumn.getString(j)));
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+            // set precision/scale metadata
             try {
                 AbstractVector typeStringColumn = (AbstractVector) curTable.getColumn(4);
-                List<Integer> decimalDigits = new ArrayList<>();
+                BasicIntVector columnSize = (BasicIntVector) curTable.getColumn(6);
+                BasicIntVector decimalDigits = new BasicIntVector(typeStringColumn.rows());
+                BasicTable curColDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+                BasicIntVector extraVec = (BasicIntVector) curColDefs.getColumn("extra");
                 for (int j = 0; j < typeStringColumn.rows(); j ++) {
-                    String dataType = typeStringColumn.get(j).getString();
-                    dataType = dataType.replaceAll("\\(.*?\\)", "").replaceAll("\\[\\]$", "");
-                    BasicTable curColDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-                    BasicIntVector extraVec = (BasicIntVector) curColDefs.getColumn("extra");
-                    int scale = -1;
-                    switch (dataType) {
-                        case "DECIMAL32":
-                            scale = extraVec.getInt(j);
-                            break;
-                        case "DECIMAL64":
-                            scale = extraVec.getInt(j);
-                            break;
-                        case "DECIMAL128":
-                            scale = extraVec.getInt(j);
-                            break;
+                    String dataType = getBaseTypeName(typeStringColumn.get(j).getString());
+                    Integer precision = getColumnSize(dataType);
+                    Integer scale = getDecimalDigits(dataType, extraVec, j);
+                    if (precision == null) {
+                        columnSize.setNull(j);
+                    } else {
+                        columnSize.set(j, new BasicInt(precision));
                     }
-                    decimalDigits.add(scale);
+                    if (scale == null) {
+                        decimalDigits.setNull(j);
+                    } else {
+                        decimalDigits.set(j, new BasicInt(scale));
+                    }
                 }
 
-                curTable.addColumn("DECIMAL_DIGITS", new BasicIntVector(decimalDigits));
+                curTable.addColumn("DECIMAL_DIGITS", decimalDigits);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -397,6 +405,119 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         }
 
         return colDefs;
+    }
+
+    private String getBaseTypeName(String typeName) {
+        if (typeName == null) {
+            return "";
+        }
+        return typeName.replaceAll("\\(.*?\\)", "").replaceAll("\\[\\]$", "");
+    }
+
+    private String getDisplayTypeName(String typeName) {
+        if (typeName == null) {
+            return null;
+        }
+
+        boolean isArray = typeName.endsWith("[]");
+        String baseTypeName = getBaseTypeName(typeName);
+        String displayTypeName;
+        switch (baseTypeName) {
+            case "TIME":
+                displayTypeName = "TIME(3)";
+                break;
+            case "TIMESTAMP":
+                displayTypeName = "TIMESTAMP(3)";
+                break;
+            case "NANOTIME":
+                displayTypeName = "NANOTIME(9)";
+                break;
+            case "NANOTIMESTAMP":
+                displayTypeName = "NANOTIMESTAMP(9)";
+                break;
+            default:
+                return typeName;
+        }
+        return isArray ? displayTypeName + "[]" : displayTypeName;
+    }
+
+    private Integer getColumnSize(String dataType) {
+        switch (dataType) {
+            case "TIME":
+            case "TIMESTAMP":
+                return 3;
+            case "NANOTIME":
+            case "NANOTIMESTAMP":
+                return 9;
+            case "DECIMAL32":
+                return 9;
+            case "DECIMAL64":
+                return 18;
+            case "DECIMAL128":
+                return 38;
+            case "BOOL":
+            case "CHAR":
+            case "SHORT":
+            case "INT":
+            case "LONG":
+            case "DATE":
+            case "MONTH":
+            case "MINUTE":
+            case "SECOND":
+            case "DATETIME":
+            case "FLOAT":
+            case "DOUBLE":
+            case "SYMBOL":
+            case "STRING":
+            case "UUID":
+            case "DATEHOUR":
+            case "IPADDR":
+            case "INT128":
+            case "BLOB":
+            case "COMPLEX":
+            case "POINT":
+            case "ANY":
+                return -1;
+            default:
+                return null;
+        }
+    }
+
+    private Integer getDecimalDigits(String dataType, BasicIntVector extraVec, int row) {
+        switch (dataType) {
+            case "DECIMAL32":
+            case "DECIMAL64":
+            case "DECIMAL128":
+                return extraVec == null || extraVec.isNull(row) ? null : extraVec.getInt(row);
+            case "TIME":
+            case "TIMESTAMP":
+            case "NANOTIME":
+            case "NANOTIMESTAMP":
+            case "BOOL":
+            case "CHAR":
+            case "SHORT":
+            case "INT":
+            case "LONG":
+            case "DATE":
+            case "MONTH":
+            case "MINUTE":
+            case "SECOND":
+            case "DATETIME":
+            case "FLOAT":
+            case "DOUBLE":
+            case "SYMBOL":
+            case "STRING":
+            case "UUID":
+            case "DATEHOUR":
+            case "IPADDR":
+            case "INT128":
+            case "BLOB":
+            case "COMPLEX":
+            case "POINT":
+            case "ANY":
+            default:
+                return null;
+        }
     }
 
 
