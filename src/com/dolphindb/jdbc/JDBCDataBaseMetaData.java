@@ -756,35 +756,9 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getSchemas() throws SQLException{
-        List<String> colNames = Arrays.asList("TABLE_SCHEM", "TABLE_CATALOG");
-        List<Vector> cols = new ArrayList<>();
-
         try {
-            if (connection.isCatalogSupported()) {
-                BasicStringVector catalogsVec = (BasicStringVector) connection.run("getAllCatalogs();");
-                if (catalogsVec.rows() != 0) {
-                    BasicStringVector schemaVec = new BasicStringVector(0);
-                    BasicStringVector catalogVec = new BasicStringVector(0);
-                    for (int i = 0; i < catalogsVec.rows(); i ++) {
-                        String curCatalog = catalogsVec.getString(i);
-                        BasicTable schemasMapTb = (BasicTable) connection.run("getSchemaByCatalog(\"" + curCatalog + "\");");
-                        BasicStringVector curSchemaVec = (BasicStringVector) schemasMapTb.getColumn("schema");
-                        schemaVec.Append(curSchemaVec);
-                        catalogVec.Append(new BasicStringVector(new ArrayList<>(Collections.nCopies(curSchemaVec.rows(), curCatalog))));
-                    }
-                    cols.add(schemaVec);
-                    cols.add(catalogVec);
-                    Schemas = new JDBCResultSet(connection, statement, new BasicTable(colNames, cols),"");
-                } else {
-                    Schemas = new JDBCResultSet(connection, statement, (Entity) null,"");
-                }
-            } else {
-                BasicStringVector schemaVec = (BasicStringVector) connection.run("substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6)");
-                BasicStringVector catalogVec = new BasicStringVector(Collections.nCopies(schemaVec.rows(), DATABASE_NAME));
-                cols.add(schemaVec);
-                cols.add(catalogVec);
-                Schemas = new JDBCResultSet(connection, statement, new BasicTable(colNames, cols),"");
-            }
+            List<SchemaRef> schemaRefs = getAllSchemaRefs();
+            Schemas = new JDBCResultSet(connection, statement, buildSchemasTable(schemaRefs),"");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -802,30 +776,9 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             return getSchemas();
         }
 
-        List<String> colNames = Arrays.asList("TABLE_SCHEM", "TABLE_CATALOG");
-        List<Vector> cols = new ArrayList<>();
-
         if (Utils.isNotEmpty(catalog) && "%".equals(schemaPattern)) {
             try {
-                if (connection.isCatalogSupported()) {
-                    BasicStringVector schemaVec = new BasicStringVector(0);
-                    BasicStringVector catalogVec = new BasicStringVector(0);
-                    BasicTable schemasMapTb = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\");");
-                    BasicStringVector curSchemaVec = (BasicStringVector) schemasMapTb.getColumn("schema");
-                    schemaVec.Append(curSchemaVec);
-                    catalogVec.Append(new BasicStringVector(new ArrayList<>(Collections.nCopies(curSchemaVec.rows(), catalog))));
-                    cols.add(schemaVec);
-                    cols.add(catalogVec);
-                } else if (DATABASE_NAME.equals(catalog)) {
-                    BasicStringVector schemaVec = (BasicStringVector) connection.run("substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6)");
-                    BasicStringVector catalogVec = new BasicStringVector(Collections.nCopies(schemaVec.rows(), DATABASE_NAME));
-                    cols.add(schemaVec);
-                    cols.add(catalogVec);
-                    Schemas = new JDBCResultSet(connection, statement, new BasicTable(colNames, cols),"");
-                } else {
-                    throw new IllegalArgumentException("Catalog must be \"DolphinDB\" and schemaPattern must be \"%\".");
-                }
-                Schemas = new JDBCResultSet(connection, statement, new BasicTable(colNames, cols),"");
+                Schemas = new JDBCResultSet(connection, statement, buildSchemasTable(getSchemaRefsForCatalog(catalog)),"");
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -834,6 +787,77 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         }
 
         return Schemas;
+    }
+
+    private List<SchemaRef> getAllSchemaRefs() throws IOException {
+        if (connection.isCatalogSupported()) {
+            BasicStringVector catalogsVec = (BasicStringVector) connection.run("getAllCatalogs();");
+            if (catalogsVec.rows() == 0) {
+                return Collections.emptyList();
+            }
+
+            List<SchemaRef> schemaRefs = new ArrayList<>();
+            for (int i = 0; i < catalogsVec.rows(); i ++) {
+                schemaRefs.addAll(getCatalogSchemaRefs(catalogsVec.getString(i)));
+            }
+            return schemaRefs;
+        }
+
+        return getLegacySchemaRefs();
+    }
+
+    private List<SchemaRef> getSchemaRefsForCatalog(String catalog) throws IOException {
+        if (connection.isCatalogSupported()) {
+            return getCatalogSchemaRefs(catalog);
+        }
+
+        if (DATABASE_NAME.equals(catalog)) {
+            return getLegacySchemaRefs();
+        }
+
+        throw new IllegalArgumentException("Catalog must be \"DolphinDB\" and schemaPattern must be \"%\".");
+    }
+
+    private List<SchemaRef> getCatalogSchemaRefs(String catalog) throws IOException {
+        List<SchemaRef> schemaRefs = new ArrayList<>();
+        BasicTable schemasMapTb = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\");");
+        BasicStringVector schemaVec = (BasicStringVector) schemasMapTb.getColumn("schema");
+        for (int i = 0; i < schemaVec.rows(); i ++) {
+            schemaRefs.add(new SchemaRef(schemaVec.getString(i), catalog));
+        }
+        return schemaRefs;
+    }
+
+    private List<SchemaRef> getLegacySchemaRefs() throws IOException {
+        List<SchemaRef> schemaRefs = new ArrayList<>();
+        BasicStringVector schemaVec = (BasicStringVector) connection.run("substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6)");
+        for (int i = 0; i < schemaVec.rows(); i ++) {
+            schemaRefs.add(new SchemaRef(schemaVec.getString(i), DATABASE_NAME));
+        }
+        return schemaRefs;
+    }
+
+    private BasicTable buildSchemasTable(List<SchemaRef> schemaRefs) {
+        List<String> schemaVal = new ArrayList<>();
+        List<String> catalogVal = new ArrayList<>();
+        for (SchemaRef schemaRef : schemaRefs) {
+            schemaVal.add(schemaRef.schema);
+            catalogVal.add(schemaRef.catalog);
+        }
+
+        List<String> colNames = Arrays.asList("TABLE_SCHEM", "TABLE_CATALOG");
+        List<Vector> cols = Arrays.asList(new BasicStringVector(schemaVal), new BasicStringVector(catalogVal));
+        return new BasicTable(colNames, cols);
+    }
+
+    private static class SchemaRef {
+        final String schema;
+        final String catalog;
+
+        SchemaRef(String schema, String catalog) {
+            this.schema = schema;
+            this.catalog = catalog;
+        }
     }
 
     @Override
