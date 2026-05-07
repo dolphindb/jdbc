@@ -110,292 +110,108 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
 
     @Override
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) throws SQLException {
-        BasicTable colDefs;
-        Map<String, Object> originMetaData = getColumnsOriginMetaData(catalog, schemaPattern, tableNamePattern, columnNamePattern);
-        colDefs = assembleColumnsMetaData(originMetaData, catalog, schemaPattern, tableNamePattern, columnNamePattern);
+        List<ColumnSource> columnSources = resolveColumnSources(catalog, schemaPattern, tableNamePattern, columnNamePattern);
+        BasicTable colDefs = buildColumnsTable(columnSources, columnNamePattern);
 
         return new JDBCResultSet(connection,statement, colDefs,"");
     }
 
-    private Map<String, Object> getColumnsOriginMetaData(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) {
-        Map<String, Object> originMetaData = new HashMap<>();
-        List<BasicTable> tables = new ArrayList<>();
-        if (Utils.isNotEmpty(catalog) && !catalog.equals("%") && Utils.isNotEmpty(schemaPattern) && !schemaPattern.equals("%")
-                && Utils.isNotEmpty(tableNamePattern) && Utils.isNotEmpty(columnNamePattern) && columnNamePattern.equals("%")) {
-            try {
-                if (connection.isCatalogSupported()) {
-                    if (!((BasicBoolean) connection.run("existsCatalog(\"" + catalog + "\")")).getBoolean())
-                        throw new RuntimeException("The catalog '" + catalog + "' doesn't exist.");
-                    BasicTable schemas = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\")");
-                    if (schemas.rows() != 0) {
-                        int pos = -1;
-                        BasicStringVector schemaVector = (BasicStringVector) schemas.getColumn("schema");
-                        for (int i = 0; i < schemas.rows(); i++) {
-                            if (schemaVector.getString(i).equals(schemaPattern))
-                                pos = i;
-                        }
-
-                        if (pos != -1) {
-                            BasicStringVector dbUrlVector = (BasicStringVector) schemas.getColumn("dbUrl");
-                            String dbUrl = dbUrlVector.getString(pos);
-                            originMetaData.put("dbUrl", dbUrl);
-                            if (tableNamePattern.trim().equals("%")) {
-                                // Retrieve all column information for all tables under 'catalog.schema'
-                                String script = "handle=database(\"" + dbUrl + "\"); getTables(handle);";
-                                AbstractVector tableNameVec = (AbstractVector) connection.run(script);
-                                for (int i = 0; i < tableNameVec.rows(); i++) {
-                                    String tmpTableName = tableNameVec.getString(i);
-                                    String tableScript = "handle=loadTable(\"" + dbUrl + "\", `" + tmpTableName + "); schema(handle);";
-                                    BasicDictionary schema = (BasicDictionary) connection.run(tableScript);
-                                    tables.add((BasicTable) schema.get(new BasicString("colDefs")));
-                                }
-
-                                originMetaData.put("tableNameVec", tableNameVec);
-                            } else {
-                                // Retrieve all column-related information for all tables under 'catalog.schema.tableNamePattern'.
-                                String script = "handle=loadTable(\"" + dbUrl + "\", `" + tableNamePattern + "); schema(handle);";
-                                BasicDictionary schema = (BasicDictionary) connection.run(script);
-                                tables.add((BasicTable) schema.get(new BasicString("colDefs")));
-                            }
-                        } else {
-                            throw new RuntimeException("schema" + schemaPattern + "doesn't exist in " + catalog + ".");
-                        }
-                    } else {
-                        throw new RuntimeException("Current catalog '" + catalog + "' doesn't has any schema.");
-                    }
-                } else {
-                    BasicBoolean schemaExists = (BasicBoolean) connection.run("in (\"" + schemaPattern + "\", substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6))");
-                    if (!schemaExists.getBoolean()) {
-                        throw new RuntimeException("The database '" + schemaPattern + "' doesn't exist.");
-                    }
-
-                    String dbUrl = "dfs://" + schemaPattern;
-                    originMetaData.put("dbUrl", dbUrl);
-
-                    if (tableNamePattern.trim().equals("%")) {
-                        BasicStringVector tableNameVec = (BasicStringVector) connection.run("getTables(database(\"" + dbUrl + "\"))");
-                        for (int i = 0; i < tableNameVec.rows(); i++) {
-                            String tmpTableName = tableNameVec.getString(i);
-                            String tableScript = "loadTable(\"" + dbUrl + "\", `" + tmpTableName + ").schema();";
-                            BasicDictionary schema = (BasicDictionary) connection.run(tableScript);
-                            tables.add((BasicTable) schema.get(new BasicString("colDefs")));
-                        }
-                        originMetaData.put("tableNameVec", tableNameVec);
-                    } else {
-                        String script = "loadTable(\"" + dbUrl + "\", `" + tableNamePattern + ").schema();";
-                        BasicDictionary schema = (BasicDictionary) connection.run(script);
-                        tables.add((BasicTable) schema.get(new BasicString("colDefs")));
-                    }
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else if (Utils.isEmpty(catalog) && Utils.isEmpty(schemaPattern) && Utils.isNotEmpty(tableNamePattern) && !tableNamePattern.equals("%")) {
-            BasicDictionary schema = null;
-            try {
-                schema = (BasicDictionary) connection.run("schema(" + tableNamePattern + ");");
-                tables.add((BasicTable) schema.get(new BasicString("colDefs")));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+    private List<ColumnSource> resolveColumnSources(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) {
+        if (isSpecifiedPattern(catalog) && isSpecifiedPattern(schemaPattern)
+                && Utils.isNotEmpty(tableNamePattern) && isWildcardPattern(columnNamePattern)) {
+            return resolveDfsColumnSources(catalog, schemaPattern, tableNamePattern);
+        } else if (Utils.isEmpty(catalog) && Utils.isEmpty(schemaPattern) && isSpecifiedPattern(tableNamePattern)) {
+            return resolveMemoryColumnSources(tableNamePattern);
         }
 
-        originMetaData.put("tables", tables);
-        return originMetaData;
+        return Collections.emptyList();
     }
 
-    private BasicTable assembleColumnsMetaData(Map<String, Object> originMetaData, String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) {
+    private boolean isSpecifiedPattern(String value) {
+        return Utils.isNotEmpty(value) && !"%".equals(value);
+    }
+
+    private boolean isWildcardPattern(String value) {
+        return value != null && "%".equals(value);
+    }
+
+    private boolean isTrimmedWildcardPattern(String value) {
+        return value != null && "%".equals(value.trim());
+    }
+
+    private List<ColumnSource> resolveDfsColumnSources(String catalog, String schemaPattern, String tableNamePattern) {
+        try {
+            if (connection.isCatalogSupported()) {
+                return resolveCatalogColumnSources(catalog, schemaPattern, tableNamePattern);
+            } else {
+                return resolveLegacyColumnSources(catalog, schemaPattern, tableNamePattern);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private List<ColumnSource> resolveCatalogColumnSources(String catalog, String schemaPattern, String tableNamePattern) throws IOException {
+        if (!((BasicBoolean) connection.run("existsCatalog(\"" + catalog + "\")")).getBoolean())
+            throw new RuntimeException("The catalog '" + catalog + "' doesn't exist.");
+
+        BasicTable schemas = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\")");
+        int pos = findSchemaPosition(schemas, schemaPattern);
+        if (pos == -1) {
+            throw new RuntimeException("schema" + schemaPattern + "doesn't exist in " + catalog + ".");
+        }
+
+        BasicStringVector dbUrlVector = (BasicStringVector) schemas.getColumn("dbUrl");
+        String dbUrl = dbUrlVector.getString(pos);
+        if (isTrimmedWildcardPattern(tableNamePattern)) {
+            return loadAllDfsColumnSources(catalog, schemaPattern, dbUrl);
+        }
+        return Collections.singletonList(loadDfsColumnSource(catalog, schemaPattern, dbUrl, tableNamePattern));
+    }
+
+    private List<ColumnSource> resolveLegacyColumnSources(String catalog, String schemaPattern, String tableNamePattern) throws IOException {
+        BasicBoolean schemaExists = (BasicBoolean) connection.run("in (\"" + schemaPattern + "\", substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6))");
+        if (!schemaExists.getBoolean()) {
+            throw new RuntimeException("The database '" + schemaPattern + "' doesn't exist.");
+        }
+
+        String dbUrl = "dfs://" + schemaPattern;
+        if (isTrimmedWildcardPattern(tableNamePattern)) {
+            return loadAllDfsColumnSources(catalog, schemaPattern, dbUrl);
+        }
+        return Collections.singletonList(loadDfsColumnSource(catalog, schemaPattern, dbUrl, tableNamePattern));
+    }
+
+    private List<ColumnSource> loadAllDfsColumnSources(String catalog, String schemaPattern, String dbUrl) throws IOException {
+        List<ColumnSource> columnSources = new ArrayList<>();
+        AbstractVector tableNameVec = (AbstractVector) connection.run("getTables(database(\"" + dbUrl + "\"))");
+        for (int i = 0; i < tableNameVec.rows(); i++) {
+            String tableName = tableNameVec.getString(i);
+            columnSources.add(loadDfsColumnSource(catalog, schemaPattern, dbUrl, tableName));
+        }
+        return columnSources;
+    }
+
+    private ColumnSource loadDfsColumnSource(String catalog, String schemaPattern, String dbUrl, String tableName) throws IOException {
+        String script = "loadTable(\"" + dbUrl + "\", `" + tableName + ").schema();";
+        BasicDictionary schema = (BasicDictionary) connection.run(script);
+        return new ColumnSource(catalog, schemaPattern, tableName, schema);
+    }
+
+    private List<ColumnSource> resolveMemoryColumnSources(String tableNamePattern) {
+        try {
+            BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableNamePattern + ");");
+            return Collections.singletonList(new ColumnSource(null, null, tableNamePattern, schema));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private BasicTable buildColumnsTable(List<ColumnSource> columnSources, String columnNamePattern) {
         BasicTable colDefs = null;
-        List<?> tables = (List<?>) originMetaData.get("tables");
-        String dbUrl = (String) originMetaData.get("dbUrl");
 
-        for (int i = 0; i < tables.size(); i++) {
-            List<String> columnIndexList = new ArrayList<>();
-            BasicDictionary schema;
-            try {
-                String tbName;
-                if (Objects.nonNull(tableNamePattern) && !tableNamePattern.trim().equals("%")) {
-                    tbName = tableNamePattern;
-                } else {
-                    AbstractVector tableNameVec = (AbstractVector) originMetaData.get("tableNameVec");
-                    Entity tableNameEn = tableNameVec.get(i);
-                    tbName = tableNameEn.getString();
-                }
-
-                if (Objects.nonNull(catalog) && !catalog.isEmpty()) {
-                    String script = "handle=loadTable(\"" + dbUrl + "\", `" + tbName + "); schema(handle);";
-                    schema = (BasicDictionary) connection.run(script);
-                } else {
-                    schema = (BasicDictionary) connection.run("schema(" + tbName + ");");
-                }
-
-                Entity columnNameEntity = schema.get("partitionColumnName");
-
-                // get 'partitonColumn'
-                if (Objects.nonNull(columnNameEntity)) {
-                    if (columnNameEntity.isScalar()) {
-                        BasicString columnName = (BasicString) columnNameEntity;
-                        columnIndexList.add(columnName.getString());
-                    } else if (columnNameEntity.isVector()) {
-                        AbstractVector columnNameVec = (AbstractVector) columnNameEntity;
-                        if (columnNameVec instanceof BasicStringVector)
-                            columnIndexList.addAll(Arrays.asList(((BasicStringVector) columnNameVec).getdataArray()));
-                    }
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-
-            BasicTable curTable = (BasicTable) tables.get(i);
-            List<String> schemaAndTableColNames = new ArrayList<>();
-            List<Vector> schemaAndTableCols = new ArrayList<>();
-            schemaAndTableColNames.add("TABLE_CAT");
-            schemaAndTableColNames.add("TABLE_SCHEM");
-            schemaAndTableColNames.add("TABLE_NAME");
-            
-            String catalogName = (Objects.nonNull(catalog) && !catalog.trim().equals("%")) ? catalog : null;
-            List<String> catalogNameList = new ArrayList<>(Collections.nCopies(curTable.rows(), catalogName));
-            BasicStringVector catalogNameVector = new BasicStringVector(catalogNameList);
-            schemaAndTableCols.add(catalogNameVector);
-
-            String schemaName = (Objects.nonNull(schemaPattern) && !schemaPattern.trim().equals("%")) ? schemaPattern : null;
-            List<String> schemaNameList = new ArrayList<>(Collections.nCopies(curTable.rows(), schemaName));
-            BasicStringVector schemaNameVector = new BasicStringVector(schemaNameList);
-            schemaAndTableCols.add(schemaNameVector);
-
-            String tableName;
-            if (Objects.nonNull(tableNamePattern) && !tableNamePattern.trim().equals("%")) {
-                tableName = tableNamePattern;
-            } else {
-                AbstractVector tableNameVec = (AbstractVector) originMetaData.get("tableNameVec");
-                Entity tableNameEn = tableNameVec.get(i);
-                tableName = tableNameEn.getString();
-            }
-            List<String> tableNameList = new ArrayList<>(Collections.nCopies(curTable.rows(), tableName));
-            BasicStringVector tableNameVector = new BasicStringVector(tableNameList);
-            schemaAndTableCols.add(tableNameVector);
-
-            BasicTable schemaAndTable = new BasicTable(schemaAndTableColNames, schemaAndTableCols);
-
-            List<String> newColumnNames = new ArrayList<>();
-            newColumnNames.add("COLUMN_NAME");
-            newColumnNames.add("TYPE_NAME");
-            newColumnNames.add("DATA_TYPE");
-            newColumnNames.add("COLUMN_SIZE");
-            newColumnNames.add("REMARKS");
-            if (curTable.columns() == 6)
-                newColumnNames.add("sensitive");
-            curTable.setColName(newColumnNames);
-
-            int addColumnsNum = curTable.columns() == 6 ? curTable.columns() -1 : curTable.columns();
-            for (int j = 0; j < addColumnsNum; j++)
-                schemaAndTable.addColumn(curTable.getColumnName(j), curTable.getColumn(j));
-
-            curTable = schemaAndTable;
-
-            try {
-                BasicStringVector typeNameColumn = (BasicStringVector) curTable.getColumn(4);
-                for (int j = 0; j < typeNameColumn.rows(); j++) {
-                    typeNameColumn.setString(j, getDisplayTypeName(typeNameColumn.getString(j)));
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-
-            // set precision/scale metadata
-            try {
-                AbstractVector typeStringColumn = (AbstractVector) curTable.getColumn(4);
-                BasicIntVector columnSize = (BasicIntVector) curTable.getColumn(6);
-                BasicIntVector decimalDigits = new BasicIntVector(typeStringColumn.rows());
-                BasicTable curColDefs = (BasicTable) schema.get(new BasicString("colDefs"));
-                BasicIntVector extraVec = (BasicIntVector) curColDefs.getColumn("extra");
-                for (int j = 0; j < typeStringColumn.rows(); j ++) {
-                    String dataType = getBaseTypeName(typeStringColumn.get(j).getString());
-                    Integer precision = getColumnSize(dataType);
-                    Integer scale = getDecimalDigits(dataType, extraVec, j);
-                    if (precision == null) {
-                        columnSize.setNull(j);
-                    } else {
-                        columnSize.set(j, new BasicInt(precision));
-                    }
-                    if (scale == null) {
-                        decimalDigits.setNull(j);
-                    } else {
-                        decimalDigits.set(j, new BasicInt(scale));
-                    }
-                }
-
-                curTable.addColumn("DECIMAL_DIGITS", decimalDigits);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-
-            // set 'IS_NULLABLE'
-            List<String> isNullableStrList = new ArrayList<>();
-            AbstractVector nameColumn = (AbstractVector) curTable.getColumn(3);
-            String[] nameArr = null;
-            if (nameColumn instanceof BasicStringVector) {
-                nameArr = ((BasicStringVector) nameColumn).getdataArray();
-                Arrays.stream(nameArr)
-                        .map(str -> columnIndexList.contains(str) ? "NO" : "YES")
-                        .forEach(isNullableStrList::add);
-                curTable.addColumn("IS_NULLABLE", new BasicStringVector(isNullableStrList));
-            }
-
-            // set 'IS_AUTOINCREMENT'
-            List<String> autoIncrementList = new ArrayList<>(Collections.nCopies(curTable.rows(), ""));
-            BasicStringVector autoIncrementVec = new BasicStringVector(autoIncrementList);
-            curTable.addColumn("IS_AUTOINCREMENT", autoIncrementVec);
-
-            // set 'ORDINAL_POSITION'
-            if (Objects.nonNull(columnNamePattern) && !columnNamePattern.isEmpty() && !columnNamePattern.equals("%")) {
-                // specify 'columnNamePattern'
-                try {
-                    String script = null;
-                    if (Objects.nonNull(catalog) && !catalog.isEmpty())
-                        // dfs
-                        script = String.format("schema(loadTable(\"%s\", `%s)).colDefs;", dbUrl, tableNamePattern);
-                    else
-                        // mem
-                        script = String.format("schema(%s).colDefs;", tableNamePattern);
-                    BasicTable tempColDefs = (BasicTable) connection.run(script);
-                    AbstractVector tempNameColumn = (AbstractVector) tempColDefs.getColumn(0);
-                    List<String> nameColumnList = null;
-                    if (tempNameColumn instanceof BasicStringVector) {
-                        nameColumnList = Arrays.asList(((BasicStringVector) tempNameColumn).getdataArray());
-                        int pos = nameColumnList.indexOf(columnNamePattern);
-                        List<Integer> ordinalPositionList =  new ArrayList<>();
-                        ordinalPositionList.add(pos + 1);
-                        curTable.addColumn("ORDINAL_POSITION", new BasicIntVector(ordinalPositionList));
-                    }
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            } else {
-                // get all cols.
-                BasicIntVector posColVector = new BasicIntVector(IntStream.rangeClosed(1, curTable.getColumn(0).rows())
-                        .boxed()
-                        .collect(Collectors.toList()));
-                curTable.addColumn("ORDINAL_POSITION", posColVector);
-            }
-
-            // transfer 'DATA_TYPE' to java.sql.Types
-            try {
-                AbstractVector typeStringColumn = (AbstractVector) curTable.getColumn(4);
-                BasicIntVector typeIntColumn = (BasicIntVector) curTable.getColumn(5);
-                for (int j = 0; j < typeStringColumn.rows(); j ++)
-                    typeIntColumn.set(j, new BasicInt(Utils.transferColDefsTypesToSqlTypes(typeStringColumn.get(j).getString())));
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-
-            // set 'SQL_DATA_TYPES'
-            AbstractVector typeStringColumn = (AbstractVector) curTable.getColumn(4);
-            List<Integer> sqlDataTypesList = null;
-            if (typeStringColumn instanceof BasicStringVector)
-                sqlDataTypesList = Arrays.stream(((BasicStringVector) typeStringColumn).getdataArray()).map(Utils::transferColDefsTypesToSqlTypes).collect(Collectors.toList());
-            BasicIntVector sqlDataTypesColumn = new BasicIntVector(sqlDataTypesList);
-            curTable.addColumn("SQL_DATA_TYPES", sqlDataTypesColumn);
+        for (int i = 0; i < columnSources.size(); i++) {
+            BasicTable curTable = buildColumnTable(columnSources.get(i), columnNamePattern);
 
             if (i == 0)
                 colDefs = curTable;
@@ -404,6 +220,174 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         }
 
         return colDefs;
+    }
+
+    private BasicTable buildColumnTable(ColumnSource columnSource, String columnNamePattern) {
+        List<String> partitionColumnNames = getPartitionColumnNames(columnSource.schema);
+        BasicTable colDefs = columnSource.colDefs;
+        BasicTable curTable = buildColumnIdentityTable(columnSource, colDefs.rows());
+
+        renameColumnDefinitionColumns(colDefs);
+        appendColumnDefinitionColumns(curTable, colDefs);
+        applyDisplayTypeNames(curTable);
+        appendPrecisionAndScaleColumns(curTable, columnSource.extra);
+        appendNullableColumn(curTable, partitionColumnNames);
+        appendAutoIncrementColumn(curTable);
+        appendOrdinalPositionColumn(curTable, columnSource, columnNamePattern);
+        convertDataTypeColumn(curTable);
+        appendSqlDataTypesColumn(curTable);
+        return curTable;
+    }
+
+    private List<String> getPartitionColumnNames(BasicDictionary schema) {
+        List<String> partitionColumnNames = new ArrayList<>();
+        Entity columnNameEntity = schema.get("partitionColumnName");
+
+        if (Objects.nonNull(columnNameEntity)) {
+            if (columnNameEntity.isScalar()) {
+                BasicString columnName = (BasicString) columnNameEntity;
+                partitionColumnNames.add(columnName.getString());
+            } else if (columnNameEntity.isVector()) {
+                AbstractVector columnNameVec = (AbstractVector) columnNameEntity;
+                if (columnNameVec instanceof BasicStringVector)
+                    partitionColumnNames.addAll(Arrays.asList(((BasicStringVector) columnNameVec).getdataArray()));
+            }
+        }
+        return partitionColumnNames;
+    }
+
+    private BasicTable buildColumnIdentityTable(ColumnSource columnSource, int rowCount) {
+        List<String> columnNames = new ArrayList<>();
+        List<Vector> columns = new ArrayList<>();
+        columnNames.add("TABLE_CAT");
+        columnNames.add("TABLE_SCHEM");
+        columnNames.add("TABLE_NAME");
+
+        String catalogName = (Objects.nonNull(columnSource.catalog) && !columnSource.catalog.trim().equals("%")) ? columnSource.catalog : null;
+        columns.add(new BasicStringVector(new ArrayList<>(Collections.nCopies(rowCount, catalogName))));
+
+        String schemaName = (Objects.nonNull(columnSource.schemaName) && !columnSource.schemaName.trim().equals("%")) ? columnSource.schemaName : null;
+        columns.add(new BasicStringVector(new ArrayList<>(Collections.nCopies(rowCount, schemaName))));
+
+        columns.add(new BasicStringVector(new ArrayList<>(Collections.nCopies(rowCount, columnSource.tableName))));
+        return new BasicTable(columnNames, columns);
+    }
+
+    private void renameColumnDefinitionColumns(BasicTable colDefs) {
+        List<String> newColumnNames = new ArrayList<>();
+        newColumnNames.add("COLUMN_NAME");
+        newColumnNames.add("TYPE_NAME");
+        newColumnNames.add("DATA_TYPE");
+        newColumnNames.add("COLUMN_SIZE");
+        newColumnNames.add("REMARKS");
+        if (colDefs.columns() == 6)
+            newColumnNames.add("sensitive");
+        colDefs.setColName(newColumnNames);
+    }
+
+    private void appendColumnDefinitionColumns(BasicTable targetTable, BasicTable colDefs) {
+        int addColumnsNum = colDefs.columns() == 6 ? colDefs.columns() -1 : colDefs.columns();
+        for (int j = 0; j < addColumnsNum; j++)
+            targetTable.addColumn(colDefs.getColumnName(j), colDefs.getColumn(j));
+    }
+
+    private void applyDisplayTypeNames(BasicTable curTable) {
+        BasicStringVector typeNameColumn = (BasicStringVector) curTable.getColumn(4);
+        for (int j = 0; j < typeNameColumn.rows(); j++) {
+            typeNameColumn.setString(j, getDisplayTypeName(typeNameColumn.getString(j)));
+        }
+    }
+
+    private void appendPrecisionAndScaleColumns(BasicTable curTable, BasicIntVector extraVec) {
+        AbstractVector typeStringColumn = (AbstractVector) curTable.getColumn(4);
+        BasicIntVector columnSize = (BasicIntVector) curTable.getColumn(6);
+        BasicIntVector decimalDigits = new BasicIntVector(typeStringColumn.rows());
+        for (int j = 0; j < typeStringColumn.rows(); j ++) {
+            String dataType = getBaseTypeName(typeStringColumn.get(j).getString());
+            Integer precision = getColumnSize(dataType);
+            Integer scale = getDecimalDigits(dataType, extraVec, j);
+            if (precision == null) {
+                columnSize.setNull(j);
+            } else {
+                columnSize.setInt(j, precision);
+            }
+            if (scale == null) {
+                decimalDigits.setNull(j);
+            } else {
+                decimalDigits.setInt(j, scale);
+            }
+        }
+
+        curTable.addColumn("DECIMAL_DIGITS", decimalDigits);
+    }
+
+    private void appendNullableColumn(BasicTable curTable, List<String> partitionColumnNames) {
+        List<String> isNullableStrList = new ArrayList<>();
+        AbstractVector nameColumn = (AbstractVector) curTable.getColumn(3);
+        if (nameColumn instanceof BasicStringVector) {
+            Arrays.stream(((BasicStringVector) nameColumn).getdataArray())
+                    .map(str -> partitionColumnNames.contains(str) ? "NO" : "YES")
+                    .forEach(isNullableStrList::add);
+            curTable.addColumn("IS_NULLABLE", new BasicStringVector(isNullableStrList));
+        }
+    }
+
+    private void appendAutoIncrementColumn(BasicTable curTable) {
+        List<String> autoIncrementList = new ArrayList<>(Collections.nCopies(curTable.rows(), ""));
+        BasicStringVector autoIncrementVec = new BasicStringVector(autoIncrementList);
+        curTable.addColumn("IS_AUTOINCREMENT", autoIncrementVec);
+    }
+
+    private void appendOrdinalPositionColumn(BasicTable curTable, ColumnSource columnSource, String columnNamePattern) {
+        if (Objects.nonNull(columnNamePattern) && !columnNamePattern.isEmpty() && !columnNamePattern.equals("%")) {
+            AbstractVector nameColumn = (AbstractVector) columnSource.colDefs.getColumn(0);
+            if (nameColumn instanceof BasicStringVector) {
+                List<String> nameColumnList = Arrays.asList(((BasicStringVector) nameColumn).getdataArray());
+                int pos = nameColumnList.indexOf(columnNamePattern);
+                List<Integer> ordinalPositionList =  new ArrayList<>();
+                ordinalPositionList.add(pos + 1);
+                curTable.addColumn("ORDINAL_POSITION", new BasicIntVector(ordinalPositionList));
+            }
+        } else {
+            BasicIntVector posColVector = new BasicIntVector(IntStream.rangeClosed(1, curTable.getColumn(0).rows())
+                    .boxed()
+                    .collect(Collectors.toList()));
+            curTable.addColumn("ORDINAL_POSITION", posColVector);
+        }
+    }
+
+    private void convertDataTypeColumn(BasicTable curTable) {
+        AbstractVector typeStringColumn = (AbstractVector) curTable.getColumn(4);
+        BasicIntVector typeIntColumn = (BasicIntVector) curTable.getColumn(5);
+        for (int j = 0; j < typeStringColumn.rows(); j ++)
+            typeIntColumn.setInt(j, Utils.transferColDefsTypesToSqlTypes(typeStringColumn.get(j).getString()));
+    }
+
+    private void appendSqlDataTypesColumn(BasicTable curTable) {
+        AbstractVector typeStringColumn = (AbstractVector) curTable.getColumn(4);
+        List<Integer> sqlDataTypesList = null;
+        if (typeStringColumn instanceof BasicStringVector)
+            sqlDataTypesList = Arrays.stream(((BasicStringVector) typeStringColumn).getdataArray()).map(Utils::transferColDefsTypesToSqlTypes).collect(Collectors.toList());
+        BasicIntVector sqlDataTypesColumn = new BasicIntVector(sqlDataTypesList);
+        curTable.addColumn("SQL_DATA_TYPES", sqlDataTypesColumn);
+    }
+
+    private static class ColumnSource {
+        final String catalog;
+        final String schemaName;
+        final String tableName;
+        final BasicDictionary schema;
+        final BasicTable colDefs;
+        final BasicIntVector extra;
+
+        ColumnSource(String catalog, String schemaName, String tableName, BasicDictionary schema) {
+            this.catalog = catalog;
+            this.schemaName = schemaName;
+            this.tableName = tableName;
+            this.schema = schema;
+            this.colDefs = (BasicTable) schema.get(new BasicString("colDefs"));
+            this.extra = (BasicIntVector) colDefs.getColumn("extra");
+        }
     }
 
     private String getBaseTypeName(String typeName) {
