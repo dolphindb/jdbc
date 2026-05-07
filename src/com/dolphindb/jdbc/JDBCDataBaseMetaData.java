@@ -139,6 +139,24 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
         return value != null && "%".equals(value.trim());
     }
 
+    private String unescapeMetadataIdentifier(String value) {
+        if (value == null || value.indexOf("\\_") < 0) {
+            return value;
+        }
+
+        StringBuilder unescaped = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            if (ch == '\\' && i + 1 < value.length() && value.charAt(i + 1) == '_') {
+                unescaped.append('_');
+                i++;
+            } else {
+                unescaped.append(ch);
+            }
+        }
+        return unescaped.toString();
+    }
+
     private List<ColumnSource> resolveDfsColumnSources(String catalog, String schemaPattern, String tableNamePattern) {
         try {
             if (connection.isCatalogSupported()) {
@@ -156,52 +174,59 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             throw new RuntimeException("The catalog '" + catalog + "' doesn't exist.");
 
         BasicTable schemas = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\")");
+        String schemaName = unescapeMetadataIdentifier(schemaPattern);
         int pos = findSchemaPosition(schemas, schemaPattern);
         if (pos == -1) {
-            throw new RuntimeException("schema" + schemaPattern + "doesn't exist in " + catalog + ".");
+            throw new RuntimeException("Schema '" + schemaName + "' doesn't exist in catalog '" + catalog + "'.");
         }
 
         BasicStringVector dbUrlVector = (BasicStringVector) schemas.getColumn("dbUrl");
+        BasicStringVector schemaVector = (BasicStringVector) schemas.getColumn("schema");
         String dbUrl = dbUrlVector.getString(pos);
+        schemaName = schemaVector.getString(pos);
         if (isTrimmedWildcardPattern(tableNamePattern)) {
-            return loadAllDfsColumnSources(catalog, schemaPattern, dbUrl);
+            return loadAllDfsColumnSources(catalog, schemaName, dbUrl);
         }
-        return Collections.singletonList(loadDfsColumnSource(catalog, schemaPattern, dbUrl, tableNamePattern));
+        String tableName = unescapeMetadataIdentifier(tableNamePattern);
+        return Collections.singletonList(loadDfsColumnSource(catalog, schemaName, dbUrl, tableName));
     }
 
     private List<ColumnSource> resolveLegacyColumnSources(String catalog, String schemaPattern, String tableNamePattern) throws IOException {
-        BasicBoolean schemaExists = (BasicBoolean) connection.run("in (\"" + schemaPattern + "\", substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6))");
+        String schemaName = unescapeMetadataIdentifier(schemaPattern);
+        BasicBoolean schemaExists = (BasicBoolean) connection.run("in (\"" + schemaName + "\", substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6))");
         if (!schemaExists.getBoolean()) {
-            throw new RuntimeException("The database '" + schemaPattern + "' doesn't exist.");
+            throw new RuntimeException("The database '" + schemaName + "' doesn't exist.");
         }
 
-        String dbUrl = "dfs://" + schemaPattern;
+        String dbUrl = "dfs://" + schemaName;
         if (isTrimmedWildcardPattern(tableNamePattern)) {
-            return loadAllDfsColumnSources(catalog, schemaPattern, dbUrl);
+            return loadAllDfsColumnSources(catalog, schemaName, dbUrl);
         }
-        return Collections.singletonList(loadDfsColumnSource(catalog, schemaPattern, dbUrl, tableNamePattern));
+        String tableName = unescapeMetadataIdentifier(tableNamePattern);
+        return Collections.singletonList(loadDfsColumnSource(catalog, schemaName, dbUrl, tableName));
     }
 
-    private List<ColumnSource> loadAllDfsColumnSources(String catalog, String schemaPattern, String dbUrl) throws IOException {
+    private List<ColumnSource> loadAllDfsColumnSources(String catalog, String schemaName, String dbUrl) throws IOException {
         List<ColumnSource> columnSources = new ArrayList<>();
         AbstractVector tableNameVec = (AbstractVector) connection.run("getTables(database(\"" + dbUrl + "\"))");
         for (int i = 0; i < tableNameVec.rows(); i++) {
             String tableName = tableNameVec.getString(i);
-            columnSources.add(loadDfsColumnSource(catalog, schemaPattern, dbUrl, tableName));
+            columnSources.add(loadDfsColumnSource(catalog, schemaName, dbUrl, tableName));
         }
         return columnSources;
     }
 
-    private ColumnSource loadDfsColumnSource(String catalog, String schemaPattern, String dbUrl, String tableName) throws IOException {
+    private ColumnSource loadDfsColumnSource(String catalog, String schemaName, String dbUrl, String tableName) throws IOException {
         String script = "loadTable(\"" + dbUrl + "\", `" + tableName + ").schema();";
         BasicDictionary schema = (BasicDictionary) connection.run(script);
-        return new ColumnSource(catalog, schemaPattern, tableName, schema);
+        return new ColumnSource(catalog, schemaName, tableName, schema);
     }
 
     private List<ColumnSource> resolveMemoryColumnSources(String tableNamePattern) {
         try {
-            BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableNamePattern + ");");
-            return Collections.singletonList(new ColumnSource(null, null, tableNamePattern, schema));
+            String tableName = unescapeMetadataIdentifier(tableNamePattern);
+            BasicDictionary schema = (BasicDictionary) connection.run("schema(" + tableName + ");");
+            return Collections.singletonList(new ColumnSource(null, null, tableName, schema));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -892,25 +917,28 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
             if (connection.isCatalogSupported()) {
                 BasicTable schemas = (BasicTable) connection.run("getSchemaByCatalog(\"" + catalog + "\")");
                 if (schemas.rows() != 0) {
+                    String schemaName = unescapeMetadataIdentifier(schemaPattern);
                     int pos = findSchemaPosition(schemas, schemaPattern);
 
                     if (pos != -1) {
                         BasicStringVector dbUrlVector = (BasicStringVector) schemas.getColumn("dbUrl");
+                        BasicStringVector schemaVector = (BasicStringVector) schemas.getColumn("schema");
                         String dbUrl = dbUrlVector.getString(pos);
-                        appendCatalogDfsTables(tableRefs, catalog, schemaPattern, dbUrl);
+                        appendCatalogDfsTables(tableRefs, catalog, schemaVector.getString(pos), dbUrl);
                     } else {
-                        throw new RuntimeException("schema" + schemaPattern + "doesn't exist in " + catalog + ".");
+                        throw new RuntimeException("Schema '" + schemaName + "' doesn't exist in catalog '" + catalog + "'.");
                     }
                 } else {
-                    throw new RuntimeException("Current catalog " + catalog + " doesn't has any schema.");
+                    throw new RuntimeException("Current catalog '" + catalog + "' doesn't have any schema.");
                 }
             } else if (DATABASE_NAME.equals(catalog)) {
-                BasicBoolean schemaExists = (BasicBoolean) connection.run("in (\"" + schemaPattern + "\", substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6))");
+                String schemaName = unescapeMetadataIdentifier(schemaPattern);
+                BasicBoolean schemaExists = (BasicBoolean) connection.run("in (\"" + schemaName + "\", substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6))");
                 if (!schemaExists.getBoolean()) {
-                    throw new SQLException("The database " + schemaPattern + " does not exist or contains no tables.");
+                    throw new SQLException("The database " + schemaName + " does not exist or contains no tables.");
                 }
 
-                appendLegacyDfsTables(tableRefs, schemaPattern);
+                appendLegacyDfsTables(tableRefs, schemaName);
             } else {
                 throw new IllegalArgumentException("Catalog must be \"DolphinDB\" and schemaPattern must be a valid database name.");
             }
@@ -934,7 +962,7 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                         appendCatalogDfsTables(tableRefs, catalog, schemaVector.getString(i), dbUrl);
                     }
                 } else {
-                    throw new RuntimeException("Current catalog " + catalog + " doesn't has any schema.");
+                    throw new RuntimeException("Current catalog '" + catalog + "' doesn't have any schema.");
                 }
             } else if (DATABASE_NAME.equals(catalog)) {
                 BasicStringVector databases = (BasicStringVector) connection.run("substr(distinct(getClusterDFSTables().regexReplace(\"/[^/]*$\",\"\")), 6)");
@@ -951,9 +979,10 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
     }
 
     private int findSchemaPosition(BasicTable schemas, String schemaPattern) {
+        String schemaName = unescapeMetadataIdentifier(schemaPattern);
         BasicStringVector schemaVector = (BasicStringVector) schemas.getColumn("schema");
         for (int i = 0; i < schemas.rows(); i++) {
-            if (schemaVector.getString(i).equals(schemaPattern))
+            if (schemaVector.getString(i).equals(schemaName))
                 return i;
         }
         return -1;
