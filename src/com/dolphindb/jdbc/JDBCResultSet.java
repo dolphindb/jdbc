@@ -258,20 +258,31 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void close() throws SQLException {
-        isClosed = true;
-        if(findColumnHashMap != null){
-            findColumnHashMap.clear();
-            findColumnHashMap = null;
+        if (isClosed)
+            return;
+
+        try {
+            if (reader != null)
+                reader.skipAll();
+        } catch (IOException e) {
+            throw new SQLException(e);
+        } finally {
+            isClosed = true;
+            reader = null;
+            if(findColumnHashMap != null){
+                findColumnHashMap.clear();
+                findColumnHashMap = null;
+            }
+            if(insertRowMap != null){
+                insertRowMap.clear();
+                insertRowMap = null;
+            }
+            if(arguments != null){
+                arguments.clear();
+                arguments = null;
+            }
+            table = null;
         }
-        if(insertRowMap != null){
-            insertRowMap.clear();
-            insertRowMap = null;
-        }
-        if(arguments != null){
-            arguments.clear();
-            arguments = null;
-        }
-        table = null;
     }
 
     @Override
