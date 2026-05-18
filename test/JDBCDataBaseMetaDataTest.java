@@ -777,6 +777,37 @@ public class JDBCDataBaseMetaDataTest {
         stmt.close();
         conn.close();
     }
+    @Test
+    public void test_DatabaseMetaData_getTables_schemaPattern_underscore_backslash() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+            DatabaseMetaData metaData = conn.getMetaData();
+            createSchema("catalog1","dfs://db","schema\\_test");
+            createSchema("catalog2","dfs://db1","schema\\_test");
+            DBConnection connDB = new DBConnection();
+            connDB.connect(HOST,PORT,"admin","123456");
+            connDB.run("login(`admin, `123456); \ntry{\n createSchema(\"catalog1\",\"dfs://db1\",\"schema_test1\")\n }catch(ex){\n }\n ");
+            rs = metaData.getTables("catalog1","schema\\_test","pt", null);
+            String results1 = getTablesData(rs);
+            Assert.assertEquals("TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    TABLE_TYPE: TABLE    REMARKS: null    \n" +
+                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    TABLE_TYPE: TABLE    REMARKS: null    \n",results1);
+        }else{
+            createTable1("dfs://test\\_append_type_tsdb1");
+            DatabaseMetaData metaData1 = conn.getMetaData();
+            rs = metaData1.getTables("DolphinDB","test\\_append_type_tsdb1","dt", null);
+            String results1 = getTablesData(rs);
+            Assert.assertEquals(true, results1.contains("TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    TABLE_TYPE: TABLE    REMARKS: null    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    TABLE_TYPE: TABLE    REMARKS: null    "));
+        }
+        stmt.close();
+        conn.close();
+    }
 
     @Test
     public void test_DatabaseMetaData_getTables_catalog_exist() throws Exception {
@@ -1123,6 +1154,72 @@ public class JDBCDataBaseMetaDataTest {
                     "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
                     "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col2    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 3    COLUMN_SIZE: 38    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    \n" +
                     "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col3    TYPE_NAME: DECIMAL128(19)[]    DATA_TYPE: 2,003    COLUMN_SIZE: 38    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 2,003    \n",results1);
+        }
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
+    public void test_DatabaseMetaData_getColumns_schemaPattern_underscore_backslash() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+            DatabaseMetaData metaData = conn.getMetaData();
+            String results = null;
+            String script = "dbName = \"dfs://db\"\n" +
+                    "if(existsDatabase(dbName)){\n" +
+                    "        dropDatabase(dbName)\n" +
+                    "}\n" +
+                    "n=1000\n" +
+                    "ID=rand(10, n)\n" +
+                    "cdecimal32=decimal32(rand(1.0, n),8)\n" +
+                    "cdecimal64=decimal64(rand(1.0, n),17)\n" +
+                    "cdecimal128=decimal128(rand(1.0, n),30)\n" +
+                    "t=table(ID, cdecimal32,cdecimal64,cdecimal128);\n" +
+                    "t1=table(ID, cdecimal32);\n" +
+                    "db=database(dbName,RANGE,  0 5 10)\n" +
+                    "pt=db.createPartitionedTable(t, `pt_1, `ID);\n" +
+                    "pt.append!(t);\n" +
+                    "setColumnComment(pt,{ID:\"股票代码\",cdecimal32:\"decimal32类型\",cdecimal64:\"decimal64(17)类型\",cdecimal128:\"decimal128类型\"});\n" +
+                    "db.createTable(t1, `dt_1).append!(t1);" +
+                    "try{\n dropCatalog(\"catalog1\")\n }catch(ex){\n }\n" +
+                    "createCatalog(\"catalog1\")\n"+
+                    "createSchema(\"catalog1\", \"dfs://db\", \"schema\\_test\")\n";
+            DBConnection db = new DBConnection();
+            db.connect(HOST, PORT,"admin", "123456");
+            db.run(script);
+            rs = metaData.getColumns("catalog1","schema\\_test","pt\\_1", "%");
+            String results1 = getTablesData(rs);
+            //printData(rs);
+            Assert.assertEquals(
+                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt_1    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: 股票代码    DECIMAL_DIGITS: null    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
+                            "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt_1    COLUMN_NAME: cdecimal32    TYPE_NAME: DECIMAL32(8)    DATA_TYPE: 3    COLUMN_SIZE: 9    REMARKS: decimal32类型    DECIMAL_DIGITS: 8    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    \n" +
+                            "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt_1    COLUMN_NAME: cdecimal64    TYPE_NAME: DECIMAL64(17)    DATA_TYPE: 3    COLUMN_SIZE: 18    REMARKS: decimal64(17)类型    DECIMAL_DIGITS: 17    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 3    \n" +
+                            "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt_1    COLUMN_NAME: cdecimal128    TYPE_NAME: DECIMAL128(30)    DATA_TYPE: 3    COLUMN_SIZE: 38    REMARKS: decimal128类型    DECIMAL_DIGITS: 30    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 4    SQL_DATA_TYPES: 3    \n",results1);
+        }else{
+            String script = "login(`admin, `123456); \n" +
+                    "if(existsDatabase('dfs://test\\_append_type_tsdb1'))" +
+                    "{ dropDatabase('dfs://test\\_append_type_tsdb1')} \n" +
+                    "colNames=\"col\"+string(1..3);\n" +
+                    "colTypes=[INT,DECIMAL128(19),DECIMAL128(19)[]];\n" +
+                    "t=table(1:0,colNames,colTypes);\n" +
+                    "db=database('dfs://test\\_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n" +
+                    "db.createPartitionedTable(t, `pt_1, `col1,,`col1) \n" +
+                    "db.createPartitionedTable(t, `pt1_1, `col1,,`col1)\n";
+            DBConnection db = new DBConnection();
+            db.connect(HOST, PORT,"admin","123456");
+            db.run(script);
+            DatabaseMetaData metaData1 = conn.getMetaData();
+            rs = metaData1.getColumns("DolphinDB","test\\_append_type_tsdb1","pt\\_1", "%");
+            String results1 = getTablesData(rs);
+            Assert.assertEquals("TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt_1    COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt_1    COLUMN_NAME: col2    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 3    COLUMN_SIZE: 38    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt_1    COLUMN_NAME: col3    TYPE_NAME: DECIMAL128(19)[]    DATA_TYPE: 2,003    COLUMN_SIZE: 38    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 2,003    \n",results1);
         }
         stmt.close();
         conn.close();
