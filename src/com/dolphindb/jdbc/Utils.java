@@ -30,7 +30,7 @@ public class Utils {
 
     static String INSERT_STRING = "(insert)\\s+(into)\\s+";
 
-    static String MEM_TABLE_NAME = "(`[a-zA-Z]{1}[a-zA-Z\\d_]*`|[a-zA-Z]{1}[a-zA-Z\\d_]*)";
+    static String MEM_TABLE_NAME = "([a-zA-Z]{1}[a-zA-Z\\d_]*|`[^`]+`)";
 
     static String LOAD_TABLE_NAME = "(loadTable\\(.+?\\))";
 
@@ -40,13 +40,13 @@ public class Utils {
 
     static String VALUE_STRING = "\\s*(values)\\s*\\((.+)\\)";
 
-    static String COLNAME_STRING = "\\s*\\([`\"'a-zA-Z\\d_\\,\\s]+?\\)";
+    static String COLNAME_STRING = "(\\s*(?:[a-zA-Z\\d_]+|`[^`]+`|\"[^\"]+\"|'[^']+')\\s*(?:,\\s*(?:[a-zA-Z\\d_]+|`[^`]+`|\"[^\"]+\"|'[^']+')\\s*)*)";
 
     static String DELETE_STRING = "(delete)|\\s+((?i)from)\\s+";
 
     static String DELETE_WHERE_STRING = "\\s+((where)\\s+(.+=.+)+)?";
 
-    static String INSERT_TABLE_NAME_COLUMN_STRING = "(" + LOAD_TABLE_NAME + "*" + MEM_TABLE_NAME + "*" + ")\\s*(\\((.+?)\\))*";
+    static String INSERT_TABLE_NAME_COLUMN_STRING = "(" + LOAD_TABLE_NAME + "*" + MEM_TABLE_NAME + "*" + ")\\s*(\\(" + COLNAME_STRING + "\\))*";
 
     static String UPDATE_STRING = "update\\s+";
 

@@ -24,6 +24,14 @@ public class UtilsInsertSqlParseTest {
     }
 
     @Test
+    public void testBacktickQuotedIdentifiersMayContainSpecialCharacters() throws SQLException {
+        String sql = "insert into `trade-seq info` (`TRADESEQ ID`) values (?)";
+
+        assertEquals("trade-seq info", Utils.getTableName(sql, true));
+        assertEquals(Integer.valueOf(0), Utils.getInsertColumnParamInSql(sql).get("tradeseq id"));
+    }
+
+    @Test
     public void testCheckInsertSqlValidSupportsBacktickQuotedColumnList() {
         String sql = "insert into `inser_tradeseq_info` (`TRADESEQ_ID`) values (?)";
 
