@@ -30,7 +30,7 @@ public class Utils {
 
     static String INSERT_STRING = "(insert)\\s+(into)\\s+";
 
-    static String MEM_TABLE_NAME = "([a-zA-Z]{1}[a-zA-Z\\d_]*)";
+    static String MEM_TABLE_NAME = "(`[a-zA-Z]{1}[a-zA-Z\\d_]*`|[a-zA-Z]{1}[a-zA-Z\\d_]*)";
 
     static String LOAD_TABLE_NAME = "(loadTable\\(.+?\\))";
 
@@ -40,7 +40,7 @@ public class Utils {
 
     static String VALUE_STRING = "\\s*(values)\\s*\\((.+)\\)";
 
-    static String COLNAME_STRING = "\\s*\\([a-zA-Z\\d_\\,\\s]+?\\)";
+    static String COLNAME_STRING = "\\s*\\([`\"'a-zA-Z\\d_\\,\\s]+?\\)";
 
     static String DELETE_STRING = "(delete)|\\s+((?i)from)\\s+";
 
@@ -219,6 +219,24 @@ public class Utils {
             return DML_OTHER;
     }
 
+    private static String stripIdentifierQuotes(String identifier) {
+        if (identifier == null)
+            return null;
+
+        String trimmed = identifier.trim();
+        if (trimmed.length() >= 2) {
+            char first = trimmed.charAt(0);
+            char last = trimmed.charAt(trimmed.length() - 1);
+            if ((first == '`' && last == '`') ||
+                    (first == '"' && last == '"') ||
+                    (first == '\'' && last == '\'')) {
+                return trimmed.substring(1, trimmed.length() - 1);
+            }
+        }
+
+        return trimmed;
+    }
+
     public static String getTableName(String sql, boolean isPrepareStatement) throws SQLException{
         String tableName = null;
         if (sql.startsWith("insert") || sql.startsWith("INSERT")) {
@@ -228,7 +246,7 @@ public class Utils {
             if (sql.matches(checkString) && matcher.find()) {
                 tableName = matcher.group(3);
                 if (tableName != null && !tableName.isEmpty())
-                    return tableName;
+                    return stripIdentifierQuotes(tableName);
                 else
                     throw new SQLException("Please check your SQL format: " + sql);
             } else {
@@ -799,8 +817,8 @@ public class Utils {
         if (!columnParam.isEmpty()) {
             String[] columnParams = columnParam.split(",");
             for (int i = 0; i < columnParams.length; i++) {
-                String curCol = columnParams[i].trim().replaceAll("^[\"']|[\"']$", "");
-                map.put(curCol.trim().toLowerCase(), i);
+                String curCol = stripIdentifierQuotes(columnParams[i]);
+                map.put(curCol.toLowerCase(), i);
             }
 
             return map;

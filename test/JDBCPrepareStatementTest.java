@@ -11199,6 +11199,18 @@ public class JDBCPrepareStatementTest {
     }
 
     @Test
+    public void test_PreparedStatement_insert_into_backtick_table_and_column() throws SQLException {
+        stm.execute("inser_tradeseq_info = table(1:0, [`TRADESEQ_ID], [INT])");
+        PreparedStatement ps = conn.prepareStatement("insert into `inser_tradeseq_info` (`TRADESEQ_ID`) values (?)");
+        ps.setInt(1, 1001);
+        org.junit.Assert.assertEquals(1, ps.executeUpdate());
+
+        ResultSet rs = stm.executeQuery("select TRADESEQ_ID from inser_tradeseq_info");
+        org.junit.Assert.assertTrue(rs.next());
+        org.junit.Assert.assertEquals(1001, rs.getInt(1));
+    }
+
+    @Test
     public void test_PreparedStatement_insert_into_dfs_col_contain_quotes1() throws SQLException {
         createPartitionTable("INT");
         PreparedStatement ps = conn.prepareStatement("insert into \nloadTable('dfs://test_append_type','pt') ( \"id\" , \"dataType\" )\n"+" values(?,?)\n");
