@@ -12657,6 +12657,21 @@ public class JDBCPrepareStatementTest {
         assertEquals(3, delete_rows0[0]);
     }
 
+    @Test
+    public void test_PreparedStatement_insert_backtickQuotedTableAndColumn() throws SQLException {
+        stm.execute("inser_tradeseq_info = table(array(INT, 0) as TRADESEQ_ID)");
+
+        PreparedStatement ps = conn.prepareStatement("insert into `inser_tradeseq_info` (`TRADESEQ_ID`) values (?)");
+        ps.setInt(1, 1001);
+        int rows = ps.executeUpdate();
+        assertTrue(rows == SUCCESS_NO_INFO || rows == 1);
+
+        JDBCResultSet rs = (JDBCResultSet) stm.executeQuery("select TRADESEQ_ID from inser_tradeseq_info where TRADESEQ_ID = 1001");
+        BasicTable result = (BasicTable) rs.getResult();
+        assertEquals(1, result.rows());
+        assertEquals("TRADESEQ_ID", result.getColumnName(0));
+    }
+
     @After
     public void Destroy(){
         LOGININFO = null;
