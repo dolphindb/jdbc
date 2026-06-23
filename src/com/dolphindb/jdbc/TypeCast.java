@@ -272,7 +272,7 @@ public class TypeCast {
 		return x;
     }
     //java/ddb object to string
-    public static String castDbString(Object o){
+    public static String castDbString(Object o) throws SQLException {
         if (o.getClass().isArray()) {
             return castArrayToString(o);
         } else if (o instanceof DolphinDBArray) {
@@ -281,10 +281,88 @@ public class TypeCast {
             return castArrayVectorToString((Vector) o);
         }
 
-        return castSingleObjectToString(o);
+        String literal = castSingleObjectToString(o);
+        if (literal == null) {
+            throw new SQLException("Unsupported type for parameter " + o.getClass().getName());
+        }
+        return literal;
+    }
+
+    static void rejectIllegalControlChar(char c) throws SQLException {
+        if (c == '\0') {
+            throw new SQLException("NUL character is not allowed in DolphinDB string/char literal");
+        }
+        if (c < 0x20 && c != '\r' && c != '\n' && c != '\t') {
+            throw new SQLException("Control character U+" + String.format("%04X", (int) c) + " is not allowed in DolphinDB string/char literal");
+        }
+        if (c == 0x7F || (c >= 0x80 && c <= 0x9F)) {
+            throw new SQLException("Control character U+" + String.format("%04X", (int) c) + " is not allowed in DolphinDB string/char literal");
+        }
+    }
+
+    public static String quoteDolphinStringLiteral(String s) throws SQLException {
+        if (s == null) {
+            throw new SQLException("Cannot quote null string as DolphinDB literal");
+        }
+        StringBuilder sb = new StringBuilder(s.length() + 2);
+        sb.append('"');
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            rejectIllegalControlChar(c);
+            switch (c) {
+                case '\\':
+                    sb.append("\\\\");
+                    break;
+                case '"':
+                    sb.append("\\\"");
+                    break;
+                case '\r':
+                    sb.append("\\r");
+                    break;
+                case '\n':
+                    sb.append("\\n");
+                    break;
+                case '\t':
+                    sb.append("\\t");
+                    break;
+                default:
+                    sb.append(c);
+                    break;
+            }
+        }
+        sb.append('"');
+        return sb.toString();
+    }
+
+    public static String quoteDolphinCharLiteral(char c) throws SQLException {
+        rejectIllegalControlChar(c);
+        StringBuilder sb = new StringBuilder(4);
+        sb.append('\'');
+        switch (c) {
+            case '\\':
+                sb.append("\\\\");
+                break;
+            case '\'':
+                sb.append("\\'");
+                break;
+            case '\r':
+                sb.append("\\r");
+                break;
+            case '\n':
+                sb.append("\\n");
+                break;
+            case '\t':
+                sb.append("\\t");
+                break;
+            default:
+                sb.append(c);
+                break;
+        }
+        sb.append('\'');
+        return sb.toString();
     }
     
-    private static String castArrayToString(Object array) {
+    private static String castArrayToString(Object array) throws SQLException {
         Class<?> componentType = array.getClass().getComponentType();
         StringBuilder sb = new StringBuilder();
         String ddbType = getDolphinDBArrayType(componentType);
@@ -387,7 +465,7 @@ public class TypeCast {
         return "STRING";
     }
 
-    private static String castArrayVectorToString(Vector vector) {
+    private static String castArrayVectorToString(Vector vector) throws SQLException {
         StringBuilder sb = new StringBuilder();
         int size = vector.rows();
 
@@ -416,16 +494,15 @@ public class TypeCast {
 
             for (int i = 0; i < size; i++) {
                 if (i > 0) sb.append(",");
-                try {
-                    Entity element = vector.get(i);
-                    if (element == null || ((Scalar)element).isNull()) {
-                        sb.append("NULL");
-                    } else {
-                        String elementStr = castSingleObjectToString(element);
-                        sb.append(elementStr != null ? elementStr : element.toString());
-                    }
-                } catch (Exception e) {
+                Entity element = vector.get(i);
+                if (element == null || ((Scalar)element).isNull()) {
                     sb.append("NULL");
+                } else {
+                    String elementStr = castSingleObjectToString(element);
+                    if (elementStr == null) {
+                        throw new SQLException("Unsupported vector element type for literal encoding: " + element.getClass().getName());
+                    }
+                    sb.append(elementStr);
                 }
             }
 
@@ -435,14 +512,14 @@ public class TypeCast {
         return sb.toString();
     }
     
-    private static String castSingleObjectToString(Object o) {
+    private static String castSingleObjectToString(Object o) throws SQLException {
         String srcClassName = o.getClass().getName();
         switch (srcClassName){
             case STRING:
             case BASIC_STRING:
-                return "\""+o+"\"";
+                return quoteDolphinStringLiteral(o.toString());
             case CHAR:
-                return "'"+ o +"'";
+                return quoteDolphinCharLiteral((Character) o);
             case DATE:
                 return new BasicDate(((Date) o).toLocalDate()).toString();
             case TIME:
@@ -491,11 +568,11 @@ public class TypeCast {
                 int value = ((BasicDateHour)o).getInt();
                 return "datehour(" + value + ")";
             case BASIC_UUID:
-                return "uuid(\"" + o.toString() + "\")";
+                return "uuid(" + quoteDolphinStringLiteral(o.toString()) + ")";
             case BASIC_IPADDR:
-                return "ipaddr(\"" + o.toString() + "\")";
+                return "ipaddr(" + quoteDolphinStringLiteral(o.toString()) + ")";
             case BASIC_INT128:
-                return "int128(\"" + o.toString() + "\")";
+                return "int128(" + quoteDolphinStringLiteral(o.toString()) + ")";
             case BASIC_COMPLEX:
                 double x = ((BasicComplex)o).getReal();
                 double y = ((BasicComplex)o).getImage();
@@ -505,11 +582,11 @@ public class TypeCast {
                 double b = ((BasicPoint)o).getY();
                 return "point(" + a + "," + b + ")";
             case BASIC_DECIMAL32:
-                return "decimal32(\"" + ((BasicDecimal32)o).getString() + "\"," + ((BasicDecimal32)o).getScale() + ")";
+                return "decimal32(" + quoteDolphinStringLiteral(((BasicDecimal32)o).getString()) + "," + ((BasicDecimal32)o).getScale() + ")";
             case BASIC_DECIMAL64:
-                return "decimal64(\"" + ((BasicDecimal64)o).getString() + "\"," + ((BasicDecimal64)o).getScale() + ")";
+                return "decimal64(" + quoteDolphinStringLiteral(((BasicDecimal64)o).getString()) + "," + ((BasicDecimal64)o).getScale() + ")";
             case BASIC_DECIMAL128:
-                return "decimal128(\"" + ((BasicDecimal128)o).getString() + "\"," + ((BasicDecimal128)o).getScale() + ")";
+                return "decimal128(" + quoteDolphinStringLiteral(((BasicDecimal128)o).getString()) + "," + ((BasicDecimal128)o).getScale() + ")";
             case BASIC_VOID:
                 return "NULL";
             default:

@@ -618,6 +618,10 @@ public class JDBCConnection implements Connection {
 		return supportCatalog;
 	}
 
+	/**
+	 * @deprecated PreparedStatement no longer uses runSQL; retained for compatibility checks only.
+	 */
+	@Deprecated
 	public boolean isRunSqlSupported() {
 		return supportRunSql;
 	}

@@ -27,8 +27,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private int batchSize;
 	private List<String> sqlBuffer;
 	private boolean isPreparedStatement;
-	private List<BasicDictionary> runSQLparamDictList;
-	private boolean supportRunSQL;
 
 	public JDBCPrepareStatement(JDBCConnection conn, String sql) throws SQLException {
 		super(conn);
@@ -39,9 +37,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		String lastStatement  = sqlSplit.length == 0 ? "" : sqlSplit[sqlSplit.length - 1].trim();
 		this.sqlDmlType = Utils.getDml(lastStatement);
 		this.sqlBuffer = new ArrayList<>();
-		this.runSQLparamDictList = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
-		this.supportRunSQL = conn.isRunSqlSupported();
 		if (preProcessedSql.contains("?"))
 			isPreparedStatement = true;
 		if (isPreparedStatement) {
@@ -112,8 +108,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			if (!isPreparedStatement && preProcessedSql != null && !preProcessedSql.isEmpty())
 				this.sqlBuffer.add(preProcessedSql);
 		}
-		if(this.runSQLparamDictList != null)
-			this.runSQLparamDictList.clear();
 		if(this.columnBindValues != null)
 			this.columnBindValues.forEach(ColumnBindValue::clear);
 	}
@@ -126,10 +120,13 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				return tableAppend(true);
 			for (int i = 0; i < this.batchSize; i++) {
 				try {
-					if (supportRunSQL && isStandardDML()) {
-						executeRes[i] = executeUpdateWithRunSQL(i);
+					if (this.sqlDmlType == Utils.DML_SELECT || this.sqlDmlType == Utils.DML_EXEC) {
+						throw new SQLException("Can not issue SELECT or EXEC via executeUpdate().");
+					} else if (isStandardDML()) {
+						executeRes[i] = executeFinalizedUpdate(i);
 					} else {
-						executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
+						connection.run(sqlBuffer.get(i));
+						executeRes[i] = 0;
 					}
 				} catch (Exception e) {
 					throw new BatchUpdateException(e.getMessage(), Arrays.copyOf(executeRes, i));
@@ -232,11 +229,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 					}
 				}
 			}
-		} else if (supportRunSQL && (sqlDmlType == Utils.DML_SELECT || sqlDmlType == Utils.DML_EXEC || sqlDmlType == Utils.DML_UPDATE || sqlDmlType == Utils.DML_DELETE)) {
-			this.sqlBuffer.add(generateSQLWithRunsql());
-			this.runSQLparamDictList.add(createParameterDictionary());
 		} else {
-			// Other types or server doesn't support runSQL, use original logic
 			this.sqlBuffer.add(generateSQL());
 		}
 	}
@@ -246,8 +239,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		try{
 			if (isPreparedStatement) {
 				combineOneRowData(false);
-				if (supportRunSQL && (sqlDmlType == Utils.DML_SELECT || sqlDmlType == Utils.DML_EXEC)) {
-					return executeQueryWithRunSQL();
+				if (sqlDmlType == Utils.DML_SELECT || sqlDmlType == Utils.DML_EXEC) {
+					return executeFinalizedQuery();
 				} else {
 					return super.executeQuery(sqlBuffer.get(0));
 				}
@@ -282,15 +275,17 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				combineOneRowData(false);
 				if (this.sqlDmlType == Utils.DML_INSERT) {
 					return tableAppend(false)[0];
-				} else if (supportRunSQL && this.sqlDmlType == Utils.DML_SELECT) {
-					// Special handling for SELECT in executeUpdate - set ResultSet for getResultSet()
-					ResultSet rs = executeQueryWithRunSQL();
+				} else if (this.sqlDmlType == Utils.DML_SELECT) {
+					ResultSet rs = executeFinalizedQuery();
 					objectQueue.offer(rs);
 					return 0;
-				} else if (supportRunSQL && isStandardDML()) {
-					return executeUpdateWithRunSQL(0);
+				} else if (this.sqlDmlType == Utils.DML_EXEC) {
+					throw new SQLException("Can not issue SELECT or EXEC via executeUpdate().");
+				} else if (isStandardDML()) {
+					return executeFinalizedUpdate(0);
 				} else {
-					return super.executeUpdate(sqlBuffer.get(0));
+					connection.run(sqlBuffer.get(0));
+					return 0;
 				}
 			} else {
 				return super.executeUpdate(sqlBuffer.get(0));
@@ -450,10 +445,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		if (Objects.nonNull(bufferArea)) {
 			Arrays.fill(bufferArea, null);
 		}
-
-		if (!runSQLparamDictList.isEmpty()) {
-			runSQLparamDictList.clear();
-		}
 	}
 
 	@Override
@@ -528,6 +519,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setBlob(int parameterIndex, Blob x) throws SQLException {
+		if (this.sqlDmlType != Utils.DML_INSERT) {
+			throw new SQLException("setBlob is not supported for non-INSERT prepared statements in literal SQL path.");
+		}
 		byte[] blobbyte = x.getBytes(1,(int)x.length());
 		String blobstring = new String( blobbyte);
 		bind(parameterIndex,blobstring);
@@ -714,7 +708,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private String generateSQL() throws SQLException {
 		if(Utils.isEmpty(this.preProcessedSql))
 			throw new SQLException("preProcessedSql is null. ");
-		String[] sqlSplitByQuestionMark = this.preProcessedSql.split("\\?");
+		String tpl = this.preProcessedSql;
+		if (this.sqlDmlType == Utils.DML_SELECT || this.sqlDmlType == Utils.DML_EXEC) {
+			tpl = Utils.oracleToDolphin(Utils.outerJoinToFullJoin(tpl));
+		}
+		String[] sqlSplitByQuestionMark = tpl.split("\\?");
 		StringBuilder stringBuilder = new StringBuilder();
 		if(this.bufferArea.length > sqlSplitByQuestionMark.length)
 			throw new SQLException("error size of bufferArea. ");
@@ -731,78 +729,15 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			if (sqlSplitByQuestionMark.length > this.bufferArea.length && Objects.nonNull(sqlSplitByQuestionMark[this.bufferArea.length]))
 				stringBuilder.append(sqlSplitByQuestionMark[this.bufferArea.length]);
 		} else {
-			// no placeholder
 			stringBuilder.append(sqlSplitByQuestionMark[0]);
 		}
 
 		return stringBuilder.toString();
 	}
 
-	private String generateSQLWithRunsql() throws SQLException {
-		if(Utils.isEmpty(this.preProcessedSql))
-			throw new SQLException("preProcessedSql is null. ");
-		String[] sqlSplitByQuestionMark = this.preProcessedSql.split("\\?");
-		StringBuilder stringBuilder = new StringBuilder();
-		if(this.bufferArea.length > sqlSplitByQuestionMark.length)
-			throw new SQLException("error size of bufferArea. ");
-
-		if (this.bufferArea.length != 0) {
-			for (int i = 0; i < this.bufferArea.length; i++) {
-				stringBuilder.append(sqlSplitByQuestionMark[i]);
-				stringBuilder.append("arg" + (i + 1));
-			}
-
-			if (sqlSplitByQuestionMark.length > this.bufferArea.length && Objects.nonNull(sqlSplitByQuestionMark[this.bufferArea.length]))
-				stringBuilder.append(sqlSplitByQuestionMark[this.bufferArea.length]);
-		} else {
-			// no placeholder
-			stringBuilder.append(sqlSplitByQuestionMark[0]);
-		}
-
-		return stringBuilder.toString();
-	}
-
-	private BasicDictionary createParameterDictionary() throws SQLException {
-		if (bufferArea.length == 0) {
-			return null;
-		}
-
-		List<String> keys = new ArrayList<>();
-		BasicAnyVector valueVector = new BasicAnyVector(bufferArea.length);
-
-		for (int i = 0; i < bufferArea.length; i++) {
-			if (bufferArea[i] == null || bufferArea[i].getValue() == null) {
-				throw new SQLException("No value specified for parameter " + (i + 1));
-			}
-
-			keys.add("arg" + (i + 1));
-			Object value = bufferArea[i].getValue();
-
-			try {
-				Entity entity;
-				if (value instanceof DolphinDBArray) {
-					entity = ((DolphinDBArray) value).getVector();
-				} else if (value instanceof Entity) {
-					entity = (Entity) value;
-				} else {
-					entity = Utils.convertJavaObjectToEntity(value);
-				}
-				valueVector.set(i, entity);
-			} catch (Exception e) {
-				throw new SQLException("Failed to convert parameter " + (i + 1) + " to DolphinDB entity", e);
-			}
-		}
-
-		BasicDictionary dict = new BasicDictionary(Entity.DATA_TYPE.DT_STRING, Entity.DATA_TYPE.DT_ANY);
-		for (int i = 0; i < keys.size(); i++) {
-			dict.put(new BasicString(keys.get(i)), valueVector.get(i));
-		}
-		return dict;
-	}
-
-	private ResultSet executeQueryWithRunSQL() throws SQLException {
+	private ResultSet executeFinalizedQuery() throws SQLException {
 		if (super.getQueryTimeout() > 0) {
-			Future<ResultSet> future = executorService.submit(() -> executeQueryWithRunSQLInternal());
+			Future<ResultSet> future = executorService.submit(() -> executeFinalizedQueryInternal());
 			try {
 				return future.get(super.getQueryTimeout(), TimeUnit.SECONDS);
 			} catch (TimeoutException e) {
@@ -813,13 +748,13 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				throw new SQLException(e);
 			}
 		} else {
-			return executeQueryWithRunSQLInternal();
+			return executeFinalizedQueryInternal();
 		}
 	}
 
-	private int executeUpdateWithRunSQL(int index) throws SQLException {
+	private int executeFinalizedUpdate(int index) throws SQLException {
 		if (super.getQueryTimeout() > 0) {
-			Future<Integer> future = executorService.submit(() -> executeUpdateWithRunSQLInternal(index));
+			Future<Integer> future = executorService.submit(() -> super.executeUpdateWithRowCount(sqlBuffer.get(index)));
 			try {
 				return future.get(super.getQueryTimeout(), TimeUnit.SECONDS);
 			} catch (TimeoutException e) {
@@ -830,59 +765,32 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				throw new SQLException(e);
 			}
 		} else {
-			return executeUpdateWithRunSQLInternal(index);
+			return super.executeUpdateWithRowCount(sqlBuffer.get(index));
 		}
 	}
 
-	private ResultSet executeQueryWithRunSQLInternal() throws SQLException {
+	private ResultSet executeFinalizedQueryInternal() throws SQLException {
 		try {
-			String sqlWithPlaceholders = sqlBuffer.get(0);
-			List<Entity> params = new ArrayList<>();
-			params.add(new BasicString(sqlWithPlaceholders));
-			params.add(new BasicString("ddb"));
-			params.add(runSQLparamDictList.get(0));
-
+			String finalSql = sqlBuffer.get(0);
 			Entity entity;
 			if(super.getFetchSize() != 0) {
 				if (super.getFetchSize() < 8192) {
 					throw new SQLException("The fetchSize param must be greater than 8192.");
 				}
-				entity = connection.run("runSQL", params, super.getFetchSize());
+				entity = connection.run(finalSql, super.getFetchSize());
 			} else {
-				entity = connection.run("runSQL", params);
+				entity = connection.run(finalSql);
 			}
 
 			if (entity instanceof BasicTable || entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR
 					|| entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR || entity.getDataForm() == Entity.DATA_FORM.DF_MATRIX) {
-				resultSet = new JDBCResultSet(connection, this, entity, sqlWithPlaceholders, super.getMaxRows());
+				resultSet = new JDBCResultSet(connection, this, entity, finalSql, super.getMaxRows());
 				return resultSet;
 			} else if(entity instanceof EntityBlockReader) {
-				resultSet = new JDBCResultSet(connection, this, (EntityBlockReader) entity, sqlWithPlaceholders, super.getMaxRows());
+				resultSet = new JDBCResultSet(connection, this, (EntityBlockReader) entity, finalSql, super.getMaxRows());
 				return resultSet;
 			} else {
 				throw new SQLException("The given SQL statement produces anything other than a single ResultSet object.");
-			}
-		} catch (Exception e) {
-			throw new SQLException(e);
-		}
-	}
-
-	private int executeUpdateWithRunSQLInternal(int index) throws SQLException {
-		try {
-			String sqlWithPlaceholders = sqlBuffer.get(index);
-			if (supportRowCount) {
-				sqlWithPlaceholders = sqlWithPlaceholders.isEmpty() ? "matchedRowCount()" : sqlWithPlaceholders + ";matchedRowCount()";
-			}
-			List<Entity> params = new ArrayList<>();
-			params.add(new BasicString(sqlWithPlaceholders));
-			params.add(new BasicString("ddb"));
-			params.add(runSQLparamDictList.get(index));
-
-			Entity result = connection.run("runSQL", params);
-			if (result instanceof Scalar && !((Scalar) result).isNull()) {
-				return ((Scalar) result).getNumber().intValue();
-			} else {
-				return SUCCESS_NO_INFO;
 			}
 		} catch (Exception e) {
 			throw new SQLException(e);
