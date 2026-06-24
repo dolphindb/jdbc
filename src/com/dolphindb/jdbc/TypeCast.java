@@ -4,6 +4,7 @@ import com.xxdb.data.*;
 import com.xxdb.data.Vector;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -513,6 +514,9 @@ public class TypeCast {
     }
     
     private static String castSingleObjectToString(Object o) throws SQLException {
+        if (o instanceof BigDecimal) {
+            return ((BigDecimal) o).toPlainString();
+        }
         String srcClassName = o.getClass().getName();
         switch (srcClassName){
             case STRING:
