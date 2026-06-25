@@ -427,6 +427,16 @@ public class Utils {
             }else{//not in string
                 if(isStringChar(chr)){//start of string
                     isInString=chr;
+                    if (sbKey1.length() > 0) {
+                        String key = sbKey1.toString();
+                        String lowerKey=key.toLowerCase();
+                        if (sqlWareHouse.contains(lowerKey))
+                            sbSql.append(lowerKey);
+                        else{
+                            sbSql.append(key);
+                        }
+                        sbKey1.delete(0, sbKey1.length());
+                    }
                     sbSql.append(chr);
                     continueSplashCount=0;
                     continue;
