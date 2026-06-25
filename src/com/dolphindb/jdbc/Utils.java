@@ -204,16 +204,22 @@ public class Utils {
         return substr.compareToIgnoreCase(key)==0;
     }
 
+    private static boolean startsWithKeyword(String sentence, String key) {
+        if (!startsWith(sentence, key))
+            return false;
+        return sentence.length() == key.length() || !isKeyChar(sentence.charAt(key.length()));
+    }
+
     public static int getDml(String sql) {
-        if (startsWith(sql,"select") || startsWith(sql,"SELECT"))
+        if (startsWithKeyword(sql,"select"))
             return DML_SELECT;
-        else if(sql.startsWith("insert") || sql.startsWith("INSERT"))
+        else if(startsWithKeyword(sql,"insert"))
             return DML_INSERT;
-        else if(sql.startsWith("update") || sql.startsWith("UPDATE"))
+        else if(startsWithKeyword(sql,"update"))
             return DML_UPDATE;
-        else if(sql.startsWith("delete") || sql.startsWith("DELETE"))
+        else if(startsWithKeyword(sql,"delete"))
             return DML_DELETE;
-        else if(sql.startsWith("exec") || sql.startsWith("EXEC"))
+        else if(startsWithKeyword(sql,"exec"))
             return DML_EXEC;
         else
             return DML_OTHER;
@@ -239,7 +245,7 @@ public class Utils {
 
     public static String getTableName(String sql, boolean isPrepareStatement) throws SQLException{
         String tableName = null;
-        if (sql.startsWith("insert") || sql.startsWith("INSERT")) {
+        if (startsWithKeyword(sql, "insert")) {
             String checkString = INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + (isPrepareStatement ? VALUE_WITH_QUESTION_STRING : VALUE_STRING);
             Pattern pattern = Pattern.compile(checkString, Pattern.DOTALL);
             Matcher matcher = pattern.matcher(sql);
