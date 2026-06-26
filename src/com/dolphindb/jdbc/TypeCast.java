@@ -523,7 +523,15 @@ public class TypeCast {
             case BASIC_STRING:
                 return quoteDolphinStringLiteral(o.toString());
             case CHAR:
-                return quoteDolphinCharLiteral((Character) o);
+                // Emit a dialect-independent CHAR literal (e.g. 122c). The single-quote
+                // form ('z') is parsed as STRING under MySQL sqlStd, which breaks
+                // assignments/appends to CHAR (and CHAR[]) columns.
+                return ((int) ((Character) o).charValue()) + "c";
+            case BASIC_BYTE:
+                // BasicByte is the DolphinDB CHAR scalar. Its toString() yields 'A',
+                // which is reinterpreted as STRING under MySQL sqlStd and fails when
+                // appended/assigned to CHAR columns. Emit the dialect-safe Nc form.
+                return ((BasicByte) o).isNull() ? "NULL" : (((BasicByte) o).getByte() + "c");
             case DATE:
                 return new BasicDate(((Date) o).toLocalDate()).toString();
             case TIME:
@@ -551,7 +559,6 @@ public class TypeCast {
             case FLOAT:
             case DOUBLE:
             case BASIC_BOOLEAN:
-            case BASIC_BYTE:
             case BASIC_SHORT:
             case BASIC_INT:
             case BASIC_LONG:
