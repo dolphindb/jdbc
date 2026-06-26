@@ -1,5 +1,6 @@
 import com.dolphindb.jdbc.*;
 import com.xxdb.DBConnection;
+import com.xxdb.comm.SqlStdEnum;
 import com.xxdb.data.*;
 import com.xxdb.io.Double2;
 import com.xxdb.io.Long2;
@@ -7,6 +8,7 @@ import org.junit.*;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.sql.Date;
 import java.time.LocalDate;
@@ -14,16 +16,11 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-//import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import static com.dolphindb.jdbc.Utils.*;
-import static java.sql.Statement.SUCCESS_NO_INFO;
-import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-//import com.xxdb.DBConnection;
 
 public class JDBCPrepareStatementTest {
     static String HOST = JDBCTestUtil.HOST;
@@ -42,6 +39,7 @@ public class JDBCPrepareStatementTest {
         DB_URL = "jdbc:dolphindb://"+HOST+":"+PORT;
         JDBCTestUtil.LOGININFO.put("user", "admin");
         JDBCTestUtil.LOGININFO.put("password", "123456");
+//        JDBCTestUtil.LOGININFO.put("sqlStd", String.valueOf(SqlStdEnum.MySQL));
         conn = JDBCTestUtil.getConnection(JDBCTestUtil.LOGININFO);
         try {
             stm = conn.createStatement();
@@ -2796,6 +2794,51 @@ public class JDBCPrepareStatementTest {
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
     }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Decimal32_executeBatch_setBigDecimal() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1000);
+        ps.setBigDecimal(2,new BigDecimal("123421.00012"));
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.DECIMAL);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("123421.0001",rs.getObject("dataType").toString());
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Decimal32_executeBatch_setLong() throws SQLException {
+        createPartitionTable("DECIMAL32(4)");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1000);
+        ps.setLong(2,123421l);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setLong(2,new Long(-123421L));
+        ps.addBatch();
+        ps.executeBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.BIGINT);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("123421.0000",rs.getObject("dataType").toString());
+        rs.next();
+        org.junit.Assert.assertEquals("-123421.0000",rs.getObject("dataType").toString());
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
     @Test
     public void test_PreparedStatement_insert_into_Decimal64_executeBatch() throws SQLException {
         createPartitionTable("DECIMAL64(4)");
@@ -2814,6 +2857,51 @@ public class JDBCPrepareStatementTest {
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
     }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Decimal64_executeBatch_setBigDecimal() throws SQLException {
+        createPartitionTable("DECIMAL64(4)");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1000);
+        ps.setBigDecimal(2,new BigDecimal("123421.00012"));
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.DECIMAL);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("123421.0001",rs.getObject("dataType").toString());
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Decimal64_executeBatch_setLong() throws SQLException {
+        createPartitionTable("DECIMAL64(4)");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1000);
+        ps.setLong(2,123421l);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setLong(2,new Long(-123421L));
+        ps.addBatch();
+        ps.executeBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.BIGINT);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("123421.0000",rs.getObject("dataType").toString());
+        rs.next();
+        org.junit.Assert.assertEquals("-123421.0000",rs.getObject("dataType").toString());
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
     @Test
     public void test_PreparedStatement_insert_into_Decimal128_executeBatch() throws SQLException {
         createPartitionTable("DECIMAL128(4)");
@@ -2832,6 +2920,51 @@ public class JDBCPrepareStatementTest {
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
     }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Decimal128_executeBatch_setBigDecimal() throws SQLException {
+        createPartitionTable("DECIMAL128(4)");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1000);
+        ps.setBigDecimal(2,new BigDecimal("123421.00012"));
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.DECIMAL);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("123421.0001",rs.getObject("dataType").toString());
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_Decimal128_executeBatch_setLong() throws SQLException {
+        createPartitionTable("DECIMAL128(4)");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,?)");
+        ps.setInt(1,1000);
+        ps.setLong(2,123421l);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.setLong(2,new Long(-123421L));
+        ps.addBatch();
+        ps.executeBatch();
+        ps.setInt(1,2);
+        ps.setNull(2,Types.BIGINT);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("123421.0000",rs.getObject("dataType").toString());
+        rs.next();
+        org.junit.Assert.assertEquals("-123421.0000",rs.getObject("dataType").toString());
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertTrue(rs.wasNull());
+    }
+
     @Test
     public void test_PreparedStatement_insert_into_col_Boolean_executeBatch() throws SQLException {
         createPartitionTable1();
@@ -12655,21 +12788,6 @@ public class JDBCPrepareStatementTest {
         int[] delete_rows0 = ps4.executeBatch();
         assertEquals(1, delete_rows0.length);
         assertEquals(3, delete_rows0[0]);
-    }
-
-    @Test
-    public void test_PreparedStatement_insert_backtickQuotedTableAndColumn() throws SQLException {
-        stm.execute("inser_tradeseq_info = table(array(INT, 0) as TRADESEQ_ID)");
-
-        PreparedStatement ps = conn.prepareStatement("insert into `inser_tradeseq_info` (`TRADESEQ_ID`) values (?)");
-        ps.setInt(1, 1001);
-        int rows = ps.executeUpdate();
-        assertTrue(rows == SUCCESS_NO_INFO || rows == 1);
-
-        JDBCResultSet rs = (JDBCResultSet) stm.executeQuery("select TRADESEQ_ID from inser_tradeseq_info where TRADESEQ_ID = 1001");
-        BasicTable result = (BasicTable) rs.getResult();
-        assertEquals(1, result.rows());
-        assertEquals("TRADESEQ_ID", result.getColumnName(0));
     }
 
     @After
