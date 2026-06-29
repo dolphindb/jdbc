@@ -27,6 +27,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private int batchSize;
 	private List<String> sqlBuffer;
 	private boolean isPreparedStatement;
+	private int insertRowsPerExecution;
+	private int insertValueCountPerRow;
 
 	public JDBCPrepareStatement(JDBCConnection conn, String sql) throws SQLException {
 		super(conn);
@@ -38,6 +40,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.sqlDmlType = Utils.getDml(lastStatement);
 		this.sqlBuffer = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
+		this.insertRowsPerExecution = 1;
+		this.insertValueCountPerRow = 0;
 		if (preProcessedSql.contains("?"))
 			isPreparedStatement = true;
 		if (isPreparedStatement) {
@@ -45,7 +49,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				if (sqlSplit.length != 1)
 					throw new SQLException("The INSERT statement must be a standalone statement.");
 
-				this.tableName = Utils.getTableName(preProcessedSql, isPreparedStatement);
+				Utils.PreparedInsertInfo insertInfo = Utils.parsePreparedInsertInfo(preProcessedSql);
+				this.tableName = insertInfo.getTableName();
+				this.insertRowsPerExecution = insertInfo.getRowsPerExecution();
+				this.insertValueCountPerRow = insertInfo.getValueCountPerRow();
 				initColumnBindValues(this.tableName);
 				Utils.checkInsertSQLValid(preProcessedSql, columnBindValues.size());
 
@@ -53,7 +60,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				for(ColumnBindValue value : columnBindValues){
 					String colName = value.getColName();
 					if (columnParamInSql.containsKey(colName)) {
-						insertIndexSQLToDDB.put(columnParamInSql.get(colName), value.getIndex());
+						int sqlColumnIndex = columnParamInSql.get(colName);
+						for (int row = 0; row < insertRowsPerExecution; row++) {
+							insertIndexSQLToDDB.put(row * insertValueCountPerRow + sqlColumnIndex, value.getIndex());
+						}
 						columnParamInSql.remove(colName);
 					}
 				}
@@ -177,6 +187,12 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	private int getDataIndexBySQLIndex(int paramIndex) throws SQLException {
 		int index = paramIndex - 1;
+		if (this.sqlDmlType == Utils.DML_INSERT) {
+			if (paramIndex < 1 || paramIndex > insertRowsPerExecution * insertValueCountPerRow)
+				throw new SQLException("paramIndex is out of range");
+			if (insertIndexSQLToDDB.size() == 0)
+				return index % insertValueCountPerRow;
+		}
 		if (insertIndexSQLToDDB.size() != 0) {
 			if(!insertIndexSQLToDDB.containsKey(index))
 				throw new SQLException("paramIndex is out of range");
@@ -211,21 +227,30 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		       sqlDmlType == Utils.DML_DELETE;
 	}
 
+	private int expectedInsertRows(boolean isBatch) {
+		return (isBatch ? batchSize : 1) * insertRowsPerExecution;
+	}
+
+	private void appendNullToColumn(ColumnBindValue column) throws SQLException {
+		Vector columnCol = column.getBindValues();
+		try {
+			if (columnCol.getDataType().getValue() < 65)
+				columnCol.Append((Scalar) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
+			else
+				columnCol.Append((Vector) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
+		} catch (Exception e) {
+			throw new SQLException(e);
+		}
+	}
+
 	private void combineOneRowData(boolean isBatch) throws SQLException {
 		if (sqlDmlType == Utils.DML_INSERT) {
 			checkInsertBindsLegal(isBatch);
 			if(isBatch) {
+				int expectedRows = expectedInsertRows(true);
 				for (ColumnBindValue column : columnBindValues) {
-					if (column.getBindValues().rows() != batchSize) {
-						Vector columnCol = column.getBindValues();
-						try {
-							if (columnCol.getDataType().getValue() < 65)
-								columnCol.Append((Scalar) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
-							else
-								columnCol.Append((Vector) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
-						} catch (Exception e) {
-							throw new SQLException(e);
-						}
+					while (column.getBindValues().rows() < expectedRows) {
+						appendNullToColumn(column);
 					}
 				}
 			}
@@ -254,7 +279,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private void checkInsertBindsLegal(boolean isBatch) throws SQLException {
-		int rows = isBatch ? batchSize : 1;
+		int rows = expectedInsertRows(isBatch);
 		if (insertIndexSQLToDDB.size() == 0) {
 			for (ColumnBindValue bindValue : columnBindValues){
 				if(bindValue.getBindValues().rows() != rows)
@@ -307,7 +332,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		try {
 			int size = ((Scalar)connection.run("tableInsert{" + tableName + "}", param)).getNumber().intValue();
 			if (isBatch) {
-				int[] value = new int[arguments.get(0).rows()];
+				int[] value = new int[batchSize];
 				Arrays.fill(value, SUCCESS_NO_INFO);
 				return value;
 			} else {
@@ -320,17 +345,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	private List<Vector> createDFSArguments(boolean isBatch) throws SQLException {
 		if (!isBatch) {
+			int expectedRows = expectedInsertRows(false);
 			for (ColumnBindValue column : columnBindValues) {
-				if (column.getBindValues().rows() != 1) {
-					Vector columnCol = column.getBindValues();
-					try {
-						if (columnCol.getDataType().getValue() < 65)
-							columnCol.Append((Scalar) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
-						else
-							columnCol.Append((Vector) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
-					} catch (Exception e) {
-						throw new SQLException(e);
-					}
+				while (column.getBindValues().rows() < expectedRows) {
+					appendNullToColumn(column);
 				}
 			}
 		}
