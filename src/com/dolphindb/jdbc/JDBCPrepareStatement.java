@@ -500,7 +500,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 						combineOneRowData(false);
 					String finalSql = sqlBuffer.get(0);
 					String lastStatement = getLastStatement(finalSql);
-					if (isNonSqlUpsertStatement(lastStatement)) {
+					if (isNonSqlMatchedRowCountStatement(lastStatement)) {
 						objectQueue.offer(executeUpdateWithRowCount(finalSql));
 					} else {
 						Entity entity = connection.run(finalSql);

@@ -219,17 +219,19 @@ public class JDBCStatement implements Statement {
         }
     }
 
-    protected boolean isNonSqlUpsertStatement(String statement) {
+    protected boolean isNonSqlMatchedRowCountStatement(String statement) {
         return startsWithFunction(statement, "tableupsert") || startsWithFunction(statement, "upsert");
     }
 
-    protected boolean containsNonSqlUpsert(String sql) {
+    protected boolean containsNonSqlUpdateCountFunction(String sql) {
         String lowerSql = sql.toLowerCase(Locale.ROOT);
-        return containsFunctionCall(lowerSql, "tableupsert") || containsFunctionCall(lowerSql, "upsert");
+        return containsFunctionCall(lowerSql, "tableinsert") ||
+                containsFunctionCall(lowerSql, "tableupsert") ||
+                containsFunctionCall(lowerSql, "upsert");
     }
 
     protected Integer extractNonSqlUpdateCount(String sql, Entity entity) {
-        if (!containsNonSqlUpsert(sql)) {
+        if (!containsNonSqlUpdateCountFunction(sql)) {
             return null;
         }
         return tryExtractRowCount(entity);
@@ -342,7 +344,7 @@ public class JDBCStatement implements Statement {
             case Utils.DML_EXEC:
                 throw new SQLException("Can not issue SELECT or EXEC via executeUpdate().");
             default:
-                if (isNonSqlUpsertStatement(lastStatement)) {
+                if (isNonSqlMatchedRowCountStatement(lastStatement)) {
                     return executeUpdateWithRowCount(sql);
                 }
                 Entity entity;
@@ -596,7 +598,7 @@ public class JDBCStatement implements Statement {
                 objectQueue.offer(executeUpdate(sql));
                 break;
             default: {
-                if (isNonSqlUpsertStatement(lastStatement)) {
+                if (isNonSqlMatchedRowCountStatement(lastStatement)) {
                     objectQueue.offer(executeUpdateWithRowCount(sql));
                 } else {
                     Entity entity;
