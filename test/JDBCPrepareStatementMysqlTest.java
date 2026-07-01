@@ -552,4 +552,42 @@ public class JDBCPrepareStatementMysqlTest {
         Assert.assertEquals("[2000.06.14T07:17:05.000000000]", re3.getColumn(1).get(1).getString());
         Assert.assertEquals("[]", re3.getColumn(1).get(0).getString());
     }
+
+    @Test
+    public void test_PreparedStatement_tableUpsert_executeUpdate_RowCount() throws SQLException, IOException {
+        JDBCPrepareStatementTest.createPartitionTable("INT");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt') ");
+        stm.execute("tmp=table(1..3 as id,100 100 NULL as dataType)");
+        stm.execute("tmp1=table(1..2 as id,1001 1001 as dataType)");
+        PreparedStatement ps = conn.prepareStatement("rowUpdate=tableUpsert(pt,tmp,false,[\"id\"] );rowUpdate[0] + rowUpdate[1]");
+        int insert_rows = ps.executeUpdate();
+        assertEquals(3, insert_rows);
+
+        PreparedStatement ps1 = conn.prepareStatement("rowUpdate=tableUpsert(`pt`,`tmp1`,false,[\"id\"] );rowUpdate[0] + rowUpdate[1]");
+        int insert_rows1 = ps1.executeUpdate();
+        assertEquals(2, insert_rows1);
+
+        PreparedStatement ps2 = conn.prepareStatement("rowUpdate=tableUpsert(`pt`,`tmp`,false,[\"id\"] );rowUpdate[0] + rowUpdate[1]");
+        int insert_rows2 = ps2.executeUpdate();
+        assertEquals(3, insert_rows2);
+    }
+
+    @Test
+    public void test_PreparedStatement_tableInsert_executeUpdate_RowCount() throws SQLException, IOException {
+        JDBCPrepareStatementTest.createPartitionTable("INT");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt') ");
+        stm.execute("tmp=table(1..3 as id,100 100 NULL as dataType)");
+        stm.execute("tmp1=table(1..2 as id,1001 1001 as dataType)");
+        PreparedStatement ps = conn.prepareStatement("tableInsert(pt,tmp)");
+        int insert_rows = ps.executeUpdate();
+        assertEquals(3, insert_rows);
+
+        PreparedStatement ps1 = conn.prepareStatement("tableInsert(`pt`,`tmp1` );");
+        int insert_rows1 = ps1.executeUpdate();
+        assertEquals(2, insert_rows1);
+
+        PreparedStatement ps2 = conn.prepareStatement("tableInsert(`pt`,`tmp` );");
+        int insert_rows2 = ps2.executeUpdate();
+        assertEquals(3, insert_rows2);
+    }
 }
