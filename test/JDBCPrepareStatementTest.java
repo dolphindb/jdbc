@@ -1560,9 +1560,9 @@ public class JDBCPrepareStatementTest {
                 "try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
                 "db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
                 "db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
-        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_allDataType','pt') values(true,'3',-2h,2,-100l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_allDataType','pt') values(true,char(3),-2h,2,-100l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
         ps.executeUpdate();
-        PreparedStatement ps3 = conn.prepareStatement("select * from  loadTable('dfs://test_allDataType','pt') where col1 = true ,col2='3' ,col3 =-2, col4=2, col5=-100, col6=2012.12.06, col7=2012.06M, col8=12:30:00.008, col9=12:30m, col10=12:30:00, col11=2012.06.12 12:30:00, col12=2012.06.12 12:30:00.008, col13=13:30:10.008007006, col14=2012.06.13 13:30:10.008007006, col15=2.1f, col16=2.1, col17=\"hello\", col18=\"world\", col19=uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2012.06.13 13:30:10), col21=ipaddr(\"192.168.1.253\"), col22=int128(\"e1671797c52e15f763380b45e841ec32\"), col23=blob(\"123\"), col24=complex(111,1), col25=point(1,2), col26=decimal32(1.1,2), col27=decimal64(1.1,7), col28=decimal128(1.1,18)");
+        PreparedStatement ps3 = conn.prepareStatement("select * from  loadTable('dfs://test_allDataType','pt') where col1 = true ,col2=char(3) ,col3 =-2, col4=2, col5=-100, col6=2012.12.06, col7=2012.06M, col8=12:30:00.008, col9=12:30m, col10=12:30:00, col11=2012.06.12 12:30:00, col12=2012.06.12 12:30:00.008, col13=13:30:10.008007006, col14=2012.06.13 13:30:10.008007006, col15=2.1f, col16=2.1, col17=\"hello\", col18=\"world\", col19=uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2012.06.13 13:30:10), col21=ipaddr(\"192.168.1.253\"), col22=int128(\"e1671797c52e15f763380b45e841ec32\"), col23=blob(\"123\"), col24=complex(111,1), col25=point(1,2), col26=decimal32(1.1,2), col27=decimal64(1.1,7), col28=decimal128(1.1,18)");
         JDBCResultSet rs1 = (JDBCResultSet)ps3.executeQuery();
         JDBCResultSet rs2 = (JDBCResultSet)ps3.executeQuery();
         BasicTable re = (BasicTable)rs1.getResult();
@@ -2036,12 +2036,13 @@ public class JDBCPrepareStatementTest {
         ps.setObject(1,1);
         ps.setObject(2,new BasicDate(LocalDate.parse("2018-01-01")));
         ps.setObject(3,new Thread());
+        String re = null;
         try{
             ps.execute();
         }catch(Exception e){
-            System.out.println(e.getMessage());
-            Assert.assertEquals("Unsupported type for parameter 3 class java.lang.Thread",e.getMessage());
+            re = e.getMessage();
         }
+        Assert.assertEquals(true,re.contains("Unsupported type for parameter java.lang.Thread"));
         conn.close();
     }
 
@@ -2538,6 +2539,9 @@ public class JDBCPrepareStatementTest {
         ps.setInt(1,2);
         ps.setNull(2,Types.OTHER);
         ps.addBatch();
+        ps.setInt(1,3);
+        ps.setObject(2, LocalDate.parse("2026-06-01"));
+        ps.addBatch();
         ps.executeBatch();
         ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
         rs.next();
@@ -2545,6 +2549,9 @@ public class JDBCPrepareStatementTest {
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,1,0,0,0), rs.getObject("dataType"));
     }
 
     @Test
@@ -2559,6 +2566,9 @@ public class JDBCPrepareStatementTest {
         ps.setInt(1,2);
         ps.setNull(2,Types.OTHER);
         ps.addBatch();
+        ps.setInt(1,3);
+        ps.setObject(2, LocalDate.parse("2026-06-01"));
+        ps.addBatch();
         ps.executeBatch();
         ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
         rs.next();
@@ -2566,6 +2576,9 @@ public class JDBCPrepareStatementTest {
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,1,0,0,0), rs.getObject("dataType"));
     }
 
     @Test
@@ -2599,6 +2612,9 @@ public class JDBCPrepareStatementTest {
         ps.setInt(1,2);
         ps.setNull(2,Types.OTHER);
         ps.addBatch();
+        ps.setInt(1,3);
+        ps.setObject(2, LocalDate.parse("2026-06-01"));
+        ps.addBatch();
         ps.executeBatch();
         ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
         rs.next();
@@ -2606,6 +2622,10 @@ public class JDBCPrepareStatementTest {
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,1,0,0,0), rs.getObject("dataType"));
+
     }
 
     @Test
@@ -10531,7 +10551,7 @@ public class JDBCPrepareStatementTest {
                 "colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
                 "t=table(1:0,colNames,colTypes)\n" +
                 "share t as tt1;");
-        PreparedStatement ps = conn.prepareStatement("insert into tt1 values(true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
+        PreparedStatement ps = conn.prepareStatement("insert into tt1 values(true,char(97),2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
         ps.executeUpdate();
         PreparedStatement ps1 = conn.prepareStatement("select * from tt1");
         ResultSet rs = ps1.executeQuery();
@@ -10565,7 +10585,7 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals("1.10",rs.getObject("col26").toString());
         org.junit.Assert.assertEquals("1.1000000",rs.getObject("col27").toString());
         org.junit.Assert.assertEquals("1.100000000000000128",rs.getObject("col28").toString());
-        PreparedStatement ps2 = conn.prepareStatement(" update tt1 set col1 = false ,col2='3' ,col3 =-2, col4=-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
+        PreparedStatement ps2 = conn.prepareStatement(" update tt1 set col1 = false ,col2=char(51) ,col3 =-2, col4=-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
         ps2.executeUpdate();
         PreparedStatement ps3 = conn.prepareStatement("select * from tt1");
         ResultSet rs1 = ps3.executeQuery();
@@ -10598,7 +10618,7 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals("-1.10",rs1.getObject("col26").toString());
         org.junit.Assert.assertEquals("-1.1000000",rs1.getObject("col27").toString());
         org.junit.Assert.assertEquals("-1.100000000000000128",rs1.getObject("col28").toString());
-        PreparedStatement ps4 = conn.prepareStatement(" delete from  tt1 where col1 = false ,col2='3' ,col3 =-2, col4=-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
+        PreparedStatement ps4 = conn.prepareStatement(" delete from  tt1 where col1 = false ,col2=char(51) ,col3 =-2, col4=-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
         ps4.executeUpdate();
         PreparedStatement ps5 = conn.prepareStatement("select * from tt1");
         JDBCResultSet rs3 = (JDBCResultSet)ps5.executeQuery();
@@ -10745,8 +10765,9 @@ public class JDBCPrepareStatementTest {
                 "try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
                 "db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
                 "db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
+        stm.execute("undef(`tt1,SHARED)");
         stm.execute("tt1=loadTable('dfs://test_allDataType','pt')");
-        PreparedStatement ps = conn.prepareStatement("insert into tt1 values(true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
+        PreparedStatement ps = conn.prepareStatement("insert into tt1 values(true,char(97),2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
         ps.executeUpdate();
         PreparedStatement ps1 = conn.prepareStatement("select * from tt1");
         ResultSet rs = ps1.executeQuery();
@@ -10780,13 +10801,13 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals("1.10",rs.getObject("col26").toString());
         org.junit.Assert.assertEquals("1.1000000",rs.getObject("col27").toString());
         org.junit.Assert.assertEquals("1.100000000000000128",rs.getObject("col28").toString());
-        PreparedStatement ps2 = conn.prepareStatement(" update tt1 set col1 = false ,col2='3' ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
+        PreparedStatement ps2 = conn.prepareStatement(" update tt1 set col1 = false ,col2=char(3) ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
         ps2.executeUpdate();
         PreparedStatement ps3 = conn.prepareStatement("select * from tt1");
         ResultSet rs1 = ps3.executeQuery();
         rs1.next();
         org.junit.Assert.assertEquals(rs1.getBoolean("col1"), false);
-        org.junit.Assert.assertEquals(rs1.getByte("col2"), 51);
+        org.junit.Assert.assertEquals(rs1.getByte("col2"), 3);
         org.junit.Assert.assertEquals(rs1.getShort("col3"), -2);
        // org.junit.Assert.assertEquals(rs1.getInt("col4"), -2);
         org.junit.Assert.assertEquals(rs1.getLong("col5"), -100);
@@ -10831,7 +10852,7 @@ public class JDBCPrepareStatementTest {
                 "db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
                 "db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
         //stm.execute("tt1=loadTable('dfs://test_allDataType','pt')");
-        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_allDataType','pt') values(true,'a',2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_allDataType','pt') values(true,char(97),2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
         ps.executeUpdate();
         PreparedStatement ps1 = conn.prepareStatement("select * from loadTable('dfs://test_allDataType','pt')");
         ResultSet rs = ps1.executeQuery();
@@ -10865,13 +10886,13 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals("1.10",rs.getObject("col26").toString());
         org.junit.Assert.assertEquals("1.1000000",rs.getObject("col27").toString());
         org.junit.Assert.assertEquals("1.100000000000000128",rs.getObject("col28").toString());
-        PreparedStatement ps2 = conn.prepareStatement(" update loadTable('dfs://test_allDataType','pt') set col1 = false ,col2='3' ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
+        PreparedStatement ps2 = conn.prepareStatement(" update loadTable('dfs://test_allDataType','pt') set col1 = false ,col2=char(3) ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
         ps2.executeUpdate();
         PreparedStatement ps3 = conn.prepareStatement("select * from loadTable('dfs://test_allDataType','pt')");
         ResultSet rs1 = ps3.executeQuery();
         rs1.next();
         org.junit.Assert.assertEquals(rs1.getBoolean("col1"), false);
-        org.junit.Assert.assertEquals(rs1.getByte("col2"), 51);
+        org.junit.Assert.assertEquals(rs1.getByte("col2"), 3);
         org.junit.Assert.assertEquals(rs1.getShort("col3"), -2);
         org.junit.Assert.assertEquals(rs1.getInt("col4"), 2);
         org.junit.Assert.assertEquals(rs1.getLong("col5"), -100);
@@ -10898,7 +10919,7 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals("-1.10",rs1.getObject("col26").toString());
         org.junit.Assert.assertEquals("-1.1000000",rs1.getObject("col27").toString());
         org.junit.Assert.assertEquals("-1.100000000000000128",rs1.getObject("col28").toString());
-        PreparedStatement ps4 = conn.prepareStatement(" delete from  loadTable('dfs://test_allDataType','pt') where col1 = false ,col2='3' ,col3 =-2, col4=2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
+        PreparedStatement ps4 = conn.prepareStatement(" delete from  loadTable('dfs://test_allDataType','pt') where col1 = false ,col2=char(3) ,col3 =-2, col4=2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
         ps4.executeUpdate();
         PreparedStatement ps5 = conn.prepareStatement("select * from loadTable('dfs://test_allDataType','pt')");
         JDBCResultSet rs3 = (JDBCResultSet)ps5.executeQuery();
@@ -11394,7 +11415,7 @@ public class JDBCPrepareStatementTest {
     @Test
     public void test_PreparedStatement_insert_into_columnName_special_characters_executeBatch() throws SQLException {
         stm.execute("share table(2 3 as \"'ABC$#中问哦'\") as tt;");
-        PreparedStatement ps = conn.prepareStatement("insert into tt( \"'ABC$#中问哦'' ) values(?)");
+        PreparedStatement ps = conn.prepareStatement("insert into tt( \"'ABC$#中问哦'\") values(?)");
         ps.setInt(1,1);
         ps.addBatch();
         ps.executeBatch();
@@ -12612,14 +12633,14 @@ public class JDBCPrepareStatementTest {
         assertEquals(1, delete_rows1);
     }
 
-    //@Test//not support
+    @Test//not support
     public void test_PreparedStatement_insert_many_rows() throws SQLException, IOException, ClassNotFoundException {
         Statement stmt = conn.createStatement();
         stmt.execute("t=table(`XOM`GS`FB as ticker, 100 80 120 as volume);");
 
         PreparedStatement pstmt = conn.prepareStatement("insert into t values ('AMD', 60), ('NVDA', 400);");
         int insert_rows = pstmt.executeUpdate();
-        System.out.println(insert_rows);
+        assertEquals(2, insert_rows);
         pstmt = conn.prepareStatement("insert into t values (?, ?), (?, ?);");
         pstmt.setString(1, "aa4");
         pstmt.setInt(2, 4);
@@ -12627,20 +12648,32 @@ public class JDBCPrepareStatementTest {
         pstmt.setInt(4, 22);
         int insert_rows1 = pstmt.executeUpdate();
         System.out.println(insert_rows1);
+        assertEquals(2, insert_rows1);
+        //not support
+//        PreparedStatement ps2 = conn.prepareStatement("insert into t values((?,?), (? ?));");
+//        ps2.setString(1, "AMD12");
+//        ps2.setString(2, "NVDA12");
+//        ps2.setInt(3, 5);
+//        ps2.setInt(4, 6);
+//        int insert_rows2 = ps2.executeUpdate();
+//        assertEquals(2, insert_rows2);
+    }
 
-        PreparedStatement ps2 = conn.prepareStatement("insert into t values((?,?), (? ?));");
-        ps2.setString(1, "AMD12");
-        ps2.setString(2, "NVDA12");
-        ps2.setInt(3, 5);
-        ps2.setInt(4, 6);
-        int insert_rows2 = ps2.executeUpdate();
-        assertEquals(2, insert_rows2);
-
-        //insert into dfs two rows
+    @Test//not support
+    public void test_PreparedStatement_insert_dfs_many_rows() throws SQLException, IOException, ClassNotFoundException {
         createPartitionTable("INT");
-        PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(2,100),(4,100);");
-        int insert_rows3 = ps1.executeUpdate();
-        assertEquals(2, insert_rows3);
+        PreparedStatement pstmt = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values (?, ?), (?, ?);");
+        pstmt.setInt(1, 2);
+        pstmt.setInt(2, 100);
+        pstmt.setInt(3, 4);
+        pstmt.setInt(4, 100);
+        int insert_rows1 = pstmt.executeUpdate();
+        assertEquals(2, insert_rows1);
+
+        //not support
+//        PreparedStatement ps1 = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') ValUes(2,100),(4,100);");
+//        int insert_rows3 = ps1.executeUpdate();
+//        assertEquals(2, insert_rows3);
     }
 
     @Test
