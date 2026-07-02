@@ -1458,15 +1458,15 @@ public class Utils {
                 case DT_SECOND:
                     return new BasicSecond(LocalTime.parse(value));
                 case DT_DATETIME:
-                    return new BasicDateTime(LocalDateTime.parse(value));
+                    return new BasicDateTime(parseDateTimeString(value));
                 case DT_TIMESTAMP:
-                    return new BasicTimestamp(LocalDateTime.parse(value));
+                    return new BasicTimestamp(parseDateTimeString(value));
                 case DT_NANOTIME:
                     return new BasicNanoTime(LocalTime.parse(value));
                 case DT_NANOTIMESTAMP:
-                    return new BasicNanoTimestamp(LocalDateTime.parse(value));
+                    return new BasicNanoTimestamp(parseDateTimeString(value));
                 case DT_DATEHOUR:
-                    return new BasicDateHour(LocalDateTime.parse(value));
+                    return new BasicDateHour(parseDateTimeString(value));
                 case DT_INT128:
                     return BasicInt128.fromString(value);
                 case DT_UUID:
@@ -1502,6 +1502,28 @@ public class Utils {
         } catch (NumberFormatException | DateTimeParseException e) {
             throw new IllegalArgumentException("Invalid value '" + value + "' for DATA_TYPE " + dataType + (dataType.name().startsWith("DT_DECIMAL") ? " with scale=" + extraParam : ""), e);
         }
+    }
+
+    private static LocalDateTime parseDateTimeString(String value) {
+        String trimmed = value.trim();
+        // 先按原值尝试 ISO local date-time，保留 TIMESTAMP/NANOTIMESTAMP 的小数秒（如 .000123456）。
+        try {
+            return LocalDateTime.parse(trimmed);
+        } catch (DateTimeParseException ignore) {
+            // 继续尝试 DDB 风格 / date-only。
+        }
+        // 拆出日期与时间，仅规整日期部分的分隔符（. -> -），避免误伤秒的小数点。
+        int sep = trimmed.indexOf('T');
+        if (sep < 0) {
+            sep = trimmed.indexOf(' ');
+        }
+        if (sep > 0) {
+            String date = trimmed.substring(0, sep).replace('.', '-');
+            String time = trimmed.substring(sep + 1).trim();
+            return LocalDateTime.parse(date + "T" + time);
+        }
+        // date-only：按当天 00:00:00 处理，兼容 2026-06-01 与 2026.06.01。
+        return LocalDate.parse(trimmed.replace('.', '-')).atStartOfDay();
     }
 
     public static Vector createStringVector(Entity.DATA_TYPE dataType, String[] values, int extraParam) throws Exception {
