@@ -2542,6 +2542,12 @@ public class JDBCPrepareStatementTest {
         ps.setInt(1,3);
         ps.setObject(2, LocalDate.parse("2026-06-01"));
         ps.addBatch();
+        ps.setInt(1,4);
+        ps.setObject(2, "2026-06-02");
+        ps.addBatch();
+        ps.setInt(1,5);
+        ps.setString(2, "2026-06-03");
+        ps.addBatch();
         ps.executeBatch();
         ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
         rs.next();
@@ -2552,6 +2558,12 @@ public class JDBCPrepareStatementTest {
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,1,0,0,0), rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,2,0,0,0), rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,3,0,0,0), rs.getObject("dataType"));
     }
 
     @Test
@@ -2569,6 +2581,12 @@ public class JDBCPrepareStatementTest {
         ps.setInt(1,3);
         ps.setObject(2, LocalDate.parse("2026-06-01"));
         ps.addBatch();
+        ps.setInt(1,4);
+        ps.setObject(2, "2026-06-02");
+        ps.addBatch();
+        ps.setInt(1,5);
+        ps.setString(2, "2026-06-03");
+        ps.addBatch();
         ps.executeBatch();
         ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
         rs.next();
@@ -2579,6 +2597,12 @@ public class JDBCPrepareStatementTest {
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,1,0,0,0), rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,2,0,0,0), rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,3,0,0,0), rs.getObject("dataType"));
     }
 
     @Test
@@ -2615,6 +2639,12 @@ public class JDBCPrepareStatementTest {
         ps.setInt(1,3);
         ps.setObject(2, LocalDate.parse("2026-06-01"));
         ps.addBatch();
+        ps.setInt(1,4);
+        ps.setObject(2, "2026-06-02");
+        ps.addBatch();
+        ps.setInt(1,5);
+        ps.setString(2, "2026-06-03");
+        ps.addBatch();
         ps.executeBatch();
         ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
         rs.next();
@@ -2625,7 +2655,12 @@ public class JDBCPrepareStatementTest {
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,1,0,0,0), rs.getObject("dataType"));
-
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,2,0,0,0), rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,3,0,0,0), rs.getObject("dataType"));
     }
 
     @Test
@@ -2639,6 +2674,15 @@ public class JDBCPrepareStatementTest {
         ps.setInt(1,2);
         ps.setNull(2,Types.OTHER);
         ps.addBatch();
+        ps.setInt(1,3);
+        ps.setObject(2, LocalDate.parse("2026-06-01"));
+        ps.addBatch();
+        ps.setInt(1,4);
+        ps.setObject(2, "2026-06-02");
+        ps.addBatch();
+        ps.setInt(1,5);
+        ps.setString(2, "2026-06-03");
+        ps.addBatch();
         ps.executeBatch();
         ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
         rs.next();
@@ -2646,6 +2690,15 @@ public class JDBCPrepareStatementTest {
         rs.next();
         rs.getObject("dataType");
         org.junit.Assert.assertTrue(rs.wasNull());
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,1,0,0,0), rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,2,0,0,0), rs.getObject("dataType"));
+        rs.next();
+        rs.getObject("dataType");
+        org.junit.Assert.assertEquals(LocalDateTime.of(2026,6,3,0,0,0), rs.getObject("dataType"));
     }
 
     @Test
