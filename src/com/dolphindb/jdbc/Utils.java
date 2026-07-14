@@ -873,7 +873,30 @@ public class Utils {
         }
     }
 
-    static PreparedInsertInfo parsePreparedInsertInfo(String sql) throws SQLException {
+    private static final Pattern PREPARED_INSERT_NOW_SLOT_PATTERN =
+            Pattern.compile("(?i)^now\\s*\\(\\s*\\)$");
+
+    /**
+     * Whether the whole INSERT template is supported by the prepared tableInsert path
+     * and contains a zero-arg {@code now()} (JAVAOS-1913).
+     *
+     * <p>Parsing the complete VALUES template is intentional: a raw regex search would
+     * mistake string literals or comments containing {@code now()} for a NOW slot and
+     * would also divert legacy literal INSERTs such as {@code values(1, now())} away
+     * from their existing whole-SQL path.</p>
+     */
+    public static boolean containsPreparedInsertNow(String sql) {
+        if (sql == null || sql.isEmpty()) {
+            return false;
+        }
+        try {
+            return parsePreparedInsertInfo(sql).hasNowSlot();
+        } catch (SQLException ignored) {
+            return false;
+        }
+    }
+
+    public static PreparedInsertInfo parsePreparedInsertInfo(String sql) throws SQLException {
         InsertParseCursor cursor = new InsertParseCursor(sql);
         if (!cursor.consumeKeyword("insert") || !cursor.consumeKeyword("into"))
             throw new SQLException("Please check your SQL format: " + sql);
@@ -897,6 +920,7 @@ public class Utils {
             throw new SQLException("Please check your SQL format: " + sql);
 
         List<String> valueRows = new ArrayList<>();
+        List<InsertValueSlot> slotKinds = null;
         int rowWidth = -1;
         while (true) {
             String valueSection = cursor.readParenthesized();
@@ -906,13 +930,15 @@ public class Utils {
             List<String> values = splitTopLevelComma(valueSection);
             if (values.isEmpty())
                 throw new SQLException("Please check your SQL format: " + sql);
+
+            List<InsertValueSlot> rowKinds = new ArrayList<>(values.size());
             for (String value : values) {
-                if (!"?".equals(value.trim()))
-                    throw new SQLException("Please check your SQL format: " + sql);
+                rowKinds.add(parseInsertValueSlot(value, sql));
             }
             if (rowWidth < 0) {
                 rowWidth = values.size();
-            } else if (rowWidth != values.size()) {
+                slotKinds = rowKinds;
+            } else if (rowWidth != values.size() || !slotKinds.equals(rowKinds)) {
                 throw new SQLException("Please check your SQL format: " + sql);
             }
             valueRows.add(valueSection.trim());
@@ -924,10 +950,19 @@ public class Utils {
                 throw new SQLException("Please check your SQL format: " + sql);
         }
 
-        if (rowWidth <= 0 || valueRows.isEmpty())
+        if (rowWidth <= 0 || valueRows.isEmpty() || slotKinds == null)
             throw new SQLException("Please check your SQL format: " + sql);
 
-        return new PreparedInsertInfo(tableName, columnNames, rowWidth, valueRows.size(), valueRows.get(0));
+        return new PreparedInsertInfo(tableName, columnNames, rowWidth, valueRows.size(), valueRows.get(0), slotKinds);
+    }
+
+    private static InsertValueSlot parseInsertValueSlot(String raw, String sql) throws SQLException {
+        String trimmed = raw == null ? "" : raw.trim();
+        if ("?".equals(trimmed))
+            return InsertValueSlot.PLACEHOLDER;
+        if (PREPARED_INSERT_NOW_SLOT_PATTERN.matcher(trimmed).matches())
+            return InsertValueSlot.NOW;
+        throw new SQLException("Please check your SQL format: " + sql);
     }
 
     private static List<String> parseInsertColumnNames(String columnSection) {
@@ -999,46 +1034,89 @@ public class Utils {
         return parts;
     }
 
-    static class PreparedInsertInfo {
+    public static class PreparedInsertInfo {
         private final String tableName;
         private final List<String> columnNames;
         private final int valueCountPerRow;
         private final int rowsPerExecution;
         private final String valueQuestionString;
+        private final List<InsertValueSlot> slotKinds;
+        private final int placeholderCountPerRow;
+        private final int[] denseParamToSqlColumn;
 
-        PreparedInsertInfo(String tableName, List<String> columnNames, int valueCountPerRow, int rowsPerExecution, String valueQuestionString) {
+        PreparedInsertInfo(String tableName, List<String> columnNames, int valueCountPerRow, int rowsPerExecution,
+                           String valueQuestionString, List<InsertValueSlot> slotKinds) {
             this.tableName = stripIdentifierQuotes(tableName);
             this.columnNames = Collections.unmodifiableList(new ArrayList<>(columnNames));
             this.valueCountPerRow = valueCountPerRow;
             this.rowsPerExecution = rowsPerExecution;
             this.valueQuestionString = valueQuestionString;
+            this.slotKinds = Collections.unmodifiableList(new ArrayList<>(slotKinds));
+            int placeholderCount = 0;
+            for (InsertValueSlot slot : slotKinds) {
+                if (slot == InsertValueSlot.PLACEHOLDER)
+                    placeholderCount++;
+            }
+            this.placeholderCountPerRow = placeholderCount;
+            this.denseParamToSqlColumn = new int[placeholderCount];
+            int dense = 0;
+            for (int sqlCol = 0; sqlCol < slotKinds.size(); sqlCol++) {
+                if (slotKinds.get(sqlCol) == InsertValueSlot.PLACEHOLDER)
+                    this.denseParamToSqlColumn[dense++] = sqlCol;
+            }
         }
 
-        String getTableName() {
+        public String getTableName() {
             return tableName;
         }
 
-        List<String> getColumnNames() {
+        public List<String> getColumnNames() {
             return columnNames;
         }
 
-        boolean hasExplicitColumns() {
+        public boolean hasExplicitColumns() {
             return !columnNames.isEmpty();
         }
 
-        int getValueCountPerRow() {
+        public int getValueCountPerRow() {
             return valueCountPerRow;
         }
 
-        int getRowsPerExecution() {
+        public int getRowsPerExecution() {
             return rowsPerExecution;
         }
 
-        int getTotalParameterCount() {
-            return valueCountPerRow * rowsPerExecution;
+        public int getPlaceholderCountPerRow() {
+            return placeholderCountPerRow;
         }
 
-        String getValueQuestionString() {
+        public List<InsertValueSlot> getSlotKinds() {
+            return slotKinds;
+        }
+
+        /** JDBC 稠密参数下标（0-based，仅计 {@code ?}）→ 该行内 SQL 列序号。 */
+        public int getPlaceholderSqlColumnIndex(int denseParamIndex0Based) {
+            int withinRow = denseParamIndex0Based % placeholderCountPerRow;
+            return denseParamToSqlColumn[withinRow];
+        }
+
+        public int[] getDenseParamToSqlColumn() {
+            return Arrays.copyOf(denseParamToSqlColumn, denseParamToSqlColumn.length);
+        }
+
+        public int getTotalParameterCount() {
+            return placeholderCountPerRow * rowsPerExecution;
+        }
+
+        public boolean hasNowSlot() {
+            for (InsertValueSlot slot : slotKinds) {
+                if (slot == InsertValueSlot.NOW)
+                    return true;
+            }
+            return false;
+        }
+
+        public String getValueQuestionString() {
             return valueQuestionString;
         }
     }

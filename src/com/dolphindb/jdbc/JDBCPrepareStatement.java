@@ -10,7 +10,10 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
+import java.time.LocalDateTime;
+import java.time.temporal.Temporal;
 import java.util.*;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -23,12 +26,14 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private final int sqlDmlType;
 	private List<ColumnBindValue> columnBindValues;
 	private Map<Integer, Integer> insertIndexSQLToDDB;
+	private Set<Integer> nowColumnIndexes;
 	private BindValue[] bufferArea;
 	private int batchSize;
 	private List<String> sqlBuffer;
 	private boolean isPreparedStatement;
 	private int insertRowsPerExecution;
 	private int insertValueCountPerRow;
+	private int insertTotalParameterCount;
 
 	public JDBCPrepareStatement(JDBCConnection conn, String sql) throws SQLException {
 		super(conn);
@@ -40,12 +45,20 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.sqlDmlType = Utils.getDml(lastStatement);
 		this.sqlBuffer = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
+		this.nowColumnIndexes = new HashSet<>();
 		this.insertRowsPerExecution = 1;
 		this.insertValueCountPerRow = 0;
-		if (preProcessedSql.contains("?"))
+		this.insertTotalParameterCount = 0;
+		boolean isInsert = this.sqlDmlType == Utils.DML_INSERT;
+		boolean hasPlaceholder = preProcessedSql.contains("?");
+		// values(now()) has no '?'; still needs tableInsert path. Literal INSERT like
+		// values(1,100) must keep the legacy whole-SQL path (JAVAOS-624 / official no-placeholder tests).
+		boolean hasInsertNow = isInsert && Utils.containsPreparedInsertNow(preProcessedSql);
+		boolean usePreparedInsertPath = isInsert && (hasPlaceholder || hasInsertNow);
+		if (hasPlaceholder || hasInsertNow)
 			isPreparedStatement = true;
 		if (isPreparedStatement) {
-			if (this.sqlDmlType == Utils.DML_INSERT) {
+			if (usePreparedInsertPath) {
 				if (sqlSplit.length != 1)
 					throw new SQLException("The INSERT statement must be a standalone statement.");
 
@@ -53,26 +66,12 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				this.tableName = insertInfo.getTableName();
 				this.insertRowsPerExecution = insertInfo.getRowsPerExecution();
 				this.insertValueCountPerRow = insertInfo.getValueCountPerRow();
+				this.insertTotalParameterCount = insertInfo.getTotalParameterCount();
 				initColumnBindValues(this.tableName);
 				Utils.checkInsertSQLValid(preProcessedSql, columnBindValues.size());
+				buildInsertParamMapping(insertInfo);
 
-				Map<String, Integer> columnParamInSql = Utils.getInsertColumnParamInSql(preProcessedSql);
-				for(ColumnBindValue value : columnBindValues){
-					String colName = value.getColName();
-					if (columnParamInSql.containsKey(colName)) {
-						int sqlColumnIndex = columnParamInSql.get(colName);
-						for (int row = 0; row < insertRowsPerExecution; row++) {
-							insertIndexSQLToDDB.put(row * insertValueCountPerRow + sqlColumnIndex, value.getIndex());
-						}
-						columnParamInSql.remove(colName);
-					}
-				}
-				if (columnParamInSql.size() != 0) {
-					for (String key : columnParamInSql.keySet())
-						throw new SQLException("The column name " + key + " does not exist in table. ");
-				}
-
-				this.bufferArea = new BindValue[this.columnBindValues.size()];
+				this.bufferArea = new BindValue[Math.max(insertTotalParameterCount, 0)];
 			} else {
 				int size = 0;
 				for (int i = 0; i < preProcessedSql.length(); i++) {
@@ -85,6 +84,40 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			}
 		} else {
 			this.sqlBuffer.add(preProcessedSql);
+		}
+	}
+
+	private void buildInsertParamMapping(Utils.PreparedInsertInfo insertInfo) throws SQLException {
+		List<InsertValueSlot> slotKinds = insertInfo.getSlotKinds();
+		List<String> sqlColumns = insertInfo.getColumnNames();
+		boolean explicit = insertInfo.hasExplicitColumns();
+		Map<String, Integer> nameToDdb = new HashMap<>();
+		for (ColumnBindValue value : columnBindValues) {
+			nameToDdb.put(value.getColName(), value.getIndex());
+		}
+
+		if (explicit) {
+			for (String colName : sqlColumns) {
+				if (!nameToDdb.containsKey(colName))
+					throw new SQLException("The column name " + colName + " does not exist in table. ");
+			}
+		}
+
+		int dense = 0;
+		for (int row = 0; row < insertRowsPerExecution; row++) {
+			for (int sqlCol = 0; sqlCol < slotKinds.size(); sqlCol++) {
+				int ddbIndex;
+				if (explicit) {
+					ddbIndex = nameToDdb.get(sqlColumns.get(sqlCol));
+				} else {
+					ddbIndex = sqlCol;
+				}
+				if (slotKinds.get(sqlCol) == InsertValueSlot.PLACEHOLDER) {
+					insertIndexSQLToDDB.put(dense++, ddbIndex);
+				} else {
+					nowColumnIndexes.add(ddbIndex);
+				}
+			}
 		}
 	}
 
@@ -188,10 +221,13 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private int getDataIndexBySQLIndex(int paramIndex) throws SQLException {
 		int index = paramIndex - 1;
 		if (this.sqlDmlType == Utils.DML_INSERT) {
-			if (paramIndex < 1 || paramIndex > insertRowsPerExecution * insertValueCountPerRow)
+			if (paramIndex < 1 || paramIndex > insertTotalParameterCount)
 				throw new SQLException("paramIndex is out of range");
-			if (insertIndexSQLToDDB.size() == 0)
-				return index % insertValueCountPerRow;
+			if (insertIndexSQLToDDB.isEmpty())
+				return index % Math.max(insertValueCountPerRow, 1);
+			if (!insertIndexSQLToDDB.containsKey(index))
+				throw new SQLException("paramIndex is out of range");
+			return insertIndexSQLToDDB.get(index);
 		}
 		if (insertIndexSQLToDDB.size() != 0) {
 			if(!insertIndexSQLToDDB.containsKey(index))
@@ -248,14 +284,20 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			checkInsertBindsLegal(isBatch);
 			if(isBatch) {
 				int expectedRows = expectedInsertRows(true);
-				for (ColumnBindValue column : columnBindValues) {
-					while (column.getBindValues().rows() < expectedRows) {
-						appendNullToColumn(column);
-					}
-				}
+				padMissingColumnsWithNull(expectedRows);
 			}
 		} else {
 			this.sqlBuffer.add(generateSQL());
+		}
+	}
+
+	private void padMissingColumnsWithNull(int expectedRows) throws SQLException {
+		for (ColumnBindValue column : columnBindValues) {
+			if (nowColumnIndexes.contains(column.getIndex()))
+				continue;
+			while (column.getBindValues().rows() < expectedRows) {
+				appendNullToColumn(column);
+			}
 		}
 	}
 
@@ -280,16 +322,22 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	private void checkInsertBindsLegal(boolean isBatch) throws SQLException {
 		int rows = expectedInsertRows(isBatch);
-		if (insertIndexSQLToDDB.size() == 0) {
-			for (ColumnBindValue bindValue : columnBindValues){
-				if(bindValue.getBindValues().rows() != rows)
+		Set<Integer> placeholderColumns = new HashSet<>(insertIndexSQLToDDB.values());
+		if (placeholderColumns.isEmpty() && insertTotalParameterCount == 0) {
+			return;
+		}
+		if (placeholderColumns.isEmpty()) {
+			for (ColumnBindValue bindValue : columnBindValues) {
+				if (nowColumnIndexes.contains(bindValue.getIndex()))
+					continue;
+				if (bindValue.getBindValues().rows() != rows)
 					throw new SQLException("The column " + bindValue.getColName() + " is not set.");
 			}
-		}else {
-			for (Integer index : insertIndexSQLToDDB.keySet()) {
-				if (this.columnBindValues.get(insertIndexSQLToDDB.get(index)).getBindValues().rows() != rows)
-					throw new SQLException("The column " + this.columnBindValues.get(insertIndexSQLToDDB.get(index)).getColName() + " is not set.");
-			}
+			return;
+		}
+		for (Integer ddbIndex : placeholderColumns) {
+			if (this.columnBindValues.get(ddbIndex).getBindValues().rows() != rows)
+				throw new SQLException("The column " + this.columnBindValues.get(ddbIndex).getColName() + " is not set.");
 		}
 	}
 
@@ -323,7 +371,14 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private int[] tableAppend(boolean isBatch) throws SQLException {
-		List<Vector> arguments = createDFSArguments(isBatch);
+		int expectedRows = expectedInsertRows(isBatch);
+		if (!isBatch) {
+			padMissingColumnsWithNull(expectedRows);
+		}
+		fillNowColumns(expectedRows);
+		List<Vector> arguments = columnBindValues.stream()
+				.map(ColumnBindValue::getBindValues)
+				.collect(Collectors.toList());
 		List<String> colNames = new ArrayList<>();
 		columnBindValues.forEach(e -> colNames.add(e.getColName()));
 		BasicTable basicTable = new BasicTable(colNames, arguments);
@@ -343,19 +398,69 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 	}
 
-	private List<Vector> createDFSArguments(boolean isBatch) throws SQLException {
-		if (!isBatch) {
-			int expectedRows = expectedInsertRows(false);
-			for (ColumnBindValue column : columnBindValues) {
-				while (column.getBindValues().rows() < expectedRows) {
-					appendNullToColumn(column);
+	private void fillNowColumns(int expectedRows) throws SQLException {
+		if (nowColumnIndexes == null || nowColumnIndexes.isEmpty())
+			return;
+		Entity serverNow;
+		try {
+			serverNow = connection.run("now()");
+		} catch (IOException e) {
+			throw new SQLException(e);
+		}
+		for (Integer colIdx : nowColumnIndexes) {
+			ColumnBindValue column = columnBindValues.get(colIdx);
+			Scalar nowScalar = convertServerNowToColumnType(serverNow, column);
+			Vector columnCol = column.getBindValues();
+			try {
+				while (columnCol.rows() < expectedRows) {
+					columnCol.Append(nowScalar);
 				}
+			} catch (Exception e) {
+				throw new SQLException(e);
 			}
 		}
+	}
 
-		return columnBindValues.stream()
-				.map(ColumnBindValue::getBindValues)
-				.collect(Collectors.toList());
+	private Scalar convertServerNowToColumnType(Entity serverNow, ColumnBindValue column) throws SQLException {
+		Entity.DATA_TYPE type = column.getType();
+		LocalDateTime dateTime;
+		try {
+			if (serverNow instanceof BasicTimestamp) {
+				dateTime = ((BasicTimestamp) serverNow).getTimestamp();
+			} else if (serverNow instanceof BasicDateTime) {
+				dateTime = ((BasicDateTime) serverNow).getDateTime();
+			} else if (serverNow instanceof BasicNanoTimestamp) {
+				Temporal temporal = ((BasicNanoTimestamp) serverNow).getTemporal();
+				dateTime = (LocalDateTime) temporal;
+			} else if (serverNow instanceof Scalar) {
+				Temporal temporal = ((Scalar) serverNow).getTemporal();
+				if (temporal instanceof LocalDateTime) {
+					dateTime = (LocalDateTime) temporal;
+				} else {
+					throw new SQLException("Unsupported server now() type: " + serverNow.getDataType());
+				}
+			} else {
+				throw new SQLException("Unsupported server now() type: " + serverNow.getClass().getName());
+			}
+		} catch (SQLException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new SQLException(e);
+		}
+		if (dateTime == null) {
+			throw new SQLException("server now() returned null");
+		}
+		switch (type) {
+			case DT_DATETIME:
+				return new BasicDateTime(dateTime);
+			case DT_TIMESTAMP:
+				return new BasicTimestamp(dateTime);
+			case DT_NANOTIMESTAMP:
+				return new BasicNanoTimestamp(dateTime);
+			default:
+				throw new SQLException("Column " + column.getColName()
+						+ " does not support now(); expected DATETIME, TIMESTAMP or NANOTIMESTAMP, got " + type);
+		}
 	}
 
 	@Override
