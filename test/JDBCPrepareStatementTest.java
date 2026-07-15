@@ -12876,6 +12876,52 @@ public class JDBCPrepareStatementTest {
         assertEquals(3, delete_rows0[0]);
     }
 
+    @Test
+    public void test_PreparedStatement_insert_into_now_executeBatch() throws SQLException {
+        createPartitionTable("TIMESTAMP");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,now())");
+        ps.setInt(1,1);
+        ps.addBatch();
+        ps.setInt(1,2);
+        ps.addBatch();
+        ps.setInt(1,3);
+        ps.addBatch();
+        ps.executeBatch();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertNotNull(rs.getObject("dataType"));
+        rs.next();
+        org.junit.Assert.assertNotNull(rs.getObject("dataType"));
+        rs.next();
+        org.junit.Assert.assertNotNull(rs.getObject("dataType"));
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_now_execute() throws SQLException {
+        createPartitionTable("TIMESTAMP");
+        PreparedStatement ps = conn.prepareStatement("insert into loadTable('dfs://test_append_type','pt') values(?,now())");
+        ps.setInt(1,1);
+        ps.execute();
+        ResultSet rs = ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertNotNull(rs.getObject("dataType"));
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_now_executeUpdate() throws SQLException {
+        Statement stmt = conn.createStatement();
+        stmt.execute("t= table( 1:0, `id`time1`time2`id2, [INT, TIMESTAMP, TIMESTAMP, INT]);");
+        PreparedStatement ps = conn.prepareStatement("insert into t values (?, now (),now( ),?);");
+        ps.setInt(1,1);
+        ps.setInt(2,2);
+        ps.executeUpdate();
+        ResultSet rs = ps.executeQuery("select * from t");
+        rs.next();
+        org.junit.Assert.assertEquals(1,rs.getObject("id"));
+        org.junit.Assert.assertNotNull(rs.getObject("time1"));
+        org.junit.Assert.assertNotNull(rs.getObject("time2"));
+    }
+
     @After
     public void Destroy(){
         LOGININFO = null;
