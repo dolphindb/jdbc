@@ -34,6 +34,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private int insertRowsPerExecution;
 	private int insertValueCountPerRow;
 	private int insertTotalParameterCount;
+	/** JAVAOS-1916: immutable native INSERT path chosen at construction. */
+	private boolean useNativeInsertPath;
+	private int[] nativeParameterPositions;
+	/** JDBC 参数（0-based）到目标 DolphinDB 列；表达式内部参数为 -1。 */
+	private int[] nativeParameterDdbIndexes;
 
 	public JDBCPrepareStatement(JDBCConnection conn, String sql) throws SQLException {
 		super(conn);
@@ -42,36 +47,66 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.preProcessedSql = preProcessSql(sql, conn);
 		String[] sqlSplit = preProcessedSql.split(";");
 		String lastStatement  = sqlSplit.length == 0 ? "" : sqlSplit[sqlSplit.length - 1].trim();
-		this.sqlDmlType = Utils.getDml(lastStatement);
+		int leadingDmlType = Utils.getDml(preProcessedSql);
+		this.sqlDmlType = leadingDmlType == Utils.DML_INSERT
+				? Utils.DML_INSERT
+				: Utils.getDml(lastStatement);
 		this.sqlBuffer = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
 		this.nowColumnIndexes = new HashSet<>();
 		this.insertRowsPerExecution = 1;
 		this.insertValueCountPerRow = 0;
 		this.insertTotalParameterCount = 0;
+		this.useNativeInsertPath = false;
+		this.nativeParameterPositions = new int[0];
+		this.nativeParameterDdbIndexes = new int[0];
 		boolean isInsert = this.sqlDmlType == Utils.DML_INSERT;
-		boolean hasPlaceholder = preProcessedSql.contains("?");
+		int[] realParameterPositions = isInsert
+				? Utils.findRealParameterPositions(preProcessedSql)
+				: new int[0];
+		boolean hasPlaceholder = isInsert
+				? realParameterPositions.length > 0
+				: preProcessedSql.contains("?");
 		// values(now()) has no '?'; still needs tableInsert path. Literal INSERT like
 		// values(1,100) must keep the legacy whole-SQL path (JAVAOS-624 / official no-placeholder tests).
 		boolean hasInsertNow = isInsert && Utils.containsPreparedInsertNow(preProcessedSql);
+		PreparedInsertAnalysis insertAnalysis = null;
+		if (isInsert && (preProcessedSql.contains("?") || hasInsertNow)) {
+			insertAnalysis = Utils.analyzePreparedInsert(preProcessedSql);
+			if (insertAnalysis.getKind() == PreparedInsertKind.INVALID_SQL)
+				throw new SQLException(insertAnalysis.getErrorMessage());
+		}
 		boolean usePreparedInsertPath = isInsert && (hasPlaceholder || hasInsertNow);
 		if (hasPlaceholder || hasInsertNow)
 			isPreparedStatement = true;
 		if (isPreparedStatement) {
 			if (usePreparedInsertPath) {
-				if (sqlSplit.length != 1)
-					throw new SQLException("The INSERT statement must be a standalone statement.");
+				PreparedInsertAnalysis analysis = insertAnalysis == null
+						? Utils.analyzePreparedInsert(preProcessedSql)
+						: insertAnalysis;
 
-				Utils.PreparedInsertInfo insertInfo = Utils.parsePreparedInsertInfo(preProcessedSql);
-				this.tableName = insertInfo.getTableName();
-				this.insertRowsPerExecution = insertInfo.getRowsPerExecution();
-				this.insertValueCountPerRow = insertInfo.getValueCountPerRow();
-				this.insertTotalParameterCount = insertInfo.getTotalParameterCount();
-				initColumnBindValues(this.tableName);
-				Utils.checkInsertSQLValid(preProcessedSql, columnBindValues.size());
-				buildInsertParamMapping(insertInfo);
+				if (analysis.getKind() == PreparedInsertKind.SERVER_SQL_REQUIRED) {
+					this.useNativeInsertPath = true;
+					this.tableName = analysis.getTableName();
+					this.insertRowsPerExecution = analysis.getRowsPerExecution();
+					this.insertValueCountPerRow = analysis.getValueCountPerRow();
+					this.insertTotalParameterCount = analysis.getParameterCount();
+					this.nativeParameterPositions = analysis.getParameterPositions();
+					initColumnBindValues(this.tableName);
+					this.nativeParameterDdbIndexes = buildNativeInsertParamMapping(analysis);
+					this.bufferArea = new BindValue[Math.max(insertTotalParameterCount, 0)];
+				} else {
+					Utils.PreparedInsertInfo insertInfo = Utils.parsePreparedInsertInfo(preProcessedSql);
+					this.tableName = insertInfo.getTableName();
+					this.insertRowsPerExecution = insertInfo.getRowsPerExecution();
+					this.insertValueCountPerRow = insertInfo.getValueCountPerRow();
+					this.insertTotalParameterCount = insertInfo.getTotalParameterCount();
+					initColumnBindValues(this.tableName);
+					Utils.checkInsertSQLValid(preProcessedSql, columnBindValues.size());
+					buildInsertParamMapping(insertInfo);
 
-				this.bufferArea = new BindValue[Math.max(insertTotalParameterCount, 0)];
+					this.bufferArea = new BindValue[Math.max(insertTotalParameterCount, 0)];
+				}
 			} else {
 				int size = 0;
 				for (int i = 0; i < preProcessedSql.length(); i++) {
@@ -121,6 +156,39 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 	}
 
+	private int[] buildNativeInsertParamMapping(PreparedInsertAnalysis analysis) throws SQLException {
+		if (!analysis.hasExplicitColumns()
+				&& analysis.getValueCountPerRow() != columnBindValues.size()) {
+			throw new SQLException("The number of table columns and the number of values do not match! Please check the SQL!");
+		}
+
+		Map<String, Integer> nameToDdb = new HashMap<>();
+		for (ColumnBindValue value : columnBindValues)
+			nameToDdb.put(value.getColName(), value.getIndex());
+
+		List<String> sqlColumns = analysis.getColumnNames();
+		if (analysis.hasExplicitColumns()) {
+			for (String column : sqlColumns) {
+				if (!nameToDdb.containsKey(column))
+					throw new SQLException("The column name " + column + " does not exist in table. ");
+			}
+		}
+
+		int[] sqlColumnIndexes = analysis.getParameterSqlColumnIndexes();
+		int[] ddbIndexes = new int[sqlColumnIndexes.length];
+		for (int i = 0; i < sqlColumnIndexes.length; i++) {
+			int sqlColumn = sqlColumnIndexes[i];
+			if (sqlColumn < 0) {
+				ddbIndexes[i] = -1;
+			} else if (analysis.hasExplicitColumns()) {
+				ddbIndexes[i] = nameToDdb.get(sqlColumns.get(sqlColumn));
+			} else {
+				ddbIndexes[i] = sqlColumn;
+			}
+		}
+		return ddbIndexes;
+	}
+
 	private void initColumnBindValues(String tableName) throws SQLException {
 		try {
 			this.columnBindValues = new ArrayList<>();
@@ -157,6 +225,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public int[] executeBatch() throws SQLException {
+		if (this.useNativeInsertPath)
+			throw new SQLFeatureNotSupportedException(
+					"Native prepared INSERT path does not support executeBatch(); use a multi-row VALUES template in one executeUpdate() instead.");
 		int[] executeRes = new int[this.batchSize];
 		try {
 			if (this.sqlDmlType == Utils.DML_INSERT)
@@ -183,38 +254,64 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private void bind(int paramIndex, Object obj) throws SQLException {
+		if (this.useNativeInsertPath) {
+			if (paramIndex < 1 || paramIndex > this.bufferArea.length)
+				throw new SQLException("paramIndex is out of range");
+			if (obj == null)
+				this.bufferArea[paramIndex - 1] = new BindValue(new Void(), true);
+			else {
+				int ddbIndex = nativeParameterDdbIndexes[paramIndex - 1];
+				Object value = ddbIndex < 0
+						? obj
+						: convertInsertValue(columnBindValues.get(ddbIndex), obj);
+				this.bufferArea[paramIndex - 1] = new BindValue(value, false);
+			}
+			return;
+		}
 		if (this.sqlDmlType == Utils.DML_INSERT) {
 			int index = getDataIndexBySQLIndex(paramIndex);
 			if(index >= this.columnBindValues.size())
 				throw new SQLException("The index of columnBindValues is out of range.");
 
-			Vector column = this.columnBindValues.get(index).getBindValues();
+			ColumnBindValue columnBindValue = this.columnBindValues.get(index);
+			Vector column = columnBindValue.getBindValues();
 			try {
-				if (obj instanceof Vector) {
-					column.Append((Vector) obj);
-				} else if (obj instanceof DolphinDBArray) {
-					column.Append(((DolphinDBArray) obj).getVector());
-				} else {
-					Entity data;
-					Entity.DATA_TYPE dataType = column.getDataType();
-					int scale = this.columnBindValues.get(index).getScale();
-					if (obj instanceof String) {
-						data = Utils.createScalar(dataType, (String) obj, scale);
-					} else if (obj instanceof String[]) {
-						data = Utils.createStringVector(dataType, (String[]) obj, scale);
-					} else {
-						data = BasicEntityFactory.createScalar(dataType, obj, scale);
-					}
-					if (data.isScalar())
-						column.Append((Scalar) data);
-					else
-						column.Append((Vector) data);
-				}
+				Entity data = convertInsertValue(columnBindValue, obj);
+				if (data.isScalar())
+					column.Append((Scalar) data);
+				else
+					column.Append((Vector) data);
 			} catch (Exception e) {
 				throw new SQLException(e);
 			}
 		} else {
 			bufferArea[paramIndex - 1] = new BindValue(obj, false);
+		}
+	}
+
+	private Entity convertInsertValue(ColumnBindValue columnBindValue, Object obj) throws SQLException {
+		try {
+			if (obj instanceof Vector)
+				return (Vector) obj;
+			if (obj instanceof DolphinDBArray)
+				return ((DolphinDBArray) obj).getVector();
+			Entity.DATA_TYPE dataType = columnBindValue.getType();
+			int scale = columnBindValue.getScale();
+			if (obj instanceof String)
+				return Utils.createScalar(dataType, (String) obj, scale);
+			if (obj instanceof String[])
+				return Utils.createStringVector(dataType, (String[]) obj, scale);
+			if (dataType == Entity.DATA_TYPE.DT_STRING || dataType == Entity.DATA_TYPE.DT_SYMBOL) {
+				String text = obj instanceof BigDecimal
+						? ((BigDecimal) obj).toPlainString()
+						: String.valueOf(obj);
+				return Utils.createScalar(dataType, text, scale);
+			}
+			return BasicEntityFactory.createScalar(dataType, obj, scale);
+		} catch (Exception e) {
+			if (e instanceof SQLException)
+				throw (SQLException) e;
+			throw new SQLException(e);
 		}
 	}
 
@@ -239,6 +336,12 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private void bindNull(int paramIndex) throws SQLException {
+		if (this.useNativeInsertPath) {
+			if (paramIndex < 1 || paramIndex > this.bufferArea.length)
+				throw new SQLException("paramIndex is out of range");
+			this.bufferArea[paramIndex - 1] = new BindValue(new Void(), true);
+			return;
+		}
 		int index = getDataIndexBySQLIndex(paramIndex);
 		if (this.sqlDmlType == Utils.DML_INSERT) {
 			Vector column = this.columnBindValues.get(index).getBindValues();
@@ -345,6 +448,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public int executeUpdate() throws SQLException {
 		try {
 			if (isPreparedStatement) {
+				if (this.useNativeInsertPath) {
+					return executeNativeInsertUpdate();
+				}
 				combineOneRowData(false);
 				if (this.sqlDmlType == Utils.DML_INSERT) {
 					return tableAppend(false)[0];
@@ -363,11 +469,44 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			} else {
 				return super.executeUpdate(sqlBuffer.get(0));
 			}
+		} catch (SQLException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new SQLException(e);
 		} finally {
 			clearBatch();
 		}
+	}
+
+	/**
+	 * JAVAOS-1916 native INSERT path: bind parameters into SQL text and run via
+	 * {@link #executeUpdateWithRowCount(String)} (never {@code Statement.executeUpdate},
+	 * which rewrites non-memory INSERT to temp-table + append!).
+	 * Failures are not retried on the tableInsert path.
+	 */
+	private int executeNativeInsertUpdate() throws SQLException {
+		connection.ensureNativeInsertAllowed(this.tableName);
+		String finalizedSql = Utils.renderSqlWithBoundParameters(
+				this.preProcessedSql, this.nativeParameterPositions, this.bufferArea);
+		if (super.getQueryTimeout() > 0) {
+			Future<Integer> future = executorService.submit(() -> super.executeUpdateWithRowCount(finalizedSql));
+			try {
+				return future.get(super.getQueryTimeout(), TimeUnit.SECONDS);
+			} catch (TimeoutException e) {
+				future.cancel(true);
+				cancelJobOperation();
+				throw new SQLTimeoutException("PrepareStatement execute update timed out after "
+						+ super.getQueryTimeout() + " seconds.", e);
+			} catch (SQLException e) {
+				throw e;
+			} catch (Exception e) {
+				Throwable cause = e.getCause() != null ? e.getCause() : e;
+				if (cause instanceof SQLException)
+					throw (SQLException) cause;
+				throw new SQLException(cause);
+			}
+		}
+		return super.executeUpdateWithRowCount(finalizedSql);
 	}
 
 	private int[] tableAppend(boolean isBatch) throws SQLException {
@@ -465,6 +604,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setNull(int parameterIndex, int sqlType) throws SQLException {
+		if (this.useNativeInsertPath) {
+			bindNull(parameterIndex);
+			return;
+		}
 		if (this.sqlDmlType == Utils.DML_INSERT) {
 			bindNull(parameterIndex);
 		} else {
@@ -635,6 +778,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void addBatch() throws SQLException {
+		if (this.useNativeInsertPath)
+			throw new SQLFeatureNotSupportedException(
+					"Native prepared INSERT path does not support addBatch(); use a multi-row VALUES template in one executeUpdate() instead.");
 		this.batchSize++;
 		combineOneRowData(true);
 	}

@@ -1034,6 +1034,256 @@ public class Utils {
         return parts;
     }
 
+    /** JAVAOS-1916 分析专用：顶层逗号切分时忽略注释中的标点。 */
+    private static List<String> splitTopLevelCommaForAnalysis(String text) {
+        List<String> parts = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        int depth = 0;
+        char quote = 0;
+        int backslashCount = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char chr = text.charAt(i);
+            if (quote != 0) {
+                current.append(chr);
+                if (quote == '`') {
+                    if (chr == '`')
+                        quote = 0;
+                } else {
+                    int previousBackslashCount = backslashCount;
+                    if (chr == '\\')
+                        backslashCount++;
+                    else
+                        backslashCount = 0;
+                    if (chr == quote && previousBackslashCount % 2 == 0)
+                        quote = 0;
+                }
+                continue;
+            }
+            if (chr == '-' && i + 1 < text.length() && text.charAt(i + 1) == '-') {
+                int end = skipLineComment(text, i);
+                current.append(text, i, end);
+                i = end - 1;
+            } else if (chr == '/' && i + 1 < text.length() && text.charAt(i + 1) == '/') {
+                int end = skipLineComment(text, i);
+                current.append(text, i, end);
+                i = end - 1;
+            } else if (chr == '/' && i + 1 < text.length() && text.charAt(i + 1) == '*') {
+                int end = skipBlockComment(text, i);
+                if (end < 0)
+                    return Collections.emptyList();
+                current.append(text, i, end);
+                i = end - 1;
+            } else if (isStringChar(chr)) {
+                quote = chr;
+                backslashCount = 0;
+                current.append(chr);
+            } else if (chr == '(') {
+                depth++;
+                current.append(chr);
+            } else if (chr == ')') {
+                depth--;
+                if (depth < 0)
+                    return Collections.emptyList();
+                current.append(chr);
+            } else if (chr == ',' && depth == 0) {
+                String part = current.toString().trim();
+                if (part.isEmpty())
+                    return Collections.emptyList();
+                parts.add(part);
+                current.setLength(0);
+            } else {
+                current.append(chr);
+            }
+        }
+        if (quote != 0 || depth != 0)
+            return Collections.emptyList();
+        String part = current.toString().trim();
+        if (part.isEmpty())
+            return Collections.emptyList();
+        parts.add(part);
+        return parts;
+    }
+
+    private enum AnalyzedSlotKind {
+        PLACEHOLDER,
+        NOW,
+        EXPRESSION
+    }
+
+    /**
+     * 分析 Prepared INSERT 模板，区分 tableInsert 可物化、需 server 原生 SQL、与结构非法三类。
+     * 不修改 {@link #parsePreparedInsertInfo}；字符串/注释中的 {@code ?} 不计为参数。
+     */
+    public static PreparedInsertAnalysis analyzePreparedInsert(String sql) {
+        if (sql == null || sql.trim().isEmpty())
+            return PreparedInsertAnalysis.invalid(sql, "Please check your SQL format: " + sql);
+
+        String source = sql.trim();
+        ParameterScanResult parameterScan = scanRealParameterPositions(source);
+        if (!parameterScan.valid)
+            return PreparedInsertAnalysis.invalid(source, null);
+        AnalysisCursor cursor = new AnalysisCursor(source);
+        if (!cursor.consumeKeyword("insert") || !cursor.consumeKeyword("into"))
+            return PreparedInsertAnalysis.invalid(source, null);
+
+        String tableName = cursor.readTableName();
+        if (tableName == null || tableName.isEmpty())
+            return PreparedInsertAnalysis.invalid(source, null);
+
+        List<String> columnNames = Collections.emptyList();
+        cursor.skipWhitespaceAndComments();
+        if (!cursor.nextKeywordIs("values")) {
+            String columnSection = cursor.readParenthesized();
+            if (columnSection == null)
+                return PreparedInsertAnalysis.invalid(source, null);
+            columnNames = parseInsertColumnNames(columnSection);
+            if (columnNames.isEmpty())
+                return PreparedInsertAnalysis.invalid(source, null);
+        }
+
+        if (!cursor.consumeKeyword("values"))
+            return PreparedInsertAnalysis.invalid(source, null);
+
+        List<List<AnalyzedSlotKind>> rowSlotKinds = new ArrayList<>();
+        List<Integer> parameterSqlColumnIndexes = new ArrayList<>();
+        int rowWidth = -1;
+        int rowCount = 0;
+        while (true) {
+            String valueSection = cursor.readParenthesized();
+            if (valueSection == null)
+                return PreparedInsertAnalysis.invalid(source, null);
+
+            List<String> values = splitTopLevelCommaForAnalysis(valueSection);
+            if (values.isEmpty())
+                return PreparedInsertAnalysis.invalid(source, null);
+
+            List<AnalyzedSlotKind> kinds = new ArrayList<>(values.size());
+            for (int sqlColumn = 0; sqlColumn < values.size(); sqlColumn++) {
+                String value = values.get(sqlColumn);
+                AnalyzedSlotKind kind = classifyAnalyzedSlot(value);
+                if (kind == null)
+                    return PreparedInsertAnalysis.invalid(source, null);
+                kinds.add(kind);
+                ParameterScanResult slotScan = scanRealParameterPositions(value);
+                if (!slotScan.valid)
+                    return PreparedInsertAnalysis.invalid(source, null);
+                for (int ignored : slotScan.positions) {
+                    parameterSqlColumnIndexes.add(kind == AnalyzedSlotKind.PLACEHOLDER ? sqlColumn : -1);
+                }
+            }
+            if (rowWidth < 0) {
+                rowWidth = values.size();
+            } else if (rowWidth != values.size()) {
+                return PreparedInsertAnalysis.invalid(source, null);
+            }
+            rowSlotKinds.add(kinds);
+            rowCount++;
+
+            cursor.skipWhitespaceAndComments();
+            if (cursor.isAtEnd())
+                break;
+            if (!cursor.consume(','))
+                return PreparedInsertAnalysis.invalid(source, null);
+        }
+
+        if (rowWidth <= 0 || rowCount == 0)
+            return PreparedInsertAnalysis.invalid(source, null);
+
+        if (!columnNames.isEmpty() && columnNames.size() != rowWidth)
+            return PreparedInsertAnalysis.invalid(source,
+                    "The number of columns and the number of values do not match! Please check the SQL!");
+
+        int[] parameterPositions = parameterScan.positions;
+        int[] parameterColumns = new int[parameterSqlColumnIndexes.size()];
+        for (int i = 0; i < parameterColumns.length; i++)
+            parameterColumns[i] = parameterSqlColumnIndexes.get(i);
+        if (parameterColumns.length != parameterPositions.length)
+            return PreparedInsertAnalysis.invalid(source, null);
+        boolean tableInsertCompatible = isTableInsertCompatible(rowSlotKinds);
+        PreparedInsertKind kind = tableInsertCompatible
+                ? PreparedInsertKind.TABLE_INSERT_COMPATIBLE
+                : PreparedInsertKind.SERVER_SQL_REQUIRED;
+        return PreparedInsertAnalysis.of(kind, stripIdentifierQuotes(tableName), columnNames, rowWidth, rowCount,
+                parameterPositions, parameterColumns);
+    }
+
+    private static boolean isTableInsertCompatible(List<List<AnalyzedSlotKind>> rowSlotKinds) {
+        if (rowSlotKinds.isEmpty())
+            return false;
+        List<AnalyzedSlotKind> first = rowSlotKinds.get(0);
+        for (AnalyzedSlotKind slot : first) {
+            if (slot != AnalyzedSlotKind.PLACEHOLDER && slot != AnalyzedSlotKind.NOW)
+                return false;
+        }
+        for (int i = 1; i < rowSlotKinds.size(); i++) {
+            if (!first.equals(rowSlotKinds.get(i)))
+                return false;
+        }
+        return true;
+    }
+
+    /** {@code null} 表示空槽位（非法）。 */
+    private static AnalyzedSlotKind classifyAnalyzedSlot(String raw) {
+        String trimmed = stripSlotComments(raw).trim();
+        if (trimmed.isEmpty())
+            return null;
+        if ("?".equals(trimmed))
+            return AnalyzedSlotKind.PLACEHOLDER;
+        if (PREPARED_INSERT_NOW_SLOT_PATTERN.matcher(trimmed).matches())
+            return AnalyzedSlotKind.NOW;
+        return AnalyzedSlotKind.EXPRESSION;
+    }
+
+    private static String stripSlotComments(String raw) {
+        if (raw == null || raw.isEmpty())
+            return "";
+        StringBuilder result = new StringBuilder(raw.length());
+        char quote = 0;
+        int backslashCount = 0;
+        for (int i = 0; i < raw.length(); i++) {
+            char chr = raw.charAt(i);
+            if (quote != 0) {
+                result.append(chr);
+                if (quote == '`') {
+                    if (chr == '`')
+                        quote = 0;
+                } else {
+                    int previousBackslashCount = backslashCount;
+                    if (chr == '\\')
+                        backslashCount++;
+                    else
+                        backslashCount = 0;
+                    if (chr == quote && previousBackslashCount % 2 == 0)
+                        quote = 0;
+                }
+            } else if (chr == '\'' || chr == '"' || chr == '`') {
+                quote = chr;
+                result.append(chr);
+            } else if (chr == '-' && i + 1 < raw.length() && raw.charAt(i + 1) == '-') {
+                i = skipLineComment(raw, i) - 1;
+                result.append(' ');
+            } else if (chr == '/' && i + 1 < raw.length() && raw.charAt(i + 1) == '/') {
+                i = skipLineComment(raw, i) - 1;
+                result.append(' ');
+            } else if (chr == '/' && i + 1 < raw.length() && raw.charAt(i + 1) == '*') {
+                int end = skipBlockComment(raw, i);
+                if (end < 0)
+                    return "";
+                i = end - 1;
+                result.append(' ');
+            } else {
+                result.append(chr);
+            }
+        }
+        return result.toString();
+    }
+
+    /**
+     * tableInsert Prepared INSERT 的兼容解析结果。
+     *
+     * <p>该类型必须保留为 {@code Utils.PreparedInsertInfo}，否则会改变
+     * {@link #parsePreparedInsertInfo(String)} 的 JVM 方法描述符，破坏旧调用方的二进制兼容。</p>
+     */
     public static class PreparedInsertInfo {
         private final String tableName;
         private final List<String> columnNames;
@@ -1094,7 +1344,7 @@ public class Utils {
             return slotKinds;
         }
 
-        /** JDBC 稠密参数下标（0-based，仅计 {@code ?}）→ 该行内 SQL 列序号。 */
+        /** JDBC 稠密参数下标（0-based，仅计 {@code ?}）到该行内 SQL 列序号。 */
         public int getPlaceholderSqlColumnIndex(int denseParamIndex0Based) {
             int withinRow = denseParamIndex0Based % placeholderCountPerRow;
             return denseParamToSqlColumn[withinRow];
@@ -1118,6 +1368,319 @@ public class Utils {
 
         public String getValueQuestionString() {
             return valueQuestionString;
+        }
+    }
+
+    /**
+     * 扫描 SQL 中真实参数标记位置（跳过字符串、反引号标识符与注释中的 {@code ?}）。
+     */
+    public static int[] findRealParameterPositions(String sql) {
+        return scanRealParameterPositions(sql).positions;
+    }
+
+    private static ParameterScanResult scanRealParameterPositions(String sql) {
+        if (sql == null || sql.isEmpty())
+            return new ParameterScanResult(new int[0], true);
+        List<Integer> positions = new ArrayList<>();
+        int i = 0;
+        while (i < sql.length()) {
+            char chr = sql.charAt(i);
+            if (chr == '-' && i + 1 < sql.length() && sql.charAt(i + 1) == '-') {
+                i = skipLineComment(sql, i);
+                continue;
+            }
+            if (chr == '/' && i + 1 < sql.length() && sql.charAt(i + 1) == '/') {
+                i = skipLineComment(sql, i);
+                continue;
+            }
+            if (chr == '/' && i + 1 < sql.length() && sql.charAt(i + 1) == '*') {
+                int end = skipBlockComment(sql, i);
+                if (end < 0)
+                    return new ParameterScanResult(toIntArray(positions), false);
+                i = end;
+                continue;
+            }
+            if (chr == '\'' || chr == '"' || chr == '`') {
+                int end = skipQuotedLiteral(sql, i, chr);
+                if (end < 0)
+                    return new ParameterScanResult(toIntArray(positions), false);
+                i = end;
+                continue;
+            }
+            if (chr == '?')
+                positions.add(i);
+            i++;
+        }
+        return new ParameterScanResult(toIntArray(positions), true);
+    }
+
+    private static int[] toIntArray(List<Integer> values) {
+        int[] result = new int[values.size()];
+        for (int i = 0; i < values.size(); i++)
+            result[i] = values.get(i);
+        return result;
+    }
+
+    private static class ParameterScanResult {
+        private final int[] positions;
+        private final boolean valid;
+
+        private ParameterScanResult(int[] positions, boolean valid) {
+            this.positions = positions;
+            this.valid = valid;
+        }
+    }
+
+    private static int skipLineComment(String sql, int start) {
+        int i = start + 2;
+        while (i < sql.length() && sql.charAt(i) != '\n')
+            i++;
+        return i < sql.length() ? i + 1 : i;
+    }
+
+    private static int skipBlockComment(String sql, int start) {
+        int i = start + 2;
+        while (i + 1 < sql.length()) {
+            if (sql.charAt(i) == '*' && sql.charAt(i + 1) == '/')
+                return i + 2;
+            i++;
+        }
+        return -1;
+    }
+
+    private static int skipQuotedLiteral(String sql, int start, char quote) {
+        int i = start + 1;
+        if (quote == '`') {
+            while (i < sql.length()) {
+                if (sql.charAt(i) == '`')
+                    return i + 1;
+                i++;
+            }
+            return -1;
+        }
+        int backslashCount = 0;
+        while (i < sql.length()) {
+            char chr = sql.charAt(i);
+            int previousBackslashCount = backslashCount;
+            if (chr == '\\')
+                backslashCount++;
+            else
+                backslashCount = 0;
+            if (chr == quote && previousBackslashCount % 2 == 0)
+                return i + 1;
+            i++;
+        }
+        return -1;
+    }
+
+    /**
+     * 按真实参数位置将绑定值替换进 SQL；{@code null}/显式 null 绑定编码为 {@code NULL}。
+     */
+    public static String renderSqlWithBoundParameters(String sql, int[] parameterPositions, BindValue[] binds)
+            throws SQLException {
+        if (sql == null)
+            throw new SQLException("sql is null");
+        if (parameterPositions == null)
+            parameterPositions = new int[0];
+        if (binds == null)
+            binds = new BindValue[0];
+        if (parameterPositions.length != binds.length)
+            throw new SQLException("Parameter count mismatch: expected " + parameterPositions.length
+                    + " bind values, got " + binds.length);
+
+        if (parameterPositions.length == 0)
+            return sql;
+
+        StringBuilder out = new StringBuilder(sql.length() + 32);
+        int copyFrom = 0;
+        for (int i = 0; i < parameterPositions.length; i++) {
+            int pos = parameterPositions[i];
+            if (pos < copyFrom || pos >= sql.length() || sql.charAt(pos) != '?')
+                throw new SQLException("Invalid parameter position " + pos + " in SQL");
+            out.append(sql, copyFrom, pos);
+            BindValue bind = binds[i];
+            if (bind == null)
+                throw new SQLException("No value specified for parameter " + (i + 1));
+            if (bind.isNull() || bind.getValue() == null) {
+                out.append("NULL");
+            } else {
+                out.append(TypeCast.castDbString(bind.getValue()));
+            }
+            copyFrom = pos + 1;
+        }
+        out.append(sql, copyFrom, sql.length());
+        return out.toString();
+    }
+
+    /**
+     * Comment-aware INSERT 结构游标（JAVAOS-1916）；与 {@link InsertParseCursor} 分离，
+     * 避免改变既有 tableInsert 解析行为。
+     */
+    private static class AnalysisCursor {
+        private final String sql;
+        private int pos;
+
+        AnalysisCursor(String sql) {
+            this.sql = sql == null ? "" : sql;
+        }
+
+        void skipWhitespaceAndComments() {
+            while (pos < sql.length()) {
+                char chr = sql.charAt(pos);
+                if (Character.isWhitespace(chr)) {
+                    pos++;
+                    continue;
+                }
+                if (chr == '-' && pos + 1 < sql.length() && sql.charAt(pos + 1) == '-') {
+                    pos = skipLineComment(sql, pos);
+                    continue;
+                }
+                if (chr == '/' && pos + 1 < sql.length() && sql.charAt(pos + 1) == '/') {
+                    pos = skipLineComment(sql, pos);
+                    continue;
+                }
+                if (chr == '/' && pos + 1 < sql.length() && sql.charAt(pos + 1) == '*') {
+                    int end = skipBlockComment(sql, pos);
+                    pos = end < 0 ? sql.length() : end;
+                    continue;
+                }
+                break;
+            }
+        }
+
+        boolean isAtEnd() {
+            skipWhitespaceAndComments();
+            return pos == sql.length();
+        }
+
+        boolean consume(char chr) {
+            skipWhitespaceAndComments();
+            if (pos < sql.length() && sql.charAt(pos) == chr) {
+                pos++;
+                return true;
+            }
+            return false;
+        }
+
+        boolean consumeKeyword(String keyword) {
+            skipWhitespaceAndComments();
+            if (!nextKeywordIs(keyword))
+                return false;
+            pos += keyword.length();
+            return true;
+        }
+
+        boolean nextKeywordIs(String keyword) {
+            skipWhitespaceAndComments();
+            if (pos + keyword.length() > sql.length())
+                return false;
+            if (!sql.regionMatches(true, pos, keyword, 0, keyword.length()))
+                return false;
+            int end = pos + keyword.length();
+            return end == sql.length() || !isKeyChar(sql.charAt(end));
+        }
+
+        String readTableName() {
+            skipWhitespaceAndComments();
+            if (pos >= sql.length())
+                return null;
+
+            if (sql.regionMatches(true, pos, "loadTable", 0, "loadTable".length())) {
+                int nameStart = pos;
+                pos += "loadTable".length();
+                skipWhitespaceAndComments();
+                if (pos >= sql.length() || sql.charAt(pos) != '(')
+                    return null;
+                int end = findMatchingParen(pos, false);
+                if (end < 0)
+                    return null;
+                pos = end + 1;
+                return sql.substring(nameStart, pos);
+            }
+
+            char first = sql.charAt(pos);
+            if (first == '`') {
+                int end = sql.indexOf('`', pos + 1);
+                if (end < 0)
+                    return null;
+                String tableName = sql.substring(pos, end + 1);
+                pos = end + 1;
+                return tableName;
+            }
+
+            if (!Character.isLetter(first))
+                return null;
+            int start = pos;
+            pos++;
+            while (pos < sql.length() && (Character.isLetterOrDigit(sql.charAt(pos)) || sql.charAt(pos) == '_'))
+                pos++;
+            return sql.substring(start, pos);
+        }
+
+        String readParenthesized() {
+            skipWhitespaceAndComments();
+            if (pos >= sql.length() || sql.charAt(pos) != '(')
+                return null;
+            int start = pos;
+            int end = findMatchingParen(start, true);
+            if (end < 0)
+                return null;
+            pos = end + 1;
+            return sql.substring(start + 1, end);
+        }
+
+        private int findMatchingParen(int openIndex, boolean honorBacktickQuote) {
+            int depth = 0;
+            char quote = 0;
+            int backslashCount = 0;
+            for (int i = openIndex; i < sql.length(); i++) {
+                char chr = sql.charAt(i);
+                if (quote != 0) {
+                    if (quote == '`') {
+                        if (chr == '`')
+                            quote = 0;
+                    } else {
+                        int previousBackslashCount = backslashCount;
+                        if (chr == '\\')
+                            backslashCount++;
+                        else
+                            backslashCount = 0;
+                        if (chr == quote && previousBackslashCount % 2 == 0)
+                            quote = 0;
+                    }
+                    continue;
+                }
+
+                if (chr == '-' && i + 1 < sql.length() && sql.charAt(i + 1) == '-') {
+                    i = skipLineComment(sql, i) - 1;
+                    continue;
+                }
+                if (chr == '/' && i + 1 < sql.length() && sql.charAt(i + 1) == '/') {
+                    i = skipLineComment(sql, i) - 1;
+                    continue;
+                }
+                if (chr == '/' && i + 1 < sql.length() && sql.charAt(i + 1) == '*') {
+                    int end = skipBlockComment(sql, i);
+                    if (end < 0)
+                        return -1;
+                    i = end - 1;
+                    continue;
+                }
+
+                if (chr == '\'' || chr == '"' || (honorBacktickQuote && chr == '`')) {
+                    quote = chr;
+                    backslashCount = 0;
+                } else if (chr == '(') {
+                    depth++;
+                } else if (chr == ')') {
+                    depth--;
+                    if (depth == 0)
+                        return i;
+                    if (depth < 0)
+                        return -1;
+                }
+            }
+            return -1;
         }
     }
 
