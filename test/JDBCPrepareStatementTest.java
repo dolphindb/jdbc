@@ -12922,6 +12922,75 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertNotNull(rs.getObject("time2"));
     }
 
+    @Test //not support
+    public void test_PreparedStatement_insert_into_function_executeBatch() throws SQLException {
+        createPartitionTable("TIMESTAMP");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,now().format('yyyy.MM.dd HH:mm:ss'))");
+        ps.setInt(1,1);
+        String re = null;
+        try {
+            ps.addBatch();
+        } catch (Exception e) {
+            re = e.getMessage();
+        }
+        org.junit.Assert.assertEquals("Native prepared INSERT path does not support addBatch(); use a multi-row VALUES template in one executeUpdate() instead.",re);
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_function_execute() throws SQLException {
+        createPartitionTable("TIMESTAMP");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,now().format('yyyy.MM.dd HH:mm:ss'))");
+        ps.setInt(1,1);
+        ps.execute();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertNotNull(rs.getObject("dataType"));
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_function_executeUpdate() throws SQLException {
+        createPartitionTable("TIMESTAMP");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,now().format('yyyy.MM.dd HH:mm:ss'))");
+        ps.setInt(1,1);
+        ps.executeUpdate();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertNotNull(rs.getObject("dataType"));
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_function_prepare_execute() throws SQLException {
+        createPartitionTable("TIMESTAMP");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        stm.execute("def data_format(x,y){return x.format(y)}");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,data_format(?,'yyyy.MM.dd HH:mm:ss'))");
+        ps.setInt(1,1);
+        LocalDateTime tmp_timestamp = LocalDateTime.of(2021,1,1,1,1,1,001);
+        ps.setObject(2, tmp_timestamp);
+        ps.execute();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("2021-01-01T01:01:01", rs.getObject("dataType").toString());
+    }
+
+    @Test
+    public void test_PreparedStatement_insert_into_function_prepare_executeUpdate() throws SQLException {
+        createPartitionTable("TIMESTAMP");
+        stm.execute("pt=loadTable('dfs://test_append_type','pt')");
+        stm.execute("def data_format(x,y){return x.format(y)}");
+        PreparedStatement ps = conn.prepareStatement("insert into pt values(?,data_format(?,'yyyy.MM.dd HH:mm:ss'))");
+        ps.setInt(1,1);
+        LocalDateTime tmp_timestamp = LocalDateTime.of(2021,1,1,1,1,1,001);
+        ps.setObject(2, tmp_timestamp);
+        ps.executeUpdate();
+        JDBCResultSet rs = (JDBCResultSet)ps.executeQuery("select * from loadTable('dfs://test_append_type','pt')");
+        rs.next();
+        org.junit.Assert.assertEquals("2021-01-01T01:01:01", rs.getObject("dataType").toString());
+    }
+
     @After
     public void Destroy(){
         LOGININFO = null;
