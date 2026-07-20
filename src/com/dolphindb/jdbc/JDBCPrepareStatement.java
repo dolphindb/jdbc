@@ -61,62 +61,58 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.nativeParameterPositions = new int[0];
 		this.nativeParameterDdbIndexes = new int[0];
 		boolean isInsert = this.sqlDmlType == Utils.DML_INSERT;
-		int[] realParameterPositions = isInsert
-				? Utils.findRealParameterPositions(preProcessedSql)
-				: new int[0];
-		boolean hasPlaceholder = isInsert
-				? realParameterPositions.length > 0
-				: preProcessedSql.contains("?");
-		// values(now()) has no '?'; still needs tableInsert path. Literal INSERT like
-		// values(1,100) must keep the legacy whole-SQL path (JAVAOS-624 / official no-placeholder tests).
-		boolean hasInsertNow = isInsert && Utils.containsPreparedInsertNow(preProcessedSql);
-		PreparedInsertAnalysis insertAnalysis = null;
-		if (isInsert && (preProcessedSql.contains("?") || hasInsertNow)) {
-			insertAnalysis = Utils.analyzePreparedInsert(preProcessedSql);
-			if (insertAnalysis.getKind() == PreparedInsertKind.INVALID_SQL)
-				throw new SQLException(insertAnalysis.getErrorMessage());
-		}
-		boolean usePreparedInsertPath = isInsert && (hasPlaceholder || hasInsertNow);
-		if (hasPlaceholder || hasInsertNow)
-			isPreparedStatement = true;
-		if (isPreparedStatement) {
-			if (usePreparedInsertPath) {
-				PreparedInsertAnalysis analysis = insertAnalysis == null
-						? Utils.analyzePreparedInsert(preProcessedSql)
-						: insertAnalysis;
-
-				if (analysis.getKind() == PreparedInsertKind.SERVER_SQL_REQUIRED) {
-					this.useNativeInsertPath = true;
-					this.tableName = analysis.getTableName();
-					this.insertRowsPerExecution = analysis.getRowsPerExecution();
-					this.insertValueCountPerRow = analysis.getValueCountPerRow();
-					this.insertTotalParameterCount = analysis.getParameterCount();
-					this.nativeParameterPositions = analysis.getParameterPositions();
-					initColumnBindValues(this.tableName);
-					this.nativeParameterDdbIndexes = buildNativeInsertParamMapping(analysis);
-					this.bufferArea = new BindValue[Math.max(insertTotalParameterCount, 0)];
-				} else {
-					Utils.PreparedInsertInfo insertInfo = Utils.parsePreparedInsertInfo(preProcessedSql);
-					this.tableName = insertInfo.getTableName();
-					this.insertRowsPerExecution = insertInfo.getRowsPerExecution();
-					this.insertValueCountPerRow = insertInfo.getValueCountPerRow();
-					this.insertTotalParameterCount = insertInfo.getTotalParameterCount();
-					initColumnBindValues(this.tableName);
-					Utils.checkInsertSQLValid(preProcessedSql, columnBindValues.size());
-					buildInsertParamMapping(insertInfo);
-
-					this.bufferArea = new BindValue[Math.max(insertTotalParameterCount, 0)];
-				}
-			} else {
-				int size = 0;
-				for (int i = 0; i < preProcessedSql.length(); i++) {
-					char ch = preProcessedSql.charAt(i);
-					if(ch == '?')
-						size++;
-				}
-
-				bufferArea = new BindValue[size];
+		// INSERT: prefer legacy parsePreparedInsertInfo; analyzePreparedInsert only as fallback.
+		// Non-INSERT: keep naive '?' counting for parameter buffer sizing.
+		if (isInsert) {
+			int[] realParameterPositions = Utils.findRealParameterPositions(preProcessedSql);
+			Utils.PreparedInsertInfo insertInfo = null;
+			SQLException parseFailure = null;
+			try {
+				insertInfo = Utils.parsePreparedInsertInfo(preProcessedSql);
+			} catch (SQLException e) {
+				parseFailure = e;
 			}
+			if (insertInfo != null) {
+				// values(?)/values(now())/multi-row → tableInsert; do not call analyzePreparedInsert.
+				isPreparedStatement = true;
+				this.tableName = insertInfo.getTableName();
+				this.insertRowsPerExecution = insertInfo.getRowsPerExecution();
+				this.insertValueCountPerRow = insertInfo.getValueCountPerRow();
+				this.insertTotalParameterCount = insertInfo.getTotalParameterCount();
+				initColumnBindValues(this.tableName);
+				Utils.checkInsertSQLValid(preProcessedSql, columnBindValues.size());
+				buildInsertParamMapping(insertInfo);
+				this.bufferArea = new BindValue[Math.max(insertTotalParameterCount, 0)];
+			} else if (realParameterPositions.length > 0) {
+				// Expression templates (DATE_FORMAT(?), ?+1, ...) → native INSERT when structure is valid.
+				PreparedInsertAnalysis analysis = Utils.analyzePreparedInsert(preProcessedSql);
+				if (analysis.getKind() == PreparedInsertKind.INVALID_SQL)
+					throw new SQLException(analysis.getErrorMessage() != null
+							? analysis.getErrorMessage()
+							: (parseFailure != null ? parseFailure.getMessage() : "Please check your SQL format: " + preProcessedSql));
+				isPreparedStatement = true;
+				this.useNativeInsertPath = true;
+				this.tableName = analysis.getTableName();
+				this.insertRowsPerExecution = analysis.getRowsPerExecution();
+				this.insertValueCountPerRow = analysis.getValueCountPerRow();
+				this.insertTotalParameterCount = analysis.getParameterCount();
+				this.nativeParameterPositions = analysis.getParameterPositions();
+				initColumnBindValues(this.tableName);
+				this.nativeParameterDdbIndexes = buildNativeInsertParamMapping(analysis);
+				this.bufferArea = new BindValue[Math.max(insertTotalParameterCount, 0)];
+			} else {
+				// Literal INSERT (incl. string/comment '?' only, or values(1, now())) → whole-SQL path.
+				this.sqlBuffer.add(preProcessedSql);
+			}
+		} else if (preProcessedSql.contains("?")) {
+			isPreparedStatement = true;
+			int size = 0;
+			for (int i = 0; i < preProcessedSql.length(); i++) {
+				char ch = preProcessedSql.charAt(i);
+				if (ch == '?')
+					size++;
+			}
+			bufferArea = new BindValue[size];
 		} else {
 			this.sqlBuffer.add(preProcessedSql);
 		}
@@ -263,7 +259,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				int ddbIndex = nativeParameterDdbIndexes[paramIndex - 1];
 				Object value = ddbIndex < 0
 						? obj
-						: convertInsertValue(columnBindValues.get(ddbIndex), obj);
+						: convertNativeDirectInsertValue(columnBindValues.get(ddbIndex), obj);
 				this.bufferArea[paramIndex - 1] = new BindValue(value, false);
 			}
 			return;
@@ -289,6 +285,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 	}
 
+	/**
+	 * tableInsert 路径的类型转换：与 api-java {@link BasicEntityFactory} 契约一致，
+	 * 不含原生路径专属特例（如 BigDecimal→STRING）。
+	 */
 	private Entity convertInsertValue(ColumnBindValue columnBindValue, Object obj) throws SQLException {
 		try {
 			if (obj instanceof Vector)
@@ -301,18 +301,32 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				return Utils.createScalar(dataType, (String) obj, scale);
 			if (obj instanceof String[])
 				return Utils.createStringVector(dataType, (String[]) obj, scale);
-			if (dataType == Entity.DATA_TYPE.DT_STRING || dataType == Entity.DATA_TYPE.DT_SYMBOL) {
-				String text = obj instanceof BigDecimal
-						? ((BigDecimal) obj).toPlainString()
-						: String.valueOf(obj);
-				return Utils.createScalar(dataType, text, scale);
-			}
 			return BasicEntityFactory.createScalar(dataType, obj, scale);
 		} catch (Exception e) {
 			if (e instanceof SQLException)
 				throw (SQLException) e;
 			throw new SQLException(e);
 		}
+	}
+
+	/**
+	 * 原生 INSERT 直接槽位（VALUES 本身是 {@code ?}）的转换。
+	 * 仅 BigDecimal→DT_STRING 用 {@code toPlainString()}；其余委托 {@link #convertInsertValue}，
+	 * 因此 BigDecimal→SYMBOL 仍拒绝，Integer→SYMBOL 仍由 BasicEntityFactory 处理。
+	 */
+	private Entity convertNativeDirectInsertValue(ColumnBindValue columnBindValue, Object obj) throws SQLException {
+		Entity.DATA_TYPE dataType = columnBindValue.getType();
+		if (dataType == Entity.DATA_TYPE.DT_STRING && obj instanceof BigDecimal) {
+			try {
+				return Utils.createScalar(dataType, ((BigDecimal) obj).toPlainString(),
+						columnBindValue.getScale());
+			} catch (Exception e) {
+				if (e instanceof SQLException)
+					throw (SQLException) e;
+				throw new SQLException(e);
+			}
+		}
+		return convertInsertValue(columnBindValue, obj);
 	}
 
 	private int getDataIndexBySQLIndex(int paramIndex) throws SQLException {
