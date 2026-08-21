@@ -729,7 +729,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public int getType() throws SQLException {
-        return ResultSet.TYPE_SCROLL_SENSITIVE;
+        return reader == null ? ResultSet.TYPE_SCROLL_SENSITIVE : ResultSet.TYPE_FORWARD_ONLY;
     }
 
     @Override
