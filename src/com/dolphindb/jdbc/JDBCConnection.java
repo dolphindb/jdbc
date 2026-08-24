@@ -42,25 +42,6 @@ public class JDBCConnection implements Connection {
 	private static final String MINIMUM_FETCH_SIZE_PROP = "minimumFetchSize";
 	private static final Logger log = LoggerFactory.getLogger(JDBCConnection.class);
 
-	private static final String v200CatalogDictInitialScript = "tbs = getClusterDFSTables()\n" +
-			"dbName = split(tbs,\"/\")[2]\n" +
-			"tbName = split(tbs,\"/\")[3]\n" +
-			"tbCount = count(tbName)\n" +
-			"\n" +
-			"for (i in 0..(tbCount-1)){\n" +
-			"    try{\n" +
-			"        if (dbName[i] in (exec name from objs() where form = \"DICTIONARY\")){\n" +
-			"            script = dbName[i]+\"['\" + tbName[i]+\"'] = loadTable('dfs://\" + dbName[i]+\"','\"+ tbName[i] +\"')\"\n" +
-			"        }\n" +
-			"        else{\n" +
-			"            script = string(dbName[i]) + \" =dict(STRING,ANY); go;\" + dbName[i]+\"['\" + tbName[i]+\"'] = loadTable('dfs://\" + dbName[i]+\"','\"+ tbName[i] +\"')\"\n" +
-			"        }\n" +
-			"        runScript(script)\n" +
-			"    }catch(ex){\n" +
-			"        print(tbs[i])\n" +
-			"    }\n" +
-			"}";
-
 	public JDBCConnection(String url, Properties prop) throws SQLException {
 		this.url = url;
 		Driver.parseProp(url, prop);
@@ -268,13 +249,6 @@ public class JDBCConnection implements Connection {
 			this.connect(hostname, port, prop, sbInitScript.toString());
 
 		cacheServerVersion();
-		initV200CatalogDict();
-	}
-
-	private void initV200CatalogDict() throws IOException {
-		if (!this.supportCatalog) {
-			this.dbConnection.run(v200CatalogDictInitialScript);
-		}
 	}
 
 	private void cacheServerVersion() throws IOException {
@@ -414,13 +388,7 @@ public class JDBCConnection implements Connection {
 			throw new SQLException("The param catalog cannot be null or empty.");
 
 		try {
-			if (supportCatalog) {
-				this.dbConnection.run("use CATALOG " + catalog + ";");
-			} else {
-				if (!"DolphinDB".equals(catalog)) {
-					throw new SQLException("Current server version does not support catalog. Only virtual catalog \"DolphinDB\" is allowed. param catalog=" + catalog);
-				}
-			}
+			this.dbConnection.run("use CATALOG " + catalog + ";");
 			this.catalog = catalog;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
