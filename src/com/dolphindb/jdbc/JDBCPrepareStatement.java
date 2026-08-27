@@ -844,7 +844,10 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 			Entity entity;
 			if(super.getFetchSize() != 0) {
-				entity = connection.run("runSQL", params, normalizeFetchSize(super.getFetchSize(), "PreparedStatement.executeQuery"));
+				if (super.getFetchSize() < 8192) {
+					throw new SQLException("The fetchSize param must be greater than or equal to 8192.");
+				}
+				entity = connection.run("runSQL", params, super.getFetchSize());
 			} else {
 				entity = connection.run("runSQL", params);
 			}

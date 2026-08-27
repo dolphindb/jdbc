@@ -8,11 +8,8 @@ import java.sql.*;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.logging.Logger;
 
 public class JDBCStatement implements Statement {
-
-    private static final Logger LOGGER = Logger.getLogger(JDBCStatement.class.getName());
 
     protected JDBCConnection connection;
     protected ResultSet resultSet;
@@ -143,7 +140,10 @@ public class JDBCStatement implements Statement {
             case Utils.DML_OTHER:
                 try {
                     if(this.fetchSize != 0) {
-                        entity = connection.run(sql, normalizeFetchSize(fetchSize, "Statement.executeQuery"));
+                        if (fetchSize < 8192) {
+                            throw new SQLException("The fetchSize param must be greater than or equal to 8192.");
+                        }
+                        entity = connection.run(sql, fetchSize);
                     } else {
                         entity = connection.run(sql);
                     }
@@ -164,20 +164,6 @@ public class JDBCStatement implements Statement {
             default:
                 throw new SQLException("The given SQL statement produces anything other than a single ResultSet object.");
         }
-    }
-
-    protected int normalizeFetchSize(int fetchSize, String caller) throws SQLException {
-        int minimumFetchSize = connection.getMinimumFetchSize();
-        if (fetchSize > 0 && fetchSize < minimumFetchSize) {
-            if (!connection.isAutoAdjustFetchSizeEnabled()) {
-                throw new SQLException("The fetchSize param must be greater than or equal to " + minimumFetchSize
-                        + ". To auto-adjust smaller values, set connection property autoAdjustFetchSize=true.");
-            }
-            LOGGER.warning("The fetchSize param " + fetchSize + " in " + caller
-                    + " is less than " + minimumFetchSize + ", auto-adjusted to " + minimumFetchSize + ".");
-            return minimumFetchSize;
-        }
-        return fetchSize;
     }
 
     protected void cancelJobOperation() throws SQLException {
