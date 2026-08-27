@@ -124,9 +124,11 @@ public class JDBCResultSetMetaData implements ResultSetMetaData{
             case DT_NANOTIMESTAMP:
                 return 19 + (temporalScale > 0 ? 1 + temporalScale : 0);
             case DT_DECIMAL32:
+                return 9;
             case DT_DECIMAL64:
+                return 18;
             case DT_DECIMAL128:
-                return getDecimalScale(column);
+                return 38;
             default:
                 return 0;
         }
