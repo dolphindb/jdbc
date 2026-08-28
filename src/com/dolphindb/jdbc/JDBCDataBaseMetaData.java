@@ -452,11 +452,13 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
     private Integer getColumnSize(String dataType) {
         switch (dataType) {
             case "TIME":
+                return 12;
             case "TIMESTAMP":
-                return 3;
+                return 23;
             case "NANOTIME":
+                return 18;
             case "NANOTIMESTAMP":
-                return 9;
+                return 29;
             case "DECIMAL32":
                 return 9;
             case "DECIMAL64":
@@ -499,8 +501,10 @@ public class JDBCDataBaseMetaData implements DatabaseMetaData {
                 return extraVec == null || extraVec.isNull(row) ? null : extraVec.getInt(row);
             case "TIME":
             case "TIMESTAMP":
+                return 3;
             case "NANOTIME":
             case "NANOTIMESTAMP":
+                return 9;
             case "BOOL":
             case "CHAR":
             case "SHORT":
