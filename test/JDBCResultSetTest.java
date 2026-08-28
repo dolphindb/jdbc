@@ -2869,95 +2869,206 @@ public class JDBCResultSetTest {
 	}
 
 	@Test
+	public void Test_ResultSet_getByte() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("intv = int(-1 1 NULL);\nshortv = short(-1 1 NULL);\n stringv = string(-1 1 NULL);\n tt= table(intv,shortv,stringv);");
+		ResultSet rs = (ResultSet) stmt.executeQuery("select * from tt ");
+		rs.next();
+		assertEquals(-1, rs.getByte(1));
+		assertEquals(-1, rs.getByte(2));
+		assertEquals(-1, rs.getByte(3));
+		rs.next();
+		assertEquals(1, rs.getByte(1));
+		assertEquals(1, rs.getByte(2));
+		assertEquals(1, rs.getByte(3));
+		rs.next();
+		assertEquals(0, rs.getByte(1));
+		assertEquals(0, rs.getByte(2));
+		assertEquals(0, rs.getByte(3));
+	}
+
+	@Test
+	public void Test_ResultSet_getShort() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("intv = int(-2147483648 2147483647 0 -2147483647 -100 100 NULL);\nshortv = short(-32768  32767 0 -32767 -100 100 NULL);\n stringv = string(-32768  32767 0 -32767 -100 100 NULL);\n tt= table(intv,shortv,stringv);");
+		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
+		rs.next();
+		assertEquals(0, rs.getShort(1));
+		assertEquals(0, rs.getShort(2));
+		assertEquals(-32768, rs.getShort(3));
+		rs.next();
+		assertEquals(-1, rs.getShort(1));
+		assertEquals(32767, rs.getShort(2));
+		assertEquals(32767, rs.getShort(3));
+		rs.next();
+		assertEquals(0, rs.getShort(1));
+		assertEquals(0, rs.getShort(2));
+		assertEquals(0, rs.getShort(3));
+		rs.next();
+		assertEquals(1, rs.getShort(1));
+		assertEquals(-32767, rs.getShort(2));
+		assertEquals(-32767, rs.getShort(3));
+		rs.next();
+		assertEquals(-100, rs.getShort(1));
+		assertEquals(-100, rs.getShort(2));
+		assertEquals(-100, rs.getShort(3));
+		rs.next();
+		assertEquals(100, rs.getShort(1));
+		assertEquals(100, rs.getShort(2));
+		assertEquals(100, rs.getShort(3));
+		rs.next();
+		assertEquals(0, rs.getShort(1));
+		assertEquals(0, rs.getShort(2));
+		assertEquals(0, rs.getShort(3));
+	}
+
+	@Test
 	public void Test_ResultSet_getInt() throws Exception {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
-		stmt.execute("intv = int(-2147483648 2147483647 0 -2147483647 -100 100 NULL);\nshortv = short(-32768  32767 0 -32767 -100 100 NULL);\n tt= table(intv,shortv);");
+		stmt.execute("intv = int(-2147483648 2147483647 0 -2147483647 -100 100 NULL);\nshortv = short(-32768  32767 0 -32767 -100 100 NULL);\n stringv = string(-32768  32767 0 -32767 -100 100 NULL);\n tt= table(intv,shortv,stringv);");
 		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
 		rs.next();
 		assertEquals(0, rs.getInt(1));
 		assertEquals(0, rs.getInt(2));
+		assertEquals(-32768, rs.getInt(3));
 		rs.next();
 		assertEquals(2147483647, rs.getInt(1));
 		assertEquals(32767, rs.getInt(2));
+		assertEquals(32767, rs.getInt(3));
 		rs.next();
 		assertEquals(0, rs.getInt(1));
 		assertEquals(0, rs.getInt(2));
+		assertEquals(0, rs.getInt(3));
 		rs.next();
 		assertEquals(-2147483647, rs.getInt(1));
 		assertEquals(-32767, rs.getInt(2));
+		assertEquals(-32767, rs.getInt(3));
 		rs.next();
 		assertEquals(-100, rs.getInt(1));
 		assertEquals(-100, rs.getInt(2));
+		assertEquals(-100, rs.getInt(3));
 		rs.next();
 		assertEquals(100, rs.getInt(1));
 		assertEquals(100, rs.getInt(2));
+		assertEquals(100, rs.getInt(3));
 		rs.next();
 		assertEquals(0, rs.getInt(1));
 		assertEquals(0, rs.getInt(2));
+		assertEquals(0, rs.getInt(3));
 	}
 	@Test
 	public void Test_ResultSet_getLong() throws Exception {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
-		stmt.execute("intv = int(-2147483648 2147483647 0 -2147483647 -100 100 NULL);\nshortv = short(-32768  32767 0 -32767 -100 100 NULL);\n longv = long(-9223372036854775808  9223372036854775807 0 -9223372036854775807 -100 100 NULL);\n tt= table(intv,shortv,longv);");
+		stmt.execute("intv = int(-2147483648 2147483647 0 -2147483647 -100 100 NULL);\nshortv = short(-32768  32767 0 -32767 -100 100 NULL);\n longv = long(-9223372036854775808  9223372036854775807 0 -9223372036854775807 -100 100 NULL);stringv = string(\"-9223372036854775808\"  \"9223372036854775807\" \"0\" \"-9223372036854775807\" \"-100\" \"100\" NULL);\n tt= table(intv,shortv,longv,stringv);");
 		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
 		rs.next();
 		assertEquals(0, rs.getLong(1));
 		assertEquals(0, rs.getLong(2));
 		assertEquals(0, rs.getLong(3));
+		assertEquals(-9223372036854775808l, rs.getLong(4));
 		rs.next();
 		assertEquals(2147483647, rs.getLong(1));
 		assertEquals(32767, rs.getLong(2));
 		assertEquals(9223372036854775807l, rs.getLong(3));
+		assertEquals(9223372036854775807l, rs.getLong(4));
 		rs.next();
 		assertEquals(0, rs.getLong(1));
 		assertEquals(0, rs.getLong(2));
 		assertEquals(0, rs.getLong(3));
+		assertEquals(0, rs.getLong(4));
 		rs.next();
 		assertEquals(-2147483647, rs.getLong(1));
 		assertEquals(-32767, rs.getLong(2));
 		assertEquals(-9223372036854775807l, rs.getLong(3));
+		assertEquals(-9223372036854775807l, rs.getLong(4));
 		rs.next();
 		assertEquals(-100, rs.getLong(1));
 		assertEquals(-100, rs.getLong(2));
 		assertEquals(-100, rs.getLong(3));
+		assertEquals(-100, rs.getLong(4));
 		rs.next();
 		assertEquals(100, rs.getLong(1));
 		assertEquals(100, rs.getLong(2));
 		assertEquals(100, rs.getLong(3));
+		assertEquals(100, rs.getLong(4));
 		rs.next();
 		assertEquals(0, rs.getLong(1));
 		assertEquals(0, rs.getLong(2));
 		assertEquals(0, rs.getLong(3));
+		assertEquals(0, rs.getLong(4));
 	}
+
+	@Test
+	public void Test_ResultSet_getFloat() throws Exception {
+		Class.forName(JDBC_DRIVER);
+		conn = DriverManager.getConnection(url);
+		stmt = conn.createStatement();
+		stmt.execute("floatv = float(-2.14748364 21474.8364 0 -21474.83 100 NULL);\ndoublev = double(-2.14748364 21474.8364 0 -21474.83 100 NULL);\n stringv = string(-2.14748364 21474.8364 0 -21474.83 100 NULL);\n tt= table(floatv,doublev,stringv);");
+		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
+		rs.next();
+		assertEquals(-2.14748364, rs.getFloat(1),4);
+		assertEquals(-2.14748364, rs.getFloat(2),4);
+		rs.next();
+		assertEquals(21474.8364, rs.getFloat(1),4);
+		assertEquals(21474.8364, rs.getFloat(2),4);
+		assertEquals(21474.8364, rs.getFloat(3),4);
+		rs.next();
+		assertEquals(0, rs.getFloat(1),4);
+		assertEquals(0, rs.getFloat(2),4);
+		assertEquals(0, rs.getFloat(3),4);
+		rs.next();
+		assertEquals(-21474.83, rs.getFloat(1),4);
+		assertEquals(-21474.83, rs.getFloat(2),4);
+		assertEquals(-21474.83, rs.getFloat(3),4);
+		rs.next();
+		assertEquals(100, rs.getFloat(1),4);
+		assertEquals(100, rs.getFloat(2),4);
+		assertEquals(100, rs.getFloat(3),4);
+		rs.next();
+		assertEquals(0, rs.getFloat(1),4);
+		assertEquals(0, rs.getFloat(2),4);
+		assertEquals(0, rs.getFloat(3),4);
+	}
+
 	@Test
 	public void Test_ResultSet_getDouble() throws Exception {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
-		stmt.execute("floatv = float(-2.14748364 21474.8364 0 -21474.83 100 NULL);\ndoublev = double(-2.14748364 21474.8364 0 -21474.83 100 NULL);\n tt= table(floatv,doublev);");
+		stmt.execute("floatv = float(-2.14748364 21474.8364 0 -21474.83 100 NULL);\ndoublev = double(-2.14748364 21474.8364 0 -21474.83 100 NULL);\n stringv = string(-2.14748364 21474.8364 0 -21474.83 100 NULL);\n tt= table(floatv,doublev,stringv);");
 		ResultSet rs = (ResultSet)stmt.executeQuery("select * from tt ");
 		rs.next();
 		assertEquals(-2.14748364, rs.getDouble(1),4);
 		assertEquals(-2.14748364, rs.getDouble(2),4);
+		assertEquals(-2.14748364, rs.getDouble(3),4);
 		rs.next();
 		assertEquals(21474.8364, rs.getDouble(1),4);
 		assertEquals(21474.8364, rs.getDouble(2),4);
+		assertEquals(21474.8364, rs.getDouble(3),4);
 		rs.next();
 		assertEquals(0, rs.getDouble(1),4);
 		assertEquals(0, rs.getDouble(2),4);
+		assertEquals(0, rs.getDouble(3),4);
 		rs.next();
 		assertEquals(-21474.83, rs.getDouble(1),4);
 		assertEquals(-21474.83, rs.getDouble(2),4);
+		assertEquals(-21474.83, rs.getDouble(3),4);
 		rs.next();
 		assertEquals(100, rs.getDouble(1),4);
 		assertEquals(100, rs.getDouble(2),4);
+		assertEquals(100, rs.getDouble(3),4);
 		rs.next();
 		assertEquals(0, rs.getDouble(1),4);
 		assertEquals(0, rs.getDouble(2),4);
+		assertEquals(0, rs.getDouble(3),4);
 	}
 	@Test
 	public void Test_ResultSet_getBigDecimal_1() throws Exception {
@@ -3047,16 +3158,16 @@ public class JDBCResultSetTest {
 		Class.forName(JDBC_DRIVER);
 		conn = DriverManager.getConnection(url);
 		stmt = conn.createStatement();
-		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m = matrix(1..5, 6..10);\n m.rename!(2021.01.01..2021.01.05, `label`B);\n m");
+		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("m = matrix(1..5, 6..10);\n m.rename!(2021.01.01..2021.01.05, `label1`B);\n m");
 		BasicIntMatrix re = (BasicIntMatrix)rs.getResult();
 		System.out.println(re.getString());
 		ResultSetMetaData metaData = rs.getMetaData();
 		assertEquals(3,metaData.getColumnCount());
 		assertEquals("label",metaData.getColumnName(1));
-		assertEquals("label",metaData.getColumnName(2));
+		assertEquals("label1",metaData.getColumnName(2));
 		assertEquals("B",metaData.getColumnName(3));
 		String results1 = getTablesData(rs);
-		Assert.assertEquals("nulllabel: 2021/1/1 00:00    label: 1    B: 6    label: 2021/1/2 00:00    label: 2    B: 7    label: 2021/1/3 00:00    label: 3    B: 8    label: 2021/1/4 00:00    label: 4    B: 9    label: 2021/1/5 00:00    label: 5    B: 10    ",results1);
+		Assert.assertEquals("nulllabel: 2021/1/1 00:00    label1: 1    B: 6    label: 2021/1/2 00:00    label1: 2    B: 7    label: 2021/1/3 00:00    label1: 3    B: 8    label: 2021/1/4 00:00    label1: 4    B: 9    label: 2021/1/5 00:00    label1: 5    B: 10    ",results1);
 	}
 	@Test
 	public void Test_ResultSet_Matrix_getResult_int() throws SQLException, ClassNotFoundException {

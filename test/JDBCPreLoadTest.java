@@ -739,7 +739,7 @@ public class JDBCPreLoadTest {
         Assert.assertTrue(rs.next());
         System.out.println(rs);
         while(rs.next() && resultSet.next()){
-            System.out.println(rs.getString(1)+" "+rs.getString(2));
+//            System.out.println(rs.getString(1)+" "+rs.getString(2));
             Assert.assertEquals(resultSet.getString(1),rs.getString(1));
             Assert.assertEquals(resultSet.getString(2),rs.getString(2));
         }
@@ -749,7 +749,7 @@ public class JDBCPreLoadTest {
         Assert.assertTrue(rs1.next());
         System.out.println(rs1);
         while(rs1.next() && resultSet1.next()){
-            System.out.println(rs1.getString(1)+" "+rs1.getString(2));
+//            System.out.println(rs1.getString(1)+" "+rs1.getString(2));
             Assert.assertEquals(resultSet1.getString(1),rs1.getString(1));
             Assert.assertEquals(resultSet1.getString(2),rs1.getString(2));
         }
@@ -759,7 +759,7 @@ public class JDBCPreLoadTest {
         Assert.assertTrue(rs2.next());
         System.out.println(rs2);
         while(rs2.next() && resultSet2.next()){
-            System.out.println(rs2.getString(1)+" "+rs2.getString(2));
+//            System.out.println(rs2.getString(1)+" "+rs2.getString(2));
             Assert.assertEquals(resultSet2.getString(1),rs2.getString(1));
             Assert.assertEquals(resultSet2.getString(2),rs2.getString(2));
         }
@@ -767,9 +767,8 @@ public class JDBCPreLoadTest {
         ResultSet resultSet3 = stm.executeQuery("select top 100 * from loadTable(\"dfs://testValue\",\"nt\")");
         Assert.assertTrue(resultSet3.next());
         Assert.assertTrue(rs3.next());
-        System.out.println(rs3);
         while(rs3.next() && resultSet3.next()){
-            System.out.println(rs3.getString(1)+" "+rs3.getString(2));
+//            System.out.println(rs3.getString(1)+" "+rs3.getString(2));
             Assert.assertEquals(resultSet3.getString(1),rs3.getString(1));
             Assert.assertEquals(resultSet3.getString(2),rs3.getString(2));
         }
@@ -779,7 +778,6 @@ public class JDBCPreLoadTest {
         String e = null;
         try{
             conn = DriverManager.getConnection(url+"?tableAlias=dfs://valuedb/ppt",info);
-
         }catch(Exception ex){
             e = ex.getMessage().toString();
         }

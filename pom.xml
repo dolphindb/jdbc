@@ -8,6 +8,7 @@
 
     <properties>
         <dolphindb.version>3.00.5.0</dolphindb.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
 
@@ -113,6 +114,7 @@
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
+                    <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
             <!-- Source -->

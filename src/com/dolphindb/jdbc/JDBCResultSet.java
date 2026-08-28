@@ -329,47 +329,78 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public byte getByte(int columnIndex) throws SQLException{
-        Byte x = (Byte) getObject(columnIndex);
-        if (Objects.isNull(x))
-            return 0;
-        else
-            return x;
+        Number x = getNumericValue(columnIndex, Byte.class);
+        return Objects.nonNull(x) ? x.byteValue() : 0;
     }
 
     @Override
     public short getShort(int columnIndex) throws SQLException {
-        Short x = (Short) getObject(columnIndex);
-        if (Objects.isNull(x))
-            return 0;
-        else
-            return x;
+        Number x = getNumericValue(columnIndex, Short.class);
+        return Objects.nonNull(x) ? x.shortValue() : 0;
     }
 
     @Override
     public int getInt(int columnIndex) throws SQLException {
-        Object x = getObject(columnIndex);
-        return Objects.nonNull(x) ? ((Number) x).intValue() : 0;
+        Number x = getNumericValue(columnIndex, Integer.class);
+        return Objects.nonNull(x) ? x.intValue() : 0;
     }
 
     @Override
     public long getLong(int columnIndex) throws SQLException {
-        Object x = getObject(columnIndex);
-        return Objects.nonNull(x) ? ((Number) x).longValue() : 0;
+        Number x = getNumericValue(columnIndex, Long.class);
+        return Objects.nonNull(x) ? x.longValue() : 0;
     }
 
     @Override
     public float getFloat(int columnIndex) throws SQLException {
-        Float x = (Float) getObject(columnIndex);
-        if (Objects.isNull(x))
-            return 0;
-        else
-            return x;
+        Number x = getNumericValue(columnIndex, Float.class);
+        return Objects.nonNull(x) ? x.floatValue() : 0;
     }
 
     @Override
     public double getDouble(int columnIndex) throws SQLException {
-        Object x = getObject(columnIndex);
-        return Objects.nonNull(x) ? ((Number) x).doubleValue() : 0;
+        Number x = getNumericValue(columnIndex, Double.class);
+        return Objects.nonNull(x) ? x.doubleValue() : 0;
+    }
+
+    private Number getNumericValue(int columnIndex, Class<? extends Number> targetType) throws SQLException {
+        Object value = getObject(columnIndex);
+        if (Objects.isNull(value)) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return (Number) value;
+        }
+        if (!(value instanceof String)) {
+            throw new SQLException("Cannot convert " + value.getClass().getName()
+                    + " to " + targetType.getSimpleName());
+        }
+
+        String text = ((String) value).trim();
+        try {
+            if (targetType == Byte.class) {
+                return Byte.valueOf(text);
+            }
+            if (targetType == Short.class) {
+                return Short.valueOf(text);
+            }
+            if (targetType == Integer.class) {
+                return Integer.valueOf(text);
+            }
+            if (targetType == Long.class) {
+                return Long.valueOf(text);
+            }
+            if (targetType == Float.class) {
+                return Float.valueOf(text);
+            }
+            if (targetType == Double.class) {
+                return Double.valueOf(text);
+            }
+        } catch (NumberFormatException e) {
+            throw new SQLException("Cannot convert value '" + text + "' to "
+                    + targetType.getSimpleName(), e);
+        }
+        throw new SQLException("Unsupported numeric target type " + targetType.getName());
     }
 
     @Override

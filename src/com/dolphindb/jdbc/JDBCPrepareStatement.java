@@ -10,7 +10,10 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
+import java.time.LocalDateTime;
+import java.time.temporal.Temporal;
 import java.util.*;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -23,12 +26,19 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private final int sqlDmlType;
 	private List<ColumnBindValue> columnBindValues;
 	private Map<Integer, Integer> insertIndexSQLToDDB;
+	private Set<Integer> nowColumnIndexes;
 	private BindValue[] bufferArea;
 	private int batchSize;
 	private List<String> sqlBuffer;
 	private boolean isPreparedStatement;
-	private List<BasicDictionary> runSQLparamDictList;
-	private boolean supportRunSQL;
+	private int insertRowsPerExecution;
+	private int insertValueCountPerRow;
+	private int insertTotalParameterCount;
+	/** JAVAOS-1916: immutable native INSERT path chosen at construction. */
+	private boolean useNativeInsertPath;
+	private int[] nativeParameterPositions;
+	/** JDBC 参数（0-based）到目标 DolphinDB 列；表达式内部参数为 -1。 */
+	private int[] nativeParameterDdbIndexes;
 
 	public JDBCPrepareStatement(JDBCConnection conn, String sql) throws SQLException {
 		super(conn);
@@ -37,49 +47,142 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		this.preProcessedSql = preProcessSql(sql, conn);
 		String[] sqlSplit = preProcessedSql.split(";");
 		String lastStatement  = sqlSplit.length == 0 ? "" : sqlSplit[sqlSplit.length - 1].trim();
-		this.sqlDmlType = Utils.getDml(lastStatement);
+		int leadingDmlType = Utils.getDml(preProcessedSql);
+		this.sqlDmlType = leadingDmlType == Utils.DML_INSERT
+				? Utils.DML_INSERT
+				: Utils.getDml(lastStatement);
 		this.sqlBuffer = new ArrayList<>();
-		this.runSQLparamDictList = new ArrayList<>();
 		this.insertIndexSQLToDDB = new HashMap<>();
-		this.supportRunSQL = conn.isRunSqlSupported();
-		if (preProcessedSql.contains("?"))
-			isPreparedStatement = true;
-		if (isPreparedStatement) {
-			if (this.sqlDmlType == Utils.DML_INSERT) {
-				if (sqlSplit.length != 1)
-					throw new SQLException("The INSERT statement must be a standalone statement.");
-
-				this.tableName = Utils.getTableName(preProcessedSql, isPreparedStatement);
+		this.nowColumnIndexes = new HashSet<>();
+		this.insertRowsPerExecution = 1;
+		this.insertValueCountPerRow = 0;
+		this.insertTotalParameterCount = 0;
+		this.useNativeInsertPath = false;
+		this.nativeParameterPositions = new int[0];
+		this.nativeParameterDdbIndexes = new int[0];
+		boolean isInsert = this.sqlDmlType == Utils.DML_INSERT;
+		// INSERT: prefer legacy parsePreparedInsertInfo; analyzePreparedInsert only as fallback.
+		// Non-INSERT: keep naive '?' counting for parameter buffer sizing.
+		if (isInsert) {
+			int[] realParameterPositions = Utils.findRealParameterPositions(preProcessedSql);
+			Utils.PreparedInsertInfo insertInfo = null;
+			SQLException parseFailure = null;
+			try {
+				insertInfo = Utils.parsePreparedInsertInfo(preProcessedSql);
+			} catch (SQLException e) {
+				parseFailure = e;
+			}
+			if (insertInfo != null) {
+				// values(?)/values(now())/multi-row → tableInsert; do not call analyzePreparedInsert.
+				isPreparedStatement = true;
+				this.tableName = insertInfo.getTableName();
+				this.insertRowsPerExecution = insertInfo.getRowsPerExecution();
+				this.insertValueCountPerRow = insertInfo.getValueCountPerRow();
+				this.insertTotalParameterCount = insertInfo.getTotalParameterCount();
 				initColumnBindValues(this.tableName);
 				Utils.checkInsertSQLValid(preProcessedSql, columnBindValues.size());
-
-				Map<String, Integer> columnParamInSql = Utils.getInsertColumnParamInSql(preProcessedSql);
-				for(ColumnBindValue value : columnBindValues){
-					String colName = value.getColName();
-					if (columnParamInSql.containsKey(colName)) {
-						insertIndexSQLToDDB.put(columnParamInSql.get(colName), value.getIndex());
-						columnParamInSql.remove(colName);
-					}
-				}
-				if (columnParamInSql.size() != 0) {
-					for (String key : columnParamInSql.keySet())
-						throw new SQLException("The column name " + key + " does not exist in table. ");
-				}
-
-				this.bufferArea = new BindValue[this.columnBindValues.size()];
+				buildInsertParamMapping(insertInfo);
+				this.bufferArea = new BindValue[Math.max(insertTotalParameterCount, 0)];
+			} else if (realParameterPositions.length > 0) {
+				// Expression templates (DATE_FORMAT(?), ?+1, ...) → native INSERT when structure is valid.
+				PreparedInsertAnalysis analysis = Utils.analyzePreparedInsert(preProcessedSql);
+				if (analysis.getKind() == PreparedInsertKind.INVALID_SQL)
+					throw new SQLException(analysis.getErrorMessage() != null
+							? analysis.getErrorMessage()
+							: (parseFailure != null ? parseFailure.getMessage() : "Please check your SQL format: " + preProcessedSql));
+				isPreparedStatement = true;
+				this.useNativeInsertPath = true;
+				this.tableName = analysis.getTableName();
+				this.insertRowsPerExecution = analysis.getRowsPerExecution();
+				this.insertValueCountPerRow = analysis.getValueCountPerRow();
+				this.insertTotalParameterCount = analysis.getParameterCount();
+				this.nativeParameterPositions = analysis.getParameterPositions();
+				initColumnBindValues(this.tableName);
+				this.nativeParameterDdbIndexes = buildNativeInsertParamMapping(analysis);
+				this.bufferArea = new BindValue[Math.max(insertTotalParameterCount, 0)];
 			} else {
-				int size = 0;
-				for (int i = 0; i < preProcessedSql.length(); i++) {
-					char ch = preProcessedSql.charAt(i);
-					if(ch == '?')
-						size++;
-				}
-
-				bufferArea = new BindValue[size];
+				// Literal INSERT (incl. string/comment '?' only, or values(1, now())) → whole-SQL path.
+				this.sqlBuffer.add(preProcessedSql);
 			}
+		} else if (preProcessedSql.contains("?")) {
+			isPreparedStatement = true;
+			int size = 0;
+			for (int i = 0; i < preProcessedSql.length(); i++) {
+				char ch = preProcessedSql.charAt(i);
+				if (ch == '?')
+					size++;
+			}
+			bufferArea = new BindValue[size];
 		} else {
 			this.sqlBuffer.add(preProcessedSql);
 		}
+	}
+
+	private void buildInsertParamMapping(Utils.PreparedInsertInfo insertInfo) throws SQLException {
+		List<InsertValueSlot> slotKinds = insertInfo.getSlotKinds();
+		List<String> sqlColumns = insertInfo.getColumnNames();
+		boolean explicit = insertInfo.hasExplicitColumns();
+		Map<String, Integer> nameToDdb = new HashMap<>();
+		for (ColumnBindValue value : columnBindValues) {
+			nameToDdb.put(value.getColName(), value.getIndex());
+		}
+
+		if (explicit) {
+			for (String colName : sqlColumns) {
+				if (!nameToDdb.containsKey(colName))
+					throw new SQLException("The column name " + colName + " does not exist in table. ");
+			}
+		}
+
+		int dense = 0;
+		for (int row = 0; row < insertRowsPerExecution; row++) {
+			for (int sqlCol = 0; sqlCol < slotKinds.size(); sqlCol++) {
+				int ddbIndex;
+				if (explicit) {
+					ddbIndex = nameToDdb.get(sqlColumns.get(sqlCol));
+				} else {
+					ddbIndex = sqlCol;
+				}
+				if (slotKinds.get(sqlCol) == InsertValueSlot.PLACEHOLDER) {
+					insertIndexSQLToDDB.put(dense++, ddbIndex);
+				} else {
+					nowColumnIndexes.add(ddbIndex);
+				}
+			}
+		}
+	}
+
+	private int[] buildNativeInsertParamMapping(PreparedInsertAnalysis analysis) throws SQLException {
+		if (!analysis.hasExplicitColumns()
+				&& analysis.getValueCountPerRow() != columnBindValues.size()) {
+			throw new SQLException("The number of table columns and the number of values do not match! Please check the SQL!");
+		}
+
+		Map<String, Integer> nameToDdb = new HashMap<>();
+		for (ColumnBindValue value : columnBindValues)
+			nameToDdb.put(value.getColName(), value.getIndex());
+
+		List<String> sqlColumns = analysis.getColumnNames();
+		if (analysis.hasExplicitColumns()) {
+			for (String column : sqlColumns) {
+				if (!nameToDdb.containsKey(column))
+					throw new SQLException("The column name " + column + " does not exist in table. ");
+			}
+		}
+
+		int[] sqlColumnIndexes = analysis.getParameterSqlColumnIndexes();
+		int[] ddbIndexes = new int[sqlColumnIndexes.length];
+		for (int i = 0; i < sqlColumnIndexes.length; i++) {
+			int sqlColumn = sqlColumnIndexes[i];
+			if (sqlColumn < 0) {
+				ddbIndexes[i] = -1;
+			} else if (analysis.hasExplicitColumns()) {
+				ddbIndexes[i] = nameToDdb.get(sqlColumns.get(sqlColumn));
+			} else {
+				ddbIndexes[i] = sqlColumn;
+			}
+		}
+		return ddbIndexes;
 	}
 
 	private void initColumnBindValues(String tableName) throws SQLException {
@@ -112,24 +215,28 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			if (!isPreparedStatement && preProcessedSql != null && !preProcessedSql.isEmpty())
 				this.sqlBuffer.add(preProcessedSql);
 		}
-		if(this.runSQLparamDictList != null)
-			this.runSQLparamDictList.clear();
 		if(this.columnBindValues != null)
 			this.columnBindValues.forEach(ColumnBindValue::clear);
 	}
 
 	@Override
 	public int[] executeBatch() throws SQLException {
+		if (this.useNativeInsertPath)
+			throw new SQLFeatureNotSupportedException(
+					"Native prepared INSERT path does not support executeBatch(); use a multi-row VALUES template in one executeUpdate() instead.");
 		int[] executeRes = new int[this.batchSize];
 		try {
 			if (this.sqlDmlType == Utils.DML_INSERT)
 				return tableAppend(true);
 			for (int i = 0; i < this.batchSize; i++) {
 				try {
-					if (supportRunSQL && isStandardDML()) {
-						executeRes[i] = executeUpdateWithRunSQL(i);
+					if (this.sqlDmlType == Utils.DML_SELECT || this.sqlDmlType == Utils.DML_EXEC) {
+						throw new SQLException("Can not issue SELECT or EXEC via executeUpdate().");
+					} else if (isStandardDML()) {
+						executeRes[i] = executeFinalizedUpdate(i);
 					} else {
-						executeRes[i] = super.executeUpdate(sqlBuffer.get(i));
+						connection.run(sqlBuffer.get(i));
+						executeRes[i] = 0;
 					}
 				} catch (Exception e) {
 					throw new BatchUpdateException(e.getMessage(), Arrays.copyOf(executeRes, i));
@@ -143,34 +250,36 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private void bind(int paramIndex, Object obj) throws SQLException {
+		if (this.useNativeInsertPath) {
+			if (paramIndex < 1 || paramIndex > this.bufferArea.length)
+				throw new SQLException("paramIndex is out of range");
+			if (obj == null)
+				this.bufferArea[paramIndex - 1] = new BindValue(new Void(), true);
+			else {
+				int ddbIndex = nativeParameterDdbIndexes[paramIndex - 1];
+				Object value = ddbIndex < 0
+						? obj
+						: convertNativeDirectInsertValue(columnBindValues.get(ddbIndex), obj);
+				this.bufferArea[paramIndex - 1] = new BindValue(value, false);
+			}
+			return;
+		}
 		if (this.sqlDmlType == Utils.DML_INSERT) {
 			int index = getDataIndexBySQLIndex(paramIndex);
 			if(index >= this.columnBindValues.size())
 				throw new SQLException("The index of columnBindValues is out of range.");
 
-			Vector column = this.columnBindValues.get(index).getBindValues();
+			ColumnBindValue columnBindValue = this.columnBindValues.get(index);
+			Vector column = columnBindValue.getBindValues();
 			try {
-				if (obj instanceof Vector) {
-					column.Append((Vector) obj);
-				} else if (obj instanceof DolphinDBArray) {
-					column.Append(((DolphinDBArray) obj).getVector());
-				} else {
-					Entity data;
-					Entity.DATA_TYPE dataType = column.getDataType();
-					int scale = this.columnBindValues.get(index).getScale();
-					if (obj instanceof String) {
-						data = Utils.createScalar(dataType, (String) obj, scale);
-					} else if (obj instanceof String[]) {
-						data = Utils.createStringVector(dataType, (String[]) obj, scale);
-					} else {
-						data = BasicEntityFactory.createScalar(dataType, obj, scale);
-					}
-					if (data.isScalar())
-						column.Append((Scalar) data);
-					else
-						column.Append((Vector) data);
-				}
+				Entity data = convertInsertValue(columnBindValue, obj);
+				if (data.isScalar())
+					column.Append((Scalar) data);
+				else
+					column.Append((Vector) data);
 			} catch (Exception e) {
+				if (e instanceof SQLException)
+					throw (SQLException) e;
 				throw new SQLException(e);
 			}
 		} else {
@@ -178,8 +287,61 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 	}
 
+	/**
+	 * tableInsert 路径的类型转换：与 api-java {@link BasicEntityFactory} 契约一致，
+	 * 不含原生路径专属特例（如 BigDecimal→STRING）。
+	 */
+	private Entity convertInsertValue(ColumnBindValue columnBindValue, Object obj) throws SQLException {
+		try {
+			if (obj instanceof Vector)
+				return (Vector) obj;
+			if (obj instanceof DolphinDBArray)
+				return ((DolphinDBArray) obj).getVector();
+			Entity.DATA_TYPE dataType = columnBindValue.getType();
+			int scale = columnBindValue.getScale();
+			if (obj instanceof String)
+				return Utils.createScalar(dataType, (String) obj, scale);
+			if (obj instanceof String[])
+				return Utils.createStringVector(dataType, (String[]) obj, scale);
+			return BasicEntityFactory.createScalar(dataType, obj, scale);
+		} catch (Exception e) {
+			if (e instanceof SQLException)
+				throw (SQLException) e;
+			throw new SQLException(e);
+		}
+	}
+
+	/**
+	 * 原生 INSERT 直接槽位（VALUES 本身是 {@code ?}）的转换。
+	 * 仅 BigDecimal→DT_STRING 用 {@code toPlainString()}；其余委托 {@link #convertInsertValue}，
+	 * 因此 BigDecimal→SYMBOL 仍拒绝，Integer→SYMBOL 仍由 BasicEntityFactory 处理。
+	 */
+	private Entity convertNativeDirectInsertValue(ColumnBindValue columnBindValue, Object obj) throws SQLException {
+		Entity.DATA_TYPE dataType = columnBindValue.getType();
+		if (dataType == Entity.DATA_TYPE.DT_STRING && obj instanceof BigDecimal) {
+			try {
+				return Utils.createScalar(dataType, ((BigDecimal) obj).toPlainString(),
+						columnBindValue.getScale());
+			} catch (Exception e) {
+				if (e instanceof SQLException)
+					throw (SQLException) e;
+				throw new SQLException(e);
+			}
+		}
+		return convertInsertValue(columnBindValue, obj);
+	}
+
 	private int getDataIndexBySQLIndex(int paramIndex) throws SQLException {
 		int index = paramIndex - 1;
+		if (this.sqlDmlType == Utils.DML_INSERT) {
+			if (paramIndex < 1 || paramIndex > insertTotalParameterCount)
+				throw new SQLException("paramIndex is out of range");
+			if (insertIndexSQLToDDB.isEmpty())
+				return index % Math.max(insertValueCountPerRow, 1);
+			if (!insertIndexSQLToDDB.containsKey(index))
+				throw new SQLException("paramIndex is out of range");
+			return insertIndexSQLToDDB.get(index);
+		}
 		if (insertIndexSQLToDDB.size() != 0) {
 			if(!insertIndexSQLToDDB.containsKey(index))
 				throw new SQLException("paramIndex is out of range");
@@ -190,6 +352,12 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private void bindNull(int paramIndex) throws SQLException {
+		if (this.useNativeInsertPath) {
+			if (paramIndex < 1 || paramIndex > this.bufferArea.length)
+				throw new SQLException("paramIndex is out of range");
+			this.bufferArea[paramIndex - 1] = new BindValue(new Void(), true);
+			return;
+		}
 		int index = getDataIndexBySQLIndex(paramIndex);
 		if (this.sqlDmlType == Utils.DML_INSERT) {
 			Vector column = this.columnBindValues.get(index).getBindValues();
@@ -214,30 +382,41 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		       sqlDmlType == Utils.DML_DELETE;
 	}
 
+	private int expectedInsertRows(boolean isBatch) {
+		return (isBatch ? batchSize : 1) * insertRowsPerExecution;
+	}
+
+	private void appendNullToColumn(ColumnBindValue column) throws SQLException {
+		Vector columnCol = column.getBindValues();
+		try {
+			if (columnCol.getDataType().getValue() < 65)
+				columnCol.Append((Scalar) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
+			else
+				columnCol.Append((Vector) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
+		} catch (Exception e) {
+			throw new SQLException(e);
+		}
+	}
+
 	private void combineOneRowData(boolean isBatch) throws SQLException {
 		if (sqlDmlType == Utils.DML_INSERT) {
 			checkInsertBindsLegal(isBatch);
 			if(isBatch) {
-				for (ColumnBindValue column : columnBindValues) {
-					if (column.getBindValues().rows() != batchSize) {
-						Vector columnCol = column.getBindValues();
-						try {
-							if (columnCol.getDataType().getValue() < 65)
-								columnCol.Append((Scalar) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
-							else
-								columnCol.Append((Vector) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
-						} catch (Exception e) {
-							throw new SQLException(e);
-						}
-					}
-				}
+				int expectedRows = expectedInsertRows(true);
+				padMissingColumnsWithNull(expectedRows);
 			}
-		} else if (supportRunSQL && (sqlDmlType == Utils.DML_SELECT || sqlDmlType == Utils.DML_EXEC || sqlDmlType == Utils.DML_UPDATE || sqlDmlType == Utils.DML_DELETE)) {
-			this.sqlBuffer.add(generateSQLWithRunsql());
-			this.runSQLparamDictList.add(createParameterDictionary());
 		} else {
-			// Other types or server doesn't support runSQL, use original logic
 			this.sqlBuffer.add(generateSQL());
+		}
+	}
+
+	private void padMissingColumnsWithNull(int expectedRows) throws SQLException {
+		for (ColumnBindValue column : columnBindValues) {
+			if (nowColumnIndexes.contains(column.getIndex()))
+				continue;
+			while (column.getBindValues().rows() < expectedRows) {
+				appendNullToColumn(column);
+			}
 		}
 	}
 
@@ -246,8 +425,8 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		try{
 			if (isPreparedStatement) {
 				combineOneRowData(false);
-				if (supportRunSQL && (sqlDmlType == Utils.DML_SELECT || sqlDmlType == Utils.DML_EXEC)) {
-					return executeQueryWithRunSQL();
+				if (sqlDmlType == Utils.DML_SELECT || sqlDmlType == Utils.DML_EXEC) {
+					return executeFinalizedQuery();
 				} else {
 					return super.executeQuery(sqlBuffer.get(0));
 				}
@@ -261,17 +440,23 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	}
 
 	private void checkInsertBindsLegal(boolean isBatch) throws SQLException {
-		int rows = isBatch ? batchSize : 1;
-		if (insertIndexSQLToDDB.size() == 0) {
-			for (ColumnBindValue bindValue : columnBindValues){
-				if(bindValue.getBindValues().rows() != rows)
+		int rows = expectedInsertRows(isBatch);
+		Set<Integer> placeholderColumns = new HashSet<>(insertIndexSQLToDDB.values());
+		if (placeholderColumns.isEmpty() && insertTotalParameterCount == 0) {
+			return;
+		}
+		if (placeholderColumns.isEmpty()) {
+			for (ColumnBindValue bindValue : columnBindValues) {
+				if (nowColumnIndexes.contains(bindValue.getIndex()))
+					continue;
+				if (bindValue.getBindValues().rows() != rows)
 					throw new SQLException("The column " + bindValue.getColName() + " is not set.");
 			}
-		}else {
-			for (Integer index : insertIndexSQLToDDB.keySet()) {
-				if (this.columnBindValues.get(insertIndexSQLToDDB.get(index)).getBindValues().rows() != rows)
-					throw new SQLException("The column " + this.columnBindValues.get(insertIndexSQLToDDB.get(index)).getColName() + " is not set.");
-			}
+			return;
+		}
+		for (Integer ddbIndex : placeholderColumns) {
+			if (this.columnBindValues.get(ddbIndex).getBindValues().rows() != rows)
+				throw new SQLException("The column " + this.columnBindValues.get(ddbIndex).getColName() + " is not set.");
 		}
 	}
 
@@ -279,22 +464,29 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	public int executeUpdate() throws SQLException {
 		try {
 			if (isPreparedStatement) {
+				if (this.useNativeInsertPath) {
+					return executeNativeInsertUpdate();
+				}
 				combineOneRowData(false);
 				if (this.sqlDmlType == Utils.DML_INSERT) {
 					return tableAppend(false)[0];
-				} else if (supportRunSQL && this.sqlDmlType == Utils.DML_SELECT) {
-					// Special handling for SELECT in executeUpdate - set ResultSet for getResultSet()
-					ResultSet rs = executeQueryWithRunSQL();
+				} else if (this.sqlDmlType == Utils.DML_SELECT) {
+					ResultSet rs = executeFinalizedQuery();
 					objectQueue.offer(rs);
 					return 0;
-				} else if (supportRunSQL && isStandardDML()) {
-					return executeUpdateWithRunSQL(0);
+				} else if (this.sqlDmlType == Utils.DML_EXEC) {
+					throw new SQLException("Can not issue SELECT or EXEC via executeUpdate().");
+				} else if (isStandardDML()) {
+					return executeFinalizedUpdate(0);
 				} else {
-					return super.executeUpdate(sqlBuffer.get(0));
+					connection.run(sqlBuffer.get(0));
+					return 0;
 				}
 			} else {
 				return super.executeUpdate(sqlBuffer.get(0));
 			}
+		} catch (SQLException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new SQLException(e);
 		} finally {
@@ -302,8 +494,46 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 	}
 
+	/**
+	 * JAVAOS-1916 native INSERT path: bind parameters into SQL text and run via
+	 * {@link #executeUpdateWithRowCount(String)} (never {@code Statement.executeUpdate},
+	 * which rewrites non-memory INSERT to temp-table + append!).
+	 * Failures are not retried on the tableInsert path.
+	 */
+	private int executeNativeInsertUpdate() throws SQLException {
+		connection.ensureNativeInsertAllowed(this.tableName);
+		String finalizedSql = Utils.renderSqlWithBoundParameters(
+				this.preProcessedSql, this.nativeParameterPositions, this.bufferArea);
+		if (super.getQueryTimeout() > 0) {
+			Future<Integer> future = executorService.submit(() -> super.executeUpdateWithRowCount(finalizedSql));
+			try {
+				return future.get(super.getQueryTimeout(), TimeUnit.SECONDS);
+			} catch (TimeoutException e) {
+				future.cancel(true);
+				cancelJobOperation();
+				throw new SQLTimeoutException("PrepareStatement execute update timed out after "
+						+ super.getQueryTimeout() + " seconds.", e);
+			} catch (SQLException e) {
+				throw e;
+			} catch (Exception e) {
+				Throwable cause = e.getCause() != null ? e.getCause() : e;
+				if (cause instanceof SQLException)
+					throw (SQLException) cause;
+				throw new SQLException(cause);
+			}
+		}
+		return super.executeUpdateWithRowCount(finalizedSql);
+	}
+
 	private int[] tableAppend(boolean isBatch) throws SQLException {
-		List<Vector> arguments = createDFSArguments(isBatch);
+		int expectedRows = expectedInsertRows(isBatch);
+		if (!isBatch) {
+			padMissingColumnsWithNull(expectedRows);
+		}
+		fillNowColumns(expectedRows);
+		List<Vector> arguments = columnBindValues.stream()
+				.map(ColumnBindValue::getBindValues)
+				.collect(Collectors.toList());
 		List<String> colNames = new ArrayList<>();
 		columnBindValues.forEach(e -> colNames.add(e.getColName()));
 		BasicTable basicTable = new BasicTable(colNames, arguments);
@@ -312,7 +542,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		try {
 			int size = ((Scalar)connection.run("tableInsert{" + tableName + "}", param)).getNumber().intValue();
 			if (isBatch) {
-				int[] value = new int[arguments.get(0).rows()];
+				int[] value = new int[batchSize];
 				Arrays.fill(value, SUCCESS_NO_INFO);
 				return value;
 			} else {
@@ -323,30 +553,77 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		}
 	}
 
-	private List<Vector> createDFSArguments(boolean isBatch) throws SQLException {
-		if (!isBatch) {
-			for (ColumnBindValue column : columnBindValues) {
-				if (column.getBindValues().rows() != 1) {
-					Vector columnCol = column.getBindValues();
-					try {
-						if (columnCol.getDataType().getValue() < 65)
-							columnCol.Append((Scalar) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
-						else
-							columnCol.Append((Vector) BasicEntityFactory.createScalar(columnCol.getDataType(), null, column.getScale()));
-					} catch (Exception e) {
-						throw new SQLException(e);
-					}
+	private void fillNowColumns(int expectedRows) throws SQLException {
+		if (nowColumnIndexes == null || nowColumnIndexes.isEmpty())
+			return;
+		Entity serverNow;
+		try {
+			serverNow = connection.run("now()");
+		} catch (IOException e) {
+			throw new SQLException(e);
+		}
+		for (Integer colIdx : nowColumnIndexes) {
+			ColumnBindValue column = columnBindValues.get(colIdx);
+			Scalar nowScalar = convertServerNowToColumnType(serverNow, column);
+			Vector columnCol = column.getBindValues();
+			try {
+				while (columnCol.rows() < expectedRows) {
+					columnCol.Append(nowScalar);
 				}
+			} catch (Exception e) {
+				throw new SQLException(e);
 			}
 		}
+	}
 
-		return columnBindValues.stream()
-				.map(ColumnBindValue::getBindValues)
-				.collect(Collectors.toList());
+	private Scalar convertServerNowToColumnType(Entity serverNow, ColumnBindValue column) throws SQLException {
+		Entity.DATA_TYPE type = column.getType();
+		LocalDateTime dateTime;
+		try {
+			if (serverNow instanceof BasicTimestamp) {
+				dateTime = ((BasicTimestamp) serverNow).getTimestamp();
+			} else if (serverNow instanceof BasicDateTime) {
+				dateTime = ((BasicDateTime) serverNow).getDateTime();
+			} else if (serverNow instanceof BasicNanoTimestamp) {
+				Temporal temporal = ((BasicNanoTimestamp) serverNow).getTemporal();
+				dateTime = (LocalDateTime) temporal;
+			} else if (serverNow instanceof Scalar) {
+				Temporal temporal = ((Scalar) serverNow).getTemporal();
+				if (temporal instanceof LocalDateTime) {
+					dateTime = (LocalDateTime) temporal;
+				} else {
+					throw new SQLException("Unsupported server now() type: " + serverNow.getDataType());
+				}
+			} else {
+				throw new SQLException("Unsupported server now() type: " + serverNow.getClass().getName());
+			}
+		} catch (SQLException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new SQLException(e);
+		}
+		if (dateTime == null) {
+			throw new SQLException("server now() returned null");
+		}
+		switch (type) {
+			case DT_DATETIME:
+				return new BasicDateTime(dateTime);
+			case DT_TIMESTAMP:
+				return new BasicTimestamp(dateTime);
+			case DT_NANOTIMESTAMP:
+				return new BasicNanoTimestamp(dateTime);
+			default:
+				throw new SQLException("Column " + column.getColName()
+						+ " does not support now(); expected DATETIME, TIMESTAMP or NANOTIMESTAMP, got " + type);
+		}
 	}
 
 	@Override
 	public void setNull(int parameterIndex, int sqlType) throws SQLException {
+		if (this.useNativeInsertPath) {
+			bindNull(parameterIndex);
+			return;
+		}
 		if (this.sqlDmlType == Utils.DML_INSERT) {
 			bindNull(parameterIndex);
 		} else {
@@ -402,7 +679,7 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
-		bind(parameterIndex, x.doubleValue());
+		bind(parameterIndex, x);
 	}
 
 	@Override
@@ -450,10 +727,6 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 		if (Objects.nonNull(bufferArea)) {
 			Arrays.fill(bufferArea, null);
 		}
-
-		if (!runSQLparamDictList.isEmpty()) {
-			runSQLparamDictList.clear();
-		}
 	}
 
 	@Override
@@ -489,11 +762,20 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				default: {
 					if (isPreparedStatement)
 						combineOneRowData(false);
-					Entity entity = connection.run(sqlBuffer.get(0));
-					if (entity instanceof BasicTable) {
-						ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, sqlBuffer.get(0), this.getMaxRows());
-						resultSets.offerLast(resultSet_);
-						objectQueue.offer(resultSet_);
+					String finalSql = sqlBuffer.get(0);
+					String lastStatement = getLastStatement(finalSql);
+					if (isNonSqlMatchedRowCountStatement(lastStatement)) {
+						objectQueue.offer(executeUpdateWithRowCount(finalSql));
+					} else {
+						Entity entity = connection.run(finalSql);
+						Integer updateCount = extractNonSqlUpdateCount(finalSql, entity);
+						if (updateCount != null) {
+							objectQueue.offer(updateCount);
+						} else if (entity instanceof BasicTable) {
+							ResultSet resultSet_ = new JDBCResultSet(connection, this, entity, finalSql, this.getMaxRows());
+							resultSets.offerLast(resultSet_);
+							objectQueue.offer(resultSet_);
+						}
 					}
 					clearBatch();	
 				}
@@ -512,6 +794,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void addBatch() throws SQLException {
+		if (this.useNativeInsertPath)
+			throw new SQLFeatureNotSupportedException(
+					"Native prepared INSERT path does not support addBatch(); use a multi-row VALUES template in one executeUpdate() instead.");
 		this.batchSize++;
 		combineOneRowData(true);
 	}
@@ -528,6 +813,9 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 
 	@Override
 	public void setBlob(int parameterIndex, Blob x) throws SQLException {
+		if (this.sqlDmlType != Utils.DML_INSERT) {
+			throw new SQLException("setBlob is not supported for non-INSERT prepared statements in literal SQL path.");
+		}
 		byte[] blobbyte = x.getBytes(1,(int)x.length());
 		String blobstring = new String( blobbyte);
 		bind(parameterIndex,blobstring);
@@ -714,7 +1002,11 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 	private String generateSQL() throws SQLException {
 		if(Utils.isEmpty(this.preProcessedSql))
 			throw new SQLException("preProcessedSql is null. ");
-		String[] sqlSplitByQuestionMark = this.preProcessedSql.split("\\?");
+		String tpl = this.preProcessedSql;
+		if (this.sqlDmlType == Utils.DML_SELECT || this.sqlDmlType == Utils.DML_EXEC) {
+			tpl = Utils.oracleToDolphin(Utils.outerJoinToFullJoin(tpl));
+		}
+		String[] sqlSplitByQuestionMark = tpl.split("\\?");
 		StringBuilder stringBuilder = new StringBuilder();
 		if(this.bufferArea.length > sqlSplitByQuestionMark.length)
 			throw new SQLException("error size of bufferArea. ");
@@ -731,78 +1023,15 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 			if (sqlSplitByQuestionMark.length > this.bufferArea.length && Objects.nonNull(sqlSplitByQuestionMark[this.bufferArea.length]))
 				stringBuilder.append(sqlSplitByQuestionMark[this.bufferArea.length]);
 		} else {
-			// no placeholder
 			stringBuilder.append(sqlSplitByQuestionMark[0]);
 		}
 
 		return stringBuilder.toString();
 	}
 
-	private String generateSQLWithRunsql() throws SQLException {
-		if(Utils.isEmpty(this.preProcessedSql))
-			throw new SQLException("preProcessedSql is null. ");
-		String[] sqlSplitByQuestionMark = this.preProcessedSql.split("\\?");
-		StringBuilder stringBuilder = new StringBuilder();
-		if(this.bufferArea.length > sqlSplitByQuestionMark.length)
-			throw new SQLException("error size of bufferArea. ");
-
-		if (this.bufferArea.length != 0) {
-			for (int i = 0; i < this.bufferArea.length; i++) {
-				stringBuilder.append(sqlSplitByQuestionMark[i]);
-				stringBuilder.append("arg" + (i + 1));
-			}
-
-			if (sqlSplitByQuestionMark.length > this.bufferArea.length && Objects.nonNull(sqlSplitByQuestionMark[this.bufferArea.length]))
-				stringBuilder.append(sqlSplitByQuestionMark[this.bufferArea.length]);
-		} else {
-			// no placeholder
-			stringBuilder.append(sqlSplitByQuestionMark[0]);
-		}
-
-		return stringBuilder.toString();
-	}
-
-	private BasicDictionary createParameterDictionary() throws SQLException {
-		if (bufferArea.length == 0) {
-			return null;
-		}
-
-		List<String> keys = new ArrayList<>();
-		BasicAnyVector valueVector = new BasicAnyVector(bufferArea.length);
-
-		for (int i = 0; i < bufferArea.length; i++) {
-			if (bufferArea[i] == null || bufferArea[i].getValue() == null) {
-				throw new SQLException("No value specified for parameter " + (i + 1));
-			}
-
-			keys.add("arg" + (i + 1));
-			Object value = bufferArea[i].getValue();
-
-			try {
-				Entity entity;
-				if (value instanceof DolphinDBArray) {
-					entity = ((DolphinDBArray) value).getVector();
-				} else if (value instanceof Entity) {
-					entity = (Entity) value;
-				} else {
-					entity = Utils.convertJavaObjectToEntity(value);
-				}
-				valueVector.set(i, entity);
-			} catch (Exception e) {
-				throw new SQLException("Failed to convert parameter " + (i + 1) + " to DolphinDB entity", e);
-			}
-		}
-
-		BasicDictionary dict = new BasicDictionary(Entity.DATA_TYPE.DT_STRING, Entity.DATA_TYPE.DT_ANY);
-		for (int i = 0; i < keys.size(); i++) {
-			dict.put(new BasicString(keys.get(i)), valueVector.get(i));
-		}
-		return dict;
-	}
-
-	private ResultSet executeQueryWithRunSQL() throws SQLException {
+	private ResultSet executeFinalizedQuery() throws SQLException {
 		if (super.getQueryTimeout() > 0) {
-			Future<ResultSet> future = executorService.submit(() -> executeQueryWithRunSQLInternal());
+			Future<ResultSet> future = executorService.submit(() -> executeFinalizedQueryInternal());
 			try {
 				return future.get(super.getQueryTimeout(), TimeUnit.SECONDS);
 			} catch (TimeoutException e) {
@@ -813,13 +1042,13 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				throw new SQLException(e);
 			}
 		} else {
-			return executeQueryWithRunSQLInternal();
+			return executeFinalizedQueryInternal();
 		}
 	}
 
-	private int executeUpdateWithRunSQL(int index) throws SQLException {
+	private int executeFinalizedUpdate(int index) throws SQLException {
 		if (super.getQueryTimeout() > 0) {
-			Future<Integer> future = executorService.submit(() -> executeUpdateWithRunSQLInternal(index));
+			Future<Integer> future = executorService.submit(() -> super.executeUpdateWithRowCount(sqlBuffer.get(index)));
 			try {
 				return future.get(super.getQueryTimeout(), TimeUnit.SECONDS);
 			} catch (TimeoutException e) {
@@ -830,59 +1059,32 @@ public class JDBCPrepareStatement extends JDBCStatement implements PreparedState
 				throw new SQLException(e);
 			}
 		} else {
-			return executeUpdateWithRunSQLInternal(index);
+			return super.executeUpdateWithRowCount(sqlBuffer.get(index));
 		}
 	}
 
-	private ResultSet executeQueryWithRunSQLInternal() throws SQLException {
+	private ResultSet executeFinalizedQueryInternal() throws SQLException {
 		try {
-			String sqlWithPlaceholders = sqlBuffer.get(0);
-			List<Entity> params = new ArrayList<>();
-			params.add(new BasicString(sqlWithPlaceholders));
-			params.add(new BasicString("ddb"));
-			params.add(runSQLparamDictList.get(0));
-
+			String finalSql = sqlBuffer.get(0);
 			Entity entity;
 			if(super.getFetchSize() != 0) {
 				if (super.getFetchSize() < 8192) {
 					throw new SQLException("The fetchSize param must be greater than or equal to 8192.");
 				}
-				entity = connection.run("runSQL", params, super.getFetchSize());
+				entity = connection.run(finalSql, super.getFetchSize());
 			} else {
-				entity = connection.run("runSQL", params);
+				entity = connection.run(finalSql);
 			}
 
 			if (entity instanceof BasicTable || entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR
 					|| entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR || entity.getDataForm() == Entity.DATA_FORM.DF_MATRIX) {
-				resultSet = new JDBCResultSet(connection, this, entity, sqlWithPlaceholders, super.getMaxRows());
+				resultSet = new JDBCResultSet(connection, this, entity, finalSql, super.getMaxRows());
 				return resultSet;
 			} else if(entity instanceof EntityBlockReader) {
-				resultSet = new JDBCResultSet(connection, this, (EntityBlockReader) entity, sqlWithPlaceholders, super.getMaxRows());
+				resultSet = new JDBCResultSet(connection, this, (EntityBlockReader) entity, finalSql, super.getMaxRows());
 				return resultSet;
 			} else {
 				throw new SQLException("The given SQL statement produces anything other than a single ResultSet object.");
-			}
-		} catch (Exception e) {
-			throw new SQLException(e);
-		}
-	}
-
-	private int executeUpdateWithRunSQLInternal(int index) throws SQLException {
-		try {
-			String sqlWithPlaceholders = sqlBuffer.get(index);
-			if (supportRowCount) {
-				sqlWithPlaceholders = sqlWithPlaceholders.isEmpty() ? "matchedRowCount()" : sqlWithPlaceholders + ";matchedRowCount()";
-			}
-			List<Entity> params = new ArrayList<>();
-			params.add(new BasicString(sqlWithPlaceholders));
-			params.add(new BasicString("ddb"));
-			params.add(runSQLparamDictList.get(index));
-
-			Entity result = connection.run("runSQL", params);
-			if (result instanceof Scalar && !((Scalar) result).isNull()) {
-				return ((Scalar) result).getNumber().intValue();
-			} else {
-				return SUCCESS_NO_INFO;
 			}
 		} catch (Exception e) {
 			throw new SQLException(e);

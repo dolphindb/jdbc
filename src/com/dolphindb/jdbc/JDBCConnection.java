@@ -30,6 +30,9 @@ public class JDBCConnection implements Connection {
 	private String user;
 	private String password;
 	private String serverVersion;
+	/** Connection-level cache for {@code getConfig(`enableInsertStatementForDFSTable)}; null = not probed. */
+	private Boolean cachedDfsInsertStatementEnabled;
+	private final Map<String, String> tableTypeCache = new LinkedHashMap<>();
 	private boolean supportCatalog;
 	private boolean supportRunSql;
 	private boolean supportRowCount;
@@ -617,12 +620,90 @@ public class JDBCConnection implements Connection {
 		return supportCatalog;
 	}
 
+	/**
+	 * @deprecated PreparedStatement no longer uses runSQL; retained for compatibility checks only.
+	 */
+	@Deprecated
 	public boolean isRunSqlSupported() {
 		return supportRunSql;
 	}
 
 	public boolean isRowCountSupported() {
 		return supportRowCount;
+	}
+
+	/**
+	 * Whether native {@code INSERT INTO ... VALUES} is allowed for the given table (JAVAOS-1916).
+	 * Only DFS tables require {@code enableInsertStatementForDFSTable=true}; every in-memory / local
+	 * table variant (regular, keyed, indexed, mvcc, streaming, ...) allows native INSERT. Ambiguous
+	 * or unknown non-DFS types are deferred to the server, which stays the final authority.
+	 * The config probe result is cached per connection.
+	 */
+	public void ensureNativeInsertAllowed(String tableName) throws SQLException {
+		String tableType = getCachedTableType(tableName);
+		if (!isDfsTableType(tableType))
+			return;
+		if (isDfsInsertStatementEnabled())
+			return;
+		throw new SQLException("Native INSERT INTO ... VALUES is not available for DFS table "
+				+ tableName + " (table type '" + tableType + "')"
+				+ ". Enable server config enableInsertStatementForDFSTable=true, or use a tableInsert-compatible "
+				+ "VALUES template (placeholders and now() only).");
+	}
+
+	/**
+	 * DFS tables report a type string containing {@code DFS} (e.g. {@code SEGMENTED DFS TABLE}).
+	 * In-memory/local tables (regular/keyed/indexed/mvcc report {@code IN-MEMORY TABLE},
+	 * streaming reports {@code STREAMING TABLE}) do not, so they are auto-allowed.
+	 */
+	public static boolean isDfsTableType(String tableType) {
+		return tableType != null && tableType.toUpperCase().contains("DFS");
+	}
+
+	/**
+	 * Interpret {@code getConfig(`enableInsertStatementForDFSTable)} result.
+	 * Missing/null/empty/non-true values are treated as disabled.
+	 */
+	public static boolean interpretDfsInsertStatementEnabled(Entity entity) {
+		if (entity == null)
+			return false;
+		String value;
+		try {
+			value = entity.getString();
+		} catch (Exception e) {
+			return false;
+		}
+		if (value == null)
+			return false;
+		String trimmed = value.trim();
+		if (trimmed.isEmpty() || "null".equalsIgnoreCase(trimmed))
+			return false;
+		return "true".equalsIgnoreCase(trimmed) || "1".equals(trimmed);
+	}
+
+	public boolean isDfsInsertStatementEnabled() {
+		if (cachedDfsInsertStatementEnabled != null)
+			return cachedDfsInsertStatementEnabled;
+		try {
+			Entity entity = run("getConfig(`enableInsertStatementForDFSTable)");
+			cachedDfsInsertStatementEnabled = interpretDfsInsertStatementEnabled(entity);
+		} catch (Exception e) {
+			cachedDfsInsertStatementEnabled = Boolean.FALSE;
+		}
+		return cachedDfsInsertStatementEnabled;
+	}
+
+	String getCachedTableType(String tableName) throws SQLException {
+		String cached = tableTypeCache.get(tableName);
+		if (cached != null)
+			return cached;
+		try {
+			String tableType = run("typestr " + tableName).getString();
+			tableTypeCache.put(tableName, tableType);
+			return tableType;
+		} catch (IOException e) {
+			throw new SQLException("Failed to resolve table type for " + tableName, e);
+		}
 	}
 
 	public String getHostName() {
