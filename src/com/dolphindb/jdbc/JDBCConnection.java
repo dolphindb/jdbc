@@ -33,7 +33,6 @@ public class JDBCConnection implements Connection {
 	private boolean supportCatalog;
 	private boolean supportRunSql;
 	private boolean supportRowCount;
-
 	private static final Logger log = LoggerFactory.getLogger(JDBCConnection.class);
 
 	public JDBCConnection(String url, Properties prop) throws SQLException {
@@ -96,7 +95,7 @@ public class JDBCConnection implements Connection {
 		else
 			this.dbConnection = new DBConnection();
 	}
-	
+
 	public DBConnection getDBConnection() {
 		return dbConnection;
 	}
@@ -119,7 +118,7 @@ public class JDBCConnection implements Connection {
 		String userId = Optional.ofNullable(prop.getProperty("user")).orElse("");
 		String password = Optional.ofNullable(prop.getProperty("password")).orElse("");
 		String initialScript = Optional.ofNullable(prop.getProperty("initialScript"))
-				.map(Utils::changeCase)
+				.map(sql -> Utils.changeCase(sql, null))
 				.orElse("");
 
 		if (initialScript.equals("select 1"))

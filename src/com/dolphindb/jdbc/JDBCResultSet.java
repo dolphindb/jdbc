@@ -3,6 +3,7 @@ package com.dolphindb.jdbc;
 import com.xxdb.data.*;
 import com.xxdb.data.Vector;
 import javax.sql.rowset.serial.SerialBlob;
+import javax.sql.rowset.serial.SerialClob;
 import java.io.*;
 import java.math.BigDecimal;
 import java.net.URL;
@@ -224,7 +225,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public boolean next() throws SQLException {
-        if (this.getFetchSize() != 0) {
+        if (this.reader != null) {
             // When no segments of the large table have been read or when the number of rows read from a segment exceeds the limit, an attempt is made to read the next segment.
             if (this.table == null || this.currentRow >= this.offsetRows - 1) {
                 if(this.maxRows != -1 && globalRows >= this.maxRows)
@@ -257,20 +258,31 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public void close() throws SQLException {
-        isClosed = true;
-        if(findColumnHashMap != null){
-            findColumnHashMap.clear();
-            findColumnHashMap = null;
+        if (isClosed)
+            return;
+
+        try {
+            if (reader != null)
+                reader.skipAll();
+        } catch (IOException e) {
+            throw new SQLException(e);
+        } finally {
+            isClosed = true;
+            reader = null;
+            if(findColumnHashMap != null){
+                findColumnHashMap.clear();
+                findColumnHashMap = null;
+            }
+            if(insertRowMap != null){
+                insertRowMap.clear();
+                insertRowMap = null;
+            }
+            if(arguments != null){
+                arguments.clear();
+                arguments = null;
+            }
+            table = null;
         }
-        if(insertRowMap != null){
-            insertRowMap.clear();
-            insertRowMap = null;
-        }
-        if(arguments != null){
-            arguments.clear();
-            arguments = null;
-        }
-        table = null;
     }
 
     @Override
@@ -717,7 +729,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public int getType() throws SQLException {
-        return ResultSet.TYPE_SCROLL_SENSITIVE;
+        return reader == null ? ResultSet.TYPE_SCROLL_SENSITIVE : ResultSet.TYPE_FORWARD_ONLY;
     }
 
     @Override
@@ -1034,7 +1046,14 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Clob getClob(int columnIndex) throws SQLException {
-        return null;
+        Object value = getObject(columnIndex);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Clob) {
+            return (Clob) value;
+        }
+        return new SerialClob(value.toString().toCharArray());
     }
 
     @Override
@@ -1054,7 +1073,7 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Clob getClob(String columnLabel) throws SQLException {
-        return null;
+        return getClob(findColumn(columnLabel));
     }
 
     @Override
@@ -1064,32 +1083,32 @@ public class JDBCResultSet implements ResultSet{
 
     @Override
     public Date getDate(int columnIndex, Calendar calendar) throws SQLException {
-    	return null;
+        return getDate(columnIndex);
     }
 
     @Override
     public Date getDate(String columnLabel, Calendar calendar) throws SQLException {
-    	return null;
+        return getDate(columnLabel);
     }
 
     @Override
     public Time getTime(int columnIndex, Calendar calendar) throws SQLException {
-    	return null;
+        return getTime(columnIndex);
     }
 
     @Override
     public Time getTime(String columnLabel, Calendar calendar) throws SQLException {
-    	return null;
+        return getTime(columnLabel);
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex, Calendar calendar) throws SQLException {
-    	return null;
+        return getTimestamp(columnIndex);
     }
 
     @Override
     public Timestamp getTimestamp(String columnLabel, Calendar calendar) throws SQLException {
-    	return null;
+        return getTimestamp(columnLabel);
     }
 
     @Override

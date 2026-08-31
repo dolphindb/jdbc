@@ -777,6 +777,37 @@ public class JDBCDataBaseMetaDataTest {
         stmt.close();
         conn.close();
     }
+    @Test
+    public void test_DatabaseMetaData_getTables_schemaPattern_underscore_backslash() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+            DatabaseMetaData metaData = conn.getMetaData();
+            createSchema("catalog1","dfs://db","schema\\_test");
+            createSchema("catalog2","dfs://db1","schema\\_test");
+            DBConnection connDB = new DBConnection();
+            connDB.connect(HOST,PORT,"admin","123456");
+            connDB.run("login(`admin, `123456); \ntry{\n createSchema(\"catalog1\",\"dfs://db1\",\"schema_test1\")\n }catch(ex){\n }\n ");
+            rs = metaData.getTables("catalog1","schema\\_test","pt", null);
+            String results1 = getTablesData(rs);
+            Assert.assertEquals("TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    TABLE_TYPE: TABLE    REMARKS: null    \n" +
+                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    TABLE_TYPE: TABLE    REMARKS: null    \n",results1);
+        }else{
+            createTable1("dfs://test\\_append_type_tsdb1");
+            DatabaseMetaData metaData1 = conn.getMetaData();
+            rs = metaData1.getTables("DolphinDB","test\\_append_type_tsdb1","dt", null);
+            String results1 = getTablesData(rs);
+            Assert.assertEquals(true, results1.contains("TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    TABLE_TYPE: TABLE    REMARKS: null    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    TABLE_TYPE: TABLE    REMARKS: null    "));
+        }
+        stmt.close();
+        conn.close();
+    }
 
     @Test
     public void test_DatabaseMetaData_getTables_catalog_exist() throws Exception {
@@ -928,43 +959,43 @@ public class JDBCDataBaseMetaDataTest {
         rs = metaData.getColumns("catalog1","schema_test","dt", "%");
         String results1 = getTablesData(rs);
         //printData(rs);
-        Assert.assertEquals("TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
-                "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: x    TYPE_NAME: DOUBLE    DATA_TYPE: 8    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 8    \n" +
-                "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: sys    TYPE_NAME: STRING    DATA_TYPE: 12    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 12    \n",results1);
+        Assert.assertEquals("TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
+                "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: x    TYPE_NAME: DOUBLE    DATA_TYPE: 8    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 8    \n" +
+                "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: sys    TYPE_NAME: STRING    DATA_TYPE: 12    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 12    \n",results1);
         }else{
             createTable1("dfs://test_append_type_tsdb1");
             DatabaseMetaData metaData1 = conn.getMetaData();
             rs = metaData1.getColumns("DolphinDB","test_append_type_tsdb1","pt1", "%");
             String results1 = getTablesData(rs);
-            Assert.assertEquals("TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col2    TYPE_NAME: BOOL    DATA_TYPE: 16    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 16    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col3    TYPE_NAME: CHAR    DATA_TYPE: 1    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 1    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col4    TYPE_NAME: SHORT    DATA_TYPE: 5    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 4    SQL_DATA_TYPES: 5    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col5    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 5    SQL_DATA_TYPES: 4    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col6    TYPE_NAME: LONG    DATA_TYPE: -5    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 6    SQL_DATA_TYPES: -5    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col7    TYPE_NAME: DATE    DATA_TYPE: 91    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 7    SQL_DATA_TYPES: 91    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col8    TYPE_NAME: MONTH    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 8    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col9    TYPE_NAME: TIME    DATA_TYPE: 92    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 9    SQL_DATA_TYPES: 92    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col10    TYPE_NAME: MINUTE    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 10    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col11    TYPE_NAME: SECOND    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 11    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col12    TYPE_NAME: DATETIME    DATA_TYPE: 93    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 12    SQL_DATA_TYPES: 93    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col13    TYPE_NAME: TIMESTAMP    DATA_TYPE: 93    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 13    SQL_DATA_TYPES: 93    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col14    TYPE_NAME: NANOTIME    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 14    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col15    TYPE_NAME: NANOTIMESTAMP    DATA_TYPE: 93    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 15    SQL_DATA_TYPES: 93    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col16    TYPE_NAME: FLOAT    DATA_TYPE: 6    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 16    SQL_DATA_TYPES: 6    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col17    TYPE_NAME: DOUBLE    DATA_TYPE: 8    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 17    SQL_DATA_TYPES: 8    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col18    TYPE_NAME: SYMBOL    DATA_TYPE: 12    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 18    SQL_DATA_TYPES: 12    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col19    TYPE_NAME: STRING    DATA_TYPE: 12    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 19    SQL_DATA_TYPES: 12    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col20    TYPE_NAME: UUID    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 20    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col21    TYPE_NAME: DATEHOUR    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 21    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col22    TYPE_NAME: IPADDR    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 22    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col23    TYPE_NAME: INT128    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 23    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col24    TYPE_NAME: BLOB    DATA_TYPE: 2,005    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 24    SQL_DATA_TYPES: 2,005    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col25    TYPE_NAME: COMPLEX    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 25    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col26    TYPE_NAME: POINT    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 26    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col27    TYPE_NAME: DECIMAL32(2)    DATA_TYPE: 3    EXTRA: 2    REMARKS: null    DECIMAL_DIGITS: 2    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 27    SQL_DATA_TYPES: 3    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col28    TYPE_NAME: DECIMAL64(7)    DATA_TYPE: 3    EXTRA: 7    REMARKS: null    DECIMAL_DIGITS: 7    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 28    SQL_DATA_TYPES: 3    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col29    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 3    EXTRA: 19    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 29    SQL_DATA_TYPES: 3    \n",results1);
+            Assert.assertEquals("TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col2    TYPE_NAME: BOOL    DATA_TYPE: 16    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 16    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col3    TYPE_NAME: CHAR    DATA_TYPE: 1    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 1    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col4    TYPE_NAME: SHORT    DATA_TYPE: 5    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 4    SQL_DATA_TYPES: 5    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col5    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 5    SQL_DATA_TYPES: 4    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col6    TYPE_NAME: LONG    DATA_TYPE: -5    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 6    SQL_DATA_TYPES: -5    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col7    TYPE_NAME: DATE    DATA_TYPE: 91    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 7    SQL_DATA_TYPES: 91    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col8    TYPE_NAME: MONTH    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 8    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col9    TYPE_NAME: TIME(3)    DATA_TYPE: 92    COLUMN_SIZE: 3    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 9    SQL_DATA_TYPES: 92    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col10    TYPE_NAME: MINUTE    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 10    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col11    TYPE_NAME: SECOND    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 11    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col12    TYPE_NAME: DATETIME    DATA_TYPE: 93    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 12    SQL_DATA_TYPES: 93    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col13    TYPE_NAME: TIMESTAMP(3)    DATA_TYPE: 93    COLUMN_SIZE: 3    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 13    SQL_DATA_TYPES: 93    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col14    TYPE_NAME: NANOTIME(9)    DATA_TYPE: 1,111    COLUMN_SIZE: 9    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 14    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col15    TYPE_NAME: NANOTIMESTAMP(9)    DATA_TYPE: 93    COLUMN_SIZE: 9    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 15    SQL_DATA_TYPES: 93    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col16    TYPE_NAME: FLOAT    DATA_TYPE: 6    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 16    SQL_DATA_TYPES: 6    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col17    TYPE_NAME: DOUBLE    DATA_TYPE: 8    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 17    SQL_DATA_TYPES: 8    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col18    TYPE_NAME: SYMBOL    DATA_TYPE: 12    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 18    SQL_DATA_TYPES: 12    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col19    TYPE_NAME: STRING    DATA_TYPE: 12    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 19    SQL_DATA_TYPES: 12    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col20    TYPE_NAME: UUID    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 20    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col21    TYPE_NAME: DATEHOUR    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 21    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col22    TYPE_NAME: IPADDR    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 22    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col23    TYPE_NAME: INT128    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 23    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col24    TYPE_NAME: BLOB    DATA_TYPE: 2,005    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 24    SQL_DATA_TYPES: 2,005    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col25    TYPE_NAME: COMPLEX    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 25    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col26    TYPE_NAME: POINT    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 26    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col27    TYPE_NAME: DECIMAL32(2)    DATA_TYPE: 3    COLUMN_SIZE: 9    REMARKS: null    DECIMAL_DIGITS: 2    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 27    SQL_DATA_TYPES: 3    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col28    TYPE_NAME: DECIMAL64(7)    DATA_TYPE: 3    COLUMN_SIZE: 18    REMARKS: null    DECIMAL_DIGITS: 7    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 28    SQL_DATA_TYPES: 3    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col29    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 3    COLUMN_SIZE: 38    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 29    SQL_DATA_TYPES: 3    \n",results1);
         }
         stmt.close();
         conn.close();
@@ -985,42 +1016,42 @@ public class JDBCDataBaseMetaDataTest {
             rs = metaData.getColumns("catalog1","schema_test","pt", "%");
             String results1 = getTablesData(rs);
             //printData(rs);
-            Assert.assertEquals("TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
-                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: x    TYPE_NAME: DOUBLE    DATA_TYPE: 8    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 8    \n",results1);
+            Assert.assertEquals("TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
+                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: x    TYPE_NAME: DOUBLE    DATA_TYPE: 8    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 8    \n",results1);
         }else{
             createTable1("dfs://test_append_type_tsdb1");
             DatabaseMetaData metaData1 = conn.getMetaData();
             rs = metaData1.getColumns("DolphinDB","test_append_type_tsdb1","pt", "%");
             String results1 = getTablesData(rs);
-            Assert.assertEquals("TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col2    TYPE_NAME: BOOL    DATA_TYPE: 16    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 16    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col3    TYPE_NAME: CHAR    DATA_TYPE: 1    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 1    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col4    TYPE_NAME: SHORT    DATA_TYPE: 5    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 4    SQL_DATA_TYPES: 5    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col5    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 5    SQL_DATA_TYPES: 4    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col6    TYPE_NAME: LONG    DATA_TYPE: -5    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 6    SQL_DATA_TYPES: -5    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col7    TYPE_NAME: DATE    DATA_TYPE: 91    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 7    SQL_DATA_TYPES: 91    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col8    TYPE_NAME: MONTH    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 8    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col9    TYPE_NAME: TIME    DATA_TYPE: 92    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 9    SQL_DATA_TYPES: 92    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col10    TYPE_NAME: MINUTE    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 10    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col11    TYPE_NAME: SECOND    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 11    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col12    TYPE_NAME: DATETIME    DATA_TYPE: 93    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 12    SQL_DATA_TYPES: 93    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col13    TYPE_NAME: TIMESTAMP    DATA_TYPE: 93    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 13    SQL_DATA_TYPES: 93    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col14    TYPE_NAME: NANOTIME    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 14    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col15    TYPE_NAME: NANOTIMESTAMP    DATA_TYPE: 93    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 15    SQL_DATA_TYPES: 93    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col16    TYPE_NAME: FLOAT    DATA_TYPE: 6    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 16    SQL_DATA_TYPES: 6    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col17    TYPE_NAME: DOUBLE    DATA_TYPE: 8    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 17    SQL_DATA_TYPES: 8    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col18    TYPE_NAME: SYMBOL    DATA_TYPE: 12    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 18    SQL_DATA_TYPES: 12    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col19    TYPE_NAME: STRING    DATA_TYPE: 12    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 19    SQL_DATA_TYPES: 12    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col20    TYPE_NAME: UUID    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 20    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col21    TYPE_NAME: DATEHOUR    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 21    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col22    TYPE_NAME: IPADDR    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 22    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col23    TYPE_NAME: INT128    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 23    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col24    TYPE_NAME: BLOB    DATA_TYPE: 2,005    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 24    SQL_DATA_TYPES: 2,005    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col25    TYPE_NAME: COMPLEX    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 25    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col26    TYPE_NAME: POINT    DATA_TYPE: 1,111    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 26    SQL_DATA_TYPES: 1,111    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col27    TYPE_NAME: DECIMAL32(2)    DATA_TYPE: 3    EXTRA: 2    REMARKS: null    DECIMAL_DIGITS: 2    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 27    SQL_DATA_TYPES: 3    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col28    TYPE_NAME: DECIMAL64(7)    DATA_TYPE: 3    EXTRA: 7    REMARKS: null    DECIMAL_DIGITS: 7    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 28    SQL_DATA_TYPES: 3    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col29    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 3    EXTRA: 19    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 29    SQL_DATA_TYPES: 3    \n",results1);
+            Assert.assertEquals("TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col2    TYPE_NAME: BOOL    DATA_TYPE: 16    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 16    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col3    TYPE_NAME: CHAR    DATA_TYPE: 1    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 1    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col4    TYPE_NAME: SHORT    DATA_TYPE: 5    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 4    SQL_DATA_TYPES: 5    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col5    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 5    SQL_DATA_TYPES: 4    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col6    TYPE_NAME: LONG    DATA_TYPE: -5    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 6    SQL_DATA_TYPES: -5    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col7    TYPE_NAME: DATE    DATA_TYPE: 91    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 7    SQL_DATA_TYPES: 91    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col8    TYPE_NAME: MONTH    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 8    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col9    TYPE_NAME: TIME(3)    DATA_TYPE: 92    COLUMN_SIZE: 3    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 9    SQL_DATA_TYPES: 92    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col10    TYPE_NAME: MINUTE    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 10    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col11    TYPE_NAME: SECOND    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 11    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col12    TYPE_NAME: DATETIME    DATA_TYPE: 93    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 12    SQL_DATA_TYPES: 93    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col13    TYPE_NAME: TIMESTAMP(3)    DATA_TYPE: 93    COLUMN_SIZE: 3    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 13    SQL_DATA_TYPES: 93    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col14    TYPE_NAME: NANOTIME(9)    DATA_TYPE: 1,111    COLUMN_SIZE: 9    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 14    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col15    TYPE_NAME: NANOTIMESTAMP(9)    DATA_TYPE: 93    COLUMN_SIZE: 9    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 15    SQL_DATA_TYPES: 93    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col16    TYPE_NAME: FLOAT    DATA_TYPE: 6    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 16    SQL_DATA_TYPES: 6    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col17    TYPE_NAME: DOUBLE    DATA_TYPE: 8    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 17    SQL_DATA_TYPES: 8    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col18    TYPE_NAME: SYMBOL    DATA_TYPE: 12    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 18    SQL_DATA_TYPES: 12    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col19    TYPE_NAME: STRING    DATA_TYPE: 12    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 19    SQL_DATA_TYPES: 12    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col20    TYPE_NAME: UUID    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 20    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col21    TYPE_NAME: DATEHOUR    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 21    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col22    TYPE_NAME: IPADDR    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 22    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col23    TYPE_NAME: INT128    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 23    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col24    TYPE_NAME: BLOB    DATA_TYPE: 2,005    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 24    SQL_DATA_TYPES: 2,005    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col25    TYPE_NAME: COMPLEX    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 25    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col26    TYPE_NAME: POINT    DATA_TYPE: 1,111    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 26    SQL_DATA_TYPES: 1,111    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col27    TYPE_NAME: DECIMAL32(2)    DATA_TYPE: 3    COLUMN_SIZE: 9    REMARKS: null    DECIMAL_DIGITS: 2    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 27    SQL_DATA_TYPES: 3    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col28    TYPE_NAME: DECIMAL64(7)    DATA_TYPE: 3    COLUMN_SIZE: 18    REMARKS: null    DECIMAL_DIGITS: 7    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 28    SQL_DATA_TYPES: 3    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col29    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 3    COLUMN_SIZE: 38    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 29    SQL_DATA_TYPES: 3    \n",results1);
         }
         stmt.close();
         conn.close();
@@ -1040,7 +1071,7 @@ public class JDBCDataBaseMetaDataTest {
         connDB.run("share table(1..10 as id) as table1");
         rs = metaData.getColumns("","","table1", "%");
         String results1 = getTablesData(rs);
-        Assert.assertEquals("TABLE_CAT: null    TABLE_SCHEM: null    TABLE_NAME: table1    COLUMN_NAME: id    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n",results1);
+        Assert.assertEquals("TABLE_CAT: null    TABLE_SCHEM: null    TABLE_NAME: table1    COLUMN_NAME: id    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n",results1);
         stmt.close();
         conn.close();
     }
@@ -1060,7 +1091,7 @@ public class JDBCDataBaseMetaDataTest {
             connDB.run("share table(1..10 as id) as table1");
             rs = metaData.getColumns(null,null,"table1", "%");
             String results1 = getTablesData(rs);
-            Assert.assertEquals("TABLE_CAT: null    TABLE_SCHEM: null    TABLE_NAME: table1    COLUMN_NAME: id    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n",results1);
+            Assert.assertEquals("TABLE_CAT: null    TABLE_SCHEM: null    TABLE_NAME: table1    COLUMN_NAME: id    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n",results1);
             stmt.close();
             conn.close();
     }
@@ -1106,23 +1137,89 @@ public class JDBCDataBaseMetaDataTest {
             rs = metaData.getColumns("catalog1","schema_test","%", "%");
             String results1 = getTablesData(rs);
             //printData(rs);
-            Assert.assertEquals("TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
-                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: cdecimal32    TYPE_NAME: DECIMAL32(8)    DATA_TYPE: 3    EXTRA: 8    REMARKS: null    DECIMAL_DIGITS: 8    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    \n" +
-                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: 股票代码    DECIMAL_DIGITS: -1    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
-                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: cdecimal32    TYPE_NAME: DECIMAL32(8)    DATA_TYPE: 3    EXTRA: 8    REMARKS: decimal32类型    DECIMAL_DIGITS: 8    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    \n" +
-                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: cdecimal64    TYPE_NAME: DECIMAL64(17)    DATA_TYPE: 3    EXTRA: 17    REMARKS: decimal64(17)类型    DECIMAL_DIGITS: 17    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 3    \n" +
-                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: cdecimal128    TYPE_NAME: DECIMAL128(30)    DATA_TYPE: 3    EXTRA: 30    REMARKS: decimal128类型    DECIMAL_DIGITS: 30    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 4    SQL_DATA_TYPES: 3    \n",results1);
+            Assert.assertEquals("TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
+                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: dt    COLUMN_NAME: cdecimal32    TYPE_NAME: DECIMAL32(8)    DATA_TYPE: 3    COLUMN_SIZE: 9    REMARKS: null    DECIMAL_DIGITS: 8    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    \n" +
+                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: 股票代码    DECIMAL_DIGITS: null    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
+                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: cdecimal32    TYPE_NAME: DECIMAL32(8)    DATA_TYPE: 3    COLUMN_SIZE: 9    REMARKS: decimal32类型    DECIMAL_DIGITS: 8    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    \n" +
+                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: cdecimal64    TYPE_NAME: DECIMAL64(17)    DATA_TYPE: 3    COLUMN_SIZE: 18    REMARKS: decimal64(17)类型    DECIMAL_DIGITS: 17    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 3    \n" +
+                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt    COLUMN_NAME: cdecimal128    TYPE_NAME: DECIMAL128(30)    DATA_TYPE: 3    COLUMN_SIZE: 38    REMARKS: decimal128类型    DECIMAL_DIGITS: 30    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 4    SQL_DATA_TYPES: 3    \n",results1);
         }else{
             createTable("dfs://test_append_type_tsdb1");
             DatabaseMetaData metaData1 = conn.getMetaData();
             rs = metaData1.getColumns("DolphinDB","test_append_type_tsdb1","%", "%");
             String results1 = getTablesData(rs);
-            Assert.assertEquals("TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col2    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 3    EXTRA: 19    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col3    TYPE_NAME: DECIMAL128(19)[]    DATA_TYPE: 2,003    EXTRA: 19    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 2,003    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    EXTRA: null    REMARKS: null    DECIMAL_DIGITS: -1    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col2    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 3    EXTRA: 19    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    \n" +
-                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col3    TYPE_NAME: DECIMAL128(19)[]    DATA_TYPE: 2,003    EXTRA: 19    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 2,003    \n",results1);
+            Assert.assertEquals("TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col2    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 3    COLUMN_SIZE: 38    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt    COLUMN_NAME: col3    TYPE_NAME: DECIMAL128(19)[]    DATA_TYPE: 2,003    COLUMN_SIZE: 38    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 2,003    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col2    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 3    COLUMN_SIZE: 38    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt1    COLUMN_NAME: col3    TYPE_NAME: DECIMAL128(19)[]    DATA_TYPE: 2,003    COLUMN_SIZE: 38    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 2,003    \n",results1);
+        }
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
+    public void test_DatabaseMetaData_getColumns_schemaPattern_underscore_backslash() throws Exception {
+        JDBCConnection jdbcConnection = new JDBCConnection(url,prop);
+        Connection conn = null;
+        Statement stmt = null;
+        Class.forName(JDBC_DRIVER);
+        conn = DriverManager.getConnection(url,LOGININFO);
+        stmt = conn.createStatement();
+        ResultSet rs = null;
+        if(checkServerVersionIfSupportCatalog(jdbcConnection)){
+            DatabaseMetaData metaData = conn.getMetaData();
+            String results = null;
+            String script = "dbName = \"dfs://db\"\n" +
+                    "if(existsDatabase(dbName)){\n" +
+                    "        dropDatabase(dbName)\n" +
+                    "}\n" +
+                    "n=1000\n" +
+                    "ID=rand(10, n)\n" +
+                    "cdecimal32=decimal32(rand(1.0, n),8)\n" +
+                    "cdecimal64=decimal64(rand(1.0, n),17)\n" +
+                    "cdecimal128=decimal128(rand(1.0, n),30)\n" +
+                    "t=table(ID, cdecimal32,cdecimal64,cdecimal128);\n" +
+                    "t1=table(ID, cdecimal32);\n" +
+                    "db=database(dbName,RANGE,  0 5 10)\n" +
+                    "pt=db.createPartitionedTable(t, `pt_1, `ID);\n" +
+                    "pt.append!(t);\n" +
+                    "setColumnComment(pt,{ID:\"股票代码\",cdecimal32:\"decimal32类型\",cdecimal64:\"decimal64(17)类型\",cdecimal128:\"decimal128类型\"});\n" +
+                    "db.createTable(t1, `dt_1).append!(t1);" +
+                    "try{\n dropCatalog(\"catalog1\")\n }catch(ex){\n }\n" +
+                    "createCatalog(\"catalog1\")\n"+
+                    "createSchema(\"catalog1\", \"dfs://db\", \"schema\\_test\")\n";
+            DBConnection db = new DBConnection();
+            db.connect(HOST, PORT,"admin", "123456");
+            db.run(script);
+            rs = metaData.getColumns("catalog1","schema\\_test","pt\\_1", "%");
+            String results1 = getTablesData(rs);
+            //printData(rs);
+            Assert.assertEquals(
+                    "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt_1    COLUMN_NAME: ID    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: 股票代码    DECIMAL_DIGITS: null    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
+                            "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt_1    COLUMN_NAME: cdecimal32    TYPE_NAME: DECIMAL32(8)    DATA_TYPE: 3    COLUMN_SIZE: 9    REMARKS: decimal32类型    DECIMAL_DIGITS: 8    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    \n" +
+                            "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt_1    COLUMN_NAME: cdecimal64    TYPE_NAME: DECIMAL64(17)    DATA_TYPE: 3    COLUMN_SIZE: 18    REMARKS: decimal64(17)类型    DECIMAL_DIGITS: 17    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 3    \n" +
+                            "TABLE_CAT: catalog1    TABLE_SCHEM: schema_test    TABLE_NAME: pt_1    COLUMN_NAME: cdecimal128    TYPE_NAME: DECIMAL128(30)    DATA_TYPE: 3    COLUMN_SIZE: 38    REMARKS: decimal128类型    DECIMAL_DIGITS: 30    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 4    SQL_DATA_TYPES: 3    \n",results1);
+        }else{
+            String script = "login(`admin, `123456); \n" +
+                    "if(existsDatabase('dfs://test\\_append_type_tsdb1'))" +
+                    "{ dropDatabase('dfs://test\\_append_type_tsdb1')} \n" +
+                    "colNames=\"col\"+string(1..3);\n" +
+                    "colTypes=[INT,DECIMAL128(19),DECIMAL128(19)[]];\n" +
+                    "t=table(1:0,colNames,colTypes);\n" +
+                    "db=database('dfs://test\\_append_type_tsdb1', RANGE, 1 2001 4001 6001 8001 10001,,'TSDB') \n" +
+                    "db.createPartitionedTable(t, `pt_1, `col1,,`col1) \n" +
+                    "db.createPartitionedTable(t, `pt1_1, `col1,,`col1)\n";
+            DBConnection db = new DBConnection();
+            db.connect(HOST, PORT,"admin","123456");
+            db.run(script);
+            DatabaseMetaData metaData1 = conn.getMetaData();
+            rs = metaData1.getColumns("DolphinDB","test\\_append_type_tsdb1","pt\\_1", "%");
+            String results1 = getTablesData(rs);
+            Assert.assertEquals("TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt_1    COLUMN_NAME: col1    TYPE_NAME: INT    DATA_TYPE: 4    COLUMN_SIZE: -1    REMARKS: null    DECIMAL_DIGITS: null    IS_NULLABLE: NO    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 1    SQL_DATA_TYPES: 4    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt_1    COLUMN_NAME: col2    TYPE_NAME: DECIMAL128(19)    DATA_TYPE: 3    COLUMN_SIZE: 38    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 2    SQL_DATA_TYPES: 3    \n" +
+                    "TABLE_CAT: DolphinDB    TABLE_SCHEM: test_append_type_tsdb1    TABLE_NAME: pt_1    COLUMN_NAME: col3    TYPE_NAME: DECIMAL128(19)[]    DATA_TYPE: 2,003    COLUMN_SIZE: 38    REMARKS: null    DECIMAL_DIGITS: 19    IS_NULLABLE: YES    IS_AUTOINCREMENT: null    ORDINAL_POSITION: 3    SQL_DATA_TYPES: 2,003    \n",results1);
         }
         stmt.close();
         conn.close();
