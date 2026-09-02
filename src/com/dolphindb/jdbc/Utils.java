@@ -30,7 +30,7 @@ public class Utils {
 
     static String INSERT_STRING = "(insert)\\s+(into)\\s+";
 
-    static String MEM_TABLE_NAME = "([a-zA-Z]{1}[a-zA-Z\\d_]*)";
+    static String MEM_TABLE_NAME = "([a-zA-Z]{1}[a-zA-Z\\d_]*|`[^`]+`)";
 
     static String LOAD_TABLE_NAME = "(loadTable\\(.+?\\))";
 
@@ -40,13 +40,13 @@ public class Utils {
 
     static String VALUE_STRING = "\\s*(values)\\s*\\((.+)\\)";
 
-    static String COLNAME_STRING = "\\s*\\([a-zA-Z\\d_\\,\\s]+?\\)";
+    static String COLNAME_STRING = "(\\s*(?:[a-zA-Z\\d_]+|`[^`]+`|\"[^\"]+\"|'[^']+')\\s*(?:,\\s*(?:[a-zA-Z\\d_]+|`[^`]+`|\"[^\"]+\"|'[^']+')\\s*)*)";
 
     static String DELETE_STRING = "(delete)|\\s+((?i)from)\\s+";
 
     static String DELETE_WHERE_STRING = "\\s+((where)\\s+(.+=.+)+)?";
 
-    static String INSERT_TABLE_NAME_COLUMN_STRING = "(" + LOAD_TABLE_NAME + "*" + MEM_TABLE_NAME + "*" + ")\\s*(\\((.+?)\\))*";
+    static String INSERT_TABLE_NAME_COLUMN_STRING = "(" + LOAD_TABLE_NAME + "*" + MEM_TABLE_NAME + "*" + ")\\s*(\\(" + COLNAME_STRING + "\\))*";
 
     static String UPDATE_STRING = "update\\s+";
 
@@ -204,31 +204,58 @@ public class Utils {
         return substr.compareToIgnoreCase(key)==0;
     }
 
+    private static boolean startsWithKeyword(String sentence, String key) {
+        if (!startsWith(sentence, key))
+            return false;
+        return sentence.length() == key.length() || !isKeyChar(sentence.charAt(key.length()));
+    }
+
     public static int getDml(String sql) {
-        if (startsWith(sql,"select") || startsWith(sql,"SELECT"))
+        if (startsWithKeyword(sql,"select"))
             return DML_SELECT;
-        else if(sql.startsWith("insert") || sql.startsWith("INSERT"))
+        else if(startsWithKeyword(sql,"insert"))
             return DML_INSERT;
-        else if(sql.startsWith("update") || sql.startsWith("UPDATE"))
+        else if(startsWithKeyword(sql,"update"))
             return DML_UPDATE;
-        else if(sql.startsWith("delete") || sql.startsWith("DELETE"))
+        else if(startsWithKeyword(sql,"delete"))
             return DML_DELETE;
-        else if(sql.startsWith("exec") || sql.startsWith("EXEC"))
+        else if(startsWithKeyword(sql,"exec"))
             return DML_EXEC;
         else
             return DML_OTHER;
     }
 
+    private static String stripIdentifierQuotes(String identifier) {
+        if (identifier == null)
+            return null;
+
+        String trimmed = identifier.trim();
+        if (trimmed.length() >= 2) {
+            char first = trimmed.charAt(0);
+            char last = trimmed.charAt(trimmed.length() - 1);
+            if ((first == '`' && last == '`') ||
+                    (first == '"' && last == '"') ||
+                    (first == '\'' && last == '\'')) {
+                return trimmed.substring(1, trimmed.length() - 1);
+            }
+        }
+
+        return trimmed;
+    }
+
     public static String getTableName(String sql, boolean isPrepareStatement) throws SQLException{
         String tableName = null;
-        if (sql.startsWith("insert") || sql.startsWith("INSERT")) {
+        if (startsWithKeyword(sql, "insert")) {
+            if (isPrepareStatement) {
+                return parsePreparedInsertInfo(sql).getTableName();
+            }
             String checkString = INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + (isPrepareStatement ? VALUE_WITH_QUESTION_STRING : VALUE_STRING);
             Pattern pattern = Pattern.compile(checkString, Pattern.DOTALL);
             Matcher matcher = pattern.matcher(sql);
             if (sql.matches(checkString) && matcher.find()) {
                 tableName = matcher.group(3);
                 if (tableName != null && !tableName.isEmpty())
-                    return tableName;
+                    return stripIdentifierQuotes(tableName);
                 else
                     throw new SQLException("Please check your SQL format: " + sql);
             } else {
@@ -673,6 +700,13 @@ public class Utils {
     }
 
     public static String getInsertColumnString(String sql) {
+        try {
+            PreparedInsertInfo info = parsePreparedInsertInfo(sql);
+            if (!info.hasExplicitColumns())
+                return "";
+            return String.join(",", info.getColumnNames());
+        } catch (SQLException ignored) {
+        }
         Pattern pattern = Pattern.compile(INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + VALUE_WITH_QUESTION_STRING, Pattern.DOTALL);
         Matcher matcher = pattern.matcher(sql);
 
@@ -688,6 +722,11 @@ public class Utils {
     }
 
     public static String getInsertValueQuestionString(String sql) {
+        try {
+            PreparedInsertInfo info = parsePreparedInsertInfo(sql);
+            return info.getValueQuestionString();
+        } catch (SQLException ignored) {
+        }
         Pattern pattern = Pattern.compile(INSERT_STRING + INSERT_TABLE_NAME_COLUMN_STRING + VALUE_WITH_QUESTION_STRING, Pattern.DOTALL);
         //(insert)\s+(into)\s+((loadTable\(.+?\))*([a-zA-Z]{1}[a-zA-Z\d_]*)*)\s*(\((.+?)\))*\s+(values)\s*\(([\s?,]+)\)
         //(1     )   (2)      ((4               ) (5                      ) )   (7 (6  )  )    (8     )     (9      )
@@ -707,8 +746,8 @@ public class Utils {
         if (!columnParam.isEmpty()) {
             String[] columnParams = columnParam.split(",");
             for (int i = 0; i < columnParams.length; i++) {
-                String curCol = columnParams[i].trim().replaceAll("^[\"']|[\"']$", "");
-                map.put(curCol.trim().toLowerCase(), i);
+                String curCol = stripIdentifierQuotes(columnParams[i]);
+                map.put(curCol.toLowerCase(), i);
             }
 
             return map;
@@ -718,17 +757,961 @@ public class Utils {
     }
 
     public static void checkInsertSQLValid(String sql, int columnSize){
-        String columnParam = getInsertColumnString(sql);
-        String[] columnParams = columnParam.split(",");
-        String QuestionMark = getInsertValueQuestionString(sql);
-        String[] QuestionMarks = QuestionMark.split(",");
-        if(columnParam.isEmpty()) {
-            if(QuestionMarks.length != columnSize)
+        try {
+            PreparedInsertInfo info = parsePreparedInsertInfo(sql);
+            if(info.hasExplicitColumns()) {
+                if (info.getColumnNames().size() != info.getValueCountPerRow()) {
+                    throw new RuntimeException("The number of columns and the number of values do not match! Please check the SQL!");
+                }
+            } else if(info.getValueCountPerRow() != columnSize) {
                 throw new RuntimeException("The number of table columns and the number of values do not match! Please check the SQL!");
-        }else {
-            if (columnParams.length != QuestionMarks.length) {
-                throw new RuntimeException("The number of columns and the number of values do not match! Please check the SQL!");
             }
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
+
+    private static final Pattern PREPARED_INSERT_NOW_SLOT_PATTERN =
+            Pattern.compile("(?i)^now\\s*\\(\\s*\\)$");
+
+    /**
+     * Whether the whole INSERT template is supported by the prepared tableInsert path
+     * and contains a zero-arg {@code now()} (JAVAOS-1913).
+     *
+     * <p>Parsing the complete VALUES template is intentional: a raw regex search would
+     * mistake string literals or comments containing {@code now()} for a NOW slot and
+     * would also divert legacy literal INSERTs such as {@code values(1, now())} away
+     * from their existing whole-SQL path.</p>
+     */
+    public static boolean containsPreparedInsertNow(String sql) {
+        if (sql == null || sql.isEmpty()) {
+            return false;
+        }
+        try {
+            return parsePreparedInsertInfo(sql).hasNowSlot();
+        } catch (SQLException ignored) {
+            return false;
+        }
+    }
+
+    public static PreparedInsertInfo parsePreparedInsertInfo(String sql) throws SQLException {
+        InsertParseCursor cursor = new InsertParseCursor(sql);
+        if (!cursor.consumeKeyword("insert") || !cursor.consumeKeyword("into"))
+            throw new SQLException("Please check your SQL format: " + sql);
+
+        String tableName = cursor.readTableName();
+        if (tableName == null || tableName.isEmpty())
+            throw new SQLException("Please check your SQL format: " + sql);
+
+        List<String> columnNames = Collections.emptyList();
+        cursor.skipWhitespace();
+        if (!cursor.nextKeywordIs("values")) {
+            String columnSection = cursor.readParenthesized();
+            if (columnSection == null)
+                throw new SQLException("Please check your SQL format: " + sql);
+            columnNames = parseInsertColumnNames(columnSection);
+            if (columnNames.isEmpty())
+                throw new SQLException("Please check your SQL format: " + sql);
+        }
+
+        if (!cursor.consumeKeyword("values"))
+            throw new SQLException("Please check your SQL format: " + sql);
+
+        List<String> valueRows = new ArrayList<>();
+        List<InsertValueSlot> slotKinds = null;
+        int rowWidth = -1;
+        while (true) {
+            String valueSection = cursor.readParenthesized();
+            if (valueSection == null)
+                throw new SQLException("Please check your SQL format: " + sql);
+
+            List<String> values = splitTopLevelComma(valueSection);
+            if (values.isEmpty())
+                throw new SQLException("Please check your SQL format: " + sql);
+
+            List<InsertValueSlot> rowKinds = new ArrayList<>(values.size());
+            for (String value : values) {
+                rowKinds.add(parseInsertValueSlot(value, sql));
+            }
+            if (rowWidth < 0) {
+                rowWidth = values.size();
+                slotKinds = rowKinds;
+            } else if (rowWidth != values.size() || !slotKinds.equals(rowKinds)) {
+                throw new SQLException("Please check your SQL format: " + sql);
+            }
+            valueRows.add(valueSection.trim());
+
+            cursor.skipWhitespace();
+            if (cursor.isAtEnd())
+                break;
+            if (!cursor.consume(','))
+                throw new SQLException("Please check your SQL format: " + sql);
+        }
+
+        if (rowWidth <= 0 || valueRows.isEmpty() || slotKinds == null)
+            throw new SQLException("Please check your SQL format: " + sql);
+
+        return new PreparedInsertInfo(tableName, columnNames, rowWidth, valueRows.size(), valueRows.get(0), slotKinds);
+    }
+
+    private static InsertValueSlot parseInsertValueSlot(String raw, String sql) throws SQLException {
+        String trimmed = raw == null ? "" : raw.trim();
+        if ("?".equals(trimmed))
+            return InsertValueSlot.PLACEHOLDER;
+        if (PREPARED_INSERT_NOW_SLOT_PATTERN.matcher(trimmed).matches())
+            return InsertValueSlot.NOW;
+        throw new SQLException("Please check your SQL format: " + sql);
+    }
+
+    private static List<String> parseInsertColumnNames(String columnSection) {
+        List<String> columnTokens = splitTopLevelComma(columnSection);
+        List<String> columnNames = new ArrayList<>(columnTokens.size());
+        for (String columnToken : columnTokens) {
+            String columnName = stripIdentifierQuotes(columnToken);
+            if (columnName == null || columnName.isEmpty())
+                return Collections.emptyList();
+            columnNames.add(columnName.toLowerCase());
+        }
+        return columnNames;
+    }
+
+    private static List<String> splitTopLevelComma(String text) {
+        List<String> parts = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        int depth = 0;
+        char quote = 0;
+        int backslashCount = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char chr = text.charAt(i);
+            if (quote != 0) {
+                current.append(chr);
+                if (quote == '`') {
+                    if (chr == '`')
+                        quote = 0;
+                } else {
+                    int previousBackslashCount = backslashCount;
+                    if (chr == '\\')
+                        backslashCount++;
+                    else
+                        backslashCount = 0;
+                    if (chr == quote && previousBackslashCount % 2 == 0)
+                        quote = 0;
+                }
+                continue;
+            }
+
+            if (isStringChar(chr)) {
+                quote = chr;
+                backslashCount = 0;
+                current.append(chr);
+            } else if (chr == '(') {
+                depth++;
+                current.append(chr);
+            } else if (chr == ')') {
+                depth--;
+                if (depth < 0)
+                    return Collections.emptyList();
+                current.append(chr);
+            } else if (chr == ',' && depth == 0) {
+                String part = current.toString().trim();
+                if (part.isEmpty())
+                    return Collections.emptyList();
+                parts.add(part);
+                current.setLength(0);
+            } else {
+                current.append(chr);
+            }
+        }
+        if (quote != 0 || depth != 0)
+            return Collections.emptyList();
+
+        String part = current.toString().trim();
+        if (part.isEmpty())
+            return Collections.emptyList();
+        parts.add(part);
+        return parts;
+    }
+
+    /** JAVAOS-1916 分析专用：顶层逗号切分时忽略注释中的标点。 */
+    private static List<String> splitTopLevelCommaForAnalysis(String text) {
+        List<String> parts = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        int depth = 0;
+        char quote = 0;
+        int backslashCount = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char chr = text.charAt(i);
+            if (quote != 0) {
+                current.append(chr);
+                if (quote == '`') {
+                    if (chr == '`')
+                        quote = 0;
+                } else {
+                    int previousBackslashCount = backslashCount;
+                    if (chr == '\\')
+                        backslashCount++;
+                    else
+                        backslashCount = 0;
+                    if (chr == quote && previousBackslashCount % 2 == 0)
+                        quote = 0;
+                }
+                continue;
+            }
+            if (chr == '-' && i + 1 < text.length() && text.charAt(i + 1) == '-') {
+                int end = skipLineComment(text, i);
+                current.append(text, i, end);
+                i = end - 1;
+            } else if (chr == '/' && i + 1 < text.length() && text.charAt(i + 1) == '/') {
+                int end = skipLineComment(text, i);
+                current.append(text, i, end);
+                i = end - 1;
+            } else if (chr == '/' && i + 1 < text.length() && text.charAt(i + 1) == '*') {
+                int end = skipBlockComment(text, i);
+                if (end < 0)
+                    return Collections.emptyList();
+                current.append(text, i, end);
+                i = end - 1;
+            } else if (isStringChar(chr)) {
+                quote = chr;
+                backslashCount = 0;
+                current.append(chr);
+            } else if (chr == '(') {
+                depth++;
+                current.append(chr);
+            } else if (chr == ')') {
+                depth--;
+                if (depth < 0)
+                    return Collections.emptyList();
+                current.append(chr);
+            } else if (chr == ',' && depth == 0) {
+                String part = current.toString().trim();
+                if (part.isEmpty())
+                    return Collections.emptyList();
+                parts.add(part);
+                current.setLength(0);
+            } else {
+                current.append(chr);
+            }
+        }
+        if (quote != 0 || depth != 0)
+            return Collections.emptyList();
+        String part = current.toString().trim();
+        if (part.isEmpty())
+            return Collections.emptyList();
+        parts.add(part);
+        return parts;
+    }
+
+    private enum AnalyzedSlotKind {
+        PLACEHOLDER,
+        NOW,
+        EXPRESSION
+    }
+
+    /**
+     * 分析 Prepared INSERT 模板，区分 tableInsert 可物化、需 server 原生 SQL、与结构非法三类。
+     * 不修改 {@link #parsePreparedInsertInfo}；字符串/注释中的 {@code ?} 不计为参数。
+     */
+    public static PreparedInsertAnalysis analyzePreparedInsert(String sql) {
+        if (sql == null || sql.trim().isEmpty())
+            return PreparedInsertAnalysis.invalid(sql, "Please check your SQL format: " + sql);
+
+        String source = sql.trim();
+        ParameterScanResult parameterScan = scanRealParameterPositions(source);
+        if (!parameterScan.valid)
+            return PreparedInsertAnalysis.invalid(source, null);
+        AnalysisCursor cursor = new AnalysisCursor(source);
+        if (!cursor.consumeKeyword("insert") || !cursor.consumeKeyword("into"))
+            return PreparedInsertAnalysis.invalid(source, null);
+
+        String tableName = cursor.readTableName();
+        if (tableName == null || tableName.isEmpty())
+            return PreparedInsertAnalysis.invalid(source, null);
+
+        List<String> columnNames = Collections.emptyList();
+        cursor.skipWhitespaceAndComments();
+        if (!cursor.nextKeywordIs("values")) {
+            String columnSection = cursor.readParenthesized();
+            if (columnSection == null)
+                return PreparedInsertAnalysis.invalid(source, null);
+            columnNames = parseInsertColumnNames(columnSection);
+            if (columnNames.isEmpty())
+                return PreparedInsertAnalysis.invalid(source, null);
+        }
+
+        if (!cursor.consumeKeyword("values"))
+            return PreparedInsertAnalysis.invalid(source, null);
+
+        List<List<AnalyzedSlotKind>> rowSlotKinds = new ArrayList<>();
+        List<Integer> parameterSqlColumnIndexes = new ArrayList<>();
+        int rowWidth = -1;
+        int rowCount = 0;
+        while (true) {
+            String valueSection = cursor.readParenthesized();
+            if (valueSection == null)
+                return PreparedInsertAnalysis.invalid(source, null);
+
+            List<String> values = splitTopLevelCommaForAnalysis(valueSection);
+            if (values.isEmpty())
+                return PreparedInsertAnalysis.invalid(source, null);
+
+            List<AnalyzedSlotKind> kinds = new ArrayList<>(values.size());
+            for (int sqlColumn = 0; sqlColumn < values.size(); sqlColumn++) {
+                String value = values.get(sqlColumn);
+                AnalyzedSlotKind kind = classifyAnalyzedSlot(value);
+                if (kind == null)
+                    return PreparedInsertAnalysis.invalid(source, null);
+                kinds.add(kind);
+                ParameterScanResult slotScan = scanRealParameterPositions(value);
+                if (!slotScan.valid)
+                    return PreparedInsertAnalysis.invalid(source, null);
+                for (int ignored : slotScan.positions) {
+                    parameterSqlColumnIndexes.add(kind == AnalyzedSlotKind.PLACEHOLDER ? sqlColumn : -1);
+                }
+            }
+            if (rowWidth < 0) {
+                rowWidth = values.size();
+            } else if (rowWidth != values.size()) {
+                return PreparedInsertAnalysis.invalid(source, null);
+            }
+            rowSlotKinds.add(kinds);
+            rowCount++;
+
+            cursor.skipWhitespaceAndComments();
+            if (cursor.isAtEnd())
+                break;
+            if (!cursor.consume(','))
+                return PreparedInsertAnalysis.invalid(source, null);
+        }
+
+        if (rowWidth <= 0 || rowCount == 0)
+            return PreparedInsertAnalysis.invalid(source, null);
+
+        if (!columnNames.isEmpty() && columnNames.size() != rowWidth)
+            return PreparedInsertAnalysis.invalid(source,
+                    "The number of columns and the number of values do not match! Please check the SQL!");
+
+        int[] parameterPositions = parameterScan.positions;
+        int[] parameterColumns = new int[parameterSqlColumnIndexes.size()];
+        for (int i = 0; i < parameterColumns.length; i++)
+            parameterColumns[i] = parameterSqlColumnIndexes.get(i);
+        if (parameterColumns.length != parameterPositions.length)
+            return PreparedInsertAnalysis.invalid(source, null);
+        boolean tableInsertCompatible = isTableInsertCompatible(rowSlotKinds);
+        PreparedInsertKind kind = tableInsertCompatible
+                ? PreparedInsertKind.TABLE_INSERT_COMPATIBLE
+                : PreparedInsertKind.SERVER_SQL_REQUIRED;
+        return PreparedInsertAnalysis.of(kind, stripIdentifierQuotes(tableName), columnNames, rowWidth, rowCount,
+                parameterPositions, parameterColumns);
+    }
+
+    private static boolean isTableInsertCompatible(List<List<AnalyzedSlotKind>> rowSlotKinds) {
+        if (rowSlotKinds.isEmpty())
+            return false;
+        List<AnalyzedSlotKind> first = rowSlotKinds.get(0);
+        for (AnalyzedSlotKind slot : first) {
+            if (slot != AnalyzedSlotKind.PLACEHOLDER && slot != AnalyzedSlotKind.NOW)
+                return false;
+        }
+        for (int i = 1; i < rowSlotKinds.size(); i++) {
+            if (!first.equals(rowSlotKinds.get(i)))
+                return false;
+        }
+        return true;
+    }
+
+    /** {@code null} 表示空槽位（非法）。 */
+    private static AnalyzedSlotKind classifyAnalyzedSlot(String raw) {
+        String trimmed = stripSlotComments(raw).trim();
+        if (trimmed.isEmpty())
+            return null;
+        if ("?".equals(trimmed))
+            return AnalyzedSlotKind.PLACEHOLDER;
+        if (PREPARED_INSERT_NOW_SLOT_PATTERN.matcher(trimmed).matches())
+            return AnalyzedSlotKind.NOW;
+        return AnalyzedSlotKind.EXPRESSION;
+    }
+
+    private static String stripSlotComments(String raw) {
+        if (raw == null || raw.isEmpty())
+            return "";
+        StringBuilder result = new StringBuilder(raw.length());
+        char quote = 0;
+        int backslashCount = 0;
+        for (int i = 0; i < raw.length(); i++) {
+            char chr = raw.charAt(i);
+            if (quote != 0) {
+                result.append(chr);
+                if (quote == '`') {
+                    if (chr == '`')
+                        quote = 0;
+                } else {
+                    int previousBackslashCount = backslashCount;
+                    if (chr == '\\')
+                        backslashCount++;
+                    else
+                        backslashCount = 0;
+                    if (chr == quote && previousBackslashCount % 2 == 0)
+                        quote = 0;
+                }
+            } else if (chr == '\'' || chr == '"' || chr == '`') {
+                quote = chr;
+                result.append(chr);
+            } else if (chr == '-' && i + 1 < raw.length() && raw.charAt(i + 1) == '-') {
+                i = skipLineComment(raw, i) - 1;
+                result.append(' ');
+            } else if (chr == '/' && i + 1 < raw.length() && raw.charAt(i + 1) == '/') {
+                i = skipLineComment(raw, i) - 1;
+                result.append(' ');
+            } else if (chr == '/' && i + 1 < raw.length() && raw.charAt(i + 1) == '*') {
+                int end = skipBlockComment(raw, i);
+                if (end < 0)
+                    return "";
+                i = end - 1;
+                result.append(' ');
+            } else {
+                result.append(chr);
+            }
+        }
+        return result.toString();
+    }
+
+    /**
+     * tableInsert Prepared INSERT 的兼容解析结果。
+     *
+     * <p>该类型必须保留为 {@code Utils.PreparedInsertInfo}，否则会改变
+     * {@link #parsePreparedInsertInfo(String)} 的 JVM 方法描述符，破坏旧调用方的二进制兼容。</p>
+     */
+    public static class PreparedInsertInfo {
+        private final String tableName;
+        private final List<String> columnNames;
+        private final int valueCountPerRow;
+        private final int rowsPerExecution;
+        private final String valueQuestionString;
+        private final List<InsertValueSlot> slotKinds;
+        private final int placeholderCountPerRow;
+        private final int[] denseParamToSqlColumn;
+
+        PreparedInsertInfo(String tableName, List<String> columnNames, int valueCountPerRow, int rowsPerExecution,
+                           String valueQuestionString, List<InsertValueSlot> slotKinds) {
+            this.tableName = stripIdentifierQuotes(tableName);
+            this.columnNames = Collections.unmodifiableList(new ArrayList<>(columnNames));
+            this.valueCountPerRow = valueCountPerRow;
+            this.rowsPerExecution = rowsPerExecution;
+            this.valueQuestionString = valueQuestionString;
+            this.slotKinds = Collections.unmodifiableList(new ArrayList<>(slotKinds));
+            int placeholderCount = 0;
+            for (InsertValueSlot slot : slotKinds) {
+                if (slot == InsertValueSlot.PLACEHOLDER)
+                    placeholderCount++;
+            }
+            this.placeholderCountPerRow = placeholderCount;
+            this.denseParamToSqlColumn = new int[placeholderCount];
+            int dense = 0;
+            for (int sqlCol = 0; sqlCol < slotKinds.size(); sqlCol++) {
+                if (slotKinds.get(sqlCol) == InsertValueSlot.PLACEHOLDER)
+                    this.denseParamToSqlColumn[dense++] = sqlCol;
+            }
+        }
+
+        public String getTableName() {
+            return tableName;
+        }
+
+        public List<String> getColumnNames() {
+            return columnNames;
+        }
+
+        public boolean hasExplicitColumns() {
+            return !columnNames.isEmpty();
+        }
+
+        public int getValueCountPerRow() {
+            return valueCountPerRow;
+        }
+
+        public int getRowsPerExecution() {
+            return rowsPerExecution;
+        }
+
+        public int getPlaceholderCountPerRow() {
+            return placeholderCountPerRow;
+        }
+
+        public List<InsertValueSlot> getSlotKinds() {
+            return slotKinds;
+        }
+
+        /** JDBC 稠密参数下标（0-based，仅计 {@code ?}）到该行内 SQL 列序号。 */
+        public int getPlaceholderSqlColumnIndex(int denseParamIndex0Based) {
+            int withinRow = denseParamIndex0Based % placeholderCountPerRow;
+            return denseParamToSqlColumn[withinRow];
+        }
+
+        public int[] getDenseParamToSqlColumn() {
+            return Arrays.copyOf(denseParamToSqlColumn, denseParamToSqlColumn.length);
+        }
+
+        public int getTotalParameterCount() {
+            return placeholderCountPerRow * rowsPerExecution;
+        }
+
+        public boolean hasNowSlot() {
+            for (InsertValueSlot slot : slotKinds) {
+                if (slot == InsertValueSlot.NOW)
+                    return true;
+            }
+            return false;
+        }
+
+        public String getValueQuestionString() {
+            return valueQuestionString;
+        }
+    }
+
+    /**
+     * 扫描 SQL 中真实参数标记位置（跳过字符串、反引号标识符与注释中的 {@code ?}）。
+     */
+    public static int[] findRealParameterPositions(String sql) {
+        return scanRealParameterPositions(sql).positions;
+    }
+
+    private static ParameterScanResult scanRealParameterPositions(String sql) {
+        if (sql == null || sql.isEmpty())
+            return new ParameterScanResult(new int[0], true);
+        List<Integer> positions = new ArrayList<>();
+        int i = 0;
+        while (i < sql.length()) {
+            char chr = sql.charAt(i);
+            if (chr == '-' && i + 1 < sql.length() && sql.charAt(i + 1) == '-') {
+                i = skipLineComment(sql, i);
+                continue;
+            }
+            if (chr == '/' && i + 1 < sql.length() && sql.charAt(i + 1) == '/') {
+                i = skipLineComment(sql, i);
+                continue;
+            }
+            if (chr == '/' && i + 1 < sql.length() && sql.charAt(i + 1) == '*') {
+                int end = skipBlockComment(sql, i);
+                if (end < 0)
+                    return new ParameterScanResult(toIntArray(positions), false);
+                i = end;
+                continue;
+            }
+            if (chr == '\'' || chr == '"' || chr == '`') {
+                int end = skipQuotedLiteral(sql, i, chr);
+                if (end < 0)
+                    return new ParameterScanResult(toIntArray(positions), false);
+                i = end;
+                continue;
+            }
+            if (chr == '?')
+                positions.add(i);
+            i++;
+        }
+        return new ParameterScanResult(toIntArray(positions), true);
+    }
+
+    private static int[] toIntArray(List<Integer> values) {
+        int[] result = new int[values.size()];
+        for (int i = 0; i < values.size(); i++)
+            result[i] = values.get(i);
+        return result;
+    }
+
+    private static class ParameterScanResult {
+        private final int[] positions;
+        private final boolean valid;
+
+        private ParameterScanResult(int[] positions, boolean valid) {
+            this.positions = positions;
+            this.valid = valid;
+        }
+    }
+
+    private static int skipLineComment(String sql, int start) {
+        int i = start + 2;
+        while (i < sql.length() && sql.charAt(i) != '\n')
+            i++;
+        return i < sql.length() ? i + 1 : i;
+    }
+
+    private static int skipBlockComment(String sql, int start) {
+        int i = start + 2;
+        while (i + 1 < sql.length()) {
+            if (sql.charAt(i) == '*' && sql.charAt(i + 1) == '/')
+                return i + 2;
+            i++;
+        }
+        return -1;
+    }
+
+    private static int skipQuotedLiteral(String sql, int start, char quote) {
+        int i = start + 1;
+        if (quote == '`') {
+            while (i < sql.length()) {
+                if (sql.charAt(i) == '`')
+                    return i + 1;
+                i++;
+            }
+            return -1;
+        }
+        int backslashCount = 0;
+        while (i < sql.length()) {
+            char chr = sql.charAt(i);
+            int previousBackslashCount = backslashCount;
+            if (chr == '\\')
+                backslashCount++;
+            else
+                backslashCount = 0;
+            if (chr == quote && previousBackslashCount % 2 == 0)
+                return i + 1;
+            i++;
+        }
+        return -1;
+    }
+
+    /**
+     * 按真实参数位置将绑定值替换进 SQL；{@code null}/显式 null 绑定编码为 {@code NULL}。
+     */
+    public static String renderSqlWithBoundParameters(String sql, int[] parameterPositions, BindValue[] binds)
+            throws SQLException {
+        if (sql == null)
+            throw new SQLException("sql is null");
+        if (parameterPositions == null)
+            parameterPositions = new int[0];
+        if (binds == null)
+            binds = new BindValue[0];
+        if (parameterPositions.length != binds.length)
+            throw new SQLException("Parameter count mismatch: expected " + parameterPositions.length
+                    + " bind values, got " + binds.length);
+
+        if (parameterPositions.length == 0)
+            return sql;
+
+        StringBuilder out = new StringBuilder(sql.length() + 32);
+        int copyFrom = 0;
+        for (int i = 0; i < parameterPositions.length; i++) {
+            int pos = parameterPositions[i];
+            if (pos < copyFrom || pos >= sql.length() || sql.charAt(pos) != '?')
+                throw new SQLException("Invalid parameter position " + pos + " in SQL");
+            out.append(sql, copyFrom, pos);
+            BindValue bind = binds[i];
+            if (bind == null)
+                throw new SQLException("No value specified for parameter " + (i + 1));
+            if (bind.isNull() || bind.getValue() == null) {
+                out.append("NULL");
+            } else {
+                out.append(TypeCast.castDbString(bind.getValue()));
+            }
+            copyFrom = pos + 1;
+        }
+        out.append(sql, copyFrom, sql.length());
+        return out.toString();
+    }
+
+    /**
+     * Comment-aware INSERT 结构游标（JAVAOS-1916）；与 {@link InsertParseCursor} 分离，
+     * 避免改变既有 tableInsert 解析行为。
+     */
+    private static class AnalysisCursor {
+        private final String sql;
+        private int pos;
+
+        AnalysisCursor(String sql) {
+            this.sql = sql == null ? "" : sql;
+        }
+
+        void skipWhitespaceAndComments() {
+            while (pos < sql.length()) {
+                char chr = sql.charAt(pos);
+                if (Character.isWhitespace(chr)) {
+                    pos++;
+                    continue;
+                }
+                if (chr == '-' && pos + 1 < sql.length() && sql.charAt(pos + 1) == '-') {
+                    pos = skipLineComment(sql, pos);
+                    continue;
+                }
+                if (chr == '/' && pos + 1 < sql.length() && sql.charAt(pos + 1) == '/') {
+                    pos = skipLineComment(sql, pos);
+                    continue;
+                }
+                if (chr == '/' && pos + 1 < sql.length() && sql.charAt(pos + 1) == '*') {
+                    int end = skipBlockComment(sql, pos);
+                    pos = end < 0 ? sql.length() : end;
+                    continue;
+                }
+                break;
+            }
+        }
+
+        boolean isAtEnd() {
+            skipWhitespaceAndComments();
+            return pos == sql.length();
+        }
+
+        boolean consume(char chr) {
+            skipWhitespaceAndComments();
+            if (pos < sql.length() && sql.charAt(pos) == chr) {
+                pos++;
+                return true;
+            }
+            return false;
+        }
+
+        boolean consumeKeyword(String keyword) {
+            skipWhitespaceAndComments();
+            if (!nextKeywordIs(keyword))
+                return false;
+            pos += keyword.length();
+            return true;
+        }
+
+        boolean nextKeywordIs(String keyword) {
+            skipWhitespaceAndComments();
+            if (pos + keyword.length() > sql.length())
+                return false;
+            if (!sql.regionMatches(true, pos, keyword, 0, keyword.length()))
+                return false;
+            int end = pos + keyword.length();
+            return end == sql.length() || !isKeyChar(sql.charAt(end));
+        }
+
+        String readTableName() {
+            skipWhitespaceAndComments();
+            if (pos >= sql.length())
+                return null;
+
+            if (sql.regionMatches(true, pos, "loadTable", 0, "loadTable".length())) {
+                int nameStart = pos;
+                pos += "loadTable".length();
+                skipWhitespaceAndComments();
+                if (pos >= sql.length() || sql.charAt(pos) != '(')
+                    return null;
+                int end = findMatchingParen(pos, false);
+                if (end < 0)
+                    return null;
+                pos = end + 1;
+                return sql.substring(nameStart, pos);
+            }
+
+            char first = sql.charAt(pos);
+            if (first == '`') {
+                int end = sql.indexOf('`', pos + 1);
+                if (end < 0)
+                    return null;
+                String tableName = sql.substring(pos, end + 1);
+                pos = end + 1;
+                return tableName;
+            }
+
+            if (!Character.isLetter(first))
+                return null;
+            int start = pos;
+            pos++;
+            while (pos < sql.length() && (Character.isLetterOrDigit(sql.charAt(pos)) || sql.charAt(pos) == '_'))
+                pos++;
+            return sql.substring(start, pos);
+        }
+
+        String readParenthesized() {
+            skipWhitespaceAndComments();
+            if (pos >= sql.length() || sql.charAt(pos) != '(')
+                return null;
+            int start = pos;
+            int end = findMatchingParen(start, true);
+            if (end < 0)
+                return null;
+            pos = end + 1;
+            return sql.substring(start + 1, end);
+        }
+
+        private int findMatchingParen(int openIndex, boolean honorBacktickQuote) {
+            int depth = 0;
+            char quote = 0;
+            int backslashCount = 0;
+            for (int i = openIndex; i < sql.length(); i++) {
+                char chr = sql.charAt(i);
+                if (quote != 0) {
+                    if (quote == '`') {
+                        if (chr == '`')
+                            quote = 0;
+                    } else {
+                        int previousBackslashCount = backslashCount;
+                        if (chr == '\\')
+                            backslashCount++;
+                        else
+                            backslashCount = 0;
+                        if (chr == quote && previousBackslashCount % 2 == 0)
+                            quote = 0;
+                    }
+                    continue;
+                }
+
+                if (chr == '-' && i + 1 < sql.length() && sql.charAt(i + 1) == '-') {
+                    i = skipLineComment(sql, i) - 1;
+                    continue;
+                }
+                if (chr == '/' && i + 1 < sql.length() && sql.charAt(i + 1) == '/') {
+                    i = skipLineComment(sql, i) - 1;
+                    continue;
+                }
+                if (chr == '/' && i + 1 < sql.length() && sql.charAt(i + 1) == '*') {
+                    int end = skipBlockComment(sql, i);
+                    if (end < 0)
+                        return -1;
+                    i = end - 1;
+                    continue;
+                }
+
+                if (chr == '\'' || chr == '"' || (honorBacktickQuote && chr == '`')) {
+                    quote = chr;
+                    backslashCount = 0;
+                } else if (chr == '(') {
+                    depth++;
+                } else if (chr == ')') {
+                    depth--;
+                    if (depth == 0)
+                        return i;
+                    if (depth < 0)
+                        return -1;
+                }
+            }
+            return -1;
+        }
+    }
+
+    private static class InsertParseCursor {
+        private final String sql;
+        private int pos;
+
+        InsertParseCursor(String sql) {
+            this.sql = sql == null ? "" : sql.trim();
+        }
+
+        void skipWhitespace() {
+            while (pos < sql.length() && Character.isWhitespace(sql.charAt(pos)))
+                pos++;
+        }
+
+        boolean isAtEnd() {
+            skipWhitespace();
+            return pos == sql.length();
+        }
+
+        boolean consume(char chr) {
+            skipWhitespace();
+            if (pos < sql.length() && sql.charAt(pos) == chr) {
+                pos++;
+                return true;
+            }
+            return false;
+        }
+
+        boolean consumeKeyword(String keyword) {
+            skipWhitespace();
+            if (!nextKeywordIs(keyword))
+                return false;
+            pos += keyword.length();
+            return true;
+        }
+
+        boolean nextKeywordIs(String keyword) {
+            skipWhitespace();
+            if (pos + keyword.length() > sql.length())
+                return false;
+            if (!sql.regionMatches(true, pos, keyword, 0, keyword.length()))
+                return false;
+            int end = pos + keyword.length();
+            return end == sql.length() || !isKeyChar(sql.charAt(end));
+        }
+
+        String readTableName() {
+            skipWhitespace();
+            if (pos >= sql.length())
+                return null;
+
+            if (sql.regionMatches(true, pos, "loadTable", 0, "loadTable".length())) {
+                int nameStart = pos;
+                pos += "loadTable".length();
+                skipWhitespace();
+                if (pos >= sql.length() || sql.charAt(pos) != '(')
+                    return null;
+                int end = findMatchingParen(pos, false);
+                if (end < 0)
+                    return null;
+                pos = end + 1;
+                return sql.substring(nameStart, pos);
+            }
+
+            char first = sql.charAt(pos);
+            if (first == '`') {
+                int end = sql.indexOf('`', pos + 1);
+                if (end < 0)
+                    return null;
+                String tableName = sql.substring(pos, end + 1);
+                pos = end + 1;
+                return tableName;
+            }
+
+            if (!Character.isLetter(first))
+                return null;
+            int start = pos;
+            pos++;
+            while (pos < sql.length() && (Character.isLetterOrDigit(sql.charAt(pos)) || sql.charAt(pos) == '_'))
+                pos++;
+            return sql.substring(start, pos);
+        }
+
+        String readParenthesized() {
+            skipWhitespace();
+            if (pos >= sql.length() || sql.charAt(pos) != '(')
+                return null;
+            int start = pos;
+            int end = findMatchingParen(start, true);
+            if (end < 0)
+                return null;
+            pos = end + 1;
+            return sql.substring(start + 1, end);
+        }
+
+        private int findMatchingParen(int openIndex, boolean honorBacktickQuote) {
+            int depth = 0;
+            char quote = 0;
+            int backslashCount = 0;
+            for (int i = openIndex; i < sql.length(); i++) {
+                char chr = sql.charAt(i);
+                if (quote != 0) {
+                    if (quote == '`') {
+                        if (chr == '`')
+                            quote = 0;
+                    } else {
+                        int previousBackslashCount = backslashCount;
+                        if (chr == '\\')
+                            backslashCount++;
+                        else
+                            backslashCount = 0;
+                        if (chr == quote && previousBackslashCount % 2 == 0)
+                            quote = 0;
+                    }
+                    continue;
+                }
+
+                if (chr == '\'' || chr == '"' || (honorBacktickQuote && chr == '`')) {
+                    quote = chr;
+                    backslashCount = 0;
+                } else if (chr == '(') {
+                    depth++;
+                } else if (chr == ')') {
+                    depth--;
+                    if (depth == 0)
+                        return i;
+                    if (depth < 0)
+                        return -1;
+                }
+            }
+            return -1;
         }
     }
 
@@ -1014,15 +1997,15 @@ public class Utils {
                 case DT_SECOND:
                     return new BasicSecond(LocalTime.parse(value));
                 case DT_DATETIME:
-                    return new BasicDateTime(LocalDateTime.parse(value));
+                    return new BasicDateTime(parseDateTimeString(value));
                 case DT_TIMESTAMP:
-                    return new BasicTimestamp(LocalDateTime.parse(value));
+                    return new BasicTimestamp(parseDateTimeString(value));
                 case DT_NANOTIME:
                     return new BasicNanoTime(LocalTime.parse(value));
                 case DT_NANOTIMESTAMP:
-                    return new BasicNanoTimestamp(LocalDateTime.parse(value));
+                    return new BasicNanoTimestamp(parseDateTimeString(value));
                 case DT_DATEHOUR:
-                    return new BasicDateHour(LocalDateTime.parse(value));
+                    return new BasicDateHour(parseDateTimeString(value));
                 case DT_INT128:
                     return BasicInt128.fromString(value);
                 case DT_UUID:
@@ -1058,6 +2041,28 @@ public class Utils {
         } catch (NumberFormatException | DateTimeParseException e) {
             throw new IllegalArgumentException("Invalid value '" + value + "' for DATA_TYPE " + dataType + (dataType.name().startsWith("DT_DECIMAL") ? " with scale=" + extraParam : ""), e);
         }
+    }
+
+    private static LocalDateTime parseDateTimeString(String value) {
+        String trimmed = value.trim();
+        // 先按原值尝试 ISO local date-time，保留 TIMESTAMP/NANOTIMESTAMP 的小数秒（如 .000123456）。
+        try {
+            return LocalDateTime.parse(trimmed);
+        } catch (DateTimeParseException ignore) {
+            // 继续尝试 DDB 风格 / date-only。
+        }
+        // 拆出日期与时间，仅规整日期部分的分隔符（. -> -），避免误伤秒的小数点。
+        int sep = trimmed.indexOf('T');
+        if (sep < 0) {
+            sep = trimmed.indexOf(' ');
+        }
+        if (sep > 0) {
+            String date = trimmed.substring(0, sep).replace('.', '-');
+            String time = trimmed.substring(sep + 1).trim();
+            return LocalDateTime.parse(date + "T" + time);
+        }
+        // date-only：按当天 00:00:00 处理，兼容 2026-06-01 与 2026.06.01。
+        return LocalDate.parse(trimmed.replace('.', '-')).atStartOfDay();
     }
 
     public static Vector createStringVector(Entity.DATA_TYPE dataType, String[] values, int extraParam) throws Exception {

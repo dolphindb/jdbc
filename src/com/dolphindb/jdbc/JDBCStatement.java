@@ -184,9 +184,23 @@ public class JDBCStatement implements Statement {
         }
     }
 
-    protected int extractRowCount(Entity entity) {
+    protected Integer tryExtractRowCount(Entity entity) {
         if (entity instanceof Scalar && !((Scalar) entity).isNull()) {
-            return ((BasicInt) entity).getInt();
+            try {
+                Number number = ((Scalar) entity).getNumber();
+                if (number != null) {
+                    return number.intValue();
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
+    }
+
+    protected int extractRowCount(Entity entity) {
+        Integer rowCount = tryExtractRowCount(entity);
+        if (rowCount != null) {
+            return rowCount;
         }
         return SUCCESS_NO_INFO;
     }
@@ -203,6 +217,72 @@ public class JDBCStatement implements Statement {
         } catch (IOException e) {
             throw new SQLException(e);
         }
+    }
+
+    protected boolean isNonSqlMatchedRowCountStatement(String statement) {
+        return startsWithFunction(statement, "tableupsert") || startsWithFunction(statement, "upsert");
+    }
+
+    protected boolean containsNonSqlUpdateCountFunction(String sql) {
+        String lowerSql = sql.toLowerCase(Locale.ROOT);
+        return containsFunctionCall(lowerSql, "tableinsert") ||
+                containsFunctionCall(lowerSql, "tableupsert") ||
+                containsFunctionCall(lowerSql, "upsert");
+    }
+
+    protected Integer extractNonSqlUpdateCount(String sql, Entity entity) {
+        if (!containsNonSqlUpdateCountFunction(sql)) {
+            return null;
+        }
+        return tryExtractRowCount(entity);
+    }
+
+    protected String getLastStatement(String sql) {
+        String[] strings = sql.split(";");
+        return strings[strings.length - 1].trim();
+    }
+
+    private boolean startsWithFunction(String statement, String functionName) {
+        String lowerStatement = statement.trim().toLowerCase(Locale.ROOT);
+        if (!lowerStatement.startsWith(functionName)) {
+            return false;
+        }
+        int index = functionName.length();
+        if (index < lowerStatement.length() && lowerStatement.charAt(index) == '!') {
+            index++;
+        }
+        while (index < lowerStatement.length() && Character.isWhitespace(lowerStatement.charAt(index))) {
+            index++;
+        }
+        return index < lowerStatement.length() && lowerStatement.charAt(index) == '(';
+    }
+
+    private boolean containsFunctionCall(String lowerSql, String functionName) {
+        int index = -1;
+        while ((index = lowerSql.indexOf(functionName, index + 1)) >= 0) {
+            int previous = index - 1;
+            if (previous >= 0 && isIdentifierChar(lowerSql.charAt(previous))) {
+                continue;
+            }
+            int next = index + functionName.length();
+            if (next < lowerSql.length() && isIdentifierChar(lowerSql.charAt(next))) {
+                continue;
+            }
+            if (next < lowerSql.length() && lowerSql.charAt(next) == '!') {
+                next++;
+            }
+            while (next < lowerSql.length() && Character.isWhitespace(lowerSql.charAt(next))) {
+                next++;
+            }
+            if (next < lowerSql.length() && lowerSql.charAt(next) == '(') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isIdentifierChar(char ch) {
+        return Character.isLetterOrDigit(ch) || ch == '_';
     }
 
     @Override
@@ -228,8 +308,7 @@ public class JDBCStatement implements Statement {
         sql = sql.trim();
         while (sql.endsWith(";"))
         	sql = sql.substring(0, sql.length() - 1);
-        String[] strings = sql.split(";");
-        String lastStatement = strings[strings.length - 1].trim();
+        String lastStatement = getLastStatement(sql);
         String tableName = Utils.getTableName(lastStatement, false);
         int dml = Utils.getDml(lastStatement);
 
@@ -265,11 +344,18 @@ public class JDBCStatement implements Statement {
             case Utils.DML_EXEC:
                 throw new SQLException("Can not issue SELECT or EXEC via executeUpdate().");
             default:
+                if (isNonSqlMatchedRowCountStatement(lastStatement)) {
+                    return executeUpdateWithRowCount(sql);
+                }
                 Entity entity;
                 try {
                     entity = connection.run(sql);
                 }catch (IOException e){
                     throw new SQLException(e);
+                }
+                Integer updateCount = extractNonSqlUpdateCount(sql, entity);
+                if (updateCount != null) {
+                    return updateCount;
                 }
                 if(entity instanceof BasicTable){
                     throw new SQLException("Can not produces ResultSet.");
@@ -512,18 +598,25 @@ public class JDBCStatement implements Statement {
                 objectQueue.offer(executeUpdate(sql));
                 break;
             default: {
-                Entity entity;
-                try {
-                    entity = connection.run(sql);
-                } catch (IOException e) {
-                    throw new SQLException(e);
-                }
+                if (isNonSqlMatchedRowCountStatement(lastStatement)) {
+                    objectQueue.offer(executeUpdateWithRowCount(sql));
+                } else {
+                    Entity entity;
+                    try {
+                        entity = connection.run(sql);
+                    } catch (IOException e) {
+                        throw new SQLException(e);
+                    }
 
-                if (entity instanceof BasicTable || (entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR && !(entity instanceof Void))
-                        || entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR || entity.getDataForm() == Entity.DATA_FORM.DF_MATRIX) {
-                    ResultSet resultSet = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
-                    resultSets.offerLast(resultSet);
-                    objectQueue.offer(resultSet);
+                    Integer updateCount = extractNonSqlUpdateCount(sql, entity);
+                    if (updateCount != null) {
+                        objectQueue.offer(updateCount);
+                    } else if (entity instanceof BasicTable || (entity.getDataForm() == Entity.DATA_FORM.DF_SCALAR && !(entity instanceof Void))
+                            || entity.getDataForm() == Entity.DATA_FORM.DF_VECTOR || entity.getDataForm() == Entity.DATA_FORM.DF_MATRIX) {
+                        ResultSet resultSet = new JDBCResultSet(connection, this, entity, sql, this.maxRows);
+                        resultSets.offerLast(resultSet);
+                        objectQueue.offer(resultSet);
+                    }
                 }
             }
         }
