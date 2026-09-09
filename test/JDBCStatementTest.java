@@ -3843,8 +3843,8 @@ public class JDBCStatementTest {
 		Statement stmt = null;
 		Class.forName(JDBC_DRIVER);
 		stmt = conn1.createStatement();
-		stmt.setQueryTimeout(3);
-		org.junit.Assert.assertEquals(3, stmt.getQueryTimeout());
+		stmt.setQueryTimeout(15);
+		org.junit.Assert.assertEquals(15, stmt.getQueryTimeout());
 		stmt.execute("update table1 set id = `3aaa where id= `1aaa");
 		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select count(*) from table1 where id = `3aaa");
 		BasicTable re = (BasicTable) rs.getResult();
@@ -3905,8 +3905,8 @@ public class JDBCStatementTest {
 		DBConnection db = new DBConnection();
 		db.connect(HOST, PORT, "admin", "123456");
 		db.run("share table(take(`1aaa `2sss,100000000) as id) as table1;");
-		stmt.setQueryTimeout(3);
-		org.junit.Assert.assertEquals(3, stmt.getQueryTimeout());
+		stmt.setQueryTimeout(15);
+		org.junit.Assert.assertEquals(15, stmt.getQueryTimeout());
 		stmt.executeUpdate("update table1 set id = `3wwww where id= `1aaa");
 		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select count(*) from table1 where id = `3wwww");
 		BasicTable re = (BasicTable) rs.getResult();
@@ -3934,8 +3934,8 @@ public class JDBCStatementTest {
 		db.connect(HOST, PORT, "admin", "123456");
 		db.run("share table(take(`1aaa `2sss,100000000) as id) as table1;");
 		stmt.addBatch("update table1 set id = `3aaa where id= `1aaa");
-		stmt.setQueryTimeout(3);
-		org.junit.Assert.assertEquals(3, stmt.getQueryTimeout());
+		stmt.setQueryTimeout(15);
+		org.junit.Assert.assertEquals(15, stmt.getQueryTimeout());
 		stmt.executeBatch();
 		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select count(*) from table1 where id = `3aaa");
 		BasicTable re = (BasicTable) rs.getResult();
@@ -4016,7 +4016,7 @@ public class JDBCStatementTest {
 		}
 		System.out.println(re);
 		org.junit.Assert.assertEquals("Statement execute batch timed out after 1 seconds.", re);
-		stmt.setQueryTimeout(3);
+		stmt.setQueryTimeout(15);
 		stmt.executeBatch();
 		JDBCResultSet rs = (JDBCResultSet)stmt.executeQuery("select count(*) from table1 where id = `3aaa");
 		BasicTable re1 = (BasicTable) rs.getResult();

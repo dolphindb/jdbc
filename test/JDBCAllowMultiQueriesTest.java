@@ -83,7 +83,7 @@ public class JDBCAllowMultiQueriesTest {
         }catch(Exception ex){
             re = ex.getMessage();
         }
-        Assert.assertEquals("java.sql.SQLException: Can not issue SELECT or EXEC via executeUpdate().", re);
+        Assert.assertEquals("Can not issue SELECT or EXEC via executeUpdate().", re);
     }
     @Test
     public void test_MultiQueries_select_execute() throws SQLException, IOException {

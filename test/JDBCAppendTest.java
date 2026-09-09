@@ -51,21 +51,22 @@ public class JDBCAppendTest {
 		PreparedStatement ps = null;
 		Statement stmt = null;
 		
-		String sql = "insert into trade values(?,?,?,?,?,?,?,?)";
+		String sql = "insert into trade values(?,?,?,?,?,?,?,?,?,?)";
 		StringBuffer sb = null;
 		try {
 
 			conn = getConnection();
-			ps = conn.prepareStatement(sql);
+			stmt = conn.createStatement();
 			sb = new StringBuffer();
 			sb.append("if(existsDatabase(\""+ dataBase +"\"))dropDatabase(\""+ dataBase +"\")\n");
 			sb.append("db=database(\""+ dataBase +"\", RANGE, `A`F`K`O`S`ZZZ)\n");
 			sb.append("t1=table(100:0, `PERMNO`date`TICKER`PRC`VOL`BID`ASK`SHROUT`TS`NTS, [INT, DATE, SYMBOL, DOUBLE, INT, DOUBLE, DOUBLE,INT,TIMESTAMP,NANOTIMESTAMP])\n");
 			sb.append("db.createPartitionedTable(t1,`trade, `TICKER)\n");
-			ps.execute(sb.toString());
-			ps.execute("trade=loadTable(\""+ dataBase +"\", `"+ tableName +")");
+			System.out.println(sb.toString());
+			stmt.execute(sb.toString());
+			stmt.execute("trade=loadTable(\""+ dataBase +"\", '"+ tableName +"')");
 
-			ResultSet rs = ps.executeQuery("select count(*) from trade");
+			ResultSet rs = stmt.executeQuery("select count(*) from trade");
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new Exception("fail");
@@ -94,9 +95,10 @@ public static void Append10MillionDatatest() throws Exception {
 		try {
 			
 			conn = getConnection();
+			stmt = conn.createStatement();
+			stmt.execute("trade=loadTable(\"" + dataBase + "\", `" + tableName+")");
 			ps = conn.prepareStatement(sql);						
-			ps.execute("trade=loadTable(\"" + dataBase + "\", `" + tableName+")");			
-			ResultSet rs = ps.executeQuery("select count(*) from trade");
+			ResultSet rs = stmt.executeQuery("select count(*) from trade");
 			printData(rs);
 			
 
