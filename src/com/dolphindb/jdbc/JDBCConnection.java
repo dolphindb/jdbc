@@ -653,8 +653,9 @@ public class JDBCConnection implements Connection {
 
 	/**
 	 * DFS tables report a type string containing {@code DFS} (e.g. {@code SEGMENTED DFS TABLE}).
-	 * In-memory/local tables (regular/keyed/indexed/mvcc report {@code IN-MEMORY TABLE},
-	 * streaming reports {@code STREAMING TABLE}) do not, so they are auto-allowed.
+	 * Local tables do not: regular and mvcc report {@code IN-MEMORY TABLE}; keyed/indexed report
+	 * {@code KEYED TABLE}/{@code INDEXED TABLE} on server 3.00.6+ (3.00.5 still used
+	 * {@code IN-MEMORY TABLE}); streaming reports {@code STREAMING TABLE}.
 	 */
 	public static boolean isDfsTableType(String tableType) {
 		return tableType != null && tableType.toUpperCase().contains("DFS");

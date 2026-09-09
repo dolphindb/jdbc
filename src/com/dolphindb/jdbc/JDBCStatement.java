@@ -19,7 +19,6 @@ public class JDBCStatement implements Statement {
     protected Deque<ResultSet> resultSets;
     protected HashMap<String,String> tableTypes;
     protected boolean supportRowCount;
-    protected static final String IN_MEMORY_TABLE = "IN-MEMORY TABLE";
     protected boolean isClosed;
     private int fetchSize = 0;
     private int maxRows = -1;
@@ -317,7 +316,10 @@ public class JDBCStatement implements Statement {
             case Utils.DML_INSERT:
                 if (tableName != null) {
                     tableType = getTableType(tableName);
-                    if (tableType.equals(IN_MEMORY_TABLE)) {
+                    // JAVAOS-1901: 3.00.6+ typestr splits keyed/indexed from "IN-MEMORY TABLE".
+                    // Non-DFS local tables (memory/keyed/indexed/streaming) use SQL INSERT + matchedRowCount.
+                    // supportRowCount=false → SUCCESS_NO_INFO, same as memory tables (not rows(tmp)).
+                    if (!JDBCConnection.isDfsTableType(tableType)) {
                         return executeUpdateWithRowCount(sql);
                     } else {
                         String INSERT_SQL_COMMA_SPLIT_REGEX = ",(?=(?:[^()]*\\([^()]*\\))*[^()]*$)";
