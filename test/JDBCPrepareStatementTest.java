@@ -5408,8 +5408,9 @@ public class JDBCPrepareStatementTest {
         }catch(Exception e){
             re = e.getMessage();
         }
-        org.junit.Assert.assertEquals("The number of table columns and the number of values do not match! Please check the SQL!", re);
+        org.junit.Assert.assertEquals("Please check your SQL format: insert into loadTable('dfs://test_append_array_tsdb1','pt') values(?,)", re);
     }
+
     @Test
     public void test_PreparedStatement_insert_into_Boolean_executeUpdate() throws SQLException {
         createPartitionTable("BOOL");
@@ -10812,13 +10813,13 @@ public class JDBCPrepareStatementTest {
     public void test_PreparedStatement_no_placeholder_dfs_allDataType_executeUpdate() throws SQLException, IOException {
         DBConnection db = new DBConnection();
         db.connect(HOST, PORT,"admin","123456");
-        db.run("colNames=\"col\"+string(1..28)\n" +
+        db.run("try{undef(`tt1,SHARED)}catch(ex){}\n" +
+                "colNames=\"col\"+string(1..28)\n" +
                 "colTypes=[BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,DATEHOUR,IPADDR,INT128,BLOB,COMPLEX,POINT,DECIMAL32(2),DECIMAL64(7),DECIMAL128(18)]\n" +
                 "t=table(1:0,colNames,colTypes)\n" +
                 "try{dropDatabase('dfs://test_allDataType')\n}catch(ex){}\n" +
                 "db=database('dfs://test_allDataType', RANGE, -1000 0 1000,,'TSDB')\n"+
                 "db.createPartitionedTable(t, `pt, `col4,,`col4) \n");
-        stm.execute("undef(`tt1,SHARED)");
         stm.execute("tt1=loadTable('dfs://test_allDataType','pt')");
         PreparedStatement ps = conn.prepareStatement("insert into tt1 values(true,char(97),2h,2,22l,2012.12.06,2012.06M,12:30:00.008,12:30m,12:30:00,2012.06.12 12:30:00,2012.06.12 12:30:00.008,13:30:10.008007006,2012.06.13 13:30:10.008007006,2.1f,2.1,\"hello\",\"world\",uuid(\"9d457e79-1bed-d6c2-3612-b0d31c1881f6\"),datehour(2012.06.13 13:30:10),ipaddr(\"192.168.1.253\"),int128(\"e1671797c52e15f763380b45e841ec32\"),blob(\"123\"),complex(111,1),point(1,2),decimal32(1.1,2),decimal64(1.1,7),decimal128(1.1,18)) ");
         ps.executeUpdate();
@@ -10887,7 +10888,7 @@ public class JDBCPrepareStatementTest {
         org.junit.Assert.assertEquals("-1.10",rs1.getObject("col26").toString());
         org.junit.Assert.assertEquals("-1.1000000",rs1.getObject("col27").toString());
         org.junit.Assert.assertEquals("-1.100000000000000128",rs1.getObject("col28").toString());
-        PreparedStatement ps4 = conn.prepareStatement(" delete from  tt1 where col1 = false ,col2='3' ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
+        PreparedStatement ps4 = conn.prepareStatement(" delete from  tt1 where col1 = false ,col2=char(3) ,col3 =-2, col5=-100, col6=2012.12.07, col7=2012.07M, col8=13:30:00.008, col9=13:30m, col10=13:30:00, col11=2013.06.12 13:30:00, col12=2013.06.12 12:30:00.008, col13=14:30:10.008007006, col14=2013.06.13 13:30:10.008007006, col15=4.1f, col16=4.1, col17=\"hello2323\", col18=\"world2323\", col19=uuid(\"3d457e79-1bed-d6c2-3612-b0d31c1881f6\"), col20=datehour(2013.06.13 13:30:10), col21=ipaddr(\"192.168.0.253\"), col22=int128(\"e1221797c52e15f763380b45e841ec32\"), col23=blob(\"123fff\"), col24=complex(-111,-1), col25=point(-1,-2), col26=decimal32(-1.1,2), col27=decimal64(-1.1,7), col28=decimal128(-1.1,18)");
         ps4.executeUpdate();
         PreparedStatement ps5 = conn.prepareStatement("select * from tt1");
         JDBCResultSet rs3 = (JDBCResultSet)ps5.executeQuery();
@@ -11143,7 +11144,7 @@ public class JDBCPrepareStatementTest {
             re = ex.getMessage();
         }
         System.out.println(re);
-        org.junit.Assert.assertEquals("java.sql.SQLException: java.sql.SQLTimeoutException: Statement execute update timed out after 1 seconds.", re);
+        org.junit.Assert.assertEquals("java.sql.SQLTimeoutException: Statement execute update timed out after 1 seconds.", re);
     }
     @Test
     public void test_PreparedStatement_execute_not_timeout() throws SQLException, IOException, ClassNotFoundException {
@@ -11184,7 +11185,7 @@ public class JDBCPrepareStatementTest {
             re = ex.getMessage();
         }
         System.out.println(re);
-        org.junit.Assert.assertEquals("java.sql.SQLException: java.sql.SQLTimeoutException: Statement execute update timed out after 1 seconds.", re);
+        org.junit.Assert.assertEquals("java.sql.SQLTimeoutException: Statement execute update timed out after 1 seconds.", re);
     }
 
     @Test
@@ -11261,7 +11262,7 @@ public class JDBCPrepareStatementTest {
                 re = ex.getMessage();
             }
             System.out.println(re);
-            org.junit.Assert.assertEquals("java.sql.SQLTimeoutException: Statement execute update timed out after 1 seconds.", re);
+            org.junit.Assert.assertEquals("Statement execute update timed out after 1 seconds.", re);
         }
     @Test
     public void test_PreparedStatement_executeBatch_not_timeout() throws SQLException, IOException, ClassNotFoundException {
@@ -11341,7 +11342,7 @@ public class JDBCPrepareStatementTest {
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
         System.out.println("代码运行时间: " + duration + " 毫秒");
-        org.junit.Assert.assertEquals("java.sql.SQLTimeoutException: Statement execute update timed out after 1 seconds.", re);
+        org.junit.Assert.assertEquals("Statement execute update timed out after 1 seconds.", re);
         db.run("sleep(6000)");
         pstmt = conn.prepareStatement("select rootJobId from getConsoleJobs() where userID = `usercancelConsoleJob");
         JDBCResultSet rs = (JDBCResultSet)pstmt.executeQuery();
